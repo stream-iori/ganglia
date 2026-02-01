@@ -1,12 +1,13 @@
 package me.stream.ganglia.core.llm;
 
-import com.openai.client.OpenAIClient;
-import com.openai.client.okhttp.OpenAIOkHttpClient;
-import com.openai.core.http.StreamResponse;
+import com.openai.client.OpenAIClientAsync;
+import com.openai.client.okhttp.OpenAIOkHttpClientAsync;
+import com.openai.core.http.AsyncStreamResponse;
 import com.openai.models.ChatModel;
 import com.openai.models.FunctionDefinition;
 import com.openai.models.chat.completions.*;
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.NoStackTraceThrowable;
 import me.stream.ganglia.core.model.*;
@@ -22,12 +23,12 @@ import java.util.stream.Collectors;
 
 public class OpenAIModelGateway implements ModelGateway {
     private static final Logger logger = LoggerFactory.getLogger(OpenAIModelGateway.class);
-    private final OpenAIClient client;
+    private final OpenAIClientAsync client;
     private final Vertx vertx;
 
     public OpenAIModelGateway(Vertx vertx, String apiKey, String baseUrl) {
         this.vertx = vertx;
-        this.client = OpenAIOkHttpClient.builder()
+        this.client = OpenAIOkHttpClientAsync.builder()
                 .apiKey(apiKey)
                 .baseUrl(baseUrl)
                 .build();
@@ -35,58 +36,57 @@ public class OpenAIModelGateway implements ModelGateway {
 
     @Override
     public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
-        return vertx.executeBlocking(() -> {
-            try {
-                ChatCompletionCreateParams params = buildParams(history, availableTools, options);
-                ChatCompletion completion = client.chat().completions().create(params);
-                
-                if (completion.choices().isEmpty()) {
-                    throw new NoStackTraceThrowable("No choices returned from OpenAI");
-                }
+        ChatCompletionCreateParams params = buildParams(history, availableTools, options);
+        
+        return Future.fromCompletionStage(client.chat().completions().create(params))
+                .map(completion -> {
+                    if (completion.choices().isEmpty()) {
+                        throw new NoStackTraceThrowable("No choices returned from OpenAI");
+                    }
 
-                ChatCompletion.Choice choice = completion.choices().get(0);
-                String content = choice.message().content().orElse("");
-                
-                List<ToolCall> toolCalls = convertToolCalls(choice.message().toolCalls());
-                
-                // Extract usage
-                int promptTokens = completion.usage().map(u -> (int)u.promptTokens()).orElse(0);
-                int completionTokens = completion.usage().map(u -> (int)u.completionTokens()).orElse(0);
-                
-                return new ModelResponse(content, toolCalls, new TokenUsage(promptTokens, completionTokens));
-            } catch (Exception e) {
-                logger.error("Error calling OpenAI API", e);
-                throw e;
-            }
-        });
+                    ChatCompletion.Choice choice = completion.choices().get(0);
+                    String content = choice.message().content().orElse("");
+                    
+                    List<ToolCall> toolCalls = convertToolCalls(choice.message().toolCalls());
+                    
+                    // Extract usage
+                    int promptTokens = completion.usage().map(u -> (int)u.promptTokens()).orElse(0);
+                    int completionTokens = completion.usage().map(u -> (int)u.completionTokens()).orElse(0);
+                    
+                    return new ModelResponse(content, toolCalls, new TokenUsage(promptTokens, completionTokens));
+                });
     }
 
     @Override
     public Future<Void> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String streamAddress) {
-        return vertx.executeBlocking(() -> {
-            try {
-                ChatCompletionCreateParams params = buildParams(history, availableTools, options);
-                try (StreamResponse<ChatCompletionChunk> stream = client.chat().completions().createStreaming(params)) {
-                    stream.stream().forEach(chunk -> {
-                        if (!chunk.choices().isEmpty()) {
-                            ChatCompletionChunk.Choice choice = chunk.choices().get(0);
-                            // Handling content chunks
-                            choice.delta().content().ifPresent(content -> {
-                                if (!content.isEmpty()) {
-                                    vertx.eventBus().publish(streamAddress, content);
-                                }
-                            });
-                            // TODO: Handle ToolCall streaming (accumulator) if needed. 
-                            // For now, focusing on text streaming.
+        ChatCompletionCreateParams params = buildParams(history, availableTools, options);
+        Promise<Void> promise = Promise.promise();
+
+        AsyncStreamResponse<ChatCompletionChunk> stream = client.chat().completions().createStreaming(params);
+        stream.subscribe(new AsyncStreamResponse.Handler<ChatCompletionChunk>() {
+            @Override
+            public void onNext(ChatCompletionChunk chunk) {
+                if (!chunk.choices().isEmpty()) {
+                    ChatCompletionChunk.Choice choice = chunk.choices().get(0);
+                    choice.delta().content().ifPresent(content -> {
+                        if (!content.isEmpty()) {
+                            vertx.eventBus().publish(streamAddress, content);
                         }
                     });
                 }
-                return null;
-            } catch (Exception e) {
-                logger.error("Error streaming from OpenAI API", e);
-                throw e;
+            }
+
+            @Override
+            public void onComplete(Optional<Throwable> throwable) {
+                if (throwable.isPresent()) {
+                    promise.fail(throwable.get());
+                } else {
+                    promise.complete();
+                }
             }
         });
+
+        return promise.future();
     }
 
     private ChatCompletionCreateParams buildParams(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
