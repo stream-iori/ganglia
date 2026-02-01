@@ -23,11 +23,11 @@ public class BashFileSystemTools {
 
     public List<ToolDefinition> getDefinitions() {
         return List.of(
-            new ToolDefinition("ls", "List files in a directory using bash ls", 
-                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}", 
+            new ToolDefinition("ls", "List files in a directory using bash ls",
+                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}",
                 ToolType.BUILTIN),
-            new ToolDefinition("cat", "Read content of a file using bash cat", 
-                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}", 
+            new ToolDefinition("cat", "Read content of a file using bash cat",
+                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}",
                 ToolType.BUILTIN)
         );
     }
@@ -45,15 +45,15 @@ public class BashFileSystemTools {
     private Future<String> executeBash(String command) {
         return vertx.executeBlocking(() -> {
             try {
-                Process process = Runtime.getRuntime().exec(new String[]{"/bin/bash", "-c", command});
+                ProcessBuilder pb = new ProcessBuilder("/bin/bash", "-c", command);
+                pb.redirectErrorStream(true); // Combine stdout and stderr
+                Process process = pb.start();
+                
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                     String output = reader.lines().collect(Collectors.joining("\n"));
-                    process.waitFor();
-                    if (process.exitValue() != 0) {
-                        try (BufferedReader errReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
-                            String error = errReader.lines().collect(Collectors.joining("\n"));
-                            return "Error executing command: " + error;
-                        }
+                    int exitCode = process.waitFor();
+                    if (exitCode != 0) {
+                        return "Error executing command (exit code " + exitCode + "): " + output;
                     }
                     return output;
                 }
