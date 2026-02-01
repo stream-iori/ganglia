@@ -15,19 +15,25 @@
 *   **Response:** The system shall provide a final natural language response to the user.
 
 #### 1.1.2 Exception Handling
-*   **Tool Failures:** The system shall capture tool execution errors (e.g., "File not found", "Command failed") and feed them back to the agent as an Observation, allowing the agent to self-correct.
-*   **Loop Limits:** The system shall enforce a maximum number of iterations (e.g., 20 steps) to prevent infinite loops, returning a "Max steps reached" error if exceeded.
-*   **Hallucination Detection:** (Future) The system shall attempt to detect cyclic or repetitive behavior and intervene.
+*   **Structured Tool Failures:** The system shall capture structured tool execution errors via `ToolErrorResult` (e.g., Timeout, Size Limit Exceeded, Command Failed) and feed the detailed context back to the agent for self-correction.
+*   **Memory Protection:** The system shall enforce a maximum output size (e.g., 16MB) for all tool executions to prevent memory exhaustion.
+*   **Loop Limits:** The system shall enforce a maximum number of iterations (e.g., 20 steps) to prevent infinite loops.
 
 ### 1.2 Tooling System ("The Hands")
-*   **Tool Definition:** The framework shall support defining tools via Java annotations (`@AgentTool`).
-*   **Schema Generation:** The system shall automatically generate JSON Schemas for tools to be used by the LLM.
-*   **Standard Library:**
-    *   **FileSystem:** `Read`, `Write` (Atomic), `Edit` (Patching).
-    *   **Code Navigation:** `Grep` (Regex search), `Glob` (File finding).
-    *   **System:** `Bash` (Command execution).
-    *   **Network:** `WebFetch` (HTTP requests).
-*   **Sandboxing:** Tools marked as unsafe shall execute within a restricted environment (sandbox).
+*   **Built-in Tools (Standard Library):**
+    *   **Local Filesystem (Bash-based):** Optimized system commands (e.g., `ls`, `cat`) with mandatory timeout and output size limits.
+    *   **Local Filesystem (Vert.x-based):** Native non-blocking Java operations for higher stability in concurrent environments.
+    *   **HTTP/Network (Curl-based):** Robust networking implemented via `curl`.
+    *   **ToDo & Plan Management:** Agent-managed internal task list persisted in session context.
+*   **Extension Tools (User-defined):**
+    *   **Custom Implementation:** The framework shall allow users to define domain-specific tools in Java.
+    *   **Discovery:** Extension tools shall be registered via classpath scanning (annotations) or external JAR loading.
+*   **Tool Definition & Schema:**
+    *   **Annotations:** Tools shall be defined using `@AgentTool` annotations on Java methods.
+    *   **Auto-Schema:** The system shall automatically generate OpenAI-compatible JSON schemas from method signatures.
+*   **Sandboxing & Safety:**
+    *   **Scope Restriction:** Bash-based tools shall be confined to the project root or specified safe directories.
+    *   **Interrupts:** Tools marked as `@Sensitive` must pause for user confirmation.
 
 ### 1.3 Memory & Context ("The Brain")
 *   **Ephemeral Memory:** The system shall log all interactions (thoughts, tool calls, results) to a daily markdown file (`.ganglia/logs/YYYY-MM-DD.md`).

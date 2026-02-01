@@ -39,13 +39,14 @@ The core design philosophy is inspired by **Claude Code**: a single, powerful co
 - **Streaming:** Built on Java Flow API / Reactor for real-time user feedback.
 
 ### 3.2 Tooling & Actuation ("The Hands")
-
 - **Definition:** Tools are defined via Java annotations (`@AgentTool`) with automatic JSON Schema generation.
 - **Hybrid Toolset:**
-  - **Low-Level:** `Bash` execution, `FileWrite` (Atomic).
+  - **Low-Level:** `Bash` execution (via `BashFileSystemTools`), `FileWrite` (Atomic).
   - **High-Level:** `Grep`, `Glob`, `Edit` (Smart code replacement), `WebFetch`.
+- **Structured Error Handling:** Tools return a `ToolErrorResult` upon failure, allowing the agent to distinguish between timeouts, size limit breaches, and execution errors.
 - **Safety:**
   - **Sandbox:** Execution of untrusted code in isolated environments.
+  - **Memory Protection:** Built-in safeguards to prevent memory exhaustion from large tool outputs (e.g., 16MB limit).
   - **Human-in-the-Loop:** Tools marked as "Sensitive" require explicit user confirmation.
 
 ### 3.3 The Memory System ("The Context")

@@ -95,6 +95,23 @@ classDiagram
         +type: ToolType
     }
 
+    class ToolErrorResult {
+        <<Record>>
+        +toolName: String
+        +errorType: ErrorType
+        +message: String
+        +exitCode: Integer
+        +partialOutput: String
+    }
+
+    class ToolExecutionException {
+        <<Exception>>
+        +errorResult: ToolErrorResult
+    }
+
+    ToolExecutionException *-- ToolErrorResult
+    ToolExecutor ..> ToolExecutionException : throws
+
     ReActAgentLoop --> ModelGateway : uses
     ReActAgentLoop --> StateEngine : persists state
     ReActAgentLoop --> PromptEngine : constructs prompts

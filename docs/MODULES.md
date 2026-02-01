@@ -29,14 +29,16 @@ This document decomposes the Ganglia system into logical modules based on functi
 
 **Responsibility:** Discovery, definition, and safe execution of tools ("The Hands").
 
-- **Components:**
-  - `ToolRegistry`: Scans and registers classes annotated with `@AgentTool`.
-  - `SchemaGenerator`: Converts Java method signatures into JSON Schema for the LLM.
-  - `ToolExecutor`: Invokes the actual Java methods based on LLM output.
-  - **Standard Library:**
-    - `fs-tools`: Read, Write, Edit, Glob.
-    - `sys-tools`: Bash execution.
-    - `net-tools`: HTTP client.
+*   **Components:**
+    *   `ToolRegistry`: Scans and registers classes annotated with `@AgentTool`.
+    *   `SchemaGenerator`: Converts Java method signatures into JSON Schema for the LLM.
+    *   `ToolExecutor`: Invokes tools and handles structured error mapping (`ToolErrorResult`).
+    *   `ExecutionGuard`: Enforces timeouts and memory output limits (16MB).
+    *   **Standard Library:**
+        *   `bash-tools`: Native command execution (ls, cat).
+        *   `vertx-fs-tools`: Non-blocking Java FS.
+        *   `net-tools`: HTTP client.
+
 
 ## 4. Skill System (Module: `ganglia-skills`)
 **Responsibility:** Packaging and management of industry-specific expertise (Knowledge + Tools).
