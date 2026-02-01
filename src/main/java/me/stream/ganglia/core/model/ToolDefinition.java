@@ -6,5 +6,6 @@ package me.stream.ganglia.core.model;
 public record ToolDefinition(
     String name,
     String description,
-    String jsonSchema // The JSON Schema defining the arguments
+    String jsonSchema, // The JSON Schema defining the arguments
+    ToolType type // BUILTIN or EXTENSION
 ) {}

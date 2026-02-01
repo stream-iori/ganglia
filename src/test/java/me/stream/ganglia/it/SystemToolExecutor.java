@@ -52,8 +52,8 @@ public class SystemToolExecutor implements ToolExecutor {
     @Override
     public List<ToolDefinition> getAvailableTools() {
         return List.of(
-            new ToolDefinition("ls", "List files in a directory", "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}}}"),
-            new ToolDefinition("read", "Read content of a file", "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}}}")
+            new ToolDefinition("ls", "List files in a directory", "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}}}", me.stream.ganglia.core.model.ToolType.BUILTIN),
+            new ToolDefinition("read", "Read content of a file", "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}}}", me.stream.ganglia.core.model.ToolType.BUILTIN)
         );
     }
 }

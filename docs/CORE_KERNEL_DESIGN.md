@@ -81,6 +81,20 @@ classDiagram
         +arguments: Map~String, Object~
     }
 
+    class ToolType {
+        <<Enum>>
+        BUILTIN
+        EXTENSION
+    }
+
+    class ToolDefinition {
+        <<Record>>
+        +name: String
+        +description: String
+        +jsonSchema: String
+        +type: ToolType
+    }
+
     ReActAgentLoop --> ModelGateway : uses
     ReActAgentLoop --> StateEngine : persists state
     ReActAgentLoop --> PromptEngine : constructs prompts
