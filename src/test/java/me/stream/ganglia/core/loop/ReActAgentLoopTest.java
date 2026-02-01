@@ -1,5 +1,6 @@
 package me.stream.ganglia.core.loop;
 
+import io.vertx.core.Future;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
@@ -10,8 +11,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Flow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,8 +29,8 @@ class ReActAgentLoopTest {
         ReActAgentLoop loop = new ReActAgentLoop(model, tools, state, prompt, 5);
         SessionContext context = new SessionContext("test-session", Collections.emptyList(), Collections.emptyMap(), Collections.emptyList());
 
-        // Run
-        String result = loop.run("Hello", context).toCompletableFuture().get();
+        // Run (Wait for Future to complete)
+        String result = loop.run("Hello", context).toCompletionStage().toCompletableFuture().get();
 
         // Verify
         assertEquals("Final Answer", result);
@@ -45,15 +44,15 @@ class ReActAgentLoopTest {
         int callCount = 0;
 
         @Override
-        public CompletionStage<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
+        public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
             callCount++;
             // 1st call: Return a tool call
             if (callCount == 1) {
                 ToolCall call = new ToolCall("call-1", "test-tool", Map.of("arg", "val"));
-                return CompletableFuture.completedFuture(new ModelResponse("Thinking...", List.of(call), new TokenUsage(10, 10)));
+                return Future.succeededFuture(new ModelResponse("Thinking...", List.of(call), new TokenUsage(10, 10)));
             }
             // 2nd call: Return final answer
-            return CompletableFuture.completedFuture(new ModelResponse("Final Answer", Collections.emptyList(), new TokenUsage(10, 10)));
+            return Future.succeededFuture(new ModelResponse("Final Answer", Collections.emptyList(), new TokenUsage(10, 10)));
         }
 
         @Override
@@ -66,9 +65,9 @@ class ReActAgentLoopTest {
         int executionCount = 0;
 
         @Override
-        public CompletionStage<String> execute(ToolCall toolCall) {
+        public Future<String> execute(ToolCall toolCall) {
             executionCount++;
-            return CompletableFuture.completedFuture("Tool Result");
+            return Future.succeededFuture("Tool Result");
         }
 
         @Override
@@ -79,13 +78,13 @@ class ReActAgentLoopTest {
 
     static class MockStateEngine implements StateEngine {
         @Override
-        public CompletionStage<SessionContext> loadSession(String sessionId) {
-            return null; 
+        public Future<SessionContext> loadSession(String sessionId) {
+            return Future.succeededFuture(null);
         }
 
         @Override
-        public CompletionStage<Void> saveSession(SessionContext context) {
-            return CompletableFuture.completedFuture(null);
+        public Future<Void> saveSession(SessionContext context) {
+            return Future.succeededFuture();
         }
 
         @Override
