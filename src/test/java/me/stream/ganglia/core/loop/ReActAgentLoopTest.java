@@ -56,8 +56,8 @@ class ReActAgentLoopTest {
         }
 
         @Override
-        public Flow.Publisher<String> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
-            return null; // Not used
+        public Future<Void> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String streamAddress) {
+            return Future.succeededFuture(); // Not used in test
         }
     }
 

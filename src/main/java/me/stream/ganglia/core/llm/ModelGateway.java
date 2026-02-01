@@ -22,10 +22,12 @@ public interface ModelGateway {
 
     /**
      * Streaming version of chat.
+     * Publishes tokens to the specified EventBus address.
      */
-    Flow.Publisher<String> chatStream(
+    Future<Void> chatStream(
         List<Message> history,
         List<ToolDefinition> availableTools,
-        ModelOptions options
+        ModelOptions options,
+        String streamAddress
     );
 }
