@@ -46,14 +46,12 @@ class ReActAgentLoopTest {
 
         // 1st Model Call: Returns a Tool Call
         ToolCall toolCall = new ToolCall("call-1", "test-tool", Map.of("arg", "val"));
+        // Even if we returned multiple, the loop should only execute the first one.
         ModelResponse toolResponse = new ModelResponse("Thinking...", List.of(toolCall), new TokenUsage(10, 10));
         
         // 2nd Model Call: Returns Final Answer
         ModelResponse finalResponse = new ModelResponse("Final Answer", Collections.emptyList(), new TokenUsage(10, 10));
 
-        // We need to mock the sequence of model calls.
-        // Note: The history passed to the model changes on each call. 
-        // For simplicity in this test, we can use `anyList()` or capture arguments if we want to be strict.
         when(model.chat(anyList(), anyList(), eq(options)))
                 .thenReturn(Future.succeededFuture(toolResponse)) // 1st call
                 .thenReturn(Future.succeededFuture(finalResponse)); // 2nd call

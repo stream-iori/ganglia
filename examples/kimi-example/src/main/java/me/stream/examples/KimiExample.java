@@ -9,11 +9,7 @@ import com.openai.models.chat.completions.ChatCompletionCreateParams;
 public class KimiExample {
 
     public static void main(String[] args) {
-        // Hardcoded API Key
         String apiKey = "sk-5PeYdPKvZwkM4tm1fks09vVhL39SAFVajnm2Nrir5l2xaju9";
-        
-        System.out.println("Initializing Kimi Client with hardcoded key...");
-
         // Initialize the client with Kimi's base URL and the API key
         OpenAIClient client = OpenAIOkHttpClient.builder()
                 .apiKey(apiKey)
@@ -23,7 +19,7 @@ public class KimiExample {
         // Create a chat completion request
         ChatCompletionCreateParams params = ChatCompletionCreateParams.builder()
                 .model(ChatModel.of("moonshot-v1-8k")) // Use Kimi's model name
-                .addUserMessage("Hello, Kimi! Are you running from a standalone example?")
+                .addUserMessage("Hello, Kimi! Who are you?")
                 .build();
 
         try {
@@ -35,7 +31,7 @@ public class KimiExample {
             System.err.println("Error calling Kimi API: " + e.getMessage());
             e.printStackTrace();
         } finally {
-            // Force exit to cleanup OkHttp threads
+            // Force exit to cleanup OkHttp threads if client doesn't support close()
             System.exit(0);
         }
     }

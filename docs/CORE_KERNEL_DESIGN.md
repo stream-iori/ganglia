@@ -121,12 +121,12 @@ sequenceDiagram
         AgentLoop->>Context: withNewMessage(AssistantMessage)
         
         alt Has Tool Calls?
-            Note over AgentLoop, ToolExec: 3. Execution Phase
-            loop For each ToolCall
-                AgentLoop->>ToolExec: execute(ToolCall)
-                ToolExec-->>AgentLoop: ToolResult (Observation)
-                AgentLoop->>Context: withNewMessage(ToolMessage/Observation)
-            end
+            Note over AgentLoop, ToolExec: 3. Execution Phase (Sequential)
+            
+            AgentLoop->>ToolExec: execute(FirstToolCall)
+            ToolExec-->>AgentLoop: ToolResult (Observation)
+            AgentLoop->>Context: withNewMessage(ToolMessage/Observation)
+            
             AgentLoop->>State: saveSession(Context)
             Note right of AgentLoop: Continue Loop -> Feed Observation back to Model
             

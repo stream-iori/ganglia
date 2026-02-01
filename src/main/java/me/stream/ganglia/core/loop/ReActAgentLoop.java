@@ -1,6 +1,5 @@
 package me.stream.ganglia.core.loop;
 
-import io.vertx.core.CompositeFuture;
 import io.vertx.core.Future;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
@@ -12,7 +11,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ReActAgentLoop implements AgentLoop {
     private static final Logger logger = LoggerFactory.getLogger(ReActAgentLoop.class);
@@ -52,10 +50,8 @@ public class ReActAgentLoop implements AgentLoop {
         modelHistory.add(new Message("sys-" + iteration, Role.SYSTEM, systemPromptContent, null, null, java.time.Instant.now()));
         modelHistory.addAll(currentContext.history());
 
-        // Use ModelOptions from the Context
         ModelOptions currentOptions = currentContext.modelOptions();
         if (currentOptions == null) {
-             // Fallback default if not set
              currentOptions = new ModelOptions(0.0, 4096, "default-model");
         }
 
@@ -69,30 +65,20 @@ public class ReActAgentLoop implements AgentLoop {
                     SessionContext nextContext = currentContext.withNewMessage(assistantMessage);
 
                     if (toolCalls != null && !toolCalls.isEmpty()) {
-                        // 3a. Execution Phase
-                        List<Future> toolExecutionFutures = toolCalls.stream()
-                                .map(call -> toolExecutor.execute(call)
-                                        .map(result -> Message.tool(call.id(), result)))
-                                .collect(Collectors.toList());
-
-                        List futures = new ArrayList<>(toolExecutionFutures);
-                        return Future.all(futures)
-                                .compose(composite -> {
-                                    // Collect results
-                                    List<Message> toolMessages = toolExecutionFutures.stream()
-                                            .map(f -> (Message) f.result())
-                                            .collect(Collectors.toList());
+                        // 3a. Execution Phase - SEQUENTIAL / SINGLE STEP
+                        // We take only the FIRST tool call to ensure we reason again after it.
+                        // This handles dependencies: Tool B might depend on Tool A's result.
+                        ToolCall firstToolCall = toolCalls.get(0);
+                        
+                        return toolExecutor.execute(firstToolCall)
+                                .map(result -> Message.tool(firstToolCall.id(), result))
+                                .compose(toolMsg -> {
+                                    // Update context
+                                    SessionContext contextWithTool = nextContext.withNewMessage(toolMsg);
                                     
-                                    // Update context with ALL tool results
-                                    SessionContext contextWithTools = nextContext;
-                                    for (Message msg : toolMessages) {
-                                        contextWithTools = contextWithTools.withNewMessage(msg);
-                                    }
-
                                     // Save state and Continue Loop
-                                    SessionContext finalContextWithTools = contextWithTools;
-                                    return stateEngine.saveSession(finalContextWithTools)
-                                            .compose(voidRes -> runLoop(finalContextWithTools, iteration + 1));
+                                    return stateEngine.saveSession(contextWithTool)
+                                            .compose(voidRes -> runLoop(contextWithTool, iteration + 1));
                                 });
                     } else {
                         // 3b. Final Answer
