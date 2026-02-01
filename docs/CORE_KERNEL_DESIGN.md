@@ -14,7 +14,7 @@ This diagram illustrates the relationships between the main entities: `AgentLoop
 classDiagram
     class AgentLoop {
         <<Interface>>
-        +run(userInput: String, context: SessionContext) CompletionStage~String~
+        +run(userInput: String, context: SessionContext) Future~String~
     }
     
     class ReActAgentLoop {
@@ -30,14 +30,14 @@ classDiagram
     
     class ModelGateway {
         <<Interface>>
-        +chat(history: List~Message~, tools: List~ToolDef~, opts: ModelOptions) CompletionStage~ModelResponse~
-        +chatStream(...) Publisher~ModelChunk~
+        +chat(history: List~Message~, tools: List~ToolDef~, opts: ModelOptions) Future~ModelResponse~
+        +chatStream(...) Future~Void~
     }
     
     class StateEngine {
         <<Interface>>
-        +loadSession(sessionId: String) CompletionStage~SessionContext~
-        +saveSession(context: SessionContext) CompletionStage~Void~
+        +loadSession(sessionId: String) Future~SessionContext~
+        +saveSession(context: SessionContext) Future~Void~
         +createSession() SessionContext
     }
     
@@ -154,7 +154,9 @@ classDiagram
     
     class OpenAIModelGateway {
         -client: OpenAIClient
+        -vertx: Vertx
         +chat(...)
+        +chatStream(...)
     }
     
     class AnthropicModelGateway {
