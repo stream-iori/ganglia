@@ -1,10 +1,10 @@
-# Caprice Memory Architecture
+# Ganglia Memory Architecture
 
 > **Philosophy:** "Memory as Code". Transparent, user-controlled, and file-based.
 
 ## 1. Overview
 
-Unlike traditional agent frameworks that rely heavily on hidden Vector Databases (RAG), Caprice treats memory as transparent files within the user's project. This allows users to read, edit, and version-control the agent's "knowledge".
+Unlike traditional agent frameworks that rely heavily on hidden Vector Databases (RAG), Ganglia treats memory as transparent files within the user's project. This allows users to read, edit, and version-control the agent's "knowledge".
 
 ## 2. The Two-Layer Structure
 
@@ -32,7 +32,7 @@ Unlike traditional agent frameworks that rely heavily on hidden Vector Databases
 
 ## 3. Retrieval Mechanism: "Agentic Search"
 
-Instead of passively stuffing the context window with RAG chunks, Caprice relies on **Active Retrieval**.
+Instead of passively stuffing the context window with RAG chunks, Ganglia relies on **Active Retrieval**.
 
 1.  **Trigger:** The agent recognizes a need for information (e.g., "I need to know the database schema").
 2.  **Action:** The agent uses its tools:
