@@ -2,19 +2,17 @@ package me.stream.ganglia.core.tools;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import me.stream.ganglia.core.model.ToolCall;
+import io.vertx.core.buffer.Buffer;
 import me.stream.ganglia.core.model.ToolDefinition;
 import me.stream.ganglia.core.model.ToolType;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Built-in tools for local filesystem operations.
+ * Built-in tools for local filesystem operations using Vert.x non-blocking APIs.
  */
 public class FileSystemTools {
     private final Vertx vertx;
@@ -26,34 +24,32 @@ public class FileSystemTools {
     public List<ToolDefinition> getDefinitions() {
         return List.of(
             new ToolDefinition("ls", "List files in a directory", 
-                "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}},\"required\":[\"path\"]}", 
+                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}", 
                 ToolType.BUILTIN),
             new ToolDefinition("read", "Read content of a file", 
-                "{\"type\":\"object\",\"properties\":{\"path\":{\"type\":\"string\"}},\"required\":[\"path\"]}", 
+                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}", 
                 ToolType.BUILTIN)
         );
     }
 
     public Future<String> ls(Map<String, Object> args) {
         String path = (String) args.get("path");
-        return vertx.executeBlocking(() -> {
-            File dir = new File(path);
-            File[] files = dir.listFiles();
-            if (files == null) return "Error: Directory not found or not accessible: " + path;
-            return Arrays.stream(files)
-                    .map(f -> f.isDirectory() ? f.getName() + "/" : f.getName())
-                    .collect(Collectors.joining("\n"));
-        });
+        return vertx.fileSystem().readDir(path)
+                .map(files -> files.stream()
+                        .map(f -> {
+                            // Vert.x readDir returns absolute paths. We strip them for cleaner output.
+                            // But for simplicity, we just return the name component.
+                            File file = new File(f);
+                            return file.isDirectory() ? file.getName() + "/" : file.getName();
+                        })
+                        .collect(Collectors.joining("\n")))
+                .recover(err -> Future.succeededFuture("Error listing directory: " + err.getMessage()));
     }
 
     public Future<String> read(Map<String, Object> args) {
         String path = (String) args.get("path");
-        return vertx.executeBlocking(() -> {
-            try {
-                return Files.readString(new File(path).toPath());
-            } catch (Exception e) {
-                return "Error reading file: " + e.getMessage();
-            }
-        });
+        return vertx.fileSystem().readFile(path)
+                .map(Buffer::toString)
+                .recover(err -> Future.succeededFuture("Error reading file: " + err.getMessage()));
     }
 }
