@@ -2,6 +2,7 @@ package me.stream.ganglia.core.llm;
 
 import com.openai.client.OpenAIClient;
 import com.openai.client.okhttp.OpenAIOkHttpClient;
+import com.openai.core.http.StreamResponse;
 import com.openai.models.ChatModel;
 import com.openai.models.FunctionDefinition;
 import com.openai.models.chat.completions.*;
@@ -62,8 +63,30 @@ public class OpenAIModelGateway implements ModelGateway {
 
     @Override
     public Future<Void> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String streamAddress) {
-        // TODO: Implement streaming using client.chat().completions().createStreaming(params)
-        return Future.failedFuture("Streaming not yet implemented for OpenAIModelGateway");
+        return vertx.executeBlocking(() -> {
+            try {
+                ChatCompletionCreateParams params = buildParams(history, availableTools, options);
+                try (StreamResponse<ChatCompletionChunk> stream = client.chat().completions().createStreaming(params)) {
+                    stream.stream().forEach(chunk -> {
+                        if (!chunk.choices().isEmpty()) {
+                            ChatCompletionChunk.Choice choice = chunk.choices().get(0);
+                            // Handling content chunks
+                            choice.delta().content().ifPresent(content -> {
+                                if (!content.isEmpty()) {
+                                    vertx.eventBus().publish(streamAddress, content);
+                                }
+                            });
+                            // TODO: Handle ToolCall streaming (accumulator) if needed. 
+                            // For now, focusing on text streaming.
+                        }
+                    });
+                }
+                return null;
+            } catch (Exception e) {
+                logger.error("Error streaming from OpenAI API", e);
+                throw e;
+            }
+        });
     }
 
     private ChatCompletionCreateParams buildParams(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
