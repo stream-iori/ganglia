@@ -12,21 +12,21 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Built-in tools for local filesystem operations using Vert.x non-blocking APIs.
+ * Built-in tools for local filesystem operations using JVM/Vert.x APIs.
  */
-public class FileSystemTools {
+public class JVMFileSystemTools {
     private final Vertx vertx;
 
-    public FileSystemTools(Vertx vertx) {
+    public JVMFileSystemTools(Vertx vertx) {
         this.vertx = vertx;
     }
 
     public List<ToolDefinition> getDefinitions() {
         return List.of(
-            new ToolDefinition("ls", "List files in a directory", 
+            new ToolDefinition("jvm_ls", "List files in a directory using JVM API", 
                 "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}", 
                 ToolType.BUILTIN),
-            new ToolDefinition("read", "Read content of a file", 
+            new ToolDefinition("jvm_read", "Read content of a file using JVM API", 
                 "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}", 
                 ToolType.BUILTIN)
         );
@@ -37,8 +37,6 @@ public class FileSystemTools {
         return vertx.fileSystem().readDir(path)
                 .map(files -> files.stream()
                         .map(f -> {
-                            // Vert.x readDir returns absolute paths. We strip them for cleaner output.
-                            // But for simplicity, we just return the name component.
                             File file = new File(f);
                             return file.isDirectory() ? file.getName() + "/" : file.getName();
                         })

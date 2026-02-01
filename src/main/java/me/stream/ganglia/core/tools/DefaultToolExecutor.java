@@ -11,28 +11,30 @@ import java.util.List;
  * Default implementation of ToolExecutor that orchestrates built-in tool sets.
  */
 public class DefaultToolExecutor implements ToolExecutor {
-    private final FileSystemTools fsTools;
+    private final JVMFileSystemTools jvmFsTools;
+    private final BashFileSystemTools bashFsTools;
 
     public DefaultToolExecutor(ToolsFactory factory) {
-        this.fsTools = factory.getFileSystemTools();
+        this.jvmFsTools = factory.getJvmFileSystemTools();
+        this.bashFsTools = factory.getBashFileSystemTools();
     }
 
     @Override
     public Future<String> execute(ToolCall toolCall) {
-        switch (toolCall.toolName()) {
-            case "ls":
-                return fsTools.ls(toolCall.arguments());
-            case "read":
-                return fsTools.read(toolCall.arguments());
-            default:
-                return Future.failedFuture("Unknown tool: " + toolCall.toolName());
-        }
+        return switch (toolCall.toolName()) {
+            case "jvm_ls" -> jvmFsTools.ls(toolCall.arguments());
+            case "jvm_read" -> jvmFsTools.read(toolCall.arguments());
+            case "ls" -> bashFsTools.ls(toolCall.arguments());
+            case "cat" -> bashFsTools.cat(toolCall.arguments());
+            default -> Future.failedFuture("Unknown tool: " + toolCall.toolName());
+        };
     }
 
     @Override
     public List<ToolDefinition> getAvailableTools() {
         List<ToolDefinition> tools = new ArrayList<>();
-        tools.addAll(fsTools.getDefinitions());
+        tools.addAll(jvmFsTools.getDefinitions());
+        tools.addAll(bashFsTools.getDefinitions());
         return tools;
     }
 }
