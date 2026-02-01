@@ -6,6 +6,7 @@ import com.openai.core.http.AsyncStreamResponse;
 import com.openai.helpers.ChatCompletionAccumulator;
 import com.openai.models.ChatModel;
 import com.openai.models.FunctionDefinition;
+import com.openai.models.FunctionParameters;
 import com.openai.models.chat.completions.*;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
@@ -15,7 +16,6 @@ import me.stream.ganglia.core.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -38,7 +38,7 @@ public class OpenAIModelGateway implements ModelGateway {
     @Override
     public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
         ChatCompletionCreateParams params = buildParams(history, availableTools, options);
-        
+
         return Future.fromCompletionStage(client.chat().completions().create(params))
                 .map(this::toModelResponse);
     }
@@ -47,7 +47,7 @@ public class OpenAIModelGateway implements ModelGateway {
     public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String streamAddress) {
         ChatCompletionCreateParams params = buildParams(history, availableTools, options);
         Promise<ModelResponse> promise = Promise.promise();
-        
+
         // Use OpenAI SDK Accumulator
         ChatCompletionAccumulator accumulator = ChatCompletionAccumulator.create();
 
@@ -93,13 +93,13 @@ public class OpenAIModelGateway implements ModelGateway {
 
         ChatCompletion.Choice choice = completion.choices().get(0);
         String content = choice.message().content().orElse("");
-        
+
         List<ToolCall> toolCalls = convertToolCalls(choice.message().toolCalls());
-        
+
         // Extract usage
         int promptTokens = completion.usage().map(u -> (int)u.promptTokens()).orElse(0);
         int completionTokens = completion.usage().map(u -> (int)u.completionTokens()).orElse(0);
-        
+
         return new ModelResponse(content, toolCalls, new TokenUsage(promptTokens, completionTokens));
     }
 
@@ -167,12 +167,21 @@ public class OpenAIModelGateway implements ModelGateway {
     }
 
     private ChatCompletionTool convertTool(ToolDefinition tool) {
+        FunctionDefinition.Builder functionBuilder = FunctionDefinition.builder()
+                .name(tool.name())
+                .description(tool.description());
+
+        if (tool.jsonSchema() != null && !tool.jsonSchema().isEmpty()) {
+            Map<String, Object> schemaMap = parseJson(tool.jsonSchema());
+            FunctionParameters.Builder paramsBuilder = FunctionParameters.builder();
+            schemaMap.forEach((key, value) -> {
+                paramsBuilder.putAdditionalProperty(key, com.openai.core.JsonValue.from(value));
+            });
+            functionBuilder.parameters(paramsBuilder.build());
+        }
+
         ChatCompletionFunctionTool functionTool = ChatCompletionFunctionTool.builder()
-                .function(FunctionDefinition.builder()
-                        .name(tool.name())
-                        .description(tool.description())
-                        // .parameters(...)
-                        .build())
+                .function(functionBuilder.build())
                 .build();
         
         return ChatCompletionTool.ofFunction(functionTool);
