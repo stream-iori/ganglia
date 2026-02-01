@@ -1,196 +1,171 @@
 # Ganglia Core Kernel Design
 
 > **Module:** `ganglia-core`
-> **Status:** Detailed Design
+> **Status:** Detailed Design (UML & Sequence)
 > **Package:** `me.stream.ganglia.core`
 
-This document outlines the detailed class and interface definitions for the Core Kernel module.
+This document outlines the detailed design for the Core Kernel module using UML and Sequence diagrams.
 
-## 1. Domain Models (Records)
+## 1. Class Diagram: Core Components
 
-Immutable data structures representing the core entities of the agent loop.
+This diagram illustrates the relationships between the main entities: `AgentLoop`, `ModelGateway`, `StateEngine`, and the Domain Models.
 
-```java
-package me.stream.ganglia.core.model;
-
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-/**
- * Represents a single message in the conversation history.
- */
-public record Message(
-    String id,
-    Role role, // SYSTEM, USER, ASSISTANT, TOOL
-    String content,
-    List<ToolCall> toolCalls, // Present if role is ASSISTANT and tools are called
-    String toolCallId, // Present if role is TOOL (linking to the call)
-    Instant timestamp
-) {}
-
-public enum Role {
-    SYSTEM, USER, ASSISTANT, TOOL
-}
-
-/**
- * Represents a request for the agent to execute a tool.
- */
-public record ToolCall(
-    String id,
-    String toolName,
-    Map<String, Object> arguments // Parsed JSON arguments
-) {}
-
-/**
- * Represents the full context of a running session.
- */
-public record SessionContext(
-    String sessionId,
-    List<Message> history,
-    Map<String, Object> metadata, // Arbitrary session metadata
-    List<String> activeSkillIds // Currently active skills
-) {
-    public SessionContext withNewMessage(Message msg) {
-        // Returns a new SessionContext with the message appended
-        // Implementation logic...
-        return this;
+```mermaid
+classDiagram
+    class AgentLoop {
+        <<Interface>>
+        +run(userInput: String, context: SessionContext) CompletionStage~String~
     }
-}
-```
-
-## 2. Model Abstraction (`ModelGateway`)
-
-The interface for interacting with LLMs, abstracting away provider specifics (OpenAI, Anthropic).
-
-```java
-package me.stream.ganglia.core.llm;
-
-import me.stream.ganglia.core.model.Message;
-import me.stream.ganglia.core.model.ToolDefinition; // From tools module
-import java.util.concurrent.Flow; // Java Flow API for streaming
-
-public interface ModelGateway {
     
-    /**
-     * Sends a chat completion request to the LLM.
-     */
-    CompletionStage<ModelResponse> chat(
-        List<Message> history,
-        List<ToolDefinition> availableTools,
-        ModelOptions options
-    );
-
-    /**
-     * Streaming version of chat.
-     */
-    Flow.Publisher<ModelChunk> chatStream(
-        List<Message> history,
-        List<ToolDefinition> availableTools,
-        ModelOptions options
-    );
-}
-
-public record ModelResponse(
-    String content,
-    List<ToolCall> toolCalls,
-    TokenUsage usage
-) {}
-
-public record TokenUsage(int promptTokens, int completionTokens) {}
-```
-
-## 3. The Agent Loop (`AgentLoop`)
-
-The central orchestration engine implementing the ReAct logic.
-
-```java
-package me.stream.ganglia.core.loop;
-
-import me.stream.ganglia.core.llm.ModelGateway;
-import me.stream.ganglia.core.tools.ToolExecutor;
-import me.stream.ganglia.core.model.SessionContext;
-
-public interface AgentLoop {
-    
-    /**
-     * Starts or resumes the agent loop with a user input.
-     * Returns the final answer after the loop settles.
-     */
-    CompletionStage<String> run(String userInput, SessionContext context);
-}
-
-// Implementation
-public class ReActAgentLoop implements AgentLoop {
-    private final ModelGateway model;
-    private final ToolExecutor toolExecutor;
-    private final StateEngine stateEngine;
-    private final int maxIterations;
-
-    public CompletionStage<String> run(String userInput, SessionContext context) {
-        // 1. Append User Input to Context
-        // 2. Loop:
-        //    a. Call Model (Context + Tools)
-        //    b. If Text Content -> Stream to User (via UI callback)
-        //    c. If Tool Call -> 
-        //         i. Execute Tool (via ToolExecutor)
-        //         ii. Append Tool Output (Observation) to Context
-        //         iii. Continue Loop
-        //    d. If Final Answer or No Tool Call -> Break
-        // 3. Return Final Answer
+    class ReActAgentLoop {
+        -model: ModelGateway
+        -toolExecutor: ToolExecutor
+        -stateEngine: StateEngine
+        -promptEngine: PromptEngine
+        -maxIterations: int
+        +run(...)
     }
-}
+    
+    AgentLoop <|.. ReActAgentLoop
+    
+    class ModelGateway {
+        <<Interface>>
+        +chat(history: List~Message~, tools: List~ToolDef~, opts: ModelOptions) CompletionStage~ModelResponse~
+        +chatStream(...) Publisher~ModelChunk~
+    }
+    
+    class StateEngine {
+        <<Interface>>
+        +loadSession(sessionId: String) CompletionStage~SessionContext~
+        +saveSession(context: SessionContext) CompletionStage~Void~
+        +createSession() SessionContext
+    }
+    
+    class PromptEngine {
+        <<Interface>>
+        +buildSystemPrompt(context: SessionContext) String
+    }
+    
+    class SessionContext {
+        <<Record>>
+        +sessionId: String
+        +history: List~Message~
+        +metadata: Map~String, Object~
+        +activeSkillIds: List~String~
+        +withNewMessage(msg: Message) SessionContext
+    }
+    
+    class Message {
+        <<Record>>
+        +id: String
+        +role: Role
+        +content: String
+        +toolCalls: List~ToolCall~
+    }
+    
+    class ToolCall {
+        <<Record>>
+        +id: String
+        +toolName: String
+        +arguments: Map~String, Object~
+    }
+
+    ReActAgentLoop --> ModelGateway : uses
+    ReActAgentLoop --> StateEngine : persists state
+    ReActAgentLoop --> PromptEngine : constructs prompts
+    ReActAgentLoop ..> SessionContext : manipulates
+    SessionContext *-- Message
+    Message *-- ToolCall
 ```
 
-## 4. State Management (`StateEngine`)
+## 2. Sequence Diagram: The ReAct Loop
 
-Handles persistence and session lifecycle.
+This diagram details the flow of the `AgentLoop.run()` method, demonstrating the cycle of Thought -> Tool -> Observation.
 
-```java
-package me.stream.ganglia.core.state;
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User
+    participant AgentLoop
+    participant PromptEngine
+    participant Context as SessionContext
+    participant Model as ModelGateway
+    participant ToolExec as ToolExecutor
+    participant State as StateEngine
 
-import me.stream.ganglia.core.model.SessionContext;
-
-public interface StateEngine {
+    User->>AgentLoop: run(userInput, context)
     
-    /**
-     * Loads a session from disk/storage.
-     */
-    CompletionStage<SessionContext> loadSession(String sessionId);
+    Note over AgentLoop, Context: 1. Initialization
+    AgentLoop->>Context: withNewMessage(UserMessage)
+    AgentLoop->>State: saveSession(Context)
 
-    /**
-     * Saves the current state of a session.
-     * Must be atomic to ensure crash recovery.
-     */
-    CompletionStage<Void> saveSession(SessionContext context);
-    
-    /**
-     * Creates a new empty session.
-     */
-    SessionContext createSession();
-}
+    loop ReAct Cycle (Max N times)
+        Note over AgentLoop, Model: 2. Reasoning Phase
+        AgentLoop->>PromptEngine: buildSystemPrompt(Context)
+        PromptEngine-->>AgentLoop: systemPrompt
+        
+        AgentLoop->>Model: chat(history + systemPrompt, availableTools)
+        Model-->>AgentLoop: ModelResponse (Content + ToolCalls)
+        
+        AgentLoop->>Context: withNewMessage(AssistantMessage)
+        
+        alt Has Tool Calls?
+            Note over AgentLoop, ToolExec: 3. Execution Phase
+            loop For each ToolCall
+                AgentLoop->>ToolExec: execute(ToolCall)
+                ToolExec-->>AgentLoop: ToolResult (Observation)
+                AgentLoop->>Context: withNewMessage(ToolMessage/Observation)
+            end
+            AgentLoop->>State: saveSession(Context)
+            Note right of AgentLoop: Continue Loop -> Feed Observation back to Model
+            
+        else No Tool Calls (Final Answer)
+            Note right of AgentLoop: Break Loop
+        end
+    end
+
+    Note over AgentLoop, User: 4. Finalization
+    AgentLoop->>State: saveSession(Context)
+    AgentLoop-->>User: Final Response String
 ```
 
-## 5. Prompt Engine (`PromptEngine`)
+## 3. Class Diagram: Model Abstraction
 
-Constructs the dynamic system prompt.
+Detailing the hierarchy for supporting multiple LLM providers.
 
-```java
-package me.stream.ganglia.core.prompt;
-
-import me.stream.ganglia.core.model.SessionContext;
-
-public interface PromptEngine {
+```mermaid
+classDiagram
+    class ModelGateway {
+        <<Interface>>
+        +chat(...)
+        +chatStream(...)
+    }
     
-    /**
-     * Generates the System Message based on current context.
-     * Injects:
-     * - Base Persona
-     * - Active Skills instructions
-     * - Memory snippets (from Retrieval)
-     * - Time/Date/OS Context
-     */
-    String buildSystemPrompt(SessionContext context);
-}
+    class OpenAIModelGateway {
+        -client: OpenAIClient
+        +chat(...)
+    }
+    
+    class AnthropicModelGateway {
+        -client: AnthropicClient
+        +chat(...)
+    }
+    
+    class LocalModelGateway {
+        -client: HttpClient
+        +chat(...)
+    }
+    
+    ModelGateway <|.. OpenAIModelGateway
+    ModelGateway <|.. AnthropicModelGateway
+    ModelGateway <|.. LocalModelGateway
+    
+    class ModelOptions {
+        <<Record>>
+        +temperature: double
+        +maxTokens: int
+        +modelName: String
+    }
+    
+    ModelGateway ..> ModelOptions : uses
 ```
