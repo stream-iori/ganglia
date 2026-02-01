@@ -58,8 +58,8 @@ class ReActAgentLoopTest {
                 .thenReturn(Future.succeededFuture(finalResponse)); // 2nd call
 
         // Tool Execution
-        when(tools.execute(eq(toolCall1))).thenReturn(Future.succeededFuture("Result 1"));
-        when(tools.execute(eq(toolCall2))).thenReturn(Future.succeededFuture("Result 2"));
+        when(tools.execute(eq(toolCall1))).thenReturn(Future.succeededFuture(ToolInvokeResult.success("Result 1")));
+        when(tools.execute(eq(toolCall2))).thenReturn(Future.succeededFuture(ToolInvokeResult.success("Result 2")));
 
         // Run
         String result = loop.run("Hello", context).toCompletionStage().toCompletableFuture().get();

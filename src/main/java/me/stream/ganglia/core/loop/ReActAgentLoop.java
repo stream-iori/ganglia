@@ -90,7 +90,6 @@ public class ReActAgentLoop implements AgentLoop {
 
     private Future<SessionContext> act(List<ToolCall> toolCalls, SessionContext context) {
         // 3. Act: Execute ALL tool calls sequentially to accumulate context
-        // We use a recursive composition to execute list sequentially
         return executeToolsSequentially(toolCalls, 0, context);
     }
 
@@ -101,7 +100,7 @@ public class ReActAgentLoop implements AgentLoop {
 
         ToolCall call = toolCalls.get(index);
         return toolExecutor.execute(call)
-                .map(result -> Message.tool(call.id(), result))
+                .map(invokeResult -> Message.tool(call.id(), invokeResult.output()))
                 .map(currentContext::withNewMessage)
                 .compose(nextContext -> executeToolsSequentially(toolCalls, index + 1, nextContext));
     }

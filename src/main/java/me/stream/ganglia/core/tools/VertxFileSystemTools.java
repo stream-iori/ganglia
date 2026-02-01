@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import me.stream.ganglia.core.model.ToolDefinition;
+import me.stream.ganglia.core.model.ToolInvokeResult;
 import me.stream.ganglia.core.model.ToolType;
 
 import java.io.File;
@@ -14,40 +15,42 @@ import java.util.stream.Collectors;
 /**
  * Built-in tools for local filesystem operations using JVM/Vert.x APIs.
  */
-public class JVMFileSystemTools {
+public class VertxFileSystemTools {
     private final Vertx vertx;
 
-    public JVMFileSystemTools(Vertx vertx) {
+    public VertxFileSystemTools(Vertx vertx) {
         this.vertx = vertx;
     }
 
     public List<ToolDefinition> getDefinitions() {
         return List.of(
-            new ToolDefinition("jvm_ls", "List files in a directory using JVM API", 
-                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}", 
+            new ToolDefinition("vertx_ls", "List files in a directory using JVM API",
+                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}",
                 ToolType.BUILTIN),
-            new ToolDefinition("jvm_read", "Read content of a file using JVM API", 
-                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}", 
+            new ToolDefinition("vertx_read", "Read content of a file using JVM API",
+                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}",
                 ToolType.BUILTIN)
         );
     }
 
-    public Future<String> ls(Map<String, Object> args) {
+    public Future<ToolInvokeResult> ls(Map<String, Object> args) {
         String path = (String) args.get("path");
         return vertx.fileSystem().readDir(path)
-                .map(files -> files.stream()
-                        .map(f -> {
-                            File file = new File(f);
-                            return file.isDirectory() ? file.getName() + "/" : file.getName();
-                        })
-                        .collect(Collectors.joining("\n")))
-                .recover(err -> Future.succeededFuture("Error listing directory: " + err.getMessage()));
+            .map(files -> files.stream()
+                .map(f -> {
+                    File file = new File(f);
+                    return file.isDirectory() ? file.getName() + "/" : file.getName();
+                })
+                .collect(Collectors.joining("\n")))
+            .map(ToolInvokeResult::success)
+            .recover(err -> Future.succeededFuture(ToolInvokeResult.error("Error listing directory: " + err.getMessage())));
     }
 
-    public Future<String> read(Map<String, Object> args) {
+    public Future<ToolInvokeResult> read(Map<String, Object> args) {
         String path = (String) args.get("path");
         return vertx.fileSystem().readFile(path)
-                .map(Buffer::toString)
-                .recover(err -> Future.succeededFuture("Error reading file: " + err.getMessage()));
+            .map(Buffer::toString)
+            .map(ToolInvokeResult::success)
+            .recover(err -> Future.succeededFuture(ToolInvokeResult.error("Error reading file: " + err.getMessage())));
     }
 }

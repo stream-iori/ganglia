@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import me.stream.ganglia.core.model.ToolDefinition;
 import me.stream.ganglia.core.model.ToolErrorResult;
+import me.stream.ganglia.core.model.ToolInvokeResult;
 import me.stream.ganglia.core.model.ToolType;
 
 import java.io.BufferedInputStream;
@@ -60,22 +61,18 @@ public class BashFileSystemTools {
         );
     }
 
-    public Future<String> ls(Map<String, Object> args) {
+    public Future<ToolInvokeResult> ls(Map<String, Object> args) {
         String path = (String) args.get("path");
         return execute("ls", List.of("ls", "-F", path), DEFAULT_TIMEOUT_MS);
     }
 
-    public Future<String> cat(Map<String, Object> args) {
+    public Future<ToolInvokeResult> cat(Map<String, Object> args) {
         String path = (String) args.get("path");
         return execute("cat", List.of("cat", path), DEFAULT_TIMEOUT_MS);
     }
 
-    /**
-     * Executes a system command with arguments and a timeout.
-     * Prevents memory exhaustion by limiting output size to 16MB.
-     */
-    private Future<String> execute(String toolName, List<String> commandWithArgs, long timeoutMs) {
-        return vertx.executeBlocking(() -> {
+    private Future<ToolInvokeResult> execute(String toolName, List<String> commandWithArgs, long timeoutMs) {
+        return vertx.<ToolInvokeResult>executeBlocking(() -> {
             Process process = null;
             String partialOutput = "";
             try {
@@ -83,12 +80,11 @@ public class BashFileSystemTools {
                 pb.redirectErrorStream(true);
                 process = pb.start();
 
-                // Custom stream reader to handle limit
                 StreamResult streamResult = readStreamWithLimit(process.getInputStream(), MAX_OUTPUT_SIZE);
                 partialOutput = streamResult.content;
 
                 if (streamResult.limitExceeded) {
-                    throw new ToolExecutionException(new ToolErrorResult(
+                    return ToolInvokeResult.exception(new ToolErrorResult(
                         toolName, ToolErrorResult.ErrorType.SIZE_LIMIT_EXCEEDED,
                         "Output size exceeded limit of 16MB", null, partialOutput));
                 }
@@ -96,23 +92,20 @@ public class BashFileSystemTools {
                 boolean finished = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
                 if (!finished) {
                     process.destroyForcibly();
-                    throw new ToolExecutionException(new ToolErrorResult(
+                    return ToolInvokeResult.exception(new ToolErrorResult(
                         toolName, ToolErrorResult.ErrorType.TIMEOUT,
                         "Command timed out after " + timeoutMs + "ms", null, partialOutput));
                 }
 
                 int exitCode = process.exitValue();
                 if (exitCode != 0) {
-                    throw new ToolExecutionException(new ToolErrorResult(
-                        toolName, ToolErrorResult.ErrorType.COMMAND_FAILED,
-                        "Command failed with exit code " + exitCode, exitCode, partialOutput));
+                    // This is a successful invocation but command failed, so we treat as ERROR status
+                    return ToolInvokeResult.error("Command failed with exit code " + exitCode + ": " + partialOutput);
                 }
 
-                return partialOutput;
-            } catch (ToolExecutionException e) {
-                throw e;
+                return ToolInvokeResult.success(partialOutput);
             } catch (Exception e) {
-                throw new ToolExecutionException(new ToolErrorResult(
+                return ToolInvokeResult.exception(new ToolErrorResult(
                     toolName, ToolErrorResult.ErrorType.UNKNOWN,
                     "Execution error: " + e.getMessage(), null, partialOutput));
             } finally {
@@ -133,7 +126,6 @@ public class BashFileSystemTools {
             while ((bytesRead = bis.read(buffer)) != -1) {
                 if (totalRead + bytesRead > limit) {
                     limitExceeded = true;
-                    // Read what we can up to the limit
                     int remaining = (int) (limit - totalRead);
                     if (remaining > 0) {
                         baos.write(buffer, 0, remaining);

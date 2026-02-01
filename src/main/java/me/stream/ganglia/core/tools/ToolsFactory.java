@@ -7,17 +7,17 @@ import io.vertx.core.Vertx;
  */
 public class ToolsFactory {
     private final Vertx vertx;
-    private final JVMFileSystemTools jvmFileSystemTools;
+    private final VertxFileSystemTools vertxFileSystemTools;
     private final BashFileSystemTools bashFileSystemTools;
 
     public ToolsFactory(Vertx vertx) {
         this.vertx = vertx;
-        this.jvmFileSystemTools = new JVMFileSystemTools(vertx);
+        this.vertxFileSystemTools = new VertxFileSystemTools(vertx);
         this.bashFileSystemTools = new BashFileSystemTools(vertx);
     }
 
-    public JVMFileSystemTools getJvmFileSystemTools() {
-        return jvmFileSystemTools;
+    public VertxFileSystemTools getVertxFileSystemTools() {
+        return vertxFileSystemTools;
     }
 
     public BashFileSystemTools getBashFileSystemTools() {
