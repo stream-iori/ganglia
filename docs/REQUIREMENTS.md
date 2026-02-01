@@ -44,6 +44,14 @@
     *   **Clarification:** The agent shall use an `ask_user` tool to request missing information during execution.
     *   **Pause/Resume:** The system shall support pausing the ReAct loop to await user input.
 
+### 1.5 Skill System ("The Expertise")
+*   **Definition:** A Skill shall be a packageable unit containing:
+    *   **Domain Knowledge:** specialized system prompts, documentation, or heuristics (e.g., "How to write idiomatic Go code").
+    *   **Specialized Tools:** Java-based tools specific to that domain (e.g., `go_fmt`, `aws_deploy`).
+*   **Lifecycle Management:** The system shall support installing, activating, and deactivating skills dynamically.
+*   **Context Injection:** When a skill is active, its relevant prompts and "best practices" shall be injected into the agent's context.
+*   **Discovery:** The agent shall be able to discover available skills and recommend their activation based on the user's task.
+
 ## 2. Non-Functional Requirements (Quality Attributes)
 
 ### 2.1 Reliability & Stability
