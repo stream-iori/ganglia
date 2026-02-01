@@ -7,10 +7,9 @@ import me.stream.ganglia.core.model.ModelResponse;
 import me.stream.ganglia.core.model.ToolDefinition;
 
 import java.util.List;
-import java.util.concurrent.Flow; // Java Flow API for streaming
 
 public interface ModelGateway {
-    
+
     /**
      * Sends a chat completion request to the LLM.
      */

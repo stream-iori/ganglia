@@ -52,7 +52,18 @@ classDiagram
         +history: List~Message~
         +metadata: Map~String, Object~
         +activeSkillIds: List~String~
+        +modelOptions: ModelOptions
         +withNewMessage(msg: Message) SessionContext
+        +withModelOptions(opts: ModelOptions) SessionContext
+    }
+    
+    class ReActAgentLoop {
+        -model: ModelGateway
+        -toolExecutor: ToolExecutor
+        -stateEngine: StateEngine
+        -promptEngine: PromptEngine
+        -maxIterations: int
+        +run(...)
     }
     
     class Message {

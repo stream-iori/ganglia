@@ -22,7 +22,6 @@ public class ReActAgentLoop implements AgentLoop {
     private final StateEngine stateEngine;
     private final PromptEngine promptEngine;
     private final int maxIterations;
-    private final ModelOptions modelOptions;
 
     public ReActAgentLoop(ModelGateway model, ToolExecutor toolExecutor, StateEngine stateEngine, PromptEngine promptEngine, int maxIterations) {
         this.model = model;
@@ -30,7 +29,6 @@ public class ReActAgentLoop implements AgentLoop {
         this.stateEngine = stateEngine;
         this.promptEngine = promptEngine;
         this.maxIterations = maxIterations;
-        this.modelOptions = new ModelOptions(0.0, 4096, "default-model");
     }
 
     @Override
@@ -54,7 +52,14 @@ public class ReActAgentLoop implements AgentLoop {
         modelHistory.add(new Message("sys-" + iteration, Role.SYSTEM, systemPromptContent, null, null, java.time.Instant.now()));
         modelHistory.addAll(currentContext.history());
 
-        return model.chat(modelHistory, toolExecutor.getAvailableTools(), modelOptions)
+        // Use ModelOptions from the Context
+        ModelOptions currentOptions = currentContext.modelOptions();
+        if (currentOptions == null) {
+             // Fallback default if not set
+             currentOptions = new ModelOptions(0.0, 4096, "default-model");
+        }
+
+        return model.chat(modelHistory, toolExecutor.getAvailableTools(), currentOptions)
                 .compose(response -> {
                     // 3. Process Response
                     String content = response.content();
@@ -65,7 +70,7 @@ public class ReActAgentLoop implements AgentLoop {
 
                     if (toolCalls != null && !toolCalls.isEmpty()) {
                         // 3a. Execution Phase
-                        List<Future<Message>> toolExecutionFutures = toolCalls.stream()
+                        List<Future> toolExecutionFutures = toolCalls.stream()
                                 .map(call -> toolExecutor.execute(call)
                                         .map(result -> Message.tool(call.id(), result)))
                                 .collect(Collectors.toList());
@@ -75,7 +80,7 @@ public class ReActAgentLoop implements AgentLoop {
                                 .compose(composite -> {
                                     // Collect results
                                     List<Message> toolMessages = toolExecutionFutures.stream()
-                                            .map(Future::result)
+                                            .map(f -> (Message) f.result())
                                             .collect(Collectors.toList());
                                     
                                     // Update context with ALL tool results

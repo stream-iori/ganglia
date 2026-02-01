@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Flow;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -27,7 +26,8 @@ class ReActAgentLoopTest {
         MockPromptEngine prompt = new MockPromptEngine();
         
         ReActAgentLoop loop = new ReActAgentLoop(model, tools, state, prompt, 5);
-        SessionContext context = new SessionContext("test-session", Collections.emptyList(), Collections.emptyMap(), Collections.emptyList());
+        ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
+        SessionContext context = new SessionContext("test-session", Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(), options);
 
         // Run (Wait for Future to complete)
         String result = loop.run("Hello", context).toCompletionStage().toCompletableFuture().get();
@@ -46,6 +46,11 @@ class ReActAgentLoopTest {
         @Override
         public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
             callCount++;
+            // Check if options are passed correctly
+            if (!"gpt-4".equals(options.modelName())) {
+                return Future.failedFuture("Wrong model options passed");
+            }
+
             // 1st call: Return a tool call
             if (callCount == 1) {
                 ToolCall call = new ToolCall("call-1", "test-tool", Map.of("arg", "val"));
