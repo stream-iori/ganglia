@@ -1,0 +1,71 @@
+# Ganglia Requirements Documentation
+
+> **Status:** Draft / Requirements Definition
+> **Version:** 0.1.0
+
+## 1. Functional Requirements (Functionality)
+
+### 1.1 Core Agent Loop (ReAct)
+#### 1.1.1 Normal Flow
+*   **Input Processing:** The system shall accept natural language input from the user.
+*   **Reasoning (Thought):** The agent shall generate a "Thought" explaining its reasoning before taking action.
+*   **Tool Selection:** The agent shall select the appropriate tool from the available toolset based on the user's request.
+*   **Execution:** The system shall execute the selected tool and capture its output (Observation).
+*   **Iteration:** The ReAct loop shall continue (Thought -> Tool -> Observation) until a final answer is derived or a termination condition is met.
+*   **Response:** The system shall provide a final natural language response to the user.
+
+#### 1.1.2 Exception Handling
+*   **Tool Failures:** The system shall capture tool execution errors (e.g., "File not found", "Command failed") and feed them back to the agent as an Observation, allowing the agent to self-correct.
+*   **Loop Limits:** The system shall enforce a maximum number of iterations (e.g., 20 steps) to prevent infinite loops, returning a "Max steps reached" error if exceeded.
+*   **Hallucination Detection:** (Future) The system shall attempt to detect cyclic or repetitive behavior and intervene.
+
+### 1.2 Tooling System ("The Hands")
+*   **Tool Definition:** The framework shall support defining tools via Java annotations (`@AgentTool`).
+*   **Schema Generation:** The system shall automatically generate JSON Schemas for tools to be used by the LLM.
+*   **Standard Library:**
+    *   **FileSystem:** `Read`, `Write` (Atomic), `Edit` (Patching).
+    *   **Code Navigation:** `Grep` (Regex search), `Glob` (File finding).
+    *   **System:** `Bash` (Command execution).
+    *   **Network:** `WebFetch` (HTTP requests).
+*   **Sandboxing:** Tools marked as unsafe shall execute within a restricted environment (sandbox).
+
+### 1.3 Memory & Context ("The Brain")
+*   **Ephemeral Memory:** The system shall log all interactions (thoughts, tool calls, results) to a daily markdown file (`.ganglia/logs/YYYY-MM-DD.md`).
+*   **Curated Memory:** The system shall support a `MEMORY.md` file for long-term user preferences and project context.
+*   **Active Retrieval:** The agent shall be able to search its own memory files (`grep` logs or `MEMORY.md`) to recall past information.
+*   **Context Management:** The system shall intelligently prune the context window to stay within token limits while preserving the most relevant information.
+
+### 1.4 Human-in-the-Loop & Interaction
+*   **Planning Phase:**
+    *   **Proposal:** For complex requests, the system shall generate a structured execution plan (JSON list of steps) *before* execution.
+    *   **Approval:** The system shall require user approval or modification of the plan before proceeding.
+*   **Runtime Interrupts:**
+    *   **Sensitive Actions:** Execution of `@Sensitive` tools (e.g., `delete`, `deploy`) must trigger a blocking user confirmation prompt.
+    *   **Clarification:** The agent shall use an `ask_user` tool to request missing information during execution.
+    *   **Pause/Resume:** The system shall support pausing the ReAct loop to await user input.
+
+## 2. Non-Functional Requirements (Quality Attributes)
+
+### 2.1 Reliability & Stability
+*   **Crash Recovery:** The system shall serialize session state to disk (`.ganglia/state/`) after every step, allowing recovery from crashes without data loss.
+*   **Rate Limiting:** The system shall handle API rate limits (e.g., OpenAI 429 errors) with exponential backoff.
+*   **Error Isolation:** A failure in a tool execution should not crash the main agent loop.
+
+### 2.2 Usability & Experience
+*   **Latency:** The system shall support streaming responses (tokens) to the UI to minimize perceived latency.
+*   **Transparency:** All agent actions ("Thoughts", Tool Calls) must be visible to the user in real-time.
+*   **Editability:** Users must be able to manually edit the generated `MEMORY.md` and log files to correct the agent's understanding.
+
+### 2.3 Observability & Debugging
+*   **Tracing:** The system shall emit OpenTelemetry traces for every ReAct step and tool execution.
+*   **Logging:** Detailed logs of raw prompts and LLM completions shall be available (configurable) for debugging.
+*   **Audit Trail:** The markdown log files shall serve as a human-readable audit trail of all agent actions.
+
+### 2.4 Security
+*   **API Key Management:** API keys must be loaded from environment variables or secure storage, never logged or committed to git.
+*   **Prompt Injection:** The system shall include basic safeguards (system prompt instructions) against prompt injection attacks.
+*   **Sandbox Isolation:** The execution sandbox must prevent access to the host system beyond the allowed working directory.
+
+### 2.5 Extensibility
+*   **Plugin Architecture:** Third-party developers shall be able to add new tools by providing a JAR with annotated classes.
+*   **Model Agnostic:** The core logic shall be decoupled from specific LLM providers via the `ModelProvider` interface.

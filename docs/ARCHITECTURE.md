@@ -69,44 +69,47 @@ See [Memory Architecture](MEMORY_ARCHITECTURE.md) for details.
 Ganglia employs a **"Plan First, Act Later"** philosophy to ensure user control over complex tasks, alongside runtime safeguards.
 
 ### 4.1 The "Plan First" Pattern (Architectural)
+
 Before executing complex requests, the system enters a **Planning Phase**:
+
 1.  **Decomposition:** A specialized "Planner" LLM instance analyzes the request and generates a structured JSON plan (`List<Step>`).
 2.  **Review:** The plan is presented to the user for approval or modification.
 3.  **Execution:** Only approved steps are fed into the ReAct Executor's To-Do list.
 
 ### 4.2 Runtime Interrupts (Tool-Based)
-*   **Sensitive Tools:** Tools marked as `@Sensitive` (e.g., `delete_file`, `deploy`) automatically trigger a **User Confirmation** interrupt.
-*   **`ask_user` Tool:** The agent can explicitly invoke this tool to resolve ambiguities (e.g., "Which database schema should I use?").
-*   **Execution Pause:** The ReAct loop suspends state and awaits user input before resuming.
+
+- **Sensitive Tools:** Tools marked as `@Sensitive` (e.g., `delete_file`, `deploy`) automatically trigger a **User Confirmation** interrupt.
+- **`ask_user` Tool:** The agent can explicitly invoke this tool to resolve ambiguities (e.g., "Which database schema should I use?").
+- **Execution Pause:** The ReAct loop suspends state and awaits user input before resuming.
 
 ## 5. Data Flow (ReAct Loop)
 
 ```mermaid
 graph TD
-    User[User Input] -->|Injects| Context[Context & Memory Files]
-    Context -->|Constructs| Planner[Planner LLM]
-    
-    Planner -->|Generates| Plan[Proposed Plan]
-    Plan -->|Review| UserApprove{User Approval?}
-    
-    UserApprove -- No --> User
-    UserApprove -- Yes --> Executor[Executor Agent (ReAct)]
+    User["User Input"] -->|Injects| Context["Context & Memory Files"]
+    Context -->|Constructs| Planner["Planner LLM"]
 
-    Executor -->|Thought & Call| Router{Action Router}
+    Planner -->|Generates| Plan["Proposed Plan"]
+    Plan -->|Review| UserApprove{"User Approval?"}
 
-    Router -->|Tool Call| ToolExecutor[Tool Executor]
-    Router -->|Final Answer| UserOutput[User Display]
-    
-    ToolExecutor -->|Execute| FS[File System / Bash]
-    ToolExecutor -->|Execute| Web[Web / API]
-    
-    FS -->|Result| Obs[Observation]
+    UserApprove -->|No| User
+    UserApprove -->|Yes| Executor["Executor Agent (ReAct)"]
+
+    Executor -->|Thought & Call| Router{"Action Router"}
+
+    Router -->|Tool Call| ToolExecutor["Tool Executor"]
+    Router -->|Final Answer| UserOutput["User Display"]
+
+    ToolExecutor -->|Execute| FS["File System / Bash"]
+    ToolExecutor -->|Execute| Web["Web / API"]
+
+    FS -->|Result| Obs["Observation"]
     Web -->|Result| Obs
 
     Obs -->|Append to History| Executor
 
-    subgraph "Safeguards"
-        ToolExecutor -.->|Check @Sensitive| Interrupt[User Interrupt]
+    subgraph SG["Safeguards"]
+        ToolExecutor -.->|Check @Sensitive| Interrupt["User Interrupt"]
     end
 ```
 
