@@ -9,6 +9,8 @@ import me.stream.ganglia.core.model.ModelOptions;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.state.StateEngine;
+import me.stream.ganglia.core.tools.DefaultToolExecutor;
+import me.stream.ganglia.core.tools.ToolsFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,19 +36,22 @@ public class AgentLoopIT {
         String baseUrl = "https://api.moonshot.cn/v1";
 
         OpenAIModelGateway modelGateway = new OpenAIModelGateway(vertx, apiKey, baseUrl);
-        SystemToolExecutor toolExecutor = new SystemToolExecutor(vertx);
+        
+        ToolsFactory toolsFactory = new ToolsFactory(vertx);
+        DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory);
         
         // Mocking simple components
         StateEngine stateEngine = mock(StateEngine.class);
+
         when(stateEngine.saveSession(any())).thenReturn(io.vertx.core.Future.succeededFuture());
-        
+
         PromptEngine promptEngine = context -> "You are a helpful assistant with file access tools. " +
                 "Your task is to list files in 'src/test/resources/integration', read them, and concatenate their content. " +
                 "The final answer should only be the concatenated string without spaces or newlines.";
 
         agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, stateEngine, promptEngine, 10);
-        
-        ModelOptions options = new ModelOptions(0.0, 1024, "moonshot-v1-8k");
+
+        ModelOptions options = new ModelOptions(0.0, 1024 * 128, "kimi-k2-thinking");
         sessionContext = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(), options);
     }
 
