@@ -74,12 +74,12 @@ public class ReActAgentLoop implements AgentLoop {
         SessionContext nextContext = currentContext.withNewMessage(assistantMessage);
 
         if (hasToolCalls(toolCalls)) {
-            // Decision: Act (Execute Tool)
+            // Decision: Act (Execute ALL Tools)
             return act(toolCalls, nextContext)
-                    .compose(contextAfterTool -> 
+                    .compose(contextAfterTools -> 
                         // Loop: Recurse
-                        stateEngine.saveSession(contextAfterTool)
-                                .compose(v -> runLoop(contextAfterTool, iteration + 1))
+                        stateEngine.saveSession(contextAfterTools)
+                                .compose(v -> runLoop(contextAfterTools, iteration + 1))
                     );
         } else {
             // Decision: Finish
@@ -89,12 +89,21 @@ public class ReActAgentLoop implements AgentLoop {
     }
 
     private Future<SessionContext> act(List<ToolCall> toolCalls, SessionContext context) {
-        // 3. Act: Execute only the FIRST tool call to ensure sequential reasoning
-        ToolCall firstToolCall = toolCalls.get(0);
-        
-        return toolExecutor.execute(firstToolCall)
-                .map(result -> Message.tool(firstToolCall.id(), result))
-                .map(context::withNewMessage);
+        // 3. Act: Execute ALL tool calls sequentially to accumulate context
+        // We use a recursive composition to execute list sequentially
+        return executeToolsSequentially(toolCalls, 0, context);
+    }
+
+    private Future<SessionContext> executeToolsSequentially(List<ToolCall> toolCalls, int index, SessionContext currentContext) {
+        if (index >= toolCalls.size()) {
+            return Future.succeededFuture(currentContext);
+        }
+
+        ToolCall call = toolCalls.get(index);
+        return toolExecutor.execute(call)
+                .map(result -> Message.tool(call.id(), result))
+                .map(currentContext::withNewMessage)
+                .compose(nextContext -> executeToolsSequentially(toolCalls, index + 1, nextContext));
     }
 
     private boolean hasToolCalls(List<ToolCall> toolCalls) {

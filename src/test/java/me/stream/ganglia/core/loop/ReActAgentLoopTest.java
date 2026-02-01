@@ -33,7 +33,7 @@ class ReActAgentLoopTest {
     PromptEngine prompt;
 
     @Test
-    void testHappyPath() throws Exception {
+    void testHappyPathMultipleTools() throws Exception {
         // Setup
         ReActAgentLoop loop = new ReActAgentLoop(model, tools, state, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
@@ -44,10 +44,11 @@ class ReActAgentLoopTest {
         when(prompt.buildSystemPrompt(any())).thenReturn("System Prompt");
         when(tools.getAvailableTools()).thenReturn(Collections.emptyList());
 
-        // 1st Model Call: Returns a Tool Call
-        ToolCall toolCall = new ToolCall("call-1", "test-tool", Map.of("arg", "val"));
-        // Even if we returned multiple, the loop should only execute the first one.
-        ModelResponse toolResponse = new ModelResponse("Thinking...", List.of(toolCall), new TokenUsage(10, 10));
+        // 1st Model Call: Returns TWO Tool Calls
+        ToolCall toolCall1 = new ToolCall("call-1", "test-tool-1", Map.of("arg", "1"));
+        ToolCall toolCall2 = new ToolCall("call-2", "test-tool-2", Map.of("arg", "2"));
+        
+        ModelResponse toolResponse = new ModelResponse("Thinking...", List.of(toolCall1, toolCall2), new TokenUsage(10, 10));
         
         // 2nd Model Call: Returns Final Answer
         ModelResponse finalResponse = new ModelResponse("Final Answer", Collections.emptyList(), new TokenUsage(10, 10));
@@ -57,9 +58,10 @@ class ReActAgentLoopTest {
                 .thenReturn(Future.succeededFuture(finalResponse)); // 2nd call
 
         // Tool Execution
-        when(tools.execute(eq(toolCall))).thenReturn(Future.succeededFuture("Tool Result"));
+        when(tools.execute(eq(toolCall1))).thenReturn(Future.succeededFuture("Result 1"));
+        when(tools.execute(eq(toolCall2))).thenReturn(Future.succeededFuture("Result 2"));
 
-        // Run (Wait for Future to complete)
+        // Run
         String result = loop.run("Hello", context).toCompletionStage().toCompletableFuture().get();
 
         // Verify
@@ -67,7 +69,9 @@ class ReActAgentLoopTest {
         
         // Verify interactions
         verify(model, times(2)).chat(anyList(), anyList(), eq(options));
-        verify(tools, times(1)).execute(eq(toolCall));
+        // Ensure BOTH tools were executed
+        verify(tools, times(1)).execute(eq(toolCall1));
+        verify(tools, times(1)).execute(eq(toolCall2));
         verify(state, atLeast(1)).saveSession(any());
     }
 }
