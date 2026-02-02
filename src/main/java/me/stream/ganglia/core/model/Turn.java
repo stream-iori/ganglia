@@ -1,5 +1,6 @@
 package me.stream.ganglia.core.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -14,7 +15,7 @@ public record Turn(
     Message finalResponse
 ) {
     public Turn withStep(Message step) {
-        java.util.ArrayList<Message> newSteps = new java.util.ArrayList<>(intermediateSteps);
+        ArrayList<Message> newSteps = new ArrayList<>(intermediateSteps);
         newSteps.add(step);
         return new Turn(id, userMessage, newSteps, finalResponse);
     }
@@ -24,7 +25,7 @@ public record Turn(
     }
 
     public List<Message> flatten() {
-        java.util.ArrayList<Message> list = new java.util.ArrayList<>();
+        ArrayList<Message> list = new ArrayList<>();
         if (userMessage != null) list.add(userMessage);
         if (intermediateSteps != null) list.addAll(intermediateSteps);
         if (finalResponse != null) list.add(finalResponse);

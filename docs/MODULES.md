@@ -19,11 +19,12 @@ This document decomposes the Ganglia system into logical modules based on functi
 
 **Responsibility:** Managing ephemeral and long-term context ("The Brain").
 
-- **Components:**
-  - `LogManager`: Handles writing daily markdown logs (`.ganglia/logs/`).
-  - `KnowledgeBase`: Manages the curated `MEMORY.md` file (reading/updating).
-  - `ContextPruner`: Token counting and strategy for keeping the context window within limits (sliding window/summarization).
-  - `retrieval-engine`: Internal logic for "Active Retrieval" (searching memory files).
+*   **Components:**
+    *   `LogManager`: Handles writing daily markdown logs (`.ganglia/logs/`).
+    *   `KnowledgeBase`: Manages the curated `MEMORY.md` file (reading/updating).
+    *   `ContextPruner`: Token counting and strategy for keeping the context window within limits (sliding window/summarization).
+    *   `ContextCompressor`: Logic to summarize completed Tasks/Turns into concise history.
+    *   `retrieval-engine`: Internal logic for "Active Retrieval" (searching memory files).
 
 ## 3. Tooling & Execution (Module: `ganglia-tools`)
 

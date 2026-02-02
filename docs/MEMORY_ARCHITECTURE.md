@@ -1,52 +1,56 @@
 # Ganglia Memory Architecture
 
-> **Philosophy:** "Memory as Code". Transparent, user-controlled, and file-based.
+> **Philosophy:** "Memory as Code". Transparent, user-controlled, file-based, and tiered.
 
 ## 1. Overview
 
-Unlike traditional agent frameworks that rely heavily on hidden Vector Databases (RAG), Ganglia treats memory as transparent files within the user's project. This allows users to read, edit, and version-control the agent's "knowledge".
+Ganglia implements a **Three-Tier Memory System** designed to balance high-fidelity reasoning (for immediate tasks) with long-term retention (for project context), all while managing token window limits efficiently.
 
-## 2. The Two-Layer Structure
+## 2. The Three-Tier Structure
 
-### Layer 1: Ephemeral Memory (The Stream)
-*   **Storage:** `.ganglia/logs/YYYY-MM-DD.md`
-*   **Content:**
-    *   Full conversation history.
-    *   Raw "Thoughts" (Chain of Thought).
-    *   Tool execution logs (Inputs and Outputs).
-*   **Purpose:**
-    *   Immediate context for the current session.
-    *   Audit trail for debugging hallucinations.
-    *   Source material for curation.
+### Tier 1: Short-Term Memory (The "Turn")
+*   **Scope:** A single User-Agent interaction cycle (e.g., "Fix bug X").
+*   **Granularity:** Extremely high. Contains raw "Thoughts", exact "Tool Calls", and full "Observations" (e.g., file contents, command outputs).
+*   **Storage:** In-memory `Turn` objects within `SessionContext`.
+*   **Lifecycle:** Active only while the specific step is being executed. Once the step is complete, it is candidate for compression.
 
-### Layer 2: Curated Memory (The Knowledge Base)
-*   **Storage:** `MEMORY.md` (in project root)
-*   **Content:**
-    *   **User Preferences:** "Always use JUnit 5", "Prefer record classes".
-    *   **Architectural Decisions:** "We use Hexagonal Architecture".
-    *   **Lessons Learned:** "The API at x.com requires header Y".
-    *   **Project Context:** "The auth module is in `src/auth`".
-*   **Purpose:**
-    *   Long-term retention across sessions.
-    *   Injecting "common sense" specific to the project.
+### Tier 2: Medium-Term Memory (The "Context Window")
+*   **Scope:** The active session (e.g., the last 10-20 turns).
+*   **Granularity:** Hybrid.
+    *   *Recent Turns:* Kept in full detail.
+    *   *Older Turns:* Compressed into summaries.
+*   **Mechanism:** **Sliding Window with Semantic Compression**.
+*   **Integration with ToDo:**
+    *   The **Plan/ToDo List** serves as the backbone of this tier.
+    *   When a task in the Plan is marked `DONE`, the associated Turns are summarized into a concise "Result" (e.g., "Refactored User.java to Record").
+    *   The raw Turns are evicted from the prompt context but saved to disk.
 
-## 3. Retrieval Mechanism: "Agentic Search"
+### Tier 3: Long-Term Memory (The "Project Knowledge")
+*   **Scope:** Cross-session project lifespan.
+*   **Storage:** 
+    *   `MEMORY.md`: Curated "lessons learned", architectural decisions, and user preferences.
+    *   `.ganglia/logs/`: Archived raw logs of past sessions (searchable via tools).
+*   **Retrieval:** **Agentic Search**. The agent uses tools (`grep`, `read`) to actively look up information from this tier when needed.
 
-Instead of passively stuffing the context window with RAG chunks, Ganglia relies on **Active Retrieval**.
+## 3. Compression & Summarization Strategy
 
-1.  **Trigger:** The agent recognizes a need for information (e.g., "I need to know the database schema").
-2.  **Action:** The agent uses its tools:
-    *   `Grep` to search for keywords in `MEMORY.md` or code.
-    *   `Read` to inspect specific logs or documentation.
-3.  **Synthesis:** The agent reads the search results and incorporates them into its current reasoning.
+To prevent context overflow, Ganglia employs an aggressive summarization strategy linked to the Task lifecycle.
 
-**Why this approach?**
-*   **Accuracy:** Code search tools (`grep`) are often more precise than semantic vector search for technical keywords.
-*   **Context:** The agent sees the information in its original file context, not as an isolated chunk.
-*   **Control:** The user can explicitly guide the agent to "Read MEMORY.md".
+### The "Task-Turn" Cycle
+1.  **Expansion:** User gives a goal -> Agent adds it to ToDo List.
+2.  **Execution:** Agent performs multiple Turns (Reason -> Act -> Observe). These accumulate in the Context.
+3.  **Completion:** Agent marks task as `DONE`.
+4.  **Compression (The Hook):**
+    *   **Trigger:** Task status change to `DONE`.
+    *   **Action:** The system (or a background "Reflector" agent) takes all Turns associated with that task and generates a 1-2 sentence summary.
+    *   **Replacement:** The raw Turns are removed from `SessionContext.previousTurns` and replaced by the summary in the `ToDoList` (e.g., as a "Result" note) or a dedicated "Completed Tasks" history block.
 
 ## 4. State Persistence
 
-Session state is not stored in a complex database.
-*   **Resumption:** To resume a session, the system simply re-loads the specific Markdown log file into the context window (pruning if necessary).
-*   **Portability:** If the user pushes the `.ganglia` folder to Git, the "mind" of the agent travels with the code.
+*   **Session State:** Serialized to `.ganglia/state/session_ID.json` after every Turn. Includes the ToDo list, active variables, and the compressed history.
+*   **Resumption:** Loading a session restores the ToDo list and the *compressed* context, not the full raw history of every past command (unless specifically requested).
+
+## 5. Memory-Tool Integration
+
+*   **`todo_complete`:** Not just a status update. It signals the memory system to "Pack up this context".
+*   **`remember`:** A specific tool for the agent to write important facts to `MEMORY.md` (promoting from Short/Medium to Long-term).

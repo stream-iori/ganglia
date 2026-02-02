@@ -53,10 +53,11 @@ The core design philosophy is inspired by **Claude Code**: a single, powerful co
 
 See [Memory Architecture](MEMORY_ARCHITECTURE.md) for details.
 
-- **Turn-Based Granularity:** Context is organized into logical "Turns" (User Request -> Chain of Thought -> Final Answer), allowing smarter pruning (e.g., keeping user intents but summarizing intermediate thoughts).
-- **Ephemeral Layer:** Daily session logs (Stream of consciousness).
-- **Curated Layer:** `MEMORY.md` (Key facts, preferences, decisions).
-- **Retrieval:** The agent actively queries these files using its tools.
+- **Three-Tier Architecture:**
+    - **Short-Term (Turn):** High-fidelity execution details.
+    - **Medium-Term (Session):** Compressed context managed via the ToDo list lifecycle.
+    - **Long-Term (Project):** Curated `MEMORY.md` and archived logs.
+- **Retrieval:** Agentic Search (`grep`, `read`) over long-term memory.
 
 ### 3.4 Workflow Management
 
