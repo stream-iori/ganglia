@@ -13,8 +13,7 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.NoStackTraceThrowable;
 import me.stream.ganglia.core.model.*;
-import me.stream.ganglia.core.tools.model.ToolCall;
-import me.stream.ganglia.core.tools.model.ToolDefinition;
+import me.stream.ganglia.core.tools.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

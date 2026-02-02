@@ -3,11 +3,10 @@ package me.stream.ganglia.core.loop;
 import io.vertx.core.Future;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
+import me.stream.ganglia.core.tools.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.state.StateEngine;
-import me.stream.ganglia.core.tools.model.ToolCall;
 import me.stream.ganglia.core.tools.ToolExecutor;
-import me.stream.ganglia.core.tools.model.ToolInvokeResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -39,7 +38,7 @@ class ReActAgentLoopTest {
         // Setup
         ReActAgentLoop loop = new ReActAgentLoop(model, tools, state, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
-        SessionContext context = new SessionContext("test-session", Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(), options);
+        SessionContext context = new SessionContext("test-session", Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
         // Mocks behavior
         when(state.saveSession(any())).thenReturn(Future.succeededFuture());
@@ -60,8 +59,8 @@ class ReActAgentLoopTest {
                 .thenReturn(Future.succeededFuture(finalResponse)); // 2nd call
 
         // Tool Execution
-        when(tools.execute(eq(toolCall1))).thenReturn(Future.succeededFuture(ToolInvokeResult.success("Result 1")));
-        when(tools.execute(eq(toolCall2))).thenReturn(Future.succeededFuture(ToolInvokeResult.success("Result 2")));
+        when(tools.execute(eq(toolCall1), any())).thenReturn(Future.succeededFuture(ToolInvokeResult.success("Result 1")));
+        when(tools.execute(eq(toolCall2), any())).thenReturn(Future.succeededFuture(ToolInvokeResult.success("Result 2")));
 
         // Run
         String result = loop.run("Hello", context).toCompletionStage().toCompletableFuture().get();
@@ -71,9 +70,8 @@ class ReActAgentLoopTest {
 
         // Verify interactions
         verify(model, times(2)).chat(anyList(), anyList(), eq(options));
-        // Ensure BOTH tools were executed
-        verify(tools, times(1)).execute(eq(toolCall1));
-        verify(tools, times(1)).execute(eq(toolCall2));
+        verify(tools, times(1)).execute(eq(toolCall1), any());
+        verify(tools, times(1)).execute(eq(toolCall2), any());
         verify(state, atLeast(1)).saveSession(any());
     }
 }

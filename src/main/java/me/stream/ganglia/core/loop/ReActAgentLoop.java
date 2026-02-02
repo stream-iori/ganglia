@@ -3,6 +3,7 @@ package me.stream.ganglia.core.loop;
 import io.vertx.core.Future;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
+import me.stream.ganglia.core.tools.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.state.StateEngine;
 import me.stream.ganglia.core.tools.model.ToolCall;
@@ -100,9 +101,12 @@ public class ReActAgentLoop implements AgentLoop {
         }
 
         ToolCall call = toolCalls.get(index);
-        return toolExecutor.execute(call)
-                .map(invokeResult -> Message.tool(call.id(), invokeResult.output()))
-                .map(currentContext::withNewMessage)
+        return toolExecutor.execute(call, currentContext)
+                .map(invokeResult -> {
+                    Message toolMsg = Message.tool(call.id(), invokeResult.output());
+                    SessionContext contextToUse = invokeResult.modifiedContext() != null ? invokeResult.modifiedContext() : currentContext;
+                    return contextToUse.withNewMessage(toolMsg);
+                })
                 .compose(nextContext -> executeToolsSequentially(toolCalls, index + 1, nextContext));
     }
 

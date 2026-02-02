@@ -4,7 +4,6 @@ import io.vertx.core.Future;
 import me.stream.ganglia.core.tools.model.ToolCall;
 import me.stream.ganglia.core.tools.model.ToolDefinition;
 import me.stream.ganglia.core.tools.model.ToolInvokeResult;
-
 import java.util.List;
 
 public interface ToolExecutor {

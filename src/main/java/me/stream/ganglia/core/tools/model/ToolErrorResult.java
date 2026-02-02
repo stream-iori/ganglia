@@ -1,4 +1,4 @@
-package me.stream.ganglia.core.model;
+package me.stream.ganglia.core.tools.model;
 
 /**
  * Represents a structured error from a tool execution.

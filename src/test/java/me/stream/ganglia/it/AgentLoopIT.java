@@ -7,6 +7,7 @@ import me.stream.ganglia.core.llm.OpenAIModelGateway;
 import me.stream.ganglia.core.loop.ReActAgentLoop;
 import me.stream.ganglia.core.model.ModelOptions;
 import me.stream.ganglia.core.model.SessionContext;
+import me.stream.ganglia.core.model.ToDoList;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.state.StateEngine;
 import me.stream.ganglia.core.tools.DefaultToolExecutor;
@@ -52,7 +53,7 @@ public class AgentLoopIT {
         agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, stateEngine, promptEngine, 10);
         
         ModelOptions options = new ModelOptions(0.0, 1024, "moonshot-v1-8k");
-        sessionContext = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(), options);
+        sessionContext = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
     }
 
     @Test

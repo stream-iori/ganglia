@@ -3,6 +3,7 @@ package me.stream.ganglia.core.tools;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import me.stream.ganglia.core.model.*;
+import me.stream.ganglia.core.tools.model.*;
 
 import java.util.List;
 import java.util.Map;
