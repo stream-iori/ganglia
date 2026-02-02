@@ -1,4 +1,4 @@
-package me.stream.ganglia.core.model;
+package me.stream.ganglia.core.tools.model;
 
 /**
  * Definition of a tool available to the model.

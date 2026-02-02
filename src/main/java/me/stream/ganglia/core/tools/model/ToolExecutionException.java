@@ -1,7 +1,8 @@
-package me.stream.ganglia.core.tools;
+package me.stream.ganglia.core.tools.model;
 
-import me.stream.ganglia.core.model.ToolErrorResult;
-
+/**
+ * Exception thrown when a tool fails to execute correctly.
+ */
 public class ToolExecutionException extends RuntimeException {
     private final ToolErrorResult errorResult;
 

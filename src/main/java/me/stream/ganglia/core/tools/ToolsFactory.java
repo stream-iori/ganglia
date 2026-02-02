@@ -9,11 +9,13 @@ public class ToolsFactory {
     private final Vertx vertx;
     private final VertxFileSystemTools vertxFileSystemTools;
     private final BashFileSystemTools bashFileSystemTools;
+    private final ToDoTools toDoTools;
 
     public ToolsFactory(Vertx vertx) {
         this.vertx = vertx;
         this.vertxFileSystemTools = new VertxFileSystemTools(vertx);
         this.bashFileSystemTools = new BashFileSystemTools(vertx);
+        this.toDoTools = new ToDoTools(vertx);
     }
 
     public VertxFileSystemTools getVertxFileSystemTools() {
@@ -22,5 +24,9 @@ public class ToolsFactory {
 
     public BashFileSystemTools getBashFileSystemTools() {
         return bashFileSystemTools;
+    }
+
+    public ToDoTools getToDoTools() {
+        return toDoTools;
     }
 }

@@ -2,10 +2,10 @@ package me.stream.ganglia.core.tools;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import me.stream.ganglia.core.model.ToolDefinition;
-import me.stream.ganglia.core.model.ToolErrorResult;
-import me.stream.ganglia.core.model.ToolInvokeResult;
-import me.stream.ganglia.core.model.ToolType;
+import me.stream.ganglia.core.tools.model.ToolDefinition;
+import me.stream.ganglia.core.tools.model.ToolErrorResult;
+import me.stream.ganglia.core.tools.model.ToolInvokeResult;
+import me.stream.ganglia.core.tools.model.ToolType;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -30,7 +30,7 @@ public class BashFileSystemTools {
 
     public List<ToolDefinition> getDefinitions() {
         return List.of(
-            new ToolDefinition("ls", "List files in a directory using bash ls", 
+            new ToolDefinition("ls", "List files in a directory using bash ls",
                 """
                 {
                   "type": "object",
@@ -42,9 +42,9 @@ public class BashFileSystemTools {
                   },
                   "required": ["path"]
                 }
-                """, 
+                """,
                 ToolType.BUILTIN),
-            new ToolDefinition("cat", "Read content of a file using bash cat", 
+            new ToolDefinition("cat", "Read content of a file using bash cat",
                 """
                 {
                   "type": "object",
@@ -56,7 +56,7 @@ public class BashFileSystemTools {
                   },
                   "required": ["path"]
                 }
-                """, 
+                """,
                 ToolType.BUILTIN)
         );
     }

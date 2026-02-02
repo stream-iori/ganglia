@@ -1,14 +1,11 @@
 package me.stream.ganglia.core.model;
 
-/**
- * Represents a structured error from a tool execution.
- */
 public record ToolErrorResult(
     String toolName,
     ErrorType errorType,
     String message,
-    Integer exitCode, // May be null if not applicable (e.g. timeout)
-    String partialOutput // Captured output before failure
+    Integer exitCode,
+    String partialOutput
 ) {
     public enum ErrorType {
         TIMEOUT,

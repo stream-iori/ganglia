@@ -3,9 +3,9 @@ package me.stream.ganglia.core.tools;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import me.stream.ganglia.core.model.ToolDefinition;
-import me.stream.ganglia.core.model.ToolInvokeResult;
-import me.stream.ganglia.core.model.ToolType;
+import me.stream.ganglia.core.tools.model.ToolDefinition;
+import me.stream.ganglia.core.tools.model.ToolInvokeResult;
+import me.stream.ganglia.core.tools.model.ToolType;
 
 import java.io.File;
 import java.util.List;

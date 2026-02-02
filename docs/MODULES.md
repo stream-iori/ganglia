@@ -38,6 +38,7 @@ This document decomposes the Ganglia system into logical modules based on functi
         *   `bash-tools`: Native command execution (ls, cat).
         *   `vertx-fs-tools`: Non-blocking Java FS.
         *   `net-tools`: HTTP client.
+        *   `todo-tools`: Plan & Task management.
 
 
 ## 4. Skill System (Module: `ganglia-skills`)

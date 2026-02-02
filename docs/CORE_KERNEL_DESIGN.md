@@ -53,8 +53,10 @@ classDiagram
         +metadata: Map~String, Object~
         +activeSkillIds: List~String~
         +modelOptions: ModelOptions
+        +toDoList: ToDoList
         +withNewMessage(msg: Message) SessionContext
         +withModelOptions(opts: ModelOptions) SessionContext
+        +withToDoList(list: ToDoList) SessionContext
     }
     
     class ReActAgentLoop {
