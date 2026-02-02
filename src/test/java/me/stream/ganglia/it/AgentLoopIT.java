@@ -9,6 +9,7 @@ import me.stream.ganglia.core.model.ModelOptions;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.model.ToDoList;
 import me.stream.ganglia.core.prompt.PromptEngine;
+import me.stream.ganglia.core.state.FileLogManager;
 import me.stream.ganglia.core.state.StateEngine;
 import me.stream.ganglia.core.tools.DefaultToolExecutor;
 import me.stream.ganglia.core.tools.ToolsFactory;
@@ -41,16 +42,27 @@ public class AgentLoopIT {
         ToolsFactory toolsFactory = new ToolsFactory(vertx);
         DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory);
         
-        // Mocking simple components
-        StateEngine stateEngine = mock(StateEngine.class);
-
-        when(stateEngine.saveSession(any())).thenReturn(io.vertx.core.Future.succeededFuture());
-
-        PromptEngine promptEngine = context -> "You are a helpful assistant with bash file access tools. " +
-                "Your task is to list files in 'src/test/resources/integration' using 'ls', read them using 'cat', and concatenate their content. " +
-                "The final answer should only be the concatenated string without spaces or newlines.";
-
-        agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, stateEngine, promptEngine, 10);
+                // Mocking simple components
+        
+                StateEngine stateEngine = mock(StateEngine.class);
+        
+                when(stateEngine.saveSession(any())).thenReturn(io.vertx.core.Future.succeededFuture());
+        
+                FileLogManager logManager = new FileLogManager(vertx);
+        
+                
+        
+                PromptEngine promptEngine = context -> "You are a helpful assistant with bash file access tools. " +
+        
+                        "Your task is to list files in 'src/test/resources/integration' using 'ls', read them using 'cat', and concatenate their content. " +
+        
+                        "The final answer should only be the concatenated string without spaces or newlines.";
+        
+        
+        
+                agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, stateEngine, logManager, promptEngine, 10);
+        
+        
         
         ModelOptions options = new ModelOptions(0.0, 1024, "moonshot-v1-8k");
         sessionContext = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());

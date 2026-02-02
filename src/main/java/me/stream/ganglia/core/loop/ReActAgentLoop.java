@@ -5,9 +5,10 @@ import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.tools.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
+import me.stream.ganglia.core.state.LogManager;
 import me.stream.ganglia.core.state.StateEngine;
-import me.stream.ganglia.core.tools.model.ToolCall;
 import me.stream.ganglia.core.tools.ToolExecutor;
+import me.stream.ganglia.core.tools.model.ToolCall;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,13 +21,15 @@ public class ReActAgentLoop implements AgentLoop {
     private final ModelGateway model;
     private final ToolExecutor toolExecutor;
     private final StateEngine stateEngine;
+    private final LogManager logManager;
     private final PromptEngine promptEngine;
     private final int maxIterations;
 
-    public ReActAgentLoop(ModelGateway model, ToolExecutor toolExecutor, StateEngine stateEngine, PromptEngine promptEngine, int maxIterations) {
+    public ReActAgentLoop(ModelGateway model, ToolExecutor toolExecutor, StateEngine stateEngine, LogManager logManager, PromptEngine promptEngine, int maxIterations) {
         this.model = model;
         this.toolExecutor = toolExecutor;
         this.stateEngine = stateEngine;
+        this.logManager = logManager;
         this.promptEngine = promptEngine;
         this.maxIterations = maxIterations;
     }
@@ -37,8 +40,13 @@ public class ReActAgentLoop implements AgentLoop {
         Message userMessage = Message.user(userInput);
         SessionContext context = initialContext.withNewMessage(userMessage);
 
-        return stateEngine.saveSession(context)
+        return persist(context)
                 .compose(v -> runLoop(context, 0));
+    }
+
+    private Future<Void> persist(SessionContext context) {
+        return stateEngine.saveSession(context)
+                .compose(v -> logManager != null ? logManager.appendLog(context) : Future.succeededFuture());
     }
 
     private Future<String> runLoop(SessionContext currentContext, int iteration) {
@@ -76,41 +84,41 @@ public class ReActAgentLoop implements AgentLoop {
         SessionContext nextContext = currentContext.withNewMessage(assistantMessage);
 
         if (hasToolCalls(toolCalls)) {
-            // Decision: Act (Execute ALL Tools)
-            return act(toolCalls, nextContext)
-                    .compose(contextAfterTools ->
-                        // Loop: Recurse
-                        stateEngine.saveSession(contextAfterTools)
-                                .compose(v -> runLoop(contextAfterTools, iteration + 1))
-                    );
-        } else {
-            // Decision: Finish
-            return stateEngine.saveSession(nextContext)
-                    .map(v -> content);
-        }
-    }
-
-    private Future<SessionContext> act(List<ToolCall> toolCalls, SessionContext context) {
-        // 3. Act: Execute ALL tool calls sequentially to accumulate context
-        return executeToolsSequentially(toolCalls, 0, context);
-    }
-
-    private Future<SessionContext> executeToolsSequentially(List<ToolCall> toolCalls, int index, SessionContext currentContext) {
-        if (index >= toolCalls.size()) {
-            return Future.succeededFuture(currentContext);
-        }
-
-        ToolCall call = toolCalls.get(index);
-        return toolExecutor.execute(call, currentContext)
-                .map(invokeResult -> {
-                    Message toolMsg = Message.tool(call.id(), invokeResult.output());
-                    SessionContext contextToUse = invokeResult.modifiedContext() != null ? invokeResult.modifiedContext() : currentContext;
-                    return contextToUse.withNewMessage(toolMsg);
-                })
-                .compose(nextContext -> executeToolsSequentially(toolCalls, index + 1, nextContext));
-    }
-
-    private boolean hasToolCalls(List<ToolCall> toolCalls) {
+                        // Decision: Act (Execute ALL Tools)
+                        return act(toolCalls, nextContext)
+                                .compose(contextAfterTools -> 
+                                    // Loop: Recurse
+                                    persist(contextAfterTools)
+                                            .compose(v -> runLoop(contextAfterTools, iteration + 1))
+                                );
+                    } else {
+                        // Decision: Finish
+                        return persist(nextContext)
+                                .map(v -> content);
+                    }
+                }
+            
+                private Future<SessionContext> act(List<ToolCall> toolCalls, SessionContext context) {
+                    // 3. Act: Execute ALL tool calls sequentially to accumulate context
+                    return executeToolsSequentially(toolCalls, 0, context);
+                }
+            
+                private Future<SessionContext> executeToolsSequentially(List<ToolCall> toolCalls, int index, SessionContext currentContext) {
+                    if (index >= toolCalls.size()) {
+                        return Future.succeededFuture(currentContext);
+                    }
+            
+                    ToolCall call = toolCalls.get(index);
+                    return toolExecutor.execute(call, currentContext)
+                            .map(invokeResult -> {
+                                Message toolMsg = Message.tool(call.id(), invokeResult.output());
+                                SessionContext contextToUse = invokeResult.modifiedContext() != null ? invokeResult.modifiedContext() : currentContext;
+                                return contextToUse.withNewMessage(toolMsg);
+                            })
+                            .compose(nextContext -> persist(nextContext).map(v -> nextContext))
+                            .compose(nextContext -> executeToolsSequentially(toolCalls, index + 1, nextContext));
+                }
+                private boolean hasToolCalls(List<ToolCall> toolCalls) {
         return toolCalls != null && !toolCalls.isEmpty();
     }
 }

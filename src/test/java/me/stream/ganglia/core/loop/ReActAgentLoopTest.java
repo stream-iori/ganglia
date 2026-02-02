@@ -5,6 +5,7 @@ import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.tools.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
+import me.stream.ganglia.core.state.LogManager;
 import me.stream.ganglia.core.state.StateEngine;
 import me.stream.ganglia.core.tools.ToolExecutor;
 import org.junit.jupiter.api.Test;
@@ -31,17 +32,20 @@ class ReActAgentLoopTest {
     @Mock
     StateEngine state;
     @Mock
+    LogManager logManager;
+    @Mock
     PromptEngine prompt;
 
     @Test
     void testHappyPathMultipleTools() throws Exception {
         // Setup
-        ReActAgentLoop loop = new ReActAgentLoop(model, tools, state, prompt, 5);
+        ReActAgentLoop loop = new ReActAgentLoop(model, tools, state, logManager, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         SessionContext context = new SessionContext("test-session", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
         // Mocks behavior
         when(state.saveSession(any())).thenReturn(Future.succeededFuture());
+        when(logManager.appendLog(any())).thenReturn(Future.succeededFuture());
         when(prompt.buildSystemPrompt(any())).thenReturn("System Prompt");
         when(tools.getAvailableTools()).thenReturn(Collections.emptyList());
 
