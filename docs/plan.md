@@ -39,12 +39,12 @@
 ## Phase 4: Integration & Tools
 **Objective:** Expose memory capabilities to the agent.
 
-- [ ] **`remember` Tool:**
-    - [ ] Implement a tool for the agent to explicitly write facts to `MEMORY.md`.
-- [ ] **Context Injection:**
-    - [ ] Update `PromptEngine` to dynamically inject:
-        - [ ] The `ToDoList` (always).
-        - [ ] The compressed "Accomplishments" (from Tier 2).
-        - [ ] Relevant snippets from `MEMORY.md` (if explicitly retrieved or small enough).
-- [ ] **Verification:**
-    - [ ] Create Integration Test: "Long Context Session" where the agent performs multiple tasks, triggers compression, and successfully recalls early context via summary.
+- [x] **`remember` Tool:**
+    - [x] Implement a tool for the agent to explicitly write facts to `MEMORY.md`.
+- [x] **Context Injection:**
+    - [x] Update `PromptEngine` to dynamically inject:
+        - [x] The `ToDoList` (always).
+        - [x] The compressed "Accomplishments" (from Tier 2).
+        - [x] Relevant snippets from `MEMORY.md` (if explicitly retrieved or small enough).
+- [x] **Verification:**
+    - [x] Create Integration Test: "Long Context Session" where the agent performs multiple tasks, triggers compression, and successfully recalls early context via summary.

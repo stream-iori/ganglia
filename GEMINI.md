@@ -28,8 +28,10 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designe
     - `BashFileSystemTools`: `ls`, `cat` (with timeout and 16MB memory protection).
     - `VertxFileSystemTools`: `jvm_ls`, `jvm_read` (Non-blocking).
     - `ToDoTools`: `todo_add`, `todo_list`, `todo_complete` (Persisted in `SessionContext`).
+    - `KnowledgeBaseTools`: `remember` (Persisted in `MEMORY.md`).
 - [x] **Infrastructure:** `ToolsFactory`, `SessionContext` with Turn-based granularity.
-- [x] **Testing:** Comprehensive unit tests and integration tests (`AgentLoopIT`) verified against real APIs.
+- [x] **Memory System:** Full Three-Tier implementation (Short, Medium, Long-term) with compression and retrieval.
+- [x] **Testing:** Comprehensive unit tests and integration tests (`AgentLoopIT`, `MemoryRetrievalIT`) verified against real APIs.
 
 ## 5. Directory Structure
 - `docs/`: Technical designs (Architecture, Memory, Modules, Requirements).

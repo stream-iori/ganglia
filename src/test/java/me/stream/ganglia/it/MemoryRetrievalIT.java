@@ -45,7 +45,9 @@ public class MemoryRetrievalIT {
 
         OpenAIModelGateway modelGateway = new OpenAIModelGateway(vertx, apiKey, baseUrl);
         ContextCompressor compressor = new ContextCompressor(modelGateway);
-        ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor);
+        KnowledgeBase knowledgeBase = new KnowledgeBase(vertx, MEMORY_FILE);
+        
+        ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
         DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory);
         
         StateEngine stateEngine = mock(StateEngine.class);

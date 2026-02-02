@@ -12,38 +12,41 @@ import java.util.List;
  * Default implementation of ToolExecutor that orchestrates built-in tool sets.
  */
 public class DefaultToolExecutor implements ToolExecutor {
-        private final VertxFileSystemTools vertxFsTools;
-        private final BashFileSystemTools bashFsTools;
-        private final ToDoTools toDoTools;
-
-        public DefaultToolExecutor(ToolsFactory factory) {
-            this.vertxFsTools = factory.getVertxFileSystemTools();
-            this.bashFsTools = factory.getBashFileSystemTools();
-            this.toDoTools = factory.getToDoTools();
+            private final VertxFileSystemTools vertxFsTools;
+            private final BashFileSystemTools bashFsTools;
+            private final ToDoTools toDoTools;
+            private final KnowledgeBaseTools kbTools;
+        
+            public DefaultToolExecutor(ToolsFactory factory) {
+                this.vertxFsTools = factory.getVertxFileSystemTools();
+                this.bashFsTools = factory.getBashFileSystemTools();
+                this.toDoTools = factory.getToDoTools();
+                this.kbTools = factory.getKnowledgeBaseTools();
+            }
+        
+            @Override
+            public Future<ToolInvokeResult> execute(ToolCall toolCall, me.stream.ganglia.core.model.SessionContext context) {
+                return switch (toolCall.toolName()) {
+                    case "jvm_ls" -> vertxFsTools.ls(toolCall.arguments());
+                    case "jvm_read" -> vertxFsTools.read(toolCall.arguments());
+                    case "ls" -> bashFsTools.ls(toolCall.arguments());
+                    case "cat" -> bashFsTools.cat(toolCall.arguments());
+                    case "todo_add" -> toDoTools.add(toolCall.arguments(), context);
+                    case "todo_list" -> toDoTools.list(context);
+                    case "todo_complete" -> toDoTools.complete(toolCall.arguments(), context);
+                    case "remember" -> kbTools.remember(toolCall.arguments(), context);
+                    default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolCall.toolName()));
+                };
+            }
+        
+            @Override
+            public List<ToolDefinition> getAvailableTools() {
+                List<ToolDefinition> tools = new ArrayList<>();
+                tools.addAll(vertxFsTools.getDefinitions());
+                tools.addAll(bashFsTools.getDefinitions());
+                tools.addAll(toDoTools.getDefinitions());
+                tools.addAll(kbTools.getDefinitions());
+                return tools;
+            }
         }
-
-        @Override
-        public Future<ToolInvokeResult> execute(ToolCall toolCall, me.stream.ganglia.core.model.SessionContext context) {
-            return switch (toolCall.toolName()) {
-                case "jvm_ls" -> vertxFsTools.ls(toolCall.arguments());
-                case "jvm_read" -> vertxFsTools.read(toolCall.arguments());
-                case "ls" -> bashFsTools.ls(toolCall.arguments());
-                case "cat" -> bashFsTools.cat(toolCall.arguments());
-                case "todo_add" -> toDoTools.add(toolCall.arguments(), context);
-                case "todo_list" -> toDoTools.list(context);
-                case "todo_complete" -> toDoTools.complete(toolCall.arguments(), context);
-                default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolCall.toolName()));
-            };
-        }
-
-        @Override
-        public List<ToolDefinition> getAvailableTools() {
-            List<ToolDefinition> tools = new ArrayList<>();
-            tools.addAll(vertxFsTools.getDefinitions());
-            tools.addAll(bashFsTools.getDefinitions());
-            tools.addAll(toDoTools.getDefinitions());
-            return tools;
-        }
-    }
-
-
+        

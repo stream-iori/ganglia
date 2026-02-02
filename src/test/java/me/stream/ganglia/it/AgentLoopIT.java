@@ -6,6 +6,7 @@ import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.llm.OpenAIModelGateway;
 import me.stream.ganglia.core.loop.ReActAgentLoop;
 import me.stream.ganglia.core.memory.ContextCompressor;
+import me.stream.ganglia.core.memory.KnowledgeBase;
 import me.stream.ganglia.core.model.ModelOptions;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.model.ToDoList;
@@ -40,8 +41,9 @@ public class AgentLoopIT {
 
         OpenAIModelGateway modelGateway = new OpenAIModelGateway(vertx, apiKey, baseUrl);
         ContextCompressor compressor = new ContextCompressor(modelGateway);
+        KnowledgeBase knowledgeBase = new KnowledgeBase(vertx, "TEST_MEMORY_IT.md"); // Dummy
         
-        ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor);
+        ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
         DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory);
         
                 // Mocking simple components
