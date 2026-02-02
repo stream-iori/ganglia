@@ -5,6 +5,7 @@ import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.state.StateEngine;
+import me.stream.ganglia.core.tools.model.ToolCall;
 import me.stream.ganglia.core.tools.ToolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,14 +70,14 @@ public class ReActAgentLoop implements AgentLoop {
     private Future<String> handleDecision(ModelResponse response, SessionContext currentContext, int iteration) {
         String content = response.content();
         List<ToolCall> toolCalls = response.toolCalls();
-        
+
         Message assistantMessage = Message.assistant(content, toolCalls);
         SessionContext nextContext = currentContext.withNewMessage(assistantMessage);
 
         if (hasToolCalls(toolCalls)) {
             // Decision: Act (Execute ALL Tools)
             return act(toolCalls, nextContext)
-                    .compose(contextAfterTools -> 
+                    .compose(contextAfterTools ->
                         // Loop: Recurse
                         stateEngine.saveSession(contextAfterTools)
                                 .compose(v -> runLoop(contextAfterTools, iteration + 1))

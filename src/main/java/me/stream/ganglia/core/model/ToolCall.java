@@ -1,4 +1,4 @@
-package me.stream.ganglia.core.tools.model;
+package me.stream.ganglia.core.model;
 
 import java.util.Map;
 

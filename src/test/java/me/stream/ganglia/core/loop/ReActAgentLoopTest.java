@@ -5,7 +5,9 @@ import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.state.StateEngine;
+import me.stream.ganglia.core.tools.model.ToolCall;
 import me.stream.ganglia.core.tools.ToolExecutor;
+import me.stream.ganglia.core.tools.model.ToolInvokeResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -47,9 +49,9 @@ class ReActAgentLoopTest {
         // 1st Model Call: Returns TWO Tool Calls
         ToolCall toolCall1 = new ToolCall("call-1", "test-tool-1", Map.of("arg", "1"));
         ToolCall toolCall2 = new ToolCall("call-2", "test-tool-2", Map.of("arg", "2"));
-        
+
         ModelResponse toolResponse = new ModelResponse("Thinking...", List.of(toolCall1, toolCall2), new TokenUsage(10, 10));
-        
+
         // 2nd Model Call: Returns Final Answer
         ModelResponse finalResponse = new ModelResponse("Final Answer", Collections.emptyList(), new TokenUsage(10, 10));
 
@@ -66,7 +68,7 @@ class ReActAgentLoopTest {
 
         // Verify
         assertEquals("Final Answer", result);
-        
+
         // Verify interactions
         verify(model, times(2)).chat(anyList(), anyList(), eq(options));
         // Ensure BOTH tools were executed

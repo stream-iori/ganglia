@@ -13,6 +13,8 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.NoStackTraceThrowable;
 import me.stream.ganglia.core.model.*;
+import me.stream.ganglia.core.tools.model.ToolCall;
+import me.stream.ganglia.core.tools.model.ToolDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -183,7 +185,7 @@ public class OpenAIModelGateway implements ModelGateway {
         ChatCompletionFunctionTool functionTool = ChatCompletionFunctionTool.builder()
                 .function(functionBuilder.build())
                 .build();
-        
+
         return ChatCompletionTool.ofFunction(functionTool);
     }
 

@@ -21,11 +21,6 @@ This project uses `.sdkmanrc` to enforce specific tool versions.
 - **Logging:** SLF4J & Log4j2
 - **AI Client:** OpenAI Java (Official)
 
-### Kimi Connection
-
-BASE_URL:https://api.moonshot.cn/anthropic/
-APIKEY:sk-5PeYdPKvZwkM4tm1fks09vVhL39SAFVajnm2Nrir5l2xaju9
-
 ## Directory Structure
 
 - **`.sdkmanrc`**: Defines the SDK versions for the project (Java 17).

@@ -4,7 +4,7 @@ import io.vertx.core.Future;
 import me.stream.ganglia.core.model.Message;
 import me.stream.ganglia.core.model.ModelOptions;
 import me.stream.ganglia.core.model.ModelResponse;
-import me.stream.ganglia.core.model.ToolDefinition;
+import me.stream.ganglia.core.tools.model.ToolDefinition;
 
 import java.util.List;
 
@@ -22,8 +22,9 @@ public interface ModelGateway {
     /**
      * Streaming version of chat.
      * Publishes tokens to the specified EventBus address.
+     * Returns the complete accumulated response when finished.
      */
-    Future<Void> chatStream(
+    Future<ModelResponse> chatStream(
         List<Message> history,
         List<ToolDefinition> availableTools,
         ModelOptions options,
