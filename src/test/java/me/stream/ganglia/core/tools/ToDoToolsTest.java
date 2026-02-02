@@ -26,7 +26,7 @@ class ToDoToolsTest {
     @BeforeEach
     void setUp(Vertx vertx) {
         tools = new ToDoTools(vertx);
-        context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
+        context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
     }
 
     @Test

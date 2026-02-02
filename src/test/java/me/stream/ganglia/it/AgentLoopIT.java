@@ -53,7 +53,7 @@ public class AgentLoopIT {
         agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, stateEngine, promptEngine, 10);
         
         ModelOptions options = new ModelOptions(0.0, 1024, "moonshot-v1-8k");
-        sessionContext = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
+        sessionContext = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
     }
 
     @Test

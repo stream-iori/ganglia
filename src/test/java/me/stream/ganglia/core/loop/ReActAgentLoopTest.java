@@ -38,7 +38,7 @@ class ReActAgentLoopTest {
         // Setup
         ReActAgentLoop loop = new ReActAgentLoop(model, tools, state, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
-        SessionContext context = new SessionContext("test-session", Collections.emptyList(), Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
+        SessionContext context = new SessionContext("test-session", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
         // Mocks behavior
         when(state.saveSession(any())).thenReturn(Future.succeededFuture());

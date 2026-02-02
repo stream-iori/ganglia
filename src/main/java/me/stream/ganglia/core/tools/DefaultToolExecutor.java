@@ -15,13 +15,13 @@ public class DefaultToolExecutor implements ToolExecutor {
         private final VertxFileSystemTools vertxFsTools;
         private final BashFileSystemTools bashFsTools;
         private final ToDoTools toDoTools;
-    
+
         public DefaultToolExecutor(ToolsFactory factory) {
             this.vertxFsTools = factory.getVertxFileSystemTools();
             this.bashFsTools = factory.getBashFileSystemTools();
             this.toDoTools = factory.getToDoTools();
         }
-    
+
         @Override
         public Future<ToolInvokeResult> execute(ToolCall toolCall, me.stream.ganglia.core.model.SessionContext context) {
             return switch (toolCall.toolName()) {
@@ -35,7 +35,7 @@ public class DefaultToolExecutor implements ToolExecutor {
                 default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolCall.toolName()));
             };
         }
-    
+
         @Override
         public List<ToolDefinition> getAvailableTools() {
             List<ToolDefinition> tools = new ArrayList<>();
@@ -45,5 +45,5 @@ public class DefaultToolExecutor implements ToolExecutor {
             return tools;
         }
     }
-    
+
 

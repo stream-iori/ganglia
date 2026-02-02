@@ -49,7 +49,8 @@ classDiagram
     class SessionContext {
         <<Record>>
         +sessionId: String
-        +history: List~Message~
+        +previousTurns: List~Turn~
+        +currentTurn: Turn
         +metadata: Map~String, Object~
         +activeSkillIds: List~String~
         +modelOptions: ModelOptions
@@ -57,6 +58,16 @@ classDiagram
         +withNewMessage(msg: Message) SessionContext
         +withModelOptions(opts: ModelOptions) SessionContext
         +withToDoList(list: ToDoList) SessionContext
+        +flattenHistory() List~Message~
+    }
+
+    class Turn {
+        <<Record>>
+        +id: String
+        +userMessage: Message
+        +steps: List~Message~
+        +response: Message
+        +flatten() List~Message~
     }
     
     class ReActAgentLoop {
