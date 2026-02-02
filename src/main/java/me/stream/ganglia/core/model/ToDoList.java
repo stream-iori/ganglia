@@ -12,7 +12,7 @@ public record ToDoList(List<ToDoItem> items) {
     public ToDoList addTask(String description) {
         List<ToDoItem> newItems = new ArrayList<>(items);
         String id = String.valueOf(newItems.size() + 1);
-        newItems.add(new ToDoItem(id, description, TaskStatus.TODO));
+        newItems.add(new ToDoItem(id, description, TaskStatus.TODO, null));
         return new ToDoList(newItems);
     }
 
@@ -32,16 +32,32 @@ public record ToDoList(List<ToDoItem> items) {
         }
         return new ToDoList(newItems);
     }
+
+    public ToDoList updateTaskResult(String id, String result) {
+        List<ToDoItem> newItems = new ArrayList<>();
+        for (ToDoItem item : items) {
+            if (item.id().equals(id)) {
+                newItems.add(item.withResult(result));
+            } else {
+                newItems.add(item);
+            }
+        }
+        return new ToDoList(newItems);
+    }
     
     @Override
     public String toString() {
         if (items.isEmpty()) return "No tasks.";
         StringBuilder sb = new StringBuilder("ToDo List:\n");
         for (ToDoItem item : items) {
-            sb.append(String.format("[%s] %s: %s\n", 
+            sb.append(String.format("[%s] %s: %s", 
                 item.status() == TaskStatus.DONE ? "x" : " ", 
                 item.id(), 
                 item.description()));
+            if (item.result() != null) {
+                sb.append(" -> Result: ").append(item.result());
+            }
+            sb.append("\n");
         }
         return sb.toString();
     }

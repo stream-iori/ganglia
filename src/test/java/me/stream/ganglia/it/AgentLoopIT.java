@@ -5,6 +5,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.llm.OpenAIModelGateway;
 import me.stream.ganglia.core.loop.ReActAgentLoop;
+import me.stream.ganglia.core.memory.ContextCompressor;
 import me.stream.ganglia.core.model.ModelOptions;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.model.ToDoList;
@@ -38,8 +39,9 @@ public class AgentLoopIT {
         String baseUrl = "https://api.moonshot.cn/v1";
 
         OpenAIModelGateway modelGateway = new OpenAIModelGateway(vertx, apiKey, baseUrl);
+        ContextCompressor compressor = new ContextCompressor(modelGateway);
         
-        ToolsFactory toolsFactory = new ToolsFactory(vertx);
+        ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor);
         DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory);
         
                 // Mocking simple components

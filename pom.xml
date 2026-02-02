@@ -77,6 +77,12 @@
       <version>${openai-java.version}</version>
     </dependency>
 
+    <dependency>
+      <groupId>com.knuddels</groupId>
+      <artifactId>jtokkit</artifactId>
+      <version>1.1.0</version>
+    </dependency>
+
     <!-- Logging (Placed here to override any BOM managed scope) -->
 
   </dependencies>

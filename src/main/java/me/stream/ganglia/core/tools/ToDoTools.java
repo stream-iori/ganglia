@@ -2,17 +2,21 @@ package me.stream.ganglia.core.tools;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import me.stream.ganglia.core.memory.ContextCompressor;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.tools.model.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class ToDoTools {
     private final Vertx vertx;
+    private final ContextCompressor compressor;
 
-    public ToDoTools(Vertx vertx) {
+    public ToDoTools(Vertx vertx, ContextCompressor compressor) {
         this.vertx = vertx;
+        this.compressor = compressor;
     }
 
     public List<ToolDefinition> getDefinitions() {
@@ -31,7 +35,7 @@ public class ToDoTools {
             new ToolDefinition("todo_list", "List all tasks",
                 "{}",
                 ToolType.BUILTIN),
-            new ToolDefinition("todo_complete", "Mark a task as done",
+            new ToolDefinition("todo_complete", "Mark a task as done and compress context",
                 """
                 {
                   "type": "object",
@@ -66,12 +70,28 @@ public class ToDoTools {
         ToDoList currentList = context.toDoList();
         if (currentList == null) return Future.succeededFuture(ToolInvokeResult.error("No plan exists."));
 
-        try {
-            ToDoList newList = currentList.updateTaskStatus(id, TaskStatus.DONE);
-            SessionContext newContext = context.withToDoList(newList);
-            return Future.succeededFuture(ToolInvokeResult.success("Task " + id + " completed.", newContext));
-        } catch (IllegalArgumentException e) {
-            return Future.succeededFuture(ToolInvokeResult.error(e.getMessage()));
-        }
+        // Trigger Compression of Previous Turns
+        // Strategy: Summarize all previousTurns, store result in the task, and CLEAR previousTurns.
+        List<Turn> turnsToCompress = context.previousTurns();
+        
+        return compressor.summarize(turnsToCompress, context.modelOptions())
+                .map(summary -> {
+                    ToDoList newList = currentList.updateTaskStatus(id, TaskStatus.DONE)
+                                                  .updateTaskResult(id, summary);
+                    
+                    // Clear compressed turns from context
+                    SessionContext newContext = new SessionContext(
+                            context.sessionId(),
+                            new ArrayList<>(), // Cleared previous turns
+                            context.currentTurn(), // Keep current turn
+                            context.metadata(),
+                            context.activeSkillIds(),
+                            context.modelOptions(),
+                            newList
+                    );
+                    
+                    return ToolInvokeResult.success("Task " + id + " completed. Context compressed: " + summary, newContext);
+                })
+                .recover(err -> Future.succeededFuture(ToolInvokeResult.error("Failed to compress context: " + err.getMessage())));
     }
 }

@@ -3,6 +3,7 @@ package me.stream.ganglia.core.tools;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import me.stream.ganglia.core.memory.ContextCompressor;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.model.TaskStatus;
 import me.stream.ganglia.core.model.ToDoList;
@@ -10,22 +11,28 @@ import me.stream.ganglia.core.tools.model.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
-@ExtendWith(VertxExtension.class)
+@ExtendWith({VertxExtension.class, MockitoExtension.class})
 class ToDoToolsTest {
 
     private ToDoTools tools;
     private SessionContext context;
+    @Mock
+    private ContextCompressor compressor;
 
     @BeforeEach
     void setUp(Vertx vertx) {
-        tools = new ToDoTools(vertx);
+        tools = new ToDoTools(vertx, compressor);
         context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
     }
 
@@ -48,6 +55,8 @@ class ToDoToolsTest {
 
     @Test
     void testComplete(VertxTestContext testContext) {
+        when(compressor.summarize(any(), any())).thenReturn(io.vertx.core.Future.succeededFuture("Task done."));
+
         tools.add(Map.of("description", "Task To Complete"), context)
             .compose(result -> {
                 SessionContext ctx1 = result.modifiedContext();
