@@ -16,25 +16,25 @@
 ## Phase 2: Medium-Term Context & Compression (Tier 2)
 **Objective:** Manage token window limits via smart summarization linked to tasks.
 
-- [ ] **Context Pruning Engine:**
-    - [ ] Implement `TokenCounter` (using JTokkit or similar) to monitor context usage.
-    - [ ] Implement `SlidingWindow` logic to identify when context exceeds limits.
-- [ ] **Compression Logic:**
-    - [ ] Develop `ContextCompressor`: Logic to take a list of `Turn` objects and ask the LLM to summarize them.
-    - [ ] Implement "Task-Turn" Lifecycle Hook:
-        - [ ] Detect when `todo_complete` is called.
-        - [ ] Trigger summarization of all Turns associated with that Task.
-        - [ ] Replace raw Turns in `SessionContext` with a summary note in `ToDoList`.
+- [x] **Context Pruning Engine:**
+    - [x] Implement `TokenCounter` (using JTokkit or similar) to monitor context usage.
+    - [x] Implement `SlidingWindow` logic to identify when context exceeds limits.
+- [x] **Compression Logic:**
+    - [x] Develop `ContextCompressor`: Logic to take a list of `Turn` objects and ask the LLM to summarize them.
+    - [x] Implement "Task-Turn" Lifecycle Hook:
+        - [x] Detect when `todo_complete` is called.
+        - [x] Trigger summarization of all Turns associated with that Task.
+        - [x] Replace raw Turns in `SessionContext` with a summary note in `ToDoList`.
 
 ## Phase 3: Long-Term Knowledge (Tier 3)
 **Objective:** Project-wide memory that persists across sessions.
 
-- [ ] **Knowledge Base Manager:**
-    - [ ] Implement `KnowledgeBase`: Read/Write `MEMORY.md`.
-    - [ ] Define standard sections for `MEMORY.md` (e.g., "User Preferences", "Project Conventions", "Architecture").
-- [ ] **Retrieval System:**
-    - [ ] Integrate `grep` / `read` capabilities specifically for `MEMORY.md` into the system prompt construction.
-    - [ ] **Agentic Search:** Verify the agent can autonomously decide to read `MEMORY.md` when lacking context.
+- [x] **Knowledge Base Manager:**
+    - [x] Implement `KnowledgeBase`: Read/Write `MEMORY.md`.
+    - [x] Define standard sections for `MEMORY.md` (e.g., "User Preferences", "Project Conventions", "Architecture").
+- [x] **Retrieval System:**
+    - [x] Integrate `grep` / `read` capabilities specifically for `MEMORY.md` into the system prompt construction.
+    - [x] **Agentic Search:** Verify the agent can autonomously decide to read `MEMORY.md` when lacking context.
 
 ## Phase 4: Integration & Tools
 **Objective:** Expose memory capabilities to the agent.
