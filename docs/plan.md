@@ -48,3 +48,15 @@
         - [x] Relevant snippets from `MEMORY.md` (if explicitly retrieved or small enough).
 - [x] **Verification:**
     - [x] Create Integration Test: "Long Context Session" where the agent performs multiple tasks, triggers compression, and successfully recalls early context via summary.
+
+## Phase 5: Advanced Interaction (Interrupts)
+**Objective:** Enable the agent to ask for help or selection from the user.
+
+- [x] **Interrupt Mechanism:**
+    - [x] Update `ToolType` to include `INTERRUPT`.
+    - [x] Update `ReActAgentLoop` to pause when an interrupt tool is called.
+- [x] **`ask_selection` Tool:**
+    - [x] Implement `SelectionTools` with `ask_selection(question, options)`.
+    - [x] Ensure options are presented clearly (e.g., indexed list).
+- [x] **Resume Mechanism:**
+    - [x] Implement method to resume session with user selection (injected as Tool Result).

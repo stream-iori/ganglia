@@ -48,6 +48,7 @@
 *   **Runtime Interrupts:**
     *   **Sensitive Actions:** Execution of `@Sensitive` tools (e.g., `delete`, `deploy`) must trigger a blocking user confirmation prompt.
     *   **Clarification:** The agent shall use an `ask_user` tool to request missing information during execution.
+    *   **User Selection:** The agent shall use `ask_selection` to present a list of options (e.g., disambiguating file names, choosing a design pattern) and await a specific choice.
     *   **Pause/Resume:** The system shall support pausing the ReAct loop to await user input.
 
 ### 1.5 Skill System ("The Expertise")

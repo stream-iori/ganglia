@@ -98,6 +98,7 @@ classDiagram
         <<Enum>>
         BUILTIN
         EXTENSION
+        INTERRUPT
     }
 
     class ToolDefinition {
