@@ -98,7 +98,6 @@ classDiagram
         <<Enum>>
         BUILTIN
         EXTENSION
-        INTERRUPT
     }
 
     class ToolDefinition {
@@ -107,6 +106,7 @@ classDiagram
         +description: String
         +jsonSchema: String
         +type: ToolType
+        +isInterrupt: boolean
     }
 
     class ToolErrorResult {

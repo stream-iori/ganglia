@@ -34,7 +34,8 @@ public class SelectionTools {
                   "required": ["question", "options"]
                 }
                 """,
-                ToolType.INTERRUPT)
+                ToolType.BUILTIN,
+                true)
         );
     }
 
