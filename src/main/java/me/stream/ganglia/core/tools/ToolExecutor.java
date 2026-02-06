@@ -17,5 +17,5 @@ public interface ToolExecutor {
     /**
      * Returns the list of available tool definitions.
      */
-    List<ToolDefinition> getAvailableTools();
+    List<ToolDefinition> getAvailableTools(SessionContext context);
 }

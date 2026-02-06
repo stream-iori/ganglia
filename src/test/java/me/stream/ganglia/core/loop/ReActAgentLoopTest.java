@@ -46,8 +46,8 @@ class ReActAgentLoopTest {
         // Mocks behavior
         when(state.saveSession(any())).thenReturn(Future.succeededFuture());
         when(logManager.appendLog(any())).thenReturn(Future.succeededFuture());
-        when(prompt.buildSystemPrompt(any())).thenReturn("System Prompt");
-        when(tools.getAvailableTools()).thenReturn(Collections.emptyList());
+        when(prompt.buildSystemPrompt(any())).thenReturn(Future.succeededFuture("System Prompt"));
+        when(tools.getAvailableTools(any())).thenReturn(Collections.emptyList());
 
         // 1st Model Call: Returns TWO Tool Calls
         ToolCall toolCall1 = new ToolCall("call-1", "test-tool-1", Map.of("arg", "1"));
@@ -88,8 +88,8 @@ class ReActAgentLoopTest {
 
         when(state.saveSession(any())).thenReturn(Future.succeededFuture());
         when(logManager.appendLog(any())).thenReturn(Future.succeededFuture());
-        when(prompt.buildSystemPrompt(any())).thenReturn("System Prompt");
-        when(tools.getAvailableTools()).thenReturn(Collections.emptyList());
+        when(prompt.buildSystemPrompt(any())).thenReturn(Future.succeededFuture("System Prompt"));
+        when(tools.getAvailableTools(any())).thenReturn(Collections.emptyList());
 
         // 1. Initial Run -> Interrupt
         ToolCall selectionCall = new ToolCall("call-select", "ask_selection", Map.of("q", "Choose"));

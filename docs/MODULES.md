@@ -48,7 +48,7 @@ This document decomposes the Ganglia system into logical modules based on functi
 *   **Components:**
     *   `SkillPackage`: Defines the structure of a skill (Manifest, Prompts, JARs).
     *   `SkillManager`: Handles lifecycle (install, activate, deactivate) and dependency resolution.
-    *   `ContextInjector`: Merges skill-specific prompts and heuristics into the active system prompt.
+    *   `SkillPromptInjector`: Merges skill-specific prompts and heuristics into the active system prompt.
     *   `SkillRegistry`: A repository or catalog of available skills (Local & Remote).
 
 ## 5. Interaction & Planning (Module: `ganglia-interaction`)

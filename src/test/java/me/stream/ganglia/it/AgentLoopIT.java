@@ -44,7 +44,7 @@ public class AgentLoopIT {
         KnowledgeBase knowledgeBase = new KnowledgeBase(vertx, "TEST_MEMORY_IT.md"); // Dummy
         
         ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
-        DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory);
+        DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, null);
         
                 // Mocking simple components
         
@@ -56,11 +56,9 @@ public class AgentLoopIT {
         
                 
         
-                PromptEngine promptEngine = context -> "You are a helpful assistant with bash file access tools. " +
-        
-                        "Your task is to list files in 'src/test/resources/integration' using 'ls', read them using 'cat', and concatenate their content. " +
-        
-                        "The final answer should only be the concatenated string without spaces or newlines.";
+                PromptEngine promptEngine = context -> io.vertx.core.Future.succeededFuture("You are a helpful assistant with bash file access tools. " +
+                "Your task is to list files in 'src/test/resources/integration' using 'ls', read them using 'cat', and concatenate their content. " +
+                "The final answer should only be the concatenated string without spaces or newlines.");
         
         
         

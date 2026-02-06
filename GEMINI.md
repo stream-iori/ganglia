@@ -14,31 +14,35 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designe
 
 ## 3. Logical Architecture
 - **Brain (Model Layer):** `ModelGateway` abstraction supporting Async/Streaming interactions. `OpenAIModelGateway` is implemented.
-- **Hands (Tooling):** `DefaultToolExecutor` orchestrates built-in and extension tools.
+- **Hands (Tooling):** `DefaultToolExecutor` orchestrates built-in and extension tools via `ToolSet` interface.
 - **Memory (Context):** Three-tier system:
     - **Short-term:** `Turn` objects (Thought -> Act -> Observe).
     - **Medium-term:** Compressed `SessionContext` managed via ToDo lifecycle.
     - **Long-term:** `MEMORY.md` and project logs (Agentic Search).
+- **Expertise (Skills):** Modular `SkillPackage` system providing domain-specific prompts, tools, and automatic triggers.
 - **Orchestration:** `ReActAgentLoop` handles sequential tool execution and reasoning steps.
 
 ## 4. Current Implementation Status
 - [x] **Core Kernel:** ReAct loop with sequential execution and structured `ToolInvokeResult`.
 - [x] **Model Gateway:** OpenAI Async implementation with `ChatCompletionAccumulator` and EventBus streaming.
+- [x] **Skill System:** Modular expertise with `SkillRegistry`, `SkillPromptInjector`, and dynamic `SkillTools`.
 - [x] **Built-in Tools:**
     - `BashFileSystemTools`: `ls`, `cat` (with timeout and 16MB memory protection).
     - `VertxFileSystemTools`: `jvm_ls`, `jvm_read` (Non-blocking).
     - `ToDoTools`: `todo_add`, `todo_list`, `todo_complete` (Persisted in `SessionContext`).
     - `KnowledgeBaseTools`: `remember` (Persisted in `MEMORY.md`).
+    - `SkillTools`: `list_available_skills`, `activate_skill`.
 - [x] **Infrastructure:** `ToolsFactory`, `SessionContext` with Turn-based granularity.
 - [x] **Memory System:** Full Three-Tier implementation (Short, Medium, Long-term) with compression and retrieval.
-- [x] **Testing:** Comprehensive unit tests and integration tests (`AgentLoopIT`, `MemoryRetrievalIT`) verified against real APIs.
+- [x] **Testing:** Comprehensive unit tests and integration tests (`AgentLoopIT`, `MemoryRetrievalIT`, `SkillIntegrationTest`) verified against real APIs.
 
 ## 5. Directory Structure
-- `docs/`: Technical designs (Architecture, Memory, Modules, Requirements).
+- `docs/`: Technical designs (Architecture, Memory, Modules, Requirements, Skills).
 - `src/main/java/me/stream/ganglia/core/`:
     - `llm/`: Model abstractions and implementations.
     - `loop/`: ReAct loop orchestration.
     - `model/`: Domain models (Turn, Message, SessionContext).
+    - `skills/`: Skill registry, manifest models, and prompt/tool injectors.
     - `tools/`: Tool execution and built-in implementations.
 - `src/test/`: Unit and Integration tests.
 - `examples/`: Standalone usage examples (e.g., `kimi-example`).

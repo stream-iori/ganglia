@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Built-in tools for local filesystem operations using native system commands.
  */
-public class BashFileSystemTools {
+public class BashFileSystemTools implements ToolSet {
     private static final long MAX_OUTPUT_SIZE = 16 * 1024 * 1024; // 16MB
     private static final long DEFAULT_TIMEOUT_MS = 30000; // 30 seconds
 
@@ -28,6 +28,7 @@ public class BashFileSystemTools {
         this.vertx = vertx;
     }
 
+    @Override
     public List<ToolDefinition> getDefinitions() {
         return List.of(
             new ToolDefinition("ls", "List files in a directory using bash ls",
@@ -61,7 +62,16 @@ public class BashFileSystemTools {
         );
     }
 
-    public Future<ToolInvokeResult> ls(Map<String, Object> args) {
+    @Override
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, me.stream.ganglia.core.model.SessionContext context) {
+        return switch (toolName) {
+            case "ls" -> ls(args);
+            case "cat" -> cat(args);
+            default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
+        };
+    }
+
+    private Future<ToolInvokeResult> ls(Map<String, Object> args) {
         String path = (String) args.get("path");
         return execute("ls", List.of("ls", "-F", path), DEFAULT_TIMEOUT_MS);
     }

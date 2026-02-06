@@ -1,6 +1,7 @@
 package me.stream.ganglia.core.prompt;
 
 import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.memory.KnowledgeBase;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.model.ToDoList;
@@ -21,14 +22,15 @@ class StandardPromptEngineTest {
     KnowledgeBase knowledgeBase;
 
     @Test
-    void testBuildPromptInjectsToDo() {
-        StandardPromptEngine engine = new StandardPromptEngine(knowledgeBase);
+    void testBuildPromptInjectsToDo(VertxTestContext testContext) {
+        StandardPromptEngine engine = new StandardPromptEngine(knowledgeBase, null, null);
         ToDoList toDoList = ToDoList.empty().addTask("Task A");
         SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, toDoList);
 
-        String prompt = engine.buildSystemPrompt(context);
-        
-        assertTrue(prompt.contains("Task A"));
-        assertTrue(prompt.contains("MEMORY.md"));
+        engine.buildSystemPrompt(context).onComplete(testContext.succeeding(prompt -> {
+            assertTrue(prompt.contains("Task A"));
+            assertTrue(prompt.contains("MEMORY.md"));
+            testContext.completeNow();
+        }));
     }
 }

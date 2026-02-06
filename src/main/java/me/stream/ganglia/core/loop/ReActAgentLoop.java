@@ -136,18 +136,20 @@ public class ReActAgentLoop implements AgentLoop {
 
     private Future<ModelResponse> reason(SessionContext context, int iteration) {
         // 2. Reason: Construct Prompt and Call Model
-        String systemPromptContent = promptEngine.buildSystemPrompt(context);
-        List<Message> modelHistory = new ArrayList<>();
-        // Inject System Prompt for this turn
-        modelHistory.add(new Message("sys-" + iteration, Role.SYSTEM, systemPromptContent, null, null, java.time.Instant.now()));
-        modelHistory.addAll(context.history());
+        return promptEngine.buildSystemPrompt(context)
+            .compose(systemPromptContent -> {
+                List<Message> modelHistory = new ArrayList<>();
+                // Inject System Prompt for this turn
+                modelHistory.add(new Message("sys-" + iteration, Role.SYSTEM, systemPromptContent, null, null, java.time.Instant.now()));
+                modelHistory.addAll(context.history());
 
-        ModelOptions currentOptions = context.modelOptions();
-        if (currentOptions == null) {
-             currentOptions = new ModelOptions(0.0, 4096, "default-model");
-        }
+                ModelOptions currentOptions = context.modelOptions();
+                if (currentOptions == null) {
+                     currentOptions = new ModelOptions(0.0, 4096, "default-model");
+                }
 
-        return model.chat(modelHistory, toolExecutor.getAvailableTools(), currentOptions);
+                return model.chat(modelHistory, toolExecutor.getAvailableTools(context), currentOptions);
+            });
     }
 
     private Future<String> handleDecision(ModelResponse response, SessionContext currentContext, int iteration) {

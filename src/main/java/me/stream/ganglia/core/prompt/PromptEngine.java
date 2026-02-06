@@ -1,5 +1,6 @@
 package me.stream.ganglia.core.prompt;
 
+import io.vertx.core.Future;
 import me.stream.ganglia.core.model.SessionContext;
 
 public interface PromptEngine {
@@ -12,5 +13,5 @@ public interface PromptEngine {
      * - Memory snippets (from Retrieval)
      * - Time/Date/OS Context
      */
-    String buildSystemPrompt(SessionContext context);
+    Future<String> buildSystemPrompt(SessionContext context);
 }

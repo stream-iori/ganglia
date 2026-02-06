@@ -15,13 +15,14 @@ import java.util.stream.Collectors;
 /**
  * Built-in tools for local filesystem operations using JVM/Vert.x APIs.
  */
-public class VertxFileSystemTools {
+public class VertxFileSystemTools implements ToolSet {
     private final Vertx vertx;
 
     public VertxFileSystemTools(Vertx vertx) {
         this.vertx = vertx;
     }
 
+    @Override
     public List<ToolDefinition> getDefinitions() {
         return List.of(
             new ToolDefinition("vertx_ls", "List files in a directory using JVM API",
@@ -33,7 +34,16 @@ public class VertxFileSystemTools {
         );
     }
 
-    public Future<ToolInvokeResult> ls(Map<String, Object> args) {
+    @Override
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, me.stream.ganglia.core.model.SessionContext context) {
+        return switch (toolName) {
+            case "vertx_ls" -> ls(args);
+            case "vertx_read" -> read(args);
+            default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
+        };
+    }
+
+    private Future<ToolInvokeResult> ls(Map<String, Object> args) {
         String path = (String) args.get("path");
         return vertx.fileSystem().readDir(path)
             .map(files -> files.stream()

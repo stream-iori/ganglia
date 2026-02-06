@@ -10,13 +10,14 @@ import me.stream.ganglia.core.tools.model.ToolType;
 import java.util.List;
 import java.util.Map;
 
-public class SelectionTools {
+public class SelectionTools implements ToolSet {
     private final Vertx vertx;
 
     public SelectionTools(Vertx vertx) {
         this.vertx = vertx;
     }
 
+    @Override
     public List<ToolDefinition> getDefinitions() {
         return List.of(
             new ToolDefinition("ask_selection", "Ask the user to select from a list of options",
@@ -39,7 +40,15 @@ public class SelectionTools {
         );
     }
 
-    public Future<ToolInvokeResult> askSelection(Map<String, Object> args, SessionContext context) {
+    @Override
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
+        if ("ask_selection".equals(toolName)) {
+            return askSelection(args, context);
+        }
+        return Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
+    }
+
+    Future<ToolInvokeResult> askSelection(Map<String, Object> args, SessionContext context) {
         String question = (String) args.get("question");
         List<String> options = (List<String>) args.get("options");
         

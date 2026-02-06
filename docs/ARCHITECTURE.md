@@ -67,6 +67,12 @@ See [Memory Architecture](MEMORY_ARCHITECTURE.md) for details.
   - The clone performs the task and returns the result as a tool output.
   - This keeps the main context window clean.
 
+### 3.5 Skill System ("The Expertise")
+
+- **Modularity:** Industry or domain-specific knowledge and tools are packaged as "Skills".
+- **Dynamic Activation:** Skills can be activated/deactivated per session, keeping the base system prompt focused.
+- **Context Injection:** Active skills inject specialized guidelines and register domain-specific tools into the loop.
+
 ## 4. Human-in-the-Loop & Interaction
 
 Ganglia employs a **"Plan First, Act Later"** philosophy to ensure user control over complex tasks, alongside runtime safeguards.

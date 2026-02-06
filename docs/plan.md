@@ -60,3 +60,20 @@
     - [x] Ensure options are presented clearly (e.g., indexed list).
 - [x] **Resume Mechanism:**
     - [x] Implement method to resume session with user selection (injected as Tool Result).
+
+## Phase 6: Skill System
+**Objective:** Enable domain-specific expertise through modular packages.
+
+- [x] **Skill Foundation:**
+    - [x] Define `SkillPackage` and `SkillManifest` models.
+    - [x] Implement `SkillRegistry` for local and classpath discovery.
+- [x] **Lifecycle & Integration:**
+    - [x] Implement `SkillManager` to track `activeSkillIds` in `SessionContext`.
+    - [x] Develop `SkillPromptInjector` to aggregate and inject prompts from active skills into `PromptEngine`.
+    - [x] Update `ToolExecutor` to support dynamic registration of tools from active skills.
+- [x] **Agentic Interaction:**
+    - [x] Implement `list_available_skills` tool.
+    - [x] Implement `activate_skill` tool.
+    - [x] Add automatic skill suggestion logic based on file pattern triggers.
+- [x] **Verification:**
+    - [x] Create a "Java Expert" demo skill and verify the agent can activate it and use its specialized prompts/tools.

@@ -11,7 +11,7 @@ import me.stream.ganglia.core.tools.model.ToolType;
 import java.util.List;
 import java.util.Map;
 
-public class KnowledgeBaseTools {
+public class KnowledgeBaseTools implements ToolSet {
     private final Vertx vertx;
     private final KnowledgeBase knowledgeBase;
 
@@ -20,6 +20,7 @@ public class KnowledgeBaseTools {
         this.knowledgeBase = knowledgeBase;
     }
 
+    @Override
     public List<ToolDefinition> getDefinitions() {
         return List.of(
             new ToolDefinition("remember", "Save an important fact or preference to long-term memory",
@@ -36,7 +37,15 @@ public class KnowledgeBaseTools {
         );
     }
 
-    public Future<ToolInvokeResult> remember(Map<String, Object> args, SessionContext context) {
+    @Override
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
+        if ("remember".equals(toolName)) {
+            return remember(args, context);
+        }
+        return Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
+    }
+
+    Future<ToolInvokeResult> remember(Map<String, Object> args, SessionContext context) {
         String fact = (String) args.get("fact");
         return knowledgeBase.append("- " + fact)
                 .map(v -> ToolInvokeResult.success("Remembered: " + fact))

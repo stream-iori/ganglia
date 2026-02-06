@@ -48,16 +48,16 @@ public class MemoryRetrievalIT {
         KnowledgeBase knowledgeBase = new KnowledgeBase(vertx, MEMORY_FILE);
         
         ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
-        DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory);
+        DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, null);
         
         StateEngine stateEngine = mock(StateEngine.class);
         when(stateEngine.saveSession(any())).thenReturn(io.vertx.core.Future.succeededFuture());
         FileLogManager logManager = new FileLogManager(vertx);
         
-        PromptEngine promptEngine = context -> "You are a helpful assistant. " +
+        PromptEngine promptEngine = context -> io.vertx.core.Future.succeededFuture("You are a helpful assistant. " +
                 "You have access to a knowledge base file at '" + MEMORY_FILE + "'. " +
                 "If you don't know the answer, use your tools (ls, read, grep) to check that file. " +
-                "Do not hallucinate.";
+                "Do not hallucinate.");
 
         agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, stateEngine, logManager, promptEngine, 10);
         

@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class ToDoTools {
+public class ToDoTools implements ToolSet {
     private final Vertx vertx;
     private final ContextCompressor compressor;
 
@@ -19,6 +19,7 @@ public class ToDoTools {
         this.compressor = compressor;
     }
 
+    @Override
     public List<ToolDefinition> getDefinitions() {
         return List.of(
             new ToolDefinition("todo_add", "Add a task to the plan",
@@ -49,7 +50,17 @@ public class ToDoTools {
         );
     }
 
-    public Future<ToolInvokeResult> add(Map<String, Object> args, SessionContext context) {
+    @Override
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
+        return switch (toolName) {
+            case "todo_add" -> add(args, context);
+            case "todo_list" -> list(context);
+            case "todo_complete" -> complete(args, context);
+            default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
+        };
+    }
+
+    Future<ToolInvokeResult> add(Map<String, Object> args, SessionContext context) {
         String description = (String) args.get("description");
         ToDoList currentList = context.toDoList();
         if (currentList == null) currentList = ToDoList.empty();
