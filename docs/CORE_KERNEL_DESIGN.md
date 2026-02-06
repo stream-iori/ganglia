@@ -160,8 +160,13 @@ sequenceDiagram
         AgentLoop->>PromptEngine: buildSystemPrompt(Context)
         PromptEngine-->>AgentLoop: systemPrompt
         
-        AgentLoop->>Model: chat(history + systemPrompt, availableTools)
-        Model-->>AgentLoop: ModelResponse (Content + ToolCalls)
+        AgentLoop->>Model: chatStream(history + systemPrompt, availableTools, streamAddr)
+        
+        par Real-time Feedback
+            Model-->>User: [Stream] Publish tokens to EventBus (streamAddr)
+        and Internal Accumulation
+            Model-->>AgentLoop: ModelResponse (Accumulated Content + ToolCalls)
+        end
         
         AgentLoop->>Context: withNewMessage(AssistantMessage)
         

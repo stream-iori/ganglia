@@ -58,7 +58,8 @@ class ReActAgentLoopTest {
         // 2nd Model Call: Returns Final Answer
         ModelResponse finalResponse = new ModelResponse("Final Answer", Collections.emptyList(), new TokenUsage(10, 10));
 
-        when(model.chat(anyList(), anyList(), eq(options)))
+        // Refactored to use chatStream in implementation, so we mock chatStream
+        when(model.chatStream(anyList(), anyList(), eq(options), anyString()))
                 .thenReturn(Future.succeededFuture(toolResponse)) // 1st call
                 .thenReturn(Future.succeededFuture(finalResponse)); // 2nd call
 
@@ -73,7 +74,7 @@ class ReActAgentLoopTest {
         assertEquals("Final Answer", result);
 
         // Verify interactions
-        verify(model, times(2)).chat(anyList(), anyList(), eq(options));
+        verify(model, times(2)).chatStream(anyList(), anyList(), eq(options), anyString());
         verify(tools, times(1)).execute(eq(toolCall1), any());
         verify(tools, times(1)).execute(eq(toolCall2), any());
         verify(state, atLeast(1)).saveSession(any());
@@ -94,31 +95,15 @@ class ReActAgentLoopTest {
         // 1. Initial Run -> Interrupt
         ToolCall selectionCall = new ToolCall("call-select", "ask_selection", Map.of("q", "Choose"));
         ModelResponse toolResponse = new ModelResponse("Thinking...", List.of(selectionCall), new TokenUsage(10, 10));
-        when(model.chat(anyList(), anyList(), eq(options))).thenReturn(Future.succeededFuture(toolResponse));
+        when(model.chatStream(anyList(), anyList(), eq(options), anyString())).thenReturn(Future.succeededFuture(toolResponse));
 
         when(tools.execute(eq(selectionCall), any()))
                 .thenReturn(Future.succeededFuture(ToolInvokeResult.interrupt("Please choose: A or B")));
 
         // Execute run
-        try {
-            loop.run("Help me choose", context).toCompletionStage().toCompletableFuture().get();
-        } catch (java.util.concurrent.ExecutionException e) {
-            // Should fail with the prompt? No, my logic CATCHES the exception and returns the prompt as success.
-            // Wait, I implemented `recover` in `runLoop` to return `succeededFuture(prompt)`.
-            // So it should NOT throw exception here.
-        }
-        
-        // Re-run correctly to capture result
         String promptMsg = loop.run("Help me choose", context).toCompletionStage().toCompletableFuture().get();
         assertEquals("Please choose: A or B", promptMsg);
 
-        // Verify state: Context should have the Assistant message (Thinking...)
-        // But since I mocked `state.saveSession`, the context object in test isn't automatically updated unless I capture it.
-        // But `resume` relies on context having the tool call.
-        // `ReActAgentLoop` creates new context instances.
-        // In a real app, `stateEngine` would persist it and we'd reload it.
-        // Here, I need to manually construct the context state for `resume` OR verify that `state.saveSession` was called with the right context.
-        
         // Let's capture the context passed to saveSession
         org.mockito.ArgumentCaptor<SessionContext> captor = org.mockito.ArgumentCaptor.forClass(SessionContext.class);
         verify(state, atLeast(1)).saveSession(captor.capture());
@@ -127,9 +112,37 @@ class ReActAgentLoopTest {
         // 2. Resume -> Success
         // Mock next model response
         ModelResponse finalResponse = new ModelResponse("You chose A", Collections.emptyList(), new TokenUsage(10, 10));
-        when(model.chat(anyList(), anyList(), eq(options))).thenReturn(Future.succeededFuture(finalResponse));
+        when(model.chatStream(anyList(), anyList(), eq(options), anyString())).thenReturn(Future.succeededFuture(finalResponse));
 
         String finalResult = loop.resume("A", pausedContext).toCompletionStage().toCompletableFuture().get();
         assertEquals("You chose A", finalResult);
+    }
+
+    @Test
+    void testStreamingFeedback() throws Exception {
+        // Setup
+        ReActAgentLoop loop = new ReActAgentLoop(model, tools, state, logManager, prompt, 5);
+        ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
+        String sessionId = "stream-session";
+        SessionContext context = new SessionContext(sessionId, Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
+
+        when(state.saveSession(any())).thenReturn(Future.succeededFuture());
+        when(logManager.appendLog(any())).thenReturn(Future.succeededFuture());
+        when(prompt.buildSystemPrompt(any())).thenReturn(Future.succeededFuture("System Prompt"));
+        when(tools.getAvailableTools(any())).thenReturn(Collections.emptyList());
+
+        ModelResponse finalResponse = new ModelResponse("Final Answer", Collections.emptyList(), new TokenUsage(10, 10));
+        
+        // Mock chatStream to return success but we want to verify it was CALLED with correct address
+        String expectedAddr = "ganglia.stream." + sessionId;
+        when(model.chatStream(anyList(), anyList(), eq(options), eq(expectedAddr)))
+                .thenReturn(Future.succeededFuture(finalResponse));
+
+        // Run
+        String result = loop.run("Hello", context).toCompletionStage().toCompletableFuture().get();
+
+        // Verify
+        assertEquals("Final Answer", result);
+        verify(model).chatStream(anyList(), anyList(), eq(options), eq(expectedAddr));
     }
 }

@@ -77,3 +77,16 @@
     - [x] Add automatic skill suggestion logic based on file pattern triggers.
 - [x] **Verification:**
     - [x] Create a "Java Expert" demo skill and verify the agent can activate it and use its specialized prompts/tools.
+
+## Phase 7: Low-Latency Streaming
+**Objective:** Improve UX by providing real-time feedback during reasoning.
+
+- [x] **Kernel Refactoring:**
+    - [x] Update `ReActAgentLoop` to use `ModelGateway.chatStream`.
+    - [x] Implement a standard EventBus addressing scheme for session-specific streams (`ganglia.stream.<sessionId>`).
+- [x] **UI Integration:**
+    - [x] Implement a listener in the main entry point (or UI layer) to pipe EventBus tokens to `stdout`.
+- [x] **Tool Call Handling:**
+    - [x] Ensure tool calls are still correctly accumulated and executed sequentially after the stream completes.
+- [x] **Verification:**
+    - [x] Verify that the agent's "Thought" process is visible to the user as it is being generated.

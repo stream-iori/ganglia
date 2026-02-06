@@ -148,7 +148,8 @@ public class ReActAgentLoop implements AgentLoop {
                      currentOptions = new ModelOptions(0.0, 4096, "default-model");
                 }
 
-                return model.chat(modelHistory, toolExecutor.getAvailableTools(context), currentOptions);
+                String streamAddr = "ganglia.stream." + context.sessionId();
+                return model.chatStream(modelHistory, toolExecutor.getAvailableTools(context), currentOptions, streamAddr);
             });
     }
 

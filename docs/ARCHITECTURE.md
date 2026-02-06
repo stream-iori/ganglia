@@ -33,6 +33,9 @@ The core design philosophy is inspired by **Claude Code**: a single, powerful co
 ### 3.1 The Model Layer ("The Brain")
 
 - **Unified Interface:** Abstractions (`ModelProvider`, `ChatClient`) hide the specifics of LLM providers (OpenAI, Anthropic, etc.).
+- **Low-Latency Streaming:** 
+  - Uses `chatStream` to provide real-time feedback to the user via the Vert.x EventBus.
+  - The reasoning process ("Thoughts") is streamed to the UI as it's generated, while the full response is accumulated internally for tool execution.
 - **Smart Routing:**
   - **Fast Model (e.g., Haiku):** Handles routine tasks like file summarization, git history reading, and token counting.
   - **Smart Model (e.g., GPT-4o, Sonnet):** Handles the main ReAct loop, reasoning, and planning.
