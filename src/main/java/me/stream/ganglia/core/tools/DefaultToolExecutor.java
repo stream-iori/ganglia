@@ -34,6 +34,8 @@ public class DefaultToolExecutor implements ToolExecutor {
         builtInToolSets.add(factory.getToDoTools());
         builtInToolSets.add(factory.getKnowledgeBaseTools());
         builtInToolSets.add(factory.getSelectionTools());
+        builtInToolSets.add(factory.getWebFetchTools());
+        builtInToolSets.add(factory.getBashTools());
         builtInToolSets.add(new me.stream.ganglia.core.skills.SkillTools(skillRegistry));
     }
 

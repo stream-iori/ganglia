@@ -42,11 +42,11 @@ The core design philosophy is inspired by **Claude Code**: a single, powerful co
 - **Streaming:** Built on Java Flow API / Reactor for real-time user feedback.
 
 ### 3.2 Tooling & Actuation ("The Hands")
-- **Definition:** Tools are defined via Java annotations (`@AgentTool`) with automatic JSON Schema generation.
+- **Definition:** Tools are defined via Java classes implementing `ToolSet`.
 - **Hybrid Toolset:**
-  - **Low-Level:** `Bash` execution (via `BashFileSystemTools`), `FileWrite` (Atomic).
-  - **High-Level:** `Grep`, `Glob`, `Edit` (Smart code replacement), `WebFetch`.
-- **Structured Error Handling:** Tools return a `ToolErrorResult` upon failure, allowing the agent to distinguish between timeouts, size limit breaches, and execution errors.
+  - **Low-Level:** `Bash` execution (via `BashTools`), `FileWrite` (Atomic).
+  - **High-Level:** `Grep`, `Glob`, `Edit` (Smart code replacement), `WebFetch` (via Vert.x WebClient).
+- **Structured Error Handling:** Tools return a `ToolInvokeResult`.
 - **Safety:**
   - **Sandbox:** Execution of untrusted code in isolated environments.
   - **Memory Protection:** Built-in safeguards to prevent memory exhaustion from large tool outputs (e.g., 16MB limit).

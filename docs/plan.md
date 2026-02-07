@@ -90,3 +90,18 @@
     - [x] Ensure tool calls are still correctly accumulated and executed sequentially after the stream completes.
 - [x] **Verification:**
     - [x] Verify that the agent's "Thought" process is visible to the user as it is being generated.
+
+## Phase 8: Network & System Tools
+**Objective:** Expand the agent's actuation capabilities with web access and generic shell execution.
+
+- [x] **Web Capability:**
+    - [x] Implement `WebFetchTools` using Vert.x `WebClient`.
+    - [x] Tool: `web_fetch(url)` - Fetch content from a URL.
+- [x] **General Shell Capability:**
+    - [x] Implement `BashTools` for generic command execution.
+    - [x] Tool: `run_shell_command(command)` - Execute arbitrary bash commands with timeout and safety guards.
+- [x] **Integration:**
+    - [x] Update `ToolsFactory` and `DefaultToolExecutor` to include new tools.
+- [x] **Verification:**
+    - [x] Write unit tests for both toolsets.
+    - [x] Create an integration test where the agent fetches a page and runs a shell command based on the result.

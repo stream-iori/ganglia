@@ -14,6 +14,8 @@ public class ToolsFactory {
     private final ToDoTools toDoTools;
     private final KnowledgeBaseTools knowledgeBaseTools;
     private final SelectionTools selectionTools;
+    private final WebFetchTools webFetchTools;
+    private final BashTools bashTools;
 
     public ToolsFactory(Vertx vertx, ContextCompressor compressor, KnowledgeBase knowledgeBase) {
         this.vertx = vertx;
@@ -22,6 +24,8 @@ public class ToolsFactory {
         this.toDoTools = new ToDoTools(vertx, compressor);
         this.knowledgeBaseTools = new KnowledgeBaseTools(vertx, knowledgeBase);
         this.selectionTools = new SelectionTools(vertx);
+        this.webFetchTools = new WebFetchTools(vertx);
+        this.bashTools = new BashTools(vertx);
     }
 
     public VertxFileSystemTools getVertxFileSystemTools() {
@@ -42,5 +46,13 @@ public class ToolsFactory {
 
     public SelectionTools getSelectionTools() {
         return selectionTools;
+    }
+
+    public WebFetchTools getWebFetchTools() {
+        return webFetchTools;
+    }
+
+    public BashTools getBashTools() {
+        return bashTools;
     }
 }

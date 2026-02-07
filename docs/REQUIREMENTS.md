@@ -21,10 +21,10 @@
 
 ### 1.2 Tooling System ("The Hands")
 *   **Built-in Tools (Standard Library):**
-    *   **Local Filesystem (Bash-based):** Optimized system commands (e.g., `ls`, `cat`) with mandatory timeout and output size limits.
-    *   **Local Filesystem (Vert.x-based):** Native non-blocking Java operations for higher stability in concurrent environments.
-    *   **HTTP/Network (Curl-based):** Robust networking implemented via `curl`.
-    *   **ToDo & Plan Management:** Agent-managed internal task list persisted in session context.
+    *   **Local Filesystem (Bash-based):** Optimized system commands (e.g., `ls`, `cat`) and generic `run_shell_command` with mandatory timeout and output size limits.
+    *   **Local Filesystem (Vert.x-based):** Native non-blocking Java operations.
+    *   **HTTP/Network (Vert.x-based):** Robust networking implemented via Vert.x `WebClient`.
+    *   **ToDo & Plan Management:** Agent-managed internal task list.
 *   **Extension Tools (User-defined):**
     *   **Custom Implementation:** The framework shall allow users to define domain-specific tools in Java.
     *   **Discovery:** Extension tools shall be registered via classpath scanning (annotations) or external JAR loading.
