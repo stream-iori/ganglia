@@ -3,12 +3,16 @@ package me.stream.ganglia.core.skills;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import me.stream.ganglia.core.memory.KnowledgeBase;
+import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.model.ToDoList;
 import me.stream.ganglia.core.prompt.StandardPromptEngine;
-import me.stream.ganglia.core.tools.DefaultToolExecutor;
-import me.stream.ganglia.core.tools.ToolsFactory;
+import me.stream.ganglia.skills.SkillPromptInjector;
+import me.stream.ganglia.skills.SkillRegistry;
+import me.stream.ganglia.skills.SkillSuggester;
+import me.stream.ganglia.tools.DefaultToolExecutor;
+import me.stream.ganglia.tools.ToolsFactory;
+import me.stream.ganglia.tools.model.ToolCall;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -35,7 +39,7 @@ class SkillIntegrationTest {
         Path skillsDir = Paths.get("src/test/resources/skills");
         SkillRegistry registry = new SkillRegistry(vertx, skillsDir);
         SkillPromptInjector injector = new SkillPromptInjector(vertx, registry, skillsDir);
-        StandardPromptEngine engine = new StandardPromptEngine(knowledgeBase, injector, null);
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, injector, null);
 
         registry.init().compose(v -> {
             SessionContext context = new SessionContext(
@@ -61,7 +65,7 @@ class SkillIntegrationTest {
         Path skillsDir = Paths.get("src/test/resources/skills");
         SkillRegistry registry = new SkillRegistry(vertx, skillsDir);
         SkillSuggester suggester = new SkillSuggester(vertx, registry);
-        StandardPromptEngine engine = new StandardPromptEngine(knowledgeBase, null, suggester);
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, suggester);
 
         registry.init().compose(v -> {
             return vertx.fileSystem().writeFile("./dummy.test", io.vertx.core.buffer.Buffer.buffer("dummy"))
@@ -80,7 +84,7 @@ class SkillIntegrationTest {
         }).onComplete(testContext.succeeding(prompt -> {
             assertTrue(prompt.contains("Skill Suggestions"));
             assertTrue(prompt.contains("test-skill"));
-            
+
             // Cleanup
             vertx.fileSystem().delete("./dummy.test")
                 .onComplete(ar -> testContext.completeNow());
@@ -105,12 +109,12 @@ class SkillIntegrationTest {
             );
 
             // 1. Check available skills
-            me.stream.ganglia.core.tools.model.ToolCall listCall = new me.stream.ganglia.core.tools.model.ToolCall("c1", "list_available_skills", Collections.emptyMap());
+            ToolCall listCall = new ToolCall("c1", "list_available_skills", Collections.emptyMap());
             toolExecutor.execute(listCall, context).onComplete(testContext.succeeding(res1 -> {
                 assertTrue(res1.output().contains("test-skill"));
 
                 // 2. Activate skill
-                me.stream.ganglia.core.tools.model.ToolCall activateCall = new me.stream.ganglia.core.tools.model.ToolCall("c2", "activate_skill", java.util.Map.of("skillId", "test-skill"));
+                ToolCall activateCall = new ToolCall("c2", "activate_skill", java.util.Map.of("skillId", "test-skill"));
                 toolExecutor.execute(activateCall, context).onComplete(testContext.succeeding(res2 -> {
                     SessionContext contextWithSkill = res2.modifiedContext();
                     assertNotNull(contextWithSkill);
@@ -121,7 +125,7 @@ class SkillIntegrationTest {
                     assertTrue(tools.stream().anyMatch(t -> t.name().equals("test_tool")));
 
                     // 4. Execute skill tool
-                    me.stream.ganglia.core.tools.model.ToolCall skillToolCall = new me.stream.ganglia.core.tools.model.ToolCall("c3", "test_tool", java.util.Map.of("arg", "hello"));
+                    ToolCall skillToolCall = new ToolCall("c3", "test_tool", java.util.Map.of("arg", "hello"));
                     toolExecutor.execute(skillToolCall, contextWithSkill).onComplete(testContext.succeeding(res3 -> {
                         assertTrue(res3.output().contains("Test tool executed with arg: hello"));
                         testContext.completeNow();

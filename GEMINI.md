@@ -39,10 +39,14 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designe
 
 ## 5. Directory Structure
 - `docs/`: Technical designs (Architecture, Memory, Modules, Requirements, Skills).
-- `src/main/java/me/stream/ganglia/core/`:
-    - `llm/`: Model abstractions and implementations.
-    - `loop/`: ReAct loop orchestration.
-    - `model/`: Domain models.
+- `src/main/java/me/stream/ganglia/`:
+    - `core/`:
+        - `llm/`: Model abstractions and implementations.
+        - `loop/`: ReAct loop orchestration.
+        - `model/`: Domain models.
+        - `prompt/`: Prompt construction logic.
+        - `state/`: Session state management.
+    - `memory/`: Memory system (Context, Retrieval).
     - `skills/`: Skill management and injectors.
     - `tools/`: Tool execution and built-in sets.
     - `ui/`: Terminal feedback components.

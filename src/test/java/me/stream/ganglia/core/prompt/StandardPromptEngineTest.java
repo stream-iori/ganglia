@@ -1,8 +1,9 @@
 package me.stream.ganglia.core.prompt;
 
+import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import me.stream.ganglia.core.memory.KnowledgeBase;
+import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.model.ToDoList;
 import org.junit.jupiter.api.Test;
@@ -22,8 +23,8 @@ class StandardPromptEngineTest {
     KnowledgeBase knowledgeBase;
 
     @Test
-    void testBuildPromptInjectsToDo(VertxTestContext testContext) {
-        StandardPromptEngine engine = new StandardPromptEngine(knowledgeBase, null, null);
+    void testBuildPromptInjectsToDo(Vertx vertx, VertxTestContext testContext) {
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, null);
         ToDoList toDoList = ToDoList.empty().addTask("Task A");
         SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, toDoList);
 
@@ -32,5 +33,22 @@ class StandardPromptEngineTest {
             assertTrue(prompt.contains("MEMORY.md"));
             testContext.completeNow();
         }));
+    }
+
+    @Test
+    void testBuildPromptInjectsGuidelines(Vertx vertx, VertxTestContext testContext) {
+        String guidelines = "# Test Guidelines\n- Rule 1";
+        vertx.fileSystem().writeFile("GANGLIA.md", io.vertx.core.buffer.Buffer.buffer(guidelines))
+            .compose(v -> {
+                StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, null);
+                SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
+                return engine.buildSystemPrompt(context);
+            })
+            .onComplete(testContext.succeeding(prompt -> {
+                assertTrue(prompt.contains("Rule 1"));
+                // Clean up
+                vertx.fileSystem().delete("GANGLIA.md");
+                testContext.completeNow();
+            }));
     }
 }

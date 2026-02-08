@@ -1,5 +1,6 @@
 package me.stream.ganglia.core.memory;
 
+import me.stream.ganglia.memory.TokenCounter;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

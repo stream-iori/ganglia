@@ -27,6 +27,7 @@ The core design philosophy is inspired by **Claude Code**: a single, powerful co
 4.  **Steerability via Prompting:**
     - Behavior is controlled by extensive, structured prompts (XML, Examples) rather than hard-coded logic.
     - Adherence to "System Reminders" and "Tone" guidelines.
+    - Core mandates are managed via [Core Guidelines](CORE_GUIDELINES_DESIGN.md) (`GANGLIA.md`).
 
 ## 3. Logical Architecture
 

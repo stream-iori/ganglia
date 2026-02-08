@@ -4,7 +4,7 @@ import io.vertx.core.Future;
 import me.stream.ganglia.core.model.Message;
 import me.stream.ganglia.core.model.ModelOptions;
 import me.stream.ganglia.core.model.ModelResponse;
-import me.stream.ganglia.core.tools.model.ToolDefinition;
+import me.stream.ganglia.tools.model.ToolDefinition;
 
 import java.util.List;
 

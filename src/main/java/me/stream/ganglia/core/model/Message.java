@@ -1,6 +1,6 @@
 package me.stream.ganglia.core.model;
 
-import me.stream.ganglia.core.tools.model.ToolCall;
+import me.stream.ganglia.tools.model.ToolCall;
 
 import java.time.Instant;
 import java.util.List;
@@ -18,6 +18,10 @@ public record Message(
 ) {
     public static Message user(String content) {
         return new Message(java.util.UUID.randomUUID().toString(), Role.USER, content, null, null, Instant.now());
+    }
+
+    public static Message assistant(String content) {
+        return assistant(content, null);
     }
 
     public static Message assistant(String content, List<ToolCall> toolCalls) {

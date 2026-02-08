@@ -3,12 +3,11 @@ package me.stream.ganglia.core.memory;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import me.stream.ganglia.memory.KnowledgeBase;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-
-import java.io.File;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -46,7 +45,7 @@ class KnowledgeBaseTest {
     @Test
     void testAppendAndRead(VertxTestContext testContext) {
         String content = "User prefers concise answers.";
-        
+
         knowledgeBase.ensureInitialized()
                 .compose(v -> knowledgeBase.append("## User Preferences\n" + content))
                 .compose(v -> knowledgeBase.read())

@@ -5,16 +5,18 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.llm.OpenAIModelGateway;
 import me.stream.ganglia.core.loop.ReActAgentLoop;
-import me.stream.ganglia.core.memory.ContextCompressor;
-import me.stream.ganglia.core.memory.KnowledgeBase;
+import me.stream.ganglia.memory.ContextCompressor;
+import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.core.model.ModelOptions;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.model.ToDoList;
 import me.stream.ganglia.core.prompt.PromptEngine;
+import me.stream.ganglia.core.session.DefaultSessionManager;
+import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.core.state.FileLogManager;
 import me.stream.ganglia.core.state.StateEngine;
-import me.stream.ganglia.core.tools.DefaultToolExecutor;
-import me.stream.ganglia.core.tools.ToolsFactory;
+import me.stream.ganglia.tools.DefaultToolExecutor;
+import me.stream.ganglia.tools.ToolsFactory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,30 +44,29 @@ public class AgentLoopIT {
         OpenAIModelGateway modelGateway = new OpenAIModelGateway(vertx, apiKey, baseUrl);
         ContextCompressor compressor = new ContextCompressor(modelGateway);
         KnowledgeBase knowledgeBase = new KnowledgeBase(vertx, "TEST_MEMORY_IT.md"); // Dummy
-        
+
         ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
         DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, null);
-        
+
                 // Mocking simple components
-        
+
                 StateEngine stateEngine = mock(StateEngine.class);
-        
+
                 when(stateEngine.saveSession(any())).thenReturn(io.vertx.core.Future.succeededFuture());
-        
+
                 FileLogManager logManager = new FileLogManager(vertx);
-        
-                
-        
+                SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager);
+
                 PromptEngine promptEngine = context -> io.vertx.core.Future.succeededFuture("You are a helpful assistant with bash file access tools. " +
                 "Your task is to list files in 'src/test/resources/integration' using 'ls', read them using 'cat', and concatenate their content. " +
                 "The final answer should only be the concatenated string without spaces or newlines.");
-        
-        
-        
-                agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, stateEngine, logManager, promptEngine, 10);
-        
-        
-        
+
+
+
+                agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, sessionManager, promptEngine, 10);
+
+
+
         ModelOptions options = new ModelOptions(0.0, 1024, "moonshot-v1-8k");
         sessionContext = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
     }
@@ -81,7 +82,7 @@ public class AgentLoopIT {
                         testContext.completeNow();
                     });
                 }));
-        
+
         // This is the correct way to increase timeout for this test context in Vertx JUnit 5
         try {
             java.util.concurrent.TimeUnit.SECONDS.sleep(0); // Dummy to keep structure

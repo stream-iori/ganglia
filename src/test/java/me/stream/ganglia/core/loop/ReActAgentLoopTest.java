@@ -3,11 +3,15 @@ package me.stream.ganglia.core.loop;
 import io.vertx.core.Future;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
-import me.stream.ganglia.core.tools.model.*;
+import me.stream.ganglia.tools.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
+import me.stream.ganglia.core.session.SessionManager;
+import me.stream.ganglia.core.session.DefaultSessionManager;
 import me.stream.ganglia.core.state.LogManager;
 import me.stream.ganglia.core.state.StateEngine;
-import me.stream.ganglia.core.tools.ToolExecutor;
+import me.stream.ganglia.tools.ToolExecutor;
+import me.stream.ganglia.tools.model.ToolCall;
+import me.stream.ganglia.tools.model.ToolInvokeResult;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -36,10 +40,13 @@ class ReActAgentLoopTest {
     @Mock
     PromptEngine prompt;
 
+    SessionManager sessionManager;
+
     @Test
     void testHappyPathMultipleTools() throws Exception {
         // Setup
-        ReActAgentLoop loop = new ReActAgentLoop(model, tools, state, logManager, prompt, 5);
+        sessionManager = new DefaultSessionManager(state, logManager);
+        ReActAgentLoop loop = new ReActAgentLoop(model, tools, sessionManager, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         SessionContext context = new SessionContext("test-session", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
@@ -83,7 +90,8 @@ class ReActAgentLoopTest {
     @Test
     void testInterruptAndResume() throws Exception {
         // Setup
-        ReActAgentLoop loop = new ReActAgentLoop(model, tools, state, logManager, prompt, 5);
+        sessionManager = new DefaultSessionManager(state, logManager);
+        ReActAgentLoop loop = new ReActAgentLoop(model, tools, sessionManager, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         SessionContext context = new SessionContext("test-session", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
@@ -108,7 +116,7 @@ class ReActAgentLoopTest {
         org.mockito.ArgumentCaptor<SessionContext> captor = org.mockito.ArgumentCaptor.forClass(SessionContext.class);
         verify(state, atLeast(1)).saveSession(captor.capture());
         SessionContext pausedContext = captor.getValue();
-        
+
         // 2. Resume -> Success
         // Mock next model response
         ModelResponse finalResponse = new ModelResponse("You chose A", Collections.emptyList(), new TokenUsage(10, 10));
@@ -121,7 +129,8 @@ class ReActAgentLoopTest {
     @Test
     void testStreamingFeedback() throws Exception {
         // Setup
-        ReActAgentLoop loop = new ReActAgentLoop(model, tools, state, logManager, prompt, 5);
+        sessionManager = new DefaultSessionManager(state, logManager);
+        ReActAgentLoop loop = new ReActAgentLoop(model, tools, sessionManager, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         String sessionId = "stream-session";
         SessionContext context = new SessionContext(sessionId, Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
@@ -132,7 +141,7 @@ class ReActAgentLoopTest {
         when(tools.getAvailableTools(any())).thenReturn(Collections.emptyList());
 
         ModelResponse finalResponse = new ModelResponse("Final Answer", Collections.emptyList(), new TokenUsage(10, 10));
-        
+
         // Mock chatStream to return success but we want to verify it was CALLED with correct address
         String expectedAddr = "ganglia.stream." + sessionId;
         when(model.chatStream(anyList(), anyList(), eq(options), eq(expectedAddr)))

@@ -5,6 +5,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
+import me.stream.ganglia.memory.ContextCompressor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

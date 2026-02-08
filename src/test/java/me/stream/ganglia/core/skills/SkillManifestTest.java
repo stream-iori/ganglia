@@ -1,9 +1,8 @@
 package me.stream.ganglia.core.skills;
 
 import io.vertx.core.json.JsonObject;
+import me.stream.ganglia.skills.SkillManifest;
 import org.junit.jupiter.api.Test;
-
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 

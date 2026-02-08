@@ -1,6 +1,4 @@
-# Ganglia Development Plan: Memory System
-
-> **Goal:** Implement the Three-Tier Memory Architecture to enable long-running, context-aware agent sessions.
+# Ganglia Development Plan
 
 ## Phase 1: Foundation & Persistence (Tier 1)
 **Objective:** robust state management for the current session loop.
@@ -105,3 +103,43 @@
 - [x] **Verification:**
     - [x] Write unit tests for both toolsets.
     - [x] Create an integration test where the agent fetches a page and runs a shell command based on the result.
+
+## Phase 10: Core Guidelines System
+**Objective:** Enable project-level behavioral steering via a `GANGLIA.md` file.
+
+- [x] **Guideline Loading Logic:**
+    - [x] Implement a `GuidelineLoader` (or update `PromptEngine`) to read `GANGLIA.md` from the project root.
+    - [x] Implement fallback to default hardcoded guidelines.
+- [x] **Prompt Integration:**
+    - [x] Refactor `StandardPromptEngine` to replace the hardcoded "Guidelines" section with loaded content.
+- [x] **Initialization:**
+    - [x] Add logic to create a default `GANGLIA.md` if one doesn't exist during project initialization.
+- [x] **Verification:**
+    - [x] Verify that changing `GANGLIA.md` updates the agent's behavior in the next turn.
+
+## Phase 11: Session & Turn Management
+**Objective:** Provide a structured way to manage sessions and turns via `SessionManager`.
+
+- [x] **Core Session API:**
+    - [x] Create `SessionManager` interface.
+    - [x] Implement `DefaultSessionManager` using `StateEngine`.
+- [x] **Turn Management Enhancements:**
+    - [x] Refactor `SessionContext` and `Turn` to better support lifecycle transitions (Start, Update, Complete).
+    - [x] Update `ReActAgentLoop` to use `SessionManager` for state persistence.
+- [x] **Refactoring & Example:**
+    - [x] Move CLI session logic from `me.stream.Main` to `me.stream.example.GangliaExample`.
+    - [x] Update `Main` to focus on core framework initialization and provide a clean entry point.
+
+## Phase 12: Integration Scenarios & E2E Verification
+**Objective:** Validate full agent logic through complex, multi-tool scenarios.
+
+- [x] **Scenario Documentation:**
+    - [x] Create `docs/INTEGRATION_SCENARIOS.md`.
+- [x] **E2E Test Suite:**
+    - [x] Implement `FullWorkflowIT` covering Web -> Shell -> Memory.
+    - [x] Implement tests for Interrupt -> Resume in a real loop.
+- [x] **Tool Refinement (TDD):**
+    - [x] Enhance `WebFetchTools` with status code handling.
+    - [x] Enhance `BashTools` with complex pipe command support.
+- [x] **Final Check:**
+    - [x] Verify all scenarios pass using real model calls (if configured) or high-fidelity mocks.

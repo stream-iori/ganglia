@@ -3,6 +3,8 @@ package me.stream.ganglia.core.skills;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import me.stream.ganglia.skills.SkillManifest;
+import me.stream.ganglia.skills.SkillRegistry;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -23,7 +25,7 @@ class SkillRegistryTest {
             var skills = registry.listAvailableSkills();
             assertFalse(skills.isEmpty());
             assertTrue(skills.stream().anyMatch(s -> s.id().equals("test-skill")));
-            
+
             SkillManifest testSkill = registry.getSkill("test-skill");
             assertNotNull(testSkill);
             assertEquals("Test Skill", testSkill.name());
