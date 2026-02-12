@@ -6,7 +6,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.model.SessionContext;
-import me.stream.ganglia.core.model.ToDoList;
+import me.stream.ganglia.tools.model.ToDoList;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
 import me.stream.ganglia.tools.WebFetchTools;
 import org.junit.jupiter.api.BeforeEach;

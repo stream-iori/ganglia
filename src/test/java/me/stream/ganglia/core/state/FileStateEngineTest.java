@@ -4,7 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.model.SessionContext;
-import me.stream.ganglia.core.model.ToDoList;
+import me.stream.ganglia.tools.model.ToDoList;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +55,7 @@ class FileStateEngineTest {
     @Test
     void testLoadNonExistentSession(VertxTestContext testContext) {
         String sessionId = "non-existent-" + UUID.randomUUID();
-        
+
         stateEngine.loadSession(sessionId)
                 .onComplete(testContext.succeeding(loadedContext -> {
                     testContext.verify(() -> {

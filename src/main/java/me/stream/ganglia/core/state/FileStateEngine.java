@@ -5,7 +5,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.Json;
 import me.stream.ganglia.core.model.SessionContext;
-import me.stream.ganglia.core.model.ToDoList;
+import me.stream.ganglia.tools.model.ToDoList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

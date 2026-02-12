@@ -10,7 +10,7 @@ import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.core.model.ModelOptions;
 import me.stream.ganglia.core.model.SessionContext;
-import me.stream.ganglia.core.model.ToDoList;
+import me.stream.ganglia.tools.model.ToDoList;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.session.DefaultSessionManager;
 import me.stream.ganglia.core.session.SessionManager;

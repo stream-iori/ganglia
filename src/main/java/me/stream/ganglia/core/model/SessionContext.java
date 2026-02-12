@@ -1,7 +1,8 @@
 package me.stream.ganglia.core.model;
 
+import me.stream.ganglia.tools.model.ToDoList;
+
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 

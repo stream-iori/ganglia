@@ -5,7 +5,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.core.model.SessionContext;
-import me.stream.ganglia.core.model.ToDoList;
+import me.stream.ganglia.tools.model.ToDoList;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;

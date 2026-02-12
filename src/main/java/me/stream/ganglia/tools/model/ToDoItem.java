@@ -1,4 +1,4 @@
-package me.stream.ganglia.core.model;
+package me.stream.ganglia.tools.model;
 
 public record ToDoItem(
     String id,

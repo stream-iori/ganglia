@@ -4,16 +4,14 @@ import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.model.Message;
-import me.stream.ganglia.core.model.Role;
 import me.stream.ganglia.core.model.SessionContext;
-import me.stream.ganglia.core.model.ToDoList;
+import me.stream.ganglia.tools.model.ToDoList;
 import me.stream.ganglia.core.model.Turn;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-import java.io.File;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -47,7 +45,7 @@ class FileLogManagerTest {
         String content = "Test log content " + UUID.randomUUID();
         Message msg = Message.user(content);
         Turn turn = new Turn("turn-1", msg, new ArrayList<>(), null);
-        
+
         SessionContext context = new SessionContext("session-1", Collections.emptyList(), turn, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
 
         logManager.appendLog(context)

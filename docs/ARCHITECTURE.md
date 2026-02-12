@@ -130,6 +130,6 @@ graph TD
 
 - **Language:** Java 17+
 - **Core Framework:** Vert.x (Reactive, Non-blocking I/O)
-- **LLM Client:** OpenAI-Java (Official) / LangChain4j (Potential future)
+- **LLM Client:** OpenAI-Java (Official) 
 - **Observability:** OpenTelemetry
 - **Testing:** JUnit 5

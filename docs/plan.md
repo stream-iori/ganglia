@@ -138,6 +138,9 @@
 - [x] **E2E Test Suite:**
     - [x] Implement `FullWorkflowIT` covering Web -> Shell -> Memory.
     - [x] Implement tests for Interrupt -> Resume in a real loop.
+- [x] **Test Infrastructure Refactoring:**
+    - [x] Move integration tests to `src/integration-test/java`.
+    - [x] Configure `maven-failsafe-plugin` for separate execution of IT tests.
 - [x] **Tool Refinement (TDD):**
     - [x] Enhance `WebFetchTools` with status code handling.
     - [x] Enhance `BashTools` with complex pipe command support.

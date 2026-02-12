@@ -1,8 +1,7 @@
-package me.stream.ganglia.core.model;
+package me.stream.ganglia.tools.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 public record ToDoList(List<ToDoItem> items) {
     public static ToDoList empty() {
@@ -44,15 +43,15 @@ public record ToDoList(List<ToDoItem> items) {
         }
         return new ToDoList(newItems);
     }
-    
+
     @Override
     public String toString() {
         if (items.isEmpty()) return "No tasks.";
         StringBuilder sb = new StringBuilder("ToDo List:\n");
         for (ToDoItem item : items) {
-            sb.append(String.format("[%s] %s: %s", 
-                item.status() == TaskStatus.DONE ? "x" : " ", 
-                item.id(), 
+            sb.append(String.format("[%s] %s: %s",
+                item.status() == TaskStatus.DONE ? "x" : " ",
+                item.id(),
                 item.description()));
             if (item.result() != null) {
                 sb.append(" -> Result: ").append(item.result());

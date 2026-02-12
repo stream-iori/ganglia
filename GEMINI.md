@@ -50,7 +50,8 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designe
     - `skills/`: Skill management and injectors.
     - `tools/`: Tool execution and built-in sets.
     - `ui/`: Terminal feedback components.
-- `src/test/`: Unit and Integration tests.
+- `src/test/`: Unit tests.
+- `src/integration-test/`: Integration tests (IT).
 - `examples/`: Standalone usage examples.
 
 ## 6. Development Guidelines
