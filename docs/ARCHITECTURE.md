@@ -53,7 +53,7 @@ The core design philosophy is inspired by **Claude Code**: a single, powerful co
   - **Memory Protection:** Built-in safeguards to prevent memory exhaustion from large tool outputs (e.g., 16MB limit).
   - **Human-in-the-Loop:** Tools marked as "Sensitive" require explicit user confirmation.
 
-### 3.3 The Memory System ("The Context")
+### 3.3 The Memory System
 
 See [Memory Architecture](MEMORY_ARCHITECTURE.md) for details.
 
@@ -62,6 +62,7 @@ See [Memory Architecture](MEMORY_ARCHITECTURE.md) for details.
     - **Medium-Term (Session):** Compressed context managed via the ToDo list lifecycle.
     - **Long-Term (Project):** Curated `MEMORY.md` and archived logs.
 - **Retrieval:** Agentic Search (`grep`, `read`) over long-term memory.
+- **Injection:** Relevant memory fragments are injected into the active prompt by the **ContextEngine** (Priority 10).
 
 ### 3.4 Workflow Management
 
@@ -76,6 +77,14 @@ See [Memory Architecture](MEMORY_ARCHITECTURE.md) for details.
 - **Modularity:** Industry or domain-specific knowledge and tools are packaged as "Skills".
 - **Dynamic Activation:** Skills can be activated/deactivated per session, keeping the base system prompt focused.
 - **Context Injection:** Active skills inject specialized guidelines and register domain-specific tools into the loop.
+
+### 3.6 Context Management Engine (ContextEngine)
+
+The **ContextEngine** is responsible for the systematic construction of the LLM system prompt. It ensures that the agent always has the most relevant information while staying within token limits.
+
+- **Layered Construction:** Stacks context fragments (Persona, Mandates, Environment, Skills, Plan, Memory) based on a strict priority hierarchy (1-10).
+- **Decoupled Resolution:** Uses `ContextResolver` to fetch data from static files (`GANGLIA.md`), dynamic state (ToDo lists), and semantic memory.
+- **Intelligent Pruning:** When the token limit is approached, the `ContextComposer` prunes lower-priority fragments (like historical memory) while preserving "Prime Directives" (Persona and Mandates).
 
 ## 4. Human-in-the-Loop & Interaction
 
@@ -99,8 +108,11 @@ Before executing complex requests, the system enters a **Planning Phase**:
 
 ```mermaid
 graph TD
-    User["User Input"] -->|Injects| Context["Context & Memory Files"]
-    Context -->|Constructs| Planner["Planner LLM"]
+    User["User Input"] -->|Triggers| Engine["ContextEngine"]
+    Files["Project Files (GANGLIA.md, MEMORY.md)"] -->|Resolved by| Engine
+    Env["Env State"] -->|Captured by| Engine
+
+    Engine -->|Builds Prompt| Planner["Planner LLM"]
 
     Planner -->|Generates| Plan["Proposed Plan"]
     Plan -->|Review| UserApprove{"User Approval?"}
@@ -108,6 +120,7 @@ graph TD
     UserApprove -->|No| User
     UserApprove -->|Yes| Executor["Executor Agent (ReAct)"]
 
+    Executor -->|Context Refresh| Engine
     Executor -->|Thought & Call| Router{"Action Router"}
 
     Router -->|Tool Call| ToolExecutor["Tool Executor"]

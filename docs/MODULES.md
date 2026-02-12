@@ -13,7 +13,9 @@ This document decomposes the Ganglia system into logical modules based on functi
   - `AgentLoop`: Implements the `Input -> Thought -> Tool -> Observation` cycle.
   - `ModelGateway`: Unified interface (`ModelProvider`) for LLM providers (OpenAI, etc.) with streaming support via EventBus for low-latency UI updates.
   - `StateEngine`: Manages the current session state, including history maintenance and serialization for crash recovery.
-  - `PromptEngine`: Constructs dynamic system prompts using templates and context.
+  - `ContextEngine`: Orchestrates layered prompt construction.
+    - `ContextResolver`: Fetches fragments from static files, env, and memory.
+    - `ContextComposer`: Merges fragments based on priority and applies token pruning strategies.
 
 ## 2. Memory System (Module: `ganglia-memory`)
 

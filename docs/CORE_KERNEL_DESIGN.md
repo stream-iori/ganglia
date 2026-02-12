@@ -21,7 +21,7 @@ classDiagram
         -model: ModelGateway
         -toolExecutor: ToolExecutor
         -stateEngine: StateEngine
-        -promptEngine: PromptEngine
+        -contextEngine: ContextEngine
         -maxIterations: int
         +run(...)
     }
@@ -41,9 +41,9 @@ classDiagram
         +createSession() SessionContext
     }
     
-    class PromptEngine {
+    class ContextEngine {
         <<Interface>>
-        +buildSystemPrompt(context: SessionContext) String
+        +buildSystemPrompt(context: SessionContext) Future~String~
     }
     
     class SessionContext {
@@ -68,15 +68,6 @@ classDiagram
         +steps: List~Message~
         +response: Message
         +flatten() List~Message~
-    }
-    
-    class ReActAgentLoop {
-        -model: ModelGateway
-        -toolExecutor: ToolExecutor
-        -stateEngine: StateEngine
-        -promptEngine: PromptEngine
-        -maxIterations: int
-        +run(...)
     }
     
     class Message {
@@ -128,7 +119,7 @@ classDiagram
 
     ReActAgentLoop --> ModelGateway : uses
     ReActAgentLoop --> StateEngine : persists state
-    ReActAgentLoop --> PromptEngine : constructs prompts
+    ReActAgentLoop --> ContextEngine : constructs layered prompts
     ReActAgentLoop ..> SessionContext : manipulates
     SessionContext *-- Message
     Message *-- ToolCall
@@ -143,7 +134,7 @@ sequenceDiagram
     autonumber
     participant User
     participant AgentLoop
-    participant PromptEngine
+    participant ContextEngine
     participant Context as SessionContext
     participant Model as ModelGateway
     participant ToolExec as ToolExecutor
@@ -157,8 +148,8 @@ sequenceDiagram
 
     loop ReAct Cycle (Max N times)
         Note over AgentLoop, Model: 2. Reasoning Phase
-        AgentLoop->>PromptEngine: buildSystemPrompt(Context)
-        PromptEngine-->>AgentLoop: systemPrompt
+        AgentLoop->>ContextEngine: buildSystemPrompt(Context)
+        ContextEngine-->>AgentLoop: systemPrompt (Layered & Pruned)
         
         AgentLoop->>Model: chatStream(history + systemPrompt, availableTools, streamAddr)
         

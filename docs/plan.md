@@ -146,3 +146,18 @@
     - [x] Enhance `BashTools` with complex pipe command support.
 - [x] **Final Check:**
     - [x] Verify all scenarios pass using real model calls (if configured) or high-fidelity mocks.
+
+## Phase 13: Systemic Context Engine (GEMINI.md Mechanism)
+**Objective:** Decouple prompt construction from code using file-driven context.
+
+- [x] **Core Architecture:**
+    - [x] Define `ContextSource` and `ContextFragment` models.
+    - [x] Implement `MarkdownContextResolver` to parse files by headers.
+- [x] **Dynamic Injection:**
+    - [x] Implement `EnvironmentSource` to inject OS and directory structure info.
+    - [x] Add support for variable replacement in Markdown files.
+- [x] **Orchestration:**
+    - [x] Create `ContextComposer` with priority-based pruning.
+    - [x] Refactor `StandardPromptEngine` to use the new Engine.
+- [x] **Verification:**
+    - [x] Test agent adaptability by modifying `GANGLIA.md` at runtime.

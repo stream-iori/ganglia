@@ -64,8 +64,9 @@ Manages the lifecycle of skills within an active `SessionContext`.
 - **Persistence:** Skill activation state is saved as part of the session state.
 
 ### 3.3 `SkillPromptInjector`
-A component of the `PromptEngine` that merges skill content into the system prompt.
-- **Composition:** Iterates through active skills and appends their prompt content into a designated `<skills_context>` block in the main system prompt.
+A specialized `ContextSource` for the `ContextEngine` that merges skill content into the system prompt.
+- **Composition:** Iterates through active skills and appends their prompt content into a designated `<skills_context>` block.
+- **Hierarchy:** Injected into the prompt at **Priority 5**, ensuring domain-specific heuristics steer the agent after core mandates but before the specific task plan.
 - **De-duplication:** Ensures that if multiple skills provide overlapping instructions, they are handled gracefully (e.g., via priority).
 
 ### 3.4 `DynamicToolRegistry`

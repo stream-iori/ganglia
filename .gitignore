@@ -64,5 +64,5 @@ local.properties
 
 # SDKMAN!
 .sdkmanrc
-# We keep .sdkmanrc as it's project configuration
-!.sdkmanrc
+
+brainstorm/

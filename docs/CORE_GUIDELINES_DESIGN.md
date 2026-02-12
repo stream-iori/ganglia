@@ -30,19 +30,16 @@ The `GANGLIA.md` file is a Markdown document located in the project root. It is 
 ## 3. System Integration
 
 ### 3.1 Loading Mechanism
-The `StandardPromptEngine` is responsible for loading the `GANGLIA.md` file during the system prompt construction phase.
+The `ContextEngine` is responsible for loading the `GANGLIA.md` file using its `ContextResolver`.
 
 - **Path:** Root directory (working directory).
-- **Fallback:** If `GANGLIA.md` is missing, the engine falls back to a hardcoded set of "Default Guidelines."
-- **Caching:** The content should be loaded once per session or refreshed on demand to avoid unnecessary I/O while allowing runtime updates.
+- **Fallback:** If `GANGLIA.md` is missing, the resolver falls back to a hardcoded set of "Default Guidelines."
+- **Priority:** 
+    - **Operational Mandates:** Priority 2 (Hard rules).
+    - **Project Context:** Priority 3 (Conventions).
 
 ### 3.2 Prompt Injection
-The content of `GANGLIA.md` is injected into a dedicated section of the system prompt:
-
-```text
-## Core Guidelines
-[Content of GANGLIA.md]
-```
+The content of `GANGLIA.md` is parsed by headers and injected into the system prompt by the `ContextComposer` at the appropriate priority levels. This ensures that safety mandates are never pruned during token optimization.
 
 ## 4. Relationship to Other Systems
 

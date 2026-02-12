@@ -38,21 +38,18 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designe
 - [x] **Testing:** Extensive coverage including `AgentLoopIT`, `MemoryRetrievalIT`, `SkillIntegrationTest`, `WebFetchToolsTest`, and `BashToolsTest`.
 
 ## 5. Directory Structure
-- `docs/`: Technical designs (Architecture, Memory, Modules, Requirements, Skills).
-- `src/main/java/me/stream/ganglia/`:
-    - `core/`:
-        - `llm/`: Model abstractions and implementations.
-        - `loop/`: ReAct loop orchestration.
-        - `model/`: Domain models.
-        - `prompt/`: Prompt construction logic.
-        - `state/`: Session state management.
-    - `memory/`: Memory system (Context, Retrieval).
-    - `skills/`: Skill management and injectors.
-    - `tools/`: Tool execution and built-in sets.
-    - `ui/`: Terminal feedback components.
-- `src/test/`: Unit tests.
-- `src/integration-test/`: Integration tests (IT).
-- `examples/`: Standalone usage examples.
+- `pom.xml`: Parent POM.
+- `ganglia-core/`: Core framework code and unit tests.
+    - `src/main/java/me/stream/ganglia/`:
+        - `core/`: ReAct loop, model, prompt, state, session.
+        - `memory/`: Memory system.
+        - `skills/`: Skill system.
+        - `tools/`: Tooling system.
+        - `ui/`: Terminal UI.
+- `integration-test/`: Dedicated module for integration tests (IT).
+    - `src/test/java/me/stream/ganglia/it/`: Integration test cases.
+- `docs/`: Technical designs and documentation.
+- `examples/`: usage examples.
 
 ## 6. Development Guidelines
 - Always use **Vert.x Future** for asynchronous operations.
