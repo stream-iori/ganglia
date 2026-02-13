@@ -12,6 +12,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.impl.NoStackTraceThrowable;
+import io.vertx.core.json.Json;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.tools.model.*;
 import me.stream.ganglia.tools.model.ToolCall;
@@ -33,22 +34,25 @@ public class OpenAIModelGateway implements ModelGateway {
     public OpenAIModelGateway(Vertx vertx, String apiKey, String baseUrl) {
         this.vertx = vertx;
         this.client = OpenAIOkHttpClientAsync.builder()
-                .apiKey(apiKey)
-                .baseUrl(baseUrl)
-                .build();
+            .apiKey(apiKey)
+            .baseUrl(baseUrl)
+            .build();
     }
 
     @Override
     public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
         ChatCompletionCreateParams params = buildParams(history, availableTools, options);
+        logger.debug("Sending chat request to model: {} (history size: {})", options.modelName(), history.size());
 
         return Future.fromCompletionStage(client.chat().completions().create(params))
-                .map(this::toModelResponse);
+            .map(this::toModelResponse);
     }
 
     @Override
     public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String streamAddress) {
         ChatCompletionCreateParams params = buildParams(history, availableTools, options);
+        logger.debug("Starting chat stream for model: {} (history size: {})", options.modelName(), history.size());
+        
         Promise<ModelResponse> promise = Promise.promise();
 
         // Use OpenAI SDK Accumulator
@@ -91,6 +95,7 @@ public class OpenAIModelGateway implements ModelGateway {
 
     private ModelResponse toModelResponse(ChatCompletion completion) {
         if (completion.choices().isEmpty()) {
+            logger.error("Model returned an empty choice list.");
             throw new NoStackTraceThrowable("No choices returned from OpenAI");
         }
 
@@ -100,27 +105,30 @@ public class OpenAIModelGateway implements ModelGateway {
         List<ToolCall> toolCalls = convertToolCalls(choice.message().toolCalls());
 
         // Extract usage
-        int promptTokens = completion.usage().map(u -> (int)u.promptTokens()).orElse(0);
-        int completionTokens = completion.usage().map(u -> (int)u.completionTokens()).orElse(0);
+        int promptTokens = completion.usage().map(u -> (int) u.promptTokens()).orElse(0);
+        int completionTokens = completion.usage().map(u -> (int) u.completionTokens()).orElse(0);
+
+        logger.debug("Model response received. Content: {} chars, ToolCalls: {}, Usage: [Prompt: {}, Completion: {}]",
+            content.length(), toolCalls.size(), promptTokens, completionTokens);
 
         return new ModelResponse(content, toolCalls, new TokenUsage(promptTokens, completionTokens));
     }
 
     private ChatCompletionCreateParams buildParams(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
         List<ChatCompletionMessageParam> messages = history.stream()
-                .map(this::convertMessage)
-                .collect(Collectors.toList());
+            .map(this::convertMessage)
+            .collect(Collectors.toList());
 
         ChatCompletionCreateParams.Builder builder = ChatCompletionCreateParams.builder()
-                .messages(messages)
-                .model(ChatModel.of(options.modelName()))
-                .temperature(options.temperature())
-                .maxTokens(options.maxTokens());
+            .messages(messages)
+            .model(ChatModel.of(options.modelName()))
+            .temperature(options.temperature())
+            .maxTokens(options.maxTokens());
 
         if (availableTools != null && !availableTools.isEmpty()) {
             List<ChatCompletionTool> tools = availableTools.stream()
-                    .map(this::convertTool)
-                    .collect(Collectors.toList());
+                .map(this::convertTool)
+                .collect(Collectors.toList());
             builder.tools(tools);
         }
 
@@ -144,25 +152,25 @@ public class OpenAIModelGateway implements ModelGateway {
                 }
                 if (msg.toolCalls() != null && !msg.toolCalls().isEmpty()) {
                     List<ChatCompletionMessageToolCall> toolCalls = msg.toolCalls().stream()
-                            .map(tc -> ChatCompletionMessageToolCall.ofFunction(
-                                    ChatCompletionMessageFunctionToolCall.builder()
-                                            .id(tc.id())
-                                            .function(ChatCompletionMessageFunctionToolCall.Function.builder()
-                                                    .name(tc.toolName())
-                                                    .arguments(toJsonString(tc.arguments()))
-                                                    .build())
-                                            .build()
-                            ))
-                            .collect(Collectors.toList());
+                        .map(tc -> ChatCompletionMessageToolCall.ofFunction(
+                            ChatCompletionMessageFunctionToolCall.builder()
+                                .id(tc.id())
+                                .function(ChatCompletionMessageFunctionToolCall.Function.builder()
+                                    .name(tc.toolName())
+                                    .arguments(toJsonString(tc.arguments()))
+                                    .build())
+                                .build()
+                        ))
+                        .collect(Collectors.toList());
                     builder.toolCalls(toolCalls);
                 }
                 return ChatCompletionMessageParam.ofAssistant(builder.build());
             case TOOL:
                 return ChatCompletionMessageParam.ofTool(
                     ChatCompletionToolMessageParam.builder()
-                                .toolCallId(msg.toolCallId())
-                                .content(msg.content())
-                                .build()
+                        .toolCallId(msg.toolCallId())
+                        .content(msg.content())
+                        .build()
                 );
             default:
                 throw new IllegalArgumentException("Unknown role: " + msg.role());
@@ -171,8 +179,8 @@ public class OpenAIModelGateway implements ModelGateway {
 
     private ChatCompletionTool convertTool(ToolDefinition tool) {
         FunctionDefinition.Builder functionBuilder = FunctionDefinition.builder()
-                .name(tool.name())
-                .description(tool.description());
+            .name(tool.name())
+            .description(tool.description());
 
         if (tool.jsonSchema() != null && !tool.jsonSchema().isEmpty()) {
             Map<String, Object> schemaMap = parseJson(tool.jsonSchema());
@@ -184,17 +192,15 @@ public class OpenAIModelGateway implements ModelGateway {
         }
 
         ChatCompletionFunctionTool functionTool = ChatCompletionFunctionTool.builder()
-                .function(functionBuilder.build())
-                .build();
+            .function(functionBuilder.build())
+            .build();
 
         return ChatCompletionTool.ofFunction(functionTool);
     }
 
     private List<ToolCall> convertToolCalls(Optional<List<ChatCompletionMessageToolCall>> openAIToolCalls) {
-        if (openAIToolCalls.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return openAIToolCalls.get().stream()
+        return openAIToolCalls
+            .map(chatCompletionMessageToolCalls -> chatCompletionMessageToolCalls.stream()
                 .filter(ChatCompletionMessageToolCall::isFunction)
                 .map(tc -> {
                     ChatCompletionMessageFunctionToolCall ftc = tc.asFunction();
@@ -204,12 +210,13 @@ public class OpenAIModelGateway implements ModelGateway {
                         parseJson(ftc.function().arguments())
                     );
                 })
-                .collect(Collectors.toList());
+                .collect(Collectors.toList()))
+            .orElse(Collections.emptyList());
     }
 
     private String toJsonString(Map<String, Object> map) {
         try {
-            return io.vertx.core.json.Json.encode(map);
+            return Json.encode(map);
         } catch (Exception e) {
             logger.error("Failed to encode arguments", e);
             return "{}";
@@ -218,7 +225,7 @@ public class OpenAIModelGateway implements ModelGateway {
 
     private Map<String, Object> parseJson(String json) {
         try {
-            return io.vertx.core.json.Json.decodeValue(json, Map.class);
+            return Json.decodeValue(json, Map.class);
         } catch (Exception e) {
             logger.error("Failed to decode arguments", e);
             return Collections.emptyMap();

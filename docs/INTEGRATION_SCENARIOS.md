@@ -37,3 +37,12 @@
     2. 调用 `ask_selection` 让用户确认要删除的文件。
     3. 用户选择后，执行 `run_shell_command` 进行清理。
 *   **验证点**： 流程在 `ask_selection` 处正确暂停，并在回复后继续。
+
+## 5. 场景五：代码库发现与探索 (Discovery -> Search -> Read)
+**描述**：利用标准工程工具进行高效的代码库摸排。
+*   **输入**： "Find all Markdown files in the 'docs' directory, search for the word 'Phase' in them, and read the plan."
+*   **预期行为**：
+    1. 调用 `glob` 匹配 `docs/*.md`。
+    2. 调用 `grep_search` 在匹配到的文件中查找 "Phase"。
+    3. 调用 `read_file` 读取 `docs/plan.md`。
+*   **验证点**： Agent 能够从发现文件到精准定位内容最后读取全文。

@@ -10,6 +10,7 @@
     <modules>
         <module>ganglia-core</module>
         <module>integration-test</module>
+        <module>ganglia-example</module>
     </modules>
 
     <properties>
@@ -28,6 +29,11 @@
             <dependency>
                 <groupId>me.stream</groupId>
                 <artifactId>ganglia-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>me.stream</groupId>
+                <artifactId>ganglia-example</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

@@ -6,6 +6,8 @@ import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolErrorResult;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -16,7 +18,8 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 public class BashTools implements ToolSet {
-    private static final long MAX_OUTPUT_SIZE = 16 * 1024 * 1024; // 16MB
+    private static final Logger log = LoggerFactory.getLogger(BashTools.class);
+    private static final long MAX_OUTPUT_SIZE = 1 * 1024 * 1024; // 1MB
     private static final long DEFAULT_TIMEOUT_MS = 60000; // 60 seconds for general commands
 
     private final Vertx vertx;
@@ -51,6 +54,7 @@ public class BashTools implements ToolSet {
     }
 
     private Future<ToolInvokeResult> runShellCommand(String command) {
+        log.debug("[SHELL_EXEC] Executing: {}", command);
         return vertx.<ToolInvokeResult>executeBlocking(() -> {
             Process process = null;
             String partialOutput = "";
@@ -64,13 +68,15 @@ public class BashTools implements ToolSet {
                 partialOutput = streamResult.content;
 
                 if (streamResult.limitExceeded) {
+                    log.warn("[SHELL_LIMIT] Output size exceeded for: {}", command);
                     return ToolInvokeResult.exception(new ToolErrorResult(
                         "run_shell_command", ToolErrorResult.ErrorType.SIZE_LIMIT_EXCEEDED,
-                        "Output size exceeded limit of 16MB", null, partialOutput));
+                        "Output size exceeded limit of 1MB", null, partialOutput));
                 }
 
                 boolean finished = process.waitFor(DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                 if (!finished) {
+                    log.error("[SHELL_TIMEOUT] Command timed out: {}", command);
                     process.destroyForcibly();
                     return ToolInvokeResult.exception(new ToolErrorResult(
                         "run_shell_command", ToolErrorResult.ErrorType.TIMEOUT,
@@ -79,11 +85,14 @@ public class BashTools implements ToolSet {
 
                 int exitCode = process.exitValue();
                 if (exitCode != 0) {
+                    log.debug("[SHELL_FAIL] Exit code: {}, Command: {}", exitCode, command);
                     return ToolInvokeResult.error("Command failed with exit code " + exitCode + ": " + partialOutput);
                 }
 
+                log.debug("[SHELL_SUCCESS] Command: {}", command);
                 return ToolInvokeResult.success(partialOutput);
             } catch (Exception e) {
+                log.error("[SHELL_ERROR] Exception for: {}", command, e);
                 return ToolInvokeResult.exception(new ToolErrorResult(
                     "run_shell_command", ToolErrorResult.ErrorType.UNKNOWN,
                     "Execution error: " + e.getMessage(), null, partialOutput));

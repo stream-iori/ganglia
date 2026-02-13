@@ -32,8 +32,8 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designe
         - `ui/`: Terminal UI.
 - `integration-test/`: Dedicated module for integration tests (IT).
     - `src/test/java/me/stream/ganglia/it/`: Integration test cases.
+- `ganglia-example/`: Module containing usage examples and demos.
 - `docs/`: Technical designs and documentation.
-- `examples/`: usage examples.
 
 ## 5. Development Guidelines
 - Always use **Vert.x Future** for asynchronous operations.

@@ -23,16 +23,17 @@ public class SkillTools implements ToolSet {
         return List.of(
             new ToolDefinition("list_available_skills", "List all skills available to be activated",
                 "{}"),
-            new ToolDefinition("activate_skill", "Activate a specific skill by ID",
+            new ToolDefinition("activate_skill", "Activate a specific skill by ID to gain its specialized capabilities. This REQUIRES user confirmation unless already confirmed.",
                 """
                 {
                   "type": "object",
                   "properties": {
-                    "skillId": { "type": "string", "description": "The ID of the skill to activate" }
+                    "skillId": { "type": "string", "description": "The ID of the skill to activate" },
+                    "confirmed": { "type": "boolean", "description": "Set to true if the user has already explicitly agreed to activate this skill in the preceding conversation." }
                   },
                   "required": ["skillId"]
                 }
-                """)
+                """, true)
         );
     }
 
@@ -58,6 +59,11 @@ public class SkillTools implements ToolSet {
 
     private Future<ToolInvokeResult> activateSkill(Map<String, Object> args, SessionContext context) {
         String skillId = (String) args.get("skillId");
+        Object confirmedObj = args.getOrDefault("confirmed", false);
+        boolean confirmed = false;
+        if (confirmedObj instanceof Boolean) confirmed = (Boolean) confirmedObj;
+        else if (confirmedObj instanceof String) confirmed = Boolean.parseBoolean((String) confirmedObj);
+        
         SkillManifest skill = registry.getSkill(skillId);
         if (skill == null) {
             return Future.succeededFuture(ToolInvokeResult.error("Skill not found: " + skillId));
@@ -71,9 +77,17 @@ public class SkillTools implements ToolSet {
             return Future.succeededFuture(ToolInvokeResult.success("Skill already active: " + skillId));
         }
 
+        if (!confirmed) {
+            return Future.succeededFuture(ToolInvokeResult.interrupt(
+                "Requesting activation of skill: " + skill.name() + " (" + skill.id() + ")\n" +
+                "Description: " + skill.description() + "\n" +
+                "Proceed with activation? (yes/no)"
+            ));
+        }
+
         activeSkills.add(skillId);
 
-        // We need to create a new context with the new skill ID
+        // Create new context with updated skill IDs
         SessionContext nextContext = new SessionContext(
             context.sessionId(),
             context.previousTurns(),
@@ -84,6 +98,6 @@ public class SkillTools implements ToolSet {
             context.toDoList()
         );
 
-        return Future.succeededFuture(ToolInvokeResult.success("Skill activated: " + skill.name(), nextContext));
+        return Future.succeededFuture(ToolInvokeResult.success("Skill successfully activated: " + skill.name(), nextContext));
     }
 }

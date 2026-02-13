@@ -15,12 +15,10 @@ public class SkillPromptInjector {
 
     private final Vertx vertx;
     private final SkillRegistry registry;
-    private final Path skillsBaseDir;
 
-    public SkillPromptInjector(Vertx vertx, SkillRegistry registry, Path skillsBaseDir) {
+    public SkillPromptInjector(Vertx vertx, SkillRegistry registry) {
         this.vertx = vertx;
         this.registry = registry;
-        this.skillsBaseDir = skillsBaseDir;
     }
 
     public Future<String> injectSkills(List<String> activeSkillIds) {
@@ -38,7 +36,8 @@ public class SkillPromptInjector {
 
         return Future.join(futures).map(composite -> {
             StringBuilder sb = new StringBuilder();
-            sb.append("## Active Skills\n");
+            sb.append("\n# ACTIVE SKILLS\n");
+            sb.append("The following specialized skills are currently active and provide domain-specific instructions.\n");
             for (int i = 0; i < futures.size(); i++) {
                 sb.append(composite.resultAt(i).toString());
             }
@@ -47,7 +46,17 @@ public class SkillPromptInjector {
     }
 
     private Future<String> loadSkillPrompts(SkillManifest skill) {
-        FileSystem fs = vertx.fileSystem();
+        if (skill.instructions() != null && !skill.instructions().isEmpty()) {
+            return Future.succeededFuture(
+                "\n## Skill: " + skill.name() + " (" + skill.id() + ")\n" +
+                skill.instructions() + "\n"
+            );
+        }
+
+        // Fallback for legacy skill.json format
+        // Note: This might fail if the prompt paths are relative and we don't know the base dir anymore
+        // But since SkillRegistry loaded it, we could potentially store the base path in SkillManifest
+        
         List<SkillManifest.PromptDefinition> prompts = skill.prompts();
         if (prompts == null || prompts.isEmpty()) {
             return Future.succeededFuture("");
@@ -57,23 +66,8 @@ public class SkillPromptInjector {
         List<SkillManifest.PromptDefinition> sortedPrompts = new ArrayList<>(prompts);
         sortedPrompts.sort((a, b) -> Integer.compare(b.priority(), a.priority()));
 
-        List<Future<String>> futures = new ArrayList<>();
-        for (SkillManifest.PromptDefinition def : sortedPrompts) {
-            String fullPath = skillsBaseDir.resolve(skill.id()).resolve(def.path()).toString();
-            futures.add(fs.readFile(fullPath).map(buffer ->
-                "\n### " + skill.name() + " - " + def.id() + "\n" + buffer.toString() + "\n"
-            ).recover(err -> {
-                log.error("Failed to load prompt {} for skill {}", def.path(), skill.id(), err);
-                return Future.succeededFuture("");
-            }));
-        }
-
-        return Future.join(futures).map(composite -> {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < futures.size(); i++) {
-                sb.append(composite.resultAt(i).toString());
-            }
-            return sb.toString();
-        });
+        // Legacy support is limited here because we don't have the original base path easily.
+        // For now, we'll focus on SKILL.md.
+        return Future.succeededFuture("\n## Skill: " + skill.name() + " (Legacy JSON format - prompts not fully loaded)\n");
     }
 }

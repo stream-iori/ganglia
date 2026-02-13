@@ -15,6 +15,7 @@ import java.util.stream.Collectors;
  * Built-in tools for local filesystem operations using JVM/Vert.x APIs.
  */
 public class VertxFileSystemTools implements ToolSet {
+    private static final long MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
     private final Vertx vertx;
 
     public VertxFileSystemTools(Vertx vertx) {
@@ -24,9 +25,24 @@ public class VertxFileSystemTools implements ToolSet {
     @Override
     public List<ToolDefinition> getDefinitions() {
         return List.of(
-            new ToolDefinition("vertx_ls", "List files in a directory using JVM API",
+            new ToolDefinition("list_directory", "List files in a directory",
                 "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}"),
-            new ToolDefinition("vertx_read", "Read content of a file using JVM API",
+            new ToolDefinition("read_file", "Read content of a file",
+                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}"),
+            new ToolDefinition("write_file", "Write content to a file (creates or overwrites)",
+                """
+                {
+                  "type": "object",
+                  "properties": {
+                    "path": { "type": "string", "description": "The file path to write to" },
+                    "content": { "type": "string", "description": "The content to write" }
+                  },
+                  "required": ["path", "content"]
+                }
+                """),
+            new ToolDefinition("vertx_ls", "Alias for list_directory",
+                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}"),
+            new ToolDefinition("vertx_read", "Alias for read_file",
                 "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}")
         );
     }
@@ -34,8 +50,9 @@ public class VertxFileSystemTools implements ToolSet {
     @Override
     public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, me.stream.ganglia.core.model.SessionContext context) {
         return switch (toolName) {
-            case "vertx_ls" -> ls(args);
-            case "vertx_read" -> read(args);
+            case "list_directory", "vertx_ls" -> ls(args);
+            case "read_file", "vertx_read" -> read(args);
+            case "write_file" -> write(args);
             default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
         };
     }
@@ -55,9 +72,24 @@ public class VertxFileSystemTools implements ToolSet {
 
     public Future<ToolInvokeResult> read(Map<String, Object> args) {
         String path = (String) args.get("path");
-        return vertx.fileSystem().readFile(path)
-            .map(Buffer::toString)
-            .map(ToolInvokeResult::success)
+        return vertx.fileSystem().props(path)
+            .compose(props -> {
+                if (props.size() > MAX_FILE_SIZE) {
+                    return Future.succeededFuture(ToolInvokeResult.error(
+                        "File is too large: " + props.size() + " bytes. Max allowed is " + MAX_FILE_SIZE + " bytes."));
+                }
+                return vertx.fileSystem().readFile(path)
+                    .map(Buffer::toString)
+                    .map(ToolInvokeResult::success);
+            })
             .recover(err -> Future.succeededFuture(ToolInvokeResult.error("Error reading file: " + err.getMessage())));
+    }
+
+    private Future<ToolInvokeResult> write(Map<String, Object> args) {
+        String path = (String) args.get("path");
+        String content = (String) args.get("content");
+        return vertx.fileSystem().writeFile(path, Buffer.buffer(content))
+            .map(v -> ToolInvokeResult.success("Successfully written to " + path))
+            .recover(err -> Future.succeededFuture(ToolInvokeResult.error("Error writing to file: " + err.getMessage())));
     }
 }

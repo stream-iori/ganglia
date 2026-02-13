@@ -147,6 +147,22 @@
 - [x] **Final Check:**
     - [x] Verify all scenarios pass using real model calls (if configured) or high-fidelity mocks.
 
+## Phase 15: Skill System Refactoring (SKILL.md & Lazy Activation)
+**Objective:** Transition to a lightweight, file-based skill discovery and activation mechanism.
+
+- [x] **Unified Skill Format:**
+    - [x] Migrate from `skill.json` to `SKILL.md` with YAML Frontmatter for metadata.
+    - [x] Update `SkillManifest` to parse Markdown files with frontmatter.
+- [x] **Lazy Activation Logic:**
+    - [x] Refactor `SkillRegistry` to only expose name/description during initial prompt construction.
+    - [x] Implement `activate_skill` tool to load the full `SKILL.md` body into the context window.
+- [x] **User Consent Layer:**
+    - [x] Add an interrupt/confirmation step in the CLI when `activate_skill` is invoked.
+- [x] **Discovery Expansion:**
+    - [x] Support scanning `~/.ganglia/skills/` and project-local `.ganglia/skills/`.
+- [x] **Verification:**
+    - [x] Port the `git-smart-commit` skill to the new `SKILL.md` format and verify the discovery-activation-execution flow.
+
 ## Phase 13: Systemic Context Engine (GEMINI.md Mechanism)
 **Objective:** Decouple prompt construction from code using file-driven context.
 
@@ -177,3 +193,19 @@
 - [x] **Verification:**
     - [x] Add unit tests for configuration parsing and default fallback.
     - [x] Verify that changing the model name in the JSON file affects the next agent turn without a restart.
+
+## Phase 16: Standard Engineering Tools
+**Objective:** Enhance the agent's ability to discover and modify the codebase using high-performance, structured tools.
+
+- [x] **Filesystem Write Capability:**
+    - [x] Implement `write_file` tool: Support creating or overwriting files with content.
+    - [x] Integrate with `VertxFileSystemTools` for non-blocking I/O.
+- [x] **Advanced Search & Discovery:**
+    - [x] Implement `grep_search` tool: Provide recursive, regex-based text searching across the project.
+    - [x] Implement `glob` tool: Support finding files matching patterns (e.g., `**/*.java`, `docs/*.md`).
+- [x] **Integration & Refinement:**
+    - [x] Update `ToolsFactory` and `DefaultToolExecutor` to include the new toolset.
+    - [x] Ensure proper error handling for large search results or restricted permissions.
+- [x] **Verification:**
+    - [x] Write unit tests for search and write logic.
+    - [x] Create an E2E scenario: "Code Exploration", where the agent uses `glob` to locate files and `grep_search` to find specific implementations.

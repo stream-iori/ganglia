@@ -19,7 +19,7 @@ class SkillRegistryTest {
     @Test
     void testLoadFromDirectory(Vertx vertx, VertxTestContext testContext) {
         Path skillsDir = Paths.get("src/test/resources/skills");
-        SkillRegistry registry = new SkillRegistry(vertx, skillsDir);
+        SkillRegistry registry = new SkillRegistry(vertx, java.util.List.of(skillsDir));
 
         registry.init().onComplete(testContext.succeeding(v -> {
             var skills = registry.listAvailableSkills();

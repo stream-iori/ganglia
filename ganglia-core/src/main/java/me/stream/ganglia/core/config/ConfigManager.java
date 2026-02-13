@@ -41,7 +41,18 @@ public class ConfigManager {
                 .setScanPeriod(2000); // Check for changes every 2 seconds
 
         this.retriever = ConfigRetriever.create(vertx, options);
+        
+        // Use config from configPath firstly (initial synchronous load)
         this.currentConfig = getDefaultConfig();
+        try {
+            if (vertx.fileSystem().existsBlocking(configPath)) {
+                JsonObject fileConfig = vertx.fileSystem().readFileBlocking(configPath).toJsonObject();
+                this.currentConfig.mergeIn(fileConfig, true);
+                logger.debug("Initial configuration loaded from {}", configPath);
+            }
+        } catch (Exception e) {
+            logger.warn("Failed to load initial configuration from {}: {}", configPath, e.getMessage());
+        }
     }
 
     public Future<Void> init() {

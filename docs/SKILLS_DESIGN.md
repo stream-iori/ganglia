@@ -92,3 +92,34 @@ The system monitors the environment (file structure, technology stack). If a mat
 - **Tool Sandboxing:** Tools provided by skills are subject to the same execution guards (timeouts, memory limits) as built-in tools.
 - **Human-in-the-Loop:** Tools marked as `@Sensitive` within a skill manifest still require explicit user confirmation.
 - **Code Signing:** (Future) Support for signed skill packages to prevent execution of malicious third-party code.
+
+## 6. Skill Discovery & Activation Workflow
+
+The identification and triggering of local Skills rely on an automated **"Scan -> Description Match -> Function Calling"** mechanism.
+
+### 6.1 Discovery Phase
+At session startup or via the `/skills reload` command, the system scans specific local directories for `SKILL.md` files:
+- **Project Level:** `.ganglia/skills/` within the current project.
+- **User Level:** `~/.ganglia/skills/` in the user's home directory.
+- **Identification:** Each skill must reside in its own folder and contain a `SKILL.md` file defining its metadata (Frontmatter) and instructions.
+
+### 6.2 Prompt Injection (Lightweight Declaration)
+To optimize token usage, the system employs a "Lightweight Declaration" strategy:
+- **Metadata Extraction:** The CLI extracts the `name` and `description` of all available skills.
+- **Tool Declaration:** These are injected as "Available Tools" into the system prompt or passed via the API's `tools` definition, allowing the model to know *what* is available without loading the full instructions yet.
+
+### 6.3 Model Decision
+When a user provides an instruction:
+- **Semantic Analysis:** The model compares user intent against the descriptions of available skills.
+- **Keyword Matching:** Rules defined in the skill's metadata (e.g., "trigger when user mentions 'audit' or 'test'") guide the model's decision-making process.
+
+### 6.4 Trigger & Activation
+Once the model decides to use a skill, it initiates a **Function Call**:
+1. **Instruction:** The model issues `activate_skill(skill_id="...")`.
+2. **Consent:** The CLI prompts the user for permission to load the skill (Security Guard).
+3. **Full Injection:** Upon approval, the complete content of `SKILL.md` (the "Body") and associated resource paths are injected into the active context window.
+
+### 6.5 Execution Phase
+Once activated, the model operates with "Domain Expertise":
+- **Chained Operations:** The model may use its new instructions to call other tools (e.g., `run_shell_command`) to execute scripts within the skill directory.
+- **Result Feedback:** Output from these scripts is fed back to the model for final synthesis and response.

@@ -47,4 +47,44 @@ class SkillManifestTest {
         assertNotNull(manifest.activationTriggers());
         assertTrue(manifest.activationTriggers().filePatterns().contains("pom.xml"));
     }
+
+    @Test
+    void testMarkdownParsing() {
+        String md = """
+        ---
+        id: git-smart-commit
+        name: Git Smart Commit
+        description: Analyzes staged changes
+        version: 1.1.0
+        ---
+        # Instructions
+        Run git status...
+        """;
+
+        SkillManifest manifest = SkillManifest.fromMarkdown("git-folder", md);
+
+        assertEquals("git-smart-commit", manifest.id());
+        assertEquals("Git Smart Commit", manifest.name());
+        assertEquals("Analyzes staged changes", manifest.description());
+        assertEquals("1.1.0", manifest.version());
+        assertTrue(manifest.instructions().contains("# Instructions"));
+        assertTrue(manifest.instructions().contains("Run git status..."));
+    }
+
+    @Test
+    void testMarkdownParsingWithImplicitId() {
+        String md = """
+        ---
+        name: Git Smart Commit
+        description: Analyzes staged changes
+        ---
+        # Instructions
+        """;
+
+        SkillManifest manifest = SkillManifest.fromMarkdown("git-folder", md);
+
+        assertEquals("git-folder", manifest.id());
+        assertEquals("Git Smart Commit", manifest.name());
+        assertTrue(manifest.instructions().contains("# Instructions"));
+    }
 }

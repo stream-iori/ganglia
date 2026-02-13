@@ -5,10 +5,8 @@ import me.stream.ganglia.core.config.ConfigManager;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ContextCompressor {
     private final ModelGateway model;
@@ -24,17 +22,17 @@ public class ContextCompressor {
             return Future.succeededFuture("No actions performed.");
         }
 
-        StringBuilder content = new StringBuilder("Please summarize the following interaction history into a concise, single-sentence result description.\n\n");
+        var content = new StringBuilder("Please summarize the following interaction history into a concise, single-sentence result description.\n\n");
         for (Turn t : turns) {
-            for (Message m : t.flatten()) {
+            for (var m : t.flatten()) {
                 content.append(m.role()).append(": ").append(m.content()).append("\n");
             }
         }
 
         content.append("\nSummary:");
 
-        Message userMsg = Message.user(content.toString());
-        
+        var userMsg = Message.user(content.toString());
+
         // Use utility model from config if available
         ModelOptions summaryOptions = options;
         if (configManager != null) {

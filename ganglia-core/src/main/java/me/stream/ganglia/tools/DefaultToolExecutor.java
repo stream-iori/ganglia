@@ -43,11 +43,15 @@ public class DefaultToolExecutor implements ToolExecutor {
     @Override
     public Future<ToolInvokeResult> execute(ToolCall toolCall, SessionContext context) {
         String toolName = toolCall.toolName();
+        log.debug("[TOOL_INVOKE] Name: {}, ID: {}, Args: {}", toolName, toolCall.id(), toolCall.arguments());
 
         // 1. Try built-in tools
         for (ToolSet ts : builtInToolSets) {
             if (hasTool(ts, toolName)) {
-                return ts.execute(toolName, toolCall.arguments(), context);
+                log.debug("Found tool {} in built-in toolset: {}", toolName, ts.getClass().getSimpleName());
+                return ts.execute(toolName, toolCall.arguments(), context)
+                    .onSuccess(res -> log.debug("[TOOL_RESULT] Name: {}, ID: {}, Status: {}", toolName, toolCall.id(), res.status()))
+                    .onFailure(err -> log.error("[TOOL_ERROR] Name: {}, ID: {}, Error: {}", toolName, toolCall.id(), err.getMessage()));
             }
         }
 
@@ -56,11 +60,15 @@ public class DefaultToolExecutor implements ToolExecutor {
             for (String skillId : context.activeSkillIds()) {
                 ToolSet ts = getSkillToolSet(skillId);
                 if (ts != null && hasTool(ts, toolName)) {
-                    return ts.execute(toolName, toolCall.arguments(), context);
+                    log.debug("Found tool {} in skill toolset: {} (Skill: {})", toolName, ts.getClass().getSimpleName(), skillId);
+                    return ts.execute(toolName, toolCall.arguments(), context)
+                        .onSuccess(res -> log.debug("[TOOL_RESULT] Name: {}, ID: {}, Status: {}", toolName, toolCall.id(), res.status()))
+                        .onFailure(err -> log.error("[TOOL_ERROR] Name: {}, ID: {}, Error: {}", toolName, toolCall.id(), err.getMessage()));
                 }
             }
         }
 
+        log.warn("No tool implementation found for: {}", toolName);
         return Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
     }
 

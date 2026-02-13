@@ -62,6 +62,20 @@ class ConfigManagerTest {
     }
 
     @Test
+    void testImmediateConfigAvailability(Vertx vertx) throws IOException {
+        JsonObject customConfig = new JsonObject()
+                .put("model", "immediate-model")
+                .put("temperature", 0.9);
+        Files.write(Paths.get(TEST_CONFIG_FILE), customConfig.encodePrettily().getBytes());
+
+        // Instantiate and check immediately
+        ConfigManager configManager = new ConfigManager(vertx, TEST_CONFIG_FILE);
+        
+        assertEquals("immediate-model", configManager.getModel());
+        assertEquals(0.9, configManager.getTemperature());
+    }
+
+    @Test
     void testHotReload(Vertx vertx, VertxTestContext testContext) throws IOException {
         ConfigManager configManager = new ConfigManager(vertx, TEST_CONFIG_FILE);
         configManager.init().onComplete(testContext.succeeding(v -> {
