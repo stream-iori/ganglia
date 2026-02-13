@@ -17,19 +17,19 @@ class FileContextSourceTest {
     @BeforeEach
     void setUp(Vertx vertx) {
         MarkdownContextResolver resolver = new MarkdownContextResolver(vertx);
-        source = new FileContextSource(vertx, resolver, "GANGLIA.md");
+        source = new FileContextSource(vertx, resolver, "target/GANGLIA.md");
     }
 
     @Test
     void testGetFragmentsFromFile(Vertx vertx, VertxTestContext testContext) {
         String content = "## [Mandates] (Priority: 2)\n- Rule X";
-        vertx.fileSystem().writeFile("GANGLIA.md", io.vertx.core.buffer.Buffer.buffer(content))
+        vertx.fileSystem().writeFile("target/GANGLIA.md", io.vertx.core.buffer.Buffer.buffer(content))
             .compose(v -> source.getFragments(null))
             .onComplete(testContext.succeeding(fragments -> {
                 assertEquals(1, fragments.size());
                 assertEquals("Mandates", fragments.get(0).name());
                 // Cleanup
-                vertx.fileSystem().delete("GANGLIA.md")
+                vertx.fileSystem().delete("target/GANGLIA.md")
                     .onComplete(ar -> testContext.completeNow());
             }));
     }

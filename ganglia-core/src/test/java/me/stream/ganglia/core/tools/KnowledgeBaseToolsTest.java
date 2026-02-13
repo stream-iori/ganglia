@@ -24,7 +24,7 @@ class KnowledgeBaseToolsTest {
     private Vertx vertx;
     private KnowledgeBase knowledgeBase;
     private KnowledgeBaseTools tools;
-    private static final String TEST_MEMORY_FILE = "TEST_MEMORY_TOOLS.md";
+    private static final String TEST_MEMORY_FILE = "target/TEST_MEMORY_TOOLS.md";
 
     @BeforeEach
     void setUp(Vertx vertx) {

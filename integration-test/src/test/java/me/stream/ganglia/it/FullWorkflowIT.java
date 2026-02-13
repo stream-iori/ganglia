@@ -37,22 +37,24 @@ public class FullWorkflowIT {
 
     private ReActAgentLoop agentLoop;
     private KnowledgeBase knowledgeBase;
-    private static final String MEMORY_FILE = "FULL_WORKFLOW_MEMORY.md";
+    private static final String MEMORY_FILE = "target/FULL_WORKFLOW_MEMORY.md";
 
     @Mock
     private ModelGateway modelGateway;
     @Mock
     private StateEngine stateEngine;
+    @Mock
+    private me.stream.ganglia.core.config.ConfigManager configManager;
 
     @BeforeEach
     void setUp(Vertx vertx) {
         knowledgeBase = new KnowledgeBase(vertx, MEMORY_FILE);
-        ContextCompressor compressor = new ContextCompressor(modelGateway);
+        ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
         ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
         DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, null);
 
         when(stateEngine.saveSession(any())).thenReturn(io.vertx.core.Future.succeededFuture());
-        SessionManager sessionManager = new DefaultSessionManager(stateEngine, null);
+        SessionManager sessionManager = new DefaultSessionManager(stateEngine, null, configManager);
 
         StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, null, null);
         agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, sessionManager, promptEngine, 10);

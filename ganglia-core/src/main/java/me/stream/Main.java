@@ -21,6 +21,28 @@ import org.slf4j.LoggerFactory;
 
 import java.nio.file.Paths;
 
+import io.vertx.core.Future;
+import me.stream.ganglia.core.config.ConfigManager;
+import me.stream.ganglia.core.llm.OpenAIModelGateway;
+import me.stream.ganglia.core.loop.ReActAgentLoop;
+import me.stream.ganglia.memory.ContextCompressor;
+import me.stream.ganglia.memory.KnowledgeBase;
+import me.stream.ganglia.core.Ganglia;
+import me.stream.ganglia.core.prompt.StandardPromptEngine;
+import me.stream.ganglia.core.session.DefaultSessionManager;
+import me.stream.ganglia.core.session.SessionManager;
+import me.stream.ganglia.skills.SkillPromptInjector;
+import me.stream.ganglia.skills.SkillRegistry;
+import me.stream.ganglia.skills.SkillSuggester;
+import me.stream.ganglia.core.state.FileLogManager;
+import me.stream.ganglia.core.state.FileStateEngine;
+import me.stream.ganglia.tools.DefaultToolExecutor;
+import me.stream.ganglia.tools.ToolsFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.file.Paths;
+
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
@@ -29,43 +51,47 @@ public class Main {
      * @param vertx The Vert.x instance.
      * @return An initialized Ganglia instance.
      */
-    public static Ganglia bootstrap(Vertx vertx) {
-        String apiKey = System.getenv("OPENAI_API_KEY");
-        if (apiKey == null) {
-            apiKey = System.getenv("MOONSHOT_API_KEY");
-        }
+    public static Future<Ganglia> bootstrap(Vertx vertx) {
+        ConfigManager configManager = new ConfigManager(vertx);
 
-        if (apiKey == null) {
-            logger.error("API key not found. Please set OPENAI_API_KEY or MOONSHOT_API_KEY.");
-            return null;
-        }
+        return configManager.init().map(v -> {
+            String apiKey = System.getenv("OPENAI_API_KEY");
+            if (apiKey == null) {
+                apiKey = System.getenv("MOONSHOT_API_KEY");
+            }
 
-        String baseUrl = System.getenv("OPENAI_BASE_URL");
-        if (baseUrl == null) {
-            baseUrl = "https://api.openai.com/v1";
-        }
+            if (apiKey == null) {
+                logger.error("API key not found. Please set OPENAI_API_KEY or MOONSHOT_API_KEY.");
+                throw new RuntimeException("API key not found");
+            }
 
-        // 1. Setup Kernel
-        OpenAIModelGateway modelGateway = new OpenAIModelGateway(vertx, apiKey, baseUrl);
-        KnowledgeBase knowledgeBase = new KnowledgeBase(vertx);
-        ContextCompressor compressor = new ContextCompressor(modelGateway);
-        SkillRegistry skillRegistry = new SkillRegistry(vertx, Paths.get("skills"));
+            String baseUrl = System.getenv("OPENAI_BASE_URL");
+            if (baseUrl == null) {
+                baseUrl = configManager.getBaseUrl();
+            }
 
-        ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
-        DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, skillRegistry);
+            // 1. Setup Kernel
+            OpenAIModelGateway modelGateway = new OpenAIModelGateway(vertx, apiKey, baseUrl);
+            KnowledgeBase knowledgeBase = new KnowledgeBase(vertx);
+            ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
+            SkillRegistry skillRegistry = new SkillRegistry(vertx, Paths.get("skills"));
 
-        SkillPromptInjector skillInjector = new SkillPromptInjector(vertx, skillRegistry, Paths.get("skills"));
-        SkillSuggester skillSuggester = new SkillSuggester(vertx, skillRegistry);
-        StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester);
+            ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
+            DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, skillRegistry);
 
-        FileStateEngine stateEngine = new FileStateEngine(vertx);
-        FileLogManager logManager = new FileLogManager(vertx);
+            SkillPromptInjector skillInjector = new SkillPromptInjector(vertx, skillRegistry, Paths.get("skills"));
+            SkillSuggester skillSuggester = new SkillSuggester(vertx, skillRegistry);
+            StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester);
 
-        SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager);
+            FileStateEngine stateEngine = new FileStateEngine(vertx);
+            FileLogManager logManager = new FileLogManager(vertx);
 
-        ReActAgentLoop agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, sessionManager, promptEngine, 10);
+            SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
 
-        return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop);
+            ReActAgentLoop agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, sessionManager, promptEngine, 10);
+
+            return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop);
+        });
     }
 
     public static void main(String[] args) {

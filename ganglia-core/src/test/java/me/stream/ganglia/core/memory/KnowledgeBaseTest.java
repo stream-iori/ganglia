@@ -16,7 +16,7 @@ class KnowledgeBaseTest {
 
     private Vertx vertx;
     private KnowledgeBase knowledgeBase;
-    private static final String TEST_MEMORY_FILE = "TEST_MEMORY.md";
+    private static final String TEST_MEMORY_FILE = "target/TEST_MEMORY.md";
 
     @BeforeEach
     void setUp(Vertx vertx) {

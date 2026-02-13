@@ -7,7 +7,6 @@ import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.tools.model.*;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
-import me.stream.ganglia.tools.model.ToolType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,11 +33,9 @@ public class ToDoTools implements ToolSet {
                   },
                   "required": ["description"]
                 }
-                """,
-                ToolType.BUILTIN),
+                """),
             new ToolDefinition("todo_list", "List all tasks",
-                "{}",
-                ToolType.BUILTIN),
+                "{}"),
             new ToolDefinition("todo_complete", "Mark a task as done and compress context",
                 """
                 {
@@ -48,8 +45,7 @@ public class ToDoTools implements ToolSet {
                   },
                   "required": ["id"]
                 }
-                """,
-                ToolType.BUILTIN)
+                """)
         );
     }
 

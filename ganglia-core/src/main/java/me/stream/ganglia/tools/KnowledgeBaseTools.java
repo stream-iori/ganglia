@@ -6,7 +6,6 @@ import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
-import me.stream.ganglia.tools.model.ToolType;
 
 import java.util.List;
 import java.util.Map;
@@ -32,8 +31,7 @@ public class KnowledgeBaseTools implements ToolSet {
                   },
                   "required": ["fact"]
                 }
-                """,
-                ToolType.BUILTIN)
+                """)
         );
     }
 

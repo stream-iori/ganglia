@@ -1,6 +1,7 @@
 package me.stream.ganglia.memory;
 
 import io.vertx.core.Future;
+import me.stream.ganglia.core.config.ConfigManager;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
 
@@ -11,9 +12,11 @@ import java.util.stream.Collectors;
 
 public class ContextCompressor {
     private final ModelGateway model;
+    private final ConfigManager configManager;
 
-    public ContextCompressor(ModelGateway model) {
+    public ContextCompressor(ModelGateway model, ConfigManager configManager) {
         this.model = model;
+        this.configManager = configManager;
     }
 
     public Future<String> summarize(List<Turn> turns, ModelOptions options) {
@@ -31,10 +34,18 @@ public class ContextCompressor {
         content.append("\nSummary:");
 
         Message userMsg = Message.user(content.toString());
-        // We use a temporary context for summarization
-        // Ideally we should use a "cheaper" model if possible, but we use 'options' passed in.
+        
+        // Use utility model from config if available
+        ModelOptions summaryOptions = options;
+        if (configManager != null) {
+            summaryOptions = new ModelOptions(
+                    configManager.getTemperature(),
+                    configManager.getMaxTokens(),
+                    configManager.getUtilityModel()
+            );
+        }
 
-        return model.chat(List.of(userMsg), Collections.emptyList(), options)
+        return model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions)
                 .map(ModelResponse::content);
     }
 }

@@ -21,23 +21,7 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designe
 - **Feedback (UI):** Reactive `TerminalUI` for low-latency token streaming to stdout.
 - **Orchestration:** `ReActAgentLoop` handles sequential tool execution and reasoning steps.
 
-## 4. Current Implementation Status
-- [x] **Core Kernel:** ReAct loop with sequential execution and low-latency streaming feedback.
-- [x] **Model Gateway:** OpenAI Async implementation with `ChatCompletionAccumulator` and EventBus streaming.
-- [x] **Skill System:** Modular expertise with dynamic discovery and activation.
-- [x] **Network & System:** Web access and arbitrary shell command execution.
-- [x] **Built-in Tools:**
-    - `BashFileSystemTools`: `ls`, `cat` (with protection).
-    - `BashTools`: `run_shell_command` (generic execution with 60s timeout).
-    - `WebFetchTools`: `web_fetch` (async GET via WebClient).
-    - `VertxFileSystemTools`: `jvm_ls`, `jvm_read` (Non-blocking).
-    - `ToDoTools`: `todo_add`, `todo_list`, `todo_complete` (with compression).
-    - `KnowledgeBaseTools`: `remember` (Persisted in `MEMORY.md`).
-    - `SkillTools`: `list_available_skills`, `activate_skill`.
-- [x] **Memory System:** Full Three-Tier implementation with retrieval and sliding window compression.
-- [x] **Testing:** Extensive coverage including `AgentLoopIT`, `MemoryRetrievalIT`, `SkillIntegrationTest`, `WebFetchToolsTest`, and `BashToolsTest`.
-
-## 5. Directory Structure
+## 4. Directory Structure
 - `pom.xml`: Parent POM.
 - `ganglia-core/`: Core framework code and unit tests.
     - `src/main/java/me/stream/ganglia/`:
@@ -51,8 +35,10 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designe
 - `docs/`: Technical designs and documentation.
 - `examples/`: usage examples.
 
-## 6. Development Guidelines
+## 5. Development Guidelines
 - Always use **Vert.x Future** for asynchronous operations.
 - Maintain **Sequential Tool Execution** within the loop to ensure reasoning between steps.
 - Use **JDK 17 Text Blocks** for JSON schemas and large strings.
 - Strictly adhere to the **3-tier memory model** defined in `docs/MEMORY_ARCHITECTURE.md`.
+- Prefix `mvn` or `java` commands with `source "$HOME/.sdkman/bin/sdkman-init.sh" && sdk env` to ensure the correct Java 17 environment.
+- Run all tests (unit and integration) using `source "$HOME/.sdkman/bin/sdkman-init.sh" && sdk env && mvn verify`.

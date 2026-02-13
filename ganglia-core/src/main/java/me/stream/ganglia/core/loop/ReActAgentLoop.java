@@ -39,7 +39,7 @@ public class ReActAgentLoop implements AgentLoop {
         SessionContext context = sessionManager.startTurn(initialContext, userMessage);
 
         return sessionManager.persist(context)
-                .compose(v -> runLoop(context, 0));
+            .compose(v -> runLoop(context, 0));
     }
 
     @Override
@@ -54,7 +54,7 @@ public class ReActAgentLoop implements AgentLoop {
         SessionContext context = sessionManager.addStep(initialContext, toolMessage);
 
         return sessionManager.persist(context)
-                .compose(v -> runLoop(context, 0));
+            .compose(v -> runLoop(context, 0));
     }
 
     private String findPendingToolCallId(SessionContext context) {
@@ -62,7 +62,7 @@ public class ReActAgentLoop implements AgentLoop {
         if (current == null) return null;
 
         List<Message> steps = current.intermediateSteps();
-        
+
         java.util.Set<String> answeredIds = new java.util.HashSet<>();
         if (steps != null) {
             for (Message m : steps) {
@@ -91,13 +91,13 @@ public class ReActAgentLoop implements AgentLoop {
         }
 
         return reason(currentContext, iteration)
-                .compose(response -> handleDecision(response, currentContext, iteration))
-                .recover(err -> {
-                    if (err instanceof AgentInterruptException) {
-                        return Future.succeededFuture(((AgentInterruptException) err).getPrompt());
-                    }
-                    return Future.failedFuture(err);
-                });
+            .compose(response -> handleDecision(response, currentContext, iteration))
+            .recover(err -> {
+                if (err instanceof AgentInterruptException) {
+                    return Future.succeededFuture(((AgentInterruptException) err).getPrompt());
+                }
+                return Future.failedFuture(err);
+            });
     }
 
     // --- Core Logic Steps ---
@@ -113,7 +113,7 @@ public class ReActAgentLoop implements AgentLoop {
 
                 ModelOptions currentOptions = context.modelOptions();
                 if (currentOptions == null) {
-                     currentOptions = new ModelOptions(0.0, 4096, "default-model");
+                    currentOptions = new ModelOptions(0.0, 4096, "default-model");
                 }
 
                 String streamAddr = "ganglia.stream." + context.sessionId();
@@ -125,52 +125,52 @@ public class ReActAgentLoop implements AgentLoop {
         String content = response.content();
         List<ToolCall> toolCalls = response.toolCalls();
 
-                Message assistantMessage = Message.assistant(content, toolCalls);
-                SessionContext nextContext = sessionManager.addStep(currentContext, assistantMessage);
+        Message assistantMessage = Message.assistant(content, toolCalls);
+        SessionContext nextContext = sessionManager.addStep(currentContext, assistantMessage);
 
-                if (hasToolCalls(toolCalls)) {
-                    // Decision: Act (Execute ALL Tools)
-                    // Persist the Assistant's intent (Tool Calls) BEFORE executing, so we can resume if interrupted.
-                    return sessionManager.persist(nextContext)
-                            .compose(v -> act(toolCalls, nextContext))
-                            .compose(contextAfterTools ->
-                                // Loop: Recurse
-                                    sessionManager.persist(contextAfterTools)
-                                            .compose(v -> runLoop(contextAfterTools, iteration + 1))
-                                );
-                    } else {
-                        // Decision: Finish
-                        SessionContext finalContext = sessionManager.completeTurn(nextContext, Message.assistant(content));
-                        return sessionManager.persist(finalContext)
-                                .map(v -> content);
-                    }
+        if (hasToolCalls(toolCalls)) {
+            // Decision: Act (Execute ALL Tools)
+            // Persist the Assistant's intent (Tool Calls) BEFORE executing, so we can resume if interrupted.
+            return sessionManager.persist(nextContext)
+                .compose(v -> act(toolCalls, nextContext))
+                .compose(contextAfterTools ->
+                    // Loop: Recurse
+                    sessionManager.persist(contextAfterTools)
+                        .compose(v -> runLoop(contextAfterTools, iteration + 1))
+                );
+        } else {
+            // Decision: Finish
+            SessionContext finalContext = sessionManager.completeTurn(nextContext, Message.assistant(content));
+            return sessionManager.persist(finalContext)
+                .map(v -> content);
+        }
+    }
+
+    private Future<SessionContext> act(List<ToolCall> toolCalls, SessionContext context) {
+        // 3. Act: Execute ALL tool calls sequentially to accumulate context
+        return executeToolsSequentially(toolCalls, 0, context);
+    }
+
+    private Future<SessionContext> executeToolsSequentially(List<ToolCall> toolCalls, int index, SessionContext currentContext) {
+        if (index >= toolCalls.size()) {
+            return Future.succeededFuture(currentContext);
+        }
+
+        ToolCall call = toolCalls.get(index);
+        return toolExecutor.execute(call, currentContext)
+            .compose(invokeResult -> {
+                if (invokeResult.status() == ToolInvokeResult.Status.INTERRUPT) {
+                    return Future.failedFuture(new AgentInterruptException(invokeResult.output()));
                 }
+                Message toolMsg = Message.tool(call.id(), invokeResult.output());
+                SessionContext contextToUse = invokeResult.modifiedContext() != null ? invokeResult.modifiedContext() : currentContext;
+                return Future.succeededFuture(sessionManager.addStep(contextToUse, toolMsg));
+            })
+            .compose(nextContext -> sessionManager.persist(nextContext).map(v -> nextContext))
+            .compose(nextContext -> executeToolsSequentially(toolCalls, index + 1, nextContext));
+    }
 
-                private Future<SessionContext> act(List<ToolCall> toolCalls, SessionContext context) {
-                    // 3. Act: Execute ALL tool calls sequentially to accumulate context
-                    return executeToolsSequentially(toolCalls, 0, context);
-                }
-
-                private Future<SessionContext> executeToolsSequentially(List<ToolCall> toolCalls, int index, SessionContext currentContext) {
-                    if (index >= toolCalls.size()) {
-                        return Future.succeededFuture(currentContext);
-                    }
-
-                    ToolCall call = toolCalls.get(index);
-                            return toolExecutor.execute(call, currentContext)
-                                    .compose(invokeResult -> {
-                                        if (invokeResult.status() == ToolInvokeResult.Status.INTERRUPT) {
-                                            return Future.failedFuture(new AgentInterruptException(invokeResult.output()));
-                                        }
-                                        Message toolMsg = Message.tool(call.id(), invokeResult.output());
-                                        SessionContext contextToUse = invokeResult.modifiedContext() != null ? invokeResult.modifiedContext() : currentContext;
-                                        return Future.succeededFuture(sessionManager.addStep(contextToUse, toolMsg));
-                                    })
-                                    .compose(nextContext -> sessionManager.persist(nextContext).map(v -> nextContext))
-                                    .compose(nextContext -> executeToolsSequentially(toolCalls, index + 1, nextContext));
-                        }
-
-                private boolean hasToolCalls(List<ToolCall> toolCalls) {
+    private boolean hasToolCalls(List<ToolCall> toolCalls) {
         return toolCalls != null && !toolCalls.isEmpty();
     }
 }

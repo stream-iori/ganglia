@@ -5,7 +5,6 @@ import io.vertx.core.Vertx;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolErrorResult;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
-import me.stream.ganglia.tools.model.ToolType;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -43,8 +42,7 @@ public class BashFileSystemTools implements ToolSet {
                   },
                   "required": ["path"]
                 }
-                """,
-                ToolType.BUILTIN),
+                """),
             new ToolDefinition("cat", "Read content of a file using bash cat",
                 """
                 {
@@ -57,8 +55,7 @@ public class BashFileSystemTools implements ToolSet {
                   },
                   "required": ["path"]
                 }
-                """,
-                ToolType.BUILTIN)
+                """)
         );
     }
 

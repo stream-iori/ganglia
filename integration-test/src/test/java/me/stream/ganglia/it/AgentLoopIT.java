@@ -42,8 +42,9 @@ public class AgentLoopIT {
         String baseUrl = "https://api.moonshot.cn/v1";
 
         OpenAIModelGateway modelGateway = new OpenAIModelGateway(vertx, apiKey, baseUrl);
-        ContextCompressor compressor = new ContextCompressor(modelGateway);
-        KnowledgeBase knowledgeBase = new KnowledgeBase(vertx, "TEST_MEMORY_IT.md"); // Dummy
+        me.stream.ganglia.core.config.ConfigManager configManager = mock(me.stream.ganglia.core.config.ConfigManager.class);
+        ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
+        KnowledgeBase knowledgeBase = new KnowledgeBase(vertx, "target/TEST_MEMORY_IT.md"); // Dummy
 
         ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
         DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, null);
@@ -55,7 +56,7 @@ public class AgentLoopIT {
                 when(stateEngine.saveSession(any())).thenReturn(io.vertx.core.Future.succeededFuture());
 
                 FileLogManager logManager = new FileLogManager(vertx);
-                SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager);
+                SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
 
                 PromptEngine promptEngine = context -> io.vertx.core.Future.succeededFuture("You are a helpful assistant with bash file access tools. " +
                 "Your task is to list files in 'src/test/resources/integration' using 'ls', read them using 'cat', and concatenate their content. " +

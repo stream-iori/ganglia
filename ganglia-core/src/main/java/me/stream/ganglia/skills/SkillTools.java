@@ -5,7 +5,6 @@ import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.tools.ToolSet;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
-import me.stream.ganglia.tools.model.ToolType;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,8 +22,7 @@ public class SkillTools implements ToolSet {
     public List<ToolDefinition> getDefinitions() {
         return List.of(
             new ToolDefinition("list_available_skills", "List all skills available to be activated",
-                "{}",
-                ToolType.BUILTIN),
+                "{}"),
             new ToolDefinition("activate_skill", "Activate a specific skill by ID",
                 """
                 {
@@ -34,8 +32,7 @@ public class SkillTools implements ToolSet {
                   },
                   "required": ["skillId"]
                 }
-                """,
-                ToolType.BUILTIN)
+                """)
         );
     }
 

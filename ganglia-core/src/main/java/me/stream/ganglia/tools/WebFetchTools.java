@@ -6,7 +6,6 @@ import io.vertx.ext.web.client.WebClient;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
-import me.stream.ganglia.tools.model.ToolType;
 
 import java.util.List;
 import java.util.Map;
@@ -30,8 +29,7 @@ public class WebFetchTools implements ToolSet {
                   },
                   "required": ["url"]
                 }
-                """,
-                ToolType.BUILTIN)
+                """)
         );
     }
 

@@ -27,12 +27,14 @@ class SessionManagerTest {
     StateEngine stateEngine;
     @Mock
     LogManager logManager;
+    @Mock
+    me.stream.ganglia.core.config.ConfigManager configManager;
 
     SessionManager sessionManager;
 
     @BeforeEach
     void setUp() {
-        sessionManager = new DefaultSessionManager(stateEngine, logManager);
+        sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
     }
 
     @Test

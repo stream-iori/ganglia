@@ -5,7 +5,6 @@ import io.vertx.core.Vertx;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
-import me.stream.ganglia.tools.model.ToolType;
 
 import java.util.List;
 import java.util.Map;
@@ -35,7 +34,6 @@ public class SelectionTools implements ToolSet {
                   "required": ["question", "options"]
                 }
                 """,
-                ToolType.BUILTIN,
                 true)
         );
     }

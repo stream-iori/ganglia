@@ -51,7 +51,7 @@
 **Objective:** Enable the agent to ask for help or selection from the user.
 
 - [x] **Interrupt Mechanism:**
-    - [x] Update `ToolType` to include `INTERRUPT`.
+    - [x] Update `ToolDefinition` to include `isInterrupt`.
     - [x] Update `ReActAgentLoop` to pause when an interrupt tool is called.
 - [x] **`ask_selection` Tool:**
     - [x] Implement `SelectionTools` with `ask_selection(question, options)`.
@@ -161,3 +161,19 @@
     - [x] Refactor `StandardPromptEngine` to use the new Engine.
 - [x] **Verification:**
     - [x] Test agent adaptability by modifying `GANGLIA.md` at runtime.
+
+## Phase 14: Configuration & Hot Reloading
+**Objective:** Decouple model and system parameters from code using a JSON config file with dynamic reloading.
+
+- [x] **Config Schema & Loading:**
+    - [x] Design JSON schema for `ganglia-config.json` (model name, temperature, max tokens, utility model, etc.).
+    - [x] Implement `ConfigManager` to load and parse the configuration using Vert.x.
+- [x] **Integration:**
+    - [x] Update `DefaultSessionManager` and `OpenAIModelGateway` to use the values from `ConfigManager` instead of hardcoded defaults.
+    - [x] Ensure `ModelOptions` can be initialized from the config.
+- [x] **Hot Reloading Mechanism:**
+    - [x] Implement a file watcher to monitor `ganglia-config.json`.
+    - [x] Update the internal configuration state in real-time when the file is modified.
+- [x] **Verification:**
+    - [x] Add unit tests for configuration parsing and default fallback.
+    - [x] Verify that changing the model name in the JSON file affects the next agent turn without a restart.

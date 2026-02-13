@@ -5,7 +5,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
-import me.stream.ganglia.tools.model.ToolType;
 
 import java.io.File;
 import java.util.List;
@@ -26,11 +25,9 @@ public class VertxFileSystemTools implements ToolSet {
     public List<ToolDefinition> getDefinitions() {
         return List.of(
             new ToolDefinition("vertx_ls", "List files in a directory using JVM API",
-                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}",
-                ToolType.BUILTIN),
+                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}"),
             new ToolDefinition("vertx_read", "Read content of a file using JVM API",
-                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}",
-                ToolType.BUILTIN)
+                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}")
         );
     }
 

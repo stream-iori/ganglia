@@ -6,7 +6,6 @@ import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolErrorResult;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
-import me.stream.ganglia.tools.model.ToolType;
 
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
@@ -38,8 +37,7 @@ public class BashTools implements ToolSet {
                   },
                   "required": ["command"]
                 }
-                """,
-                ToolType.BUILTIN)
+                """)
         );
     }
 

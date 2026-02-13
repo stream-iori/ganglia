@@ -1,6 +1,7 @@
 package me.stream.ganglia.core.session;
 
 import io.vertx.core.Future;
+import me.stream.ganglia.core.config.ConfigManager;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.state.LogManager;
 import me.stream.ganglia.core.state.StateEngine;
@@ -12,10 +13,12 @@ import java.util.List;
 public class DefaultSessionManager implements SessionManager {
     private final StateEngine stateEngine;
     private final LogManager logManager;
+    private final ConfigManager configManager;
 
-    public DefaultSessionManager(StateEngine stateEngine, LogManager logManager) {
+    public DefaultSessionManager(StateEngine stateEngine, LogManager logManager, ConfigManager configManager) {
         this.stateEngine = stateEngine;
         this.logManager = logManager;
+        this.configManager = configManager;
     }
 
     @Override
@@ -32,13 +35,18 @@ public class DefaultSessionManager implements SessionManager {
 
     @Override
     public SessionContext createSession(String sessionId) {
+        ModelOptions options = new ModelOptions(
+                configManager.getTemperature(),
+                configManager.getMaxTokens(),
+                configManager.getModel()
+        );
         return new SessionContext(
             sessionId,
             Collections.emptyList(),
             null,
             Collections.emptyMap(),
             Collections.emptyList(),
-            new ModelOptions(0.0, 2048, "gpt-4o"),
+            options,
             ToDoList.empty()
         );
     }

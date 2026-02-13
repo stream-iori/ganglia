@@ -25,11 +25,18 @@ class ContextCompressorTest {
 
     @Mock
     ModelGateway model;
+    @Mock
+    me.stream.ganglia.core.config.ConfigManager configManager;
 
     @Test
     void testSummarize(VertxTestContext testContext) {
-        ContextCompressor compressor = new ContextCompressor(model);
+        when(configManager.getUtilityModel()).thenReturn("test-utility-model");
+        when(configManager.getTemperature()).thenReturn(0.0);
+        when(configManager.getMaxTokens()).thenReturn(100);
+
+        ContextCompressor compressor = new ContextCompressor(model, configManager);
         ModelOptions options = new ModelOptions(0.0, 100, "test-model");
+        ModelOptions summaryOptions = new ModelOptions(0.0, 100, "test-utility-model");
 
         // Mock turns
         Message msg1 = Message.user("Do task");
@@ -37,7 +44,7 @@ class ContextCompressorTest {
         Turn turn = new Turn("t1", msg1, new ArrayList<>(), msg2);
 
         // Mock Model Response
-        when(model.chat(any(), any(), eq(options)))
+        when(model.chat(any(), any(), eq(summaryOptions)))
                 .thenReturn(Future.succeededFuture(new ModelResponse("Task completed successfully.", Collections.emptyList(), new TokenUsage(10, 5))));
 
         compressor.summarize(List.of(turn), options)

@@ -4,7 +4,6 @@ import io.vertx.core.Future;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
-import me.stream.ganglia.tools.model.ToolType;
 
 import java.util.List;
 import java.util.Map;
@@ -21,8 +20,7 @@ public class TestTool implements ToolSet {
                     "arg": { "type": "string" }
                   }
                 }
-                """,
-                ToolType.EXTENSION)
+                """)
         );
     }
 

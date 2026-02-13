@@ -39,13 +39,15 @@ class ReActAgentLoopTest {
     LogManager logManager;
     @Mock
     PromptEngine prompt;
+    @Mock
+    me.stream.ganglia.core.config.ConfigManager configManager;
 
     SessionManager sessionManager;
 
     @Test
     void testHappyPathMultipleTools() throws Exception {
         // Setup
-        sessionManager = new DefaultSessionManager(state, logManager);
+        sessionManager = new DefaultSessionManager(state, logManager, configManager);
         ReActAgentLoop loop = new ReActAgentLoop(model, tools, sessionManager, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         SessionContext context = new SessionContext("test-session", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
@@ -90,7 +92,7 @@ class ReActAgentLoopTest {
     @Test
     void testInterruptAndResume() throws Exception {
         // Setup
-        sessionManager = new DefaultSessionManager(state, logManager);
+        sessionManager = new DefaultSessionManager(state, logManager, configManager);
         ReActAgentLoop loop = new ReActAgentLoop(model, tools, sessionManager, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         SessionContext context = new SessionContext("test-session", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
@@ -129,7 +131,7 @@ class ReActAgentLoopTest {
     @Test
     void testStreamingFeedback() throws Exception {
         // Setup
-        sessionManager = new DefaultSessionManager(state, logManager);
+        sessionManager = new DefaultSessionManager(state, logManager, configManager);
         ReActAgentLoop loop = new ReActAgentLoop(model, tools, sessionManager, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         String sessionId = "stream-session";
