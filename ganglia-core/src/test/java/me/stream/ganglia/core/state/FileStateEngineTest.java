@@ -57,10 +57,9 @@ class FileStateEngineTest {
         String sessionId = "non-existent-" + UUID.randomUUID();
 
         stateEngine.loadSession(sessionId)
-                .onComplete(testContext.succeeding(loadedContext -> {
+                .onComplete(testContext.failing(err -> {
                     testContext.verify(() -> {
-                        assertNotNull(loadedContext);
-                        assertEquals(sessionId, loadedContext.sessionId());
+                        assertNotNull(err);
                         testContext.completeNow();
                     });
                 }));

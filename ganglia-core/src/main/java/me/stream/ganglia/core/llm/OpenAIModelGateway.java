@@ -42,7 +42,11 @@ public class OpenAIModelGateway implements ModelGateway {
     @Override
     public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
         ChatCompletionCreateParams params = buildParams(history, availableTools, options);
-        logger.debug("Sending chat request to model: {} (history size: {})", options.modelName(), history.size());
+        logger.debug("[LLM_REQUEST] Model: {}, History Size: {}, Tools: {}", 
+            options.modelName(), history.size(), availableTools != null ? availableTools.size() : 0);
+        if (logger.isTraceEnabled()) {
+            logger.trace("[LLM_REQUEST_DATA] Params: {}", Json.encode(params));
+        }
 
         return Future.fromCompletionStage(client.chat().completions().create(params))
             .map(this::toModelResponse);
@@ -51,7 +55,11 @@ public class OpenAIModelGateway implements ModelGateway {
     @Override
     public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String streamAddress) {
         ChatCompletionCreateParams params = buildParams(history, availableTools, options);
-        logger.debug("Starting chat stream for model: {} (history size: {})", options.modelName(), history.size());
+        logger.debug("[LLM_STREAM_START] Model: {}, History Size: {}, Tools: {}", 
+            options.modelName(), history.size(), availableTools != null ? availableTools.size() : 0);
+        if (logger.isTraceEnabled()) {
+            logger.trace("[LLM_REQUEST_DATA] Params: {}", Json.encode(params));
+        }
         
         Promise<ModelResponse> promise = Promise.promise();
 
@@ -108,8 +116,14 @@ public class OpenAIModelGateway implements ModelGateway {
         int promptTokens = completion.usage().map(u -> (int) u.promptTokens()).orElse(0);
         int completionTokens = completion.usage().map(u -> (int) u.completionTokens()).orElse(0);
 
-        logger.debug("Model response received. Content: {} chars, ToolCalls: {}, Usage: [Prompt: {}, Completion: {}]",
+        logger.debug("[LLM_RESPONSE] Content: {} chars, ToolCalls: {}, Usage: [P: {}, C: {}]",
             content.length(), toolCalls.size(), promptTokens, completionTokens);
+        if (content.length() > 0) {
+            logger.debug("[LLM_RESPONSE_CONTENT] {}", content);
+        }
+        if (!toolCalls.isEmpty()) {
+            logger.debug("[LLM_RESPONSE_TOOLS] {}", toolCalls);
+        }
 
         return new ModelResponse(content, toolCalls, new TokenUsage(promptTokens, completionTokens));
     }

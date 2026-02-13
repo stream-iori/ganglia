@@ -60,19 +60,15 @@ public class BashFileSystemTools implements ToolSet {
                   },
                   "required": ["path", "pattern"]
                 }
-                """),
-            new ToolDefinition("ls", "Alias for list_directory",
-                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}"),
-            new ToolDefinition("cat", "Alias for read_file",
-                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}")
+                """)
         );
     }
 
     @Override
     public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, me.stream.ganglia.core.model.SessionContext context) {
         return switch (toolName) {
-            case "list_directory", "ls" -> ls(args);
-            case "read_file", "cat" -> cat(args);
+            case "list_directory" -> ls(args);
+            case "read_file" -> cat(args);
             case "grep_search" -> grepSearch(args);
             case "glob" -> glob(args);
             default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));

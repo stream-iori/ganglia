@@ -25,10 +25,6 @@ public class VertxFileSystemTools implements ToolSet {
     @Override
     public List<ToolDefinition> getDefinitions() {
         return List.of(
-            new ToolDefinition("list_directory", "List files in a directory",
-                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}"),
-            new ToolDefinition("read_file", "Read content of a file",
-                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}"),
             new ToolDefinition("write_file", "Write content to a file (creates or overwrites)",
                 """
                 {
@@ -40,9 +36,9 @@ public class VertxFileSystemTools implements ToolSet {
                   "required": ["path", "content"]
                 }
                 """),
-            new ToolDefinition("vertx_ls", "Alias for list_directory",
+            new ToolDefinition("vertx_ls", "List files in a directory using JVM API",
                 "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}"),
-            new ToolDefinition("vertx_read", "Alias for read_file",
+            new ToolDefinition("vertx_read", "Read content of a file using JVM API",
                 "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}")
         );
     }
@@ -50,8 +46,8 @@ public class VertxFileSystemTools implements ToolSet {
     @Override
     public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, me.stream.ganglia.core.model.SessionContext context) {
         return switch (toolName) {
-            case "list_directory", "vertx_ls" -> ls(args);
-            case "read_file", "vertx_read" -> read(args);
+            case "vertx_ls" -> ls(args);
+            case "vertx_read" -> read(args);
             case "write_file" -> write(args);
             default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
         };
