@@ -65,5 +65,7 @@ local.properties
 # SDKMAN!
 .sdkmanrc
 
+.ganglia/
+
 brainstorm/
 learning/
