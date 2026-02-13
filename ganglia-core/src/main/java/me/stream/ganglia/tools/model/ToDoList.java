@@ -1,5 +1,6 @@
 package me.stream.ganglia.tools.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -8,6 +9,7 @@ public record ToDoList(List<ToDoItem> items) {
         return new ToDoList(new ArrayList<>());
     }
 
+    @JsonIgnore
     public boolean isEmpty() {
         return items == null || items.isEmpty();
     }

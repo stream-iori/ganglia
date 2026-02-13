@@ -31,11 +31,7 @@ public class FileStateEngine implements StateEngine {
     public Future<SessionContext> loadSession(String sessionId) {
         String filename = getFileName(sessionId);
         return vertx.fileSystem().readFile(filename)
-                .map(buffer -> Json.decodeValue(buffer, SessionContext.class))
-                .recover(err -> {
-                    logger.warn("Failed to load session {}, creating new one. Error: {}", sessionId, err.getMessage());
-                    return Future.succeededFuture(createSession(sessionId));
-                });
+                .map(buffer -> Json.decodeValue(buffer, SessionContext.class));
     }
 
     @Override
@@ -47,6 +43,11 @@ public class FileStateEngine implements StateEngine {
                 String tempFile = filename + ".tmp";
                 String json = Json.encodePrettily(context); // Pretty print for debuggability
                 vertx.fileSystem().writeFileBlocking(tempFile, Buffer.buffer(json));
+                
+                // Manually handle overwrite since moveBlocking doesn't take CopyOptions here
+                if (vertx.fileSystem().existsBlocking(filename)) {
+                    vertx.fileSystem().deleteBlocking(filename);
+                }
                 vertx.fileSystem().moveBlocking(tempFile, filename);
                 return null;
             } catch (Exception e) {

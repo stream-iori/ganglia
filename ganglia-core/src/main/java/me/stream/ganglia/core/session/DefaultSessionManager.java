@@ -24,7 +24,20 @@ public class DefaultSessionManager implements SessionManager {
     @Override
     public Future<SessionContext> getSession(String sessionId) {
         return stateEngine.loadSession(sessionId)
+                .map(this::ensureModelOptions)
                 .recover(err -> Future.succeededFuture(createSession(sessionId)));
+    }
+
+    private SessionContext ensureModelOptions(SessionContext context) {
+        if (context.modelOptions() == null) {
+            ModelOptions options = new ModelOptions(
+                    configManager.getTemperature(),
+                    configManager.getMaxTokens(),
+                    configManager.getModel()
+            );
+            return context.withModelOptions(options);
+        }
+        return context;
     }
 
     @Override

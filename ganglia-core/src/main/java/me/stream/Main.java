@@ -1,96 +1,96 @@
 package me.stream;
 
-import io.vertx.core.Vertx;
-import me.stream.ganglia.core.llm.OpenAIModelGateway;
-import me.stream.ganglia.core.loop.ReActAgentLoop;
-import me.stream.ganglia.memory.ContextCompressor;
-import me.stream.ganglia.memory.KnowledgeBase;
-import me.stream.ganglia.core.Ganglia;
-import me.stream.ganglia.core.prompt.StandardPromptEngine;
-import me.stream.ganglia.core.session.DefaultSessionManager;
-import me.stream.ganglia.core.session.SessionManager;
-import me.stream.ganglia.skills.SkillPromptInjector;
-import me.stream.ganglia.skills.SkillRegistry;
-import me.stream.ganglia.skills.SkillSuggester;
-import me.stream.ganglia.core.state.FileLogManager;
-import me.stream.ganglia.core.state.FileStateEngine;
-import me.stream.ganglia.tools.DefaultToolExecutor;
-import me.stream.ganglia.tools.ToolsFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.nio.file.Paths;
-
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import me.stream.ganglia.core.Ganglia;
 import me.stream.ganglia.core.config.ConfigManager;
 import me.stream.ganglia.core.llm.OpenAIModelGateway;
 import me.stream.ganglia.core.loop.ReActAgentLoop;
-import me.stream.ganglia.memory.ContextCompressor;
-import me.stream.ganglia.memory.KnowledgeBase;
-import me.stream.ganglia.core.Ganglia;
 import me.stream.ganglia.core.prompt.StandardPromptEngine;
 import me.stream.ganglia.core.session.DefaultSessionManager;
 import me.stream.ganglia.core.session.SessionManager;
+import me.stream.ganglia.core.state.FileLogManager;
+import me.stream.ganglia.core.state.FileStateEngine;
+import me.stream.ganglia.memory.ContextCompressor;
+import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.skills.SkillPromptInjector;
 import me.stream.ganglia.skills.SkillRegistry;
 import me.stream.ganglia.skills.SkillSuggester;
-import me.stream.ganglia.core.state.FileLogManager;
-import me.stream.ganglia.core.state.FileStateEngine;
 import me.stream.ganglia.tools.DefaultToolExecutor;
 import me.stream.ganglia.tools.ToolsFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
 
     /**
      * Bootstraps the Ganglia core components.
+     *
      * @param vertx The Vert.x instance.
      * @return An initialized Ganglia instance.
      */
     public static Future<Ganglia> bootstrap(Vertx vertx) {
         ConfigManager configManager = new ConfigManager(vertx);
 
-        return configManager.init().map(v -> {
-            String apiKey = System.getenv("OPENAI_API_KEY");
-            if (apiKey == null) {
-                apiKey = System.getenv("MOONSHOT_API_KEY");
+        return configManager.init().compose(v -> {
+            String apiKeyRaw = System.getenv("OPENAI_API_KEY");
+            if (apiKeyRaw == null) {
+                apiKeyRaw = System.getenv("MOONSHOT_API_KEY");
             }
 
-            if (apiKey == null) {
+            if (apiKeyRaw == null) {
                 logger.error("API key not found. Please set OPENAI_API_KEY or MOONSHOT_API_KEY.");
                 throw new RuntimeException("API key not found");
             }
 
-            String baseUrl = System.getenv("OPENAI_BASE_URL");
-            if (baseUrl == null) {
-                baseUrl = configManager.getBaseUrl();
+            String baseUrlRaw = System.getenv("OPENAI_BASE_URL");
+            if (baseUrlRaw == null) {
+                baseUrlRaw = configManager.getBaseUrl();
             }
 
-            // 1. Setup Kernel
-            OpenAIModelGateway modelGateway = new OpenAIModelGateway(vertx, apiKey, baseUrl);
-            KnowledgeBase knowledgeBase = new KnowledgeBase(vertx);
-            ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
-            SkillRegistry skillRegistry = new SkillRegistry(vertx, Paths.get("skills"));
+            final String apiKey = apiKeyRaw;
+            final String baseUrl = baseUrlRaw;
+            logger.debug("baseUrl:{}, apiKey:{}", baseUrlRaw, apiKeyRaw);
 
-            ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
-            DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, skillRegistry);
+            // 1. Setup Skill System
+            List<Path> skillPaths = new ArrayList<>();
+            skillPaths.add(Paths.get(".ganglia/skills"));
+            String userHome = System.getProperty("user.home");
+            if (userHome != null) {
+                skillPaths.add(Paths.get(userHome, ".ganglia/skills"));
+            }
+            skillPaths.add(Paths.get("skills"));
 
-            SkillPromptInjector skillInjector = new SkillPromptInjector(vertx, skillRegistry, Paths.get("skills"));
-            SkillSuggester skillSuggester = new SkillSuggester(vertx, skillRegistry);
-            StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester);
+            SkillRegistry skillRegistry = new SkillRegistry(vertx, skillPaths);
 
-            FileStateEngine stateEngine = new FileStateEngine(vertx);
-            FileLogManager logManager = new FileLogManager(vertx);
+            return skillRegistry.init().map(v2 -> {
+                // 2. Setup Kernel & Memory
+                OpenAIModelGateway modelGateway = new OpenAIModelGateway(vertx, apiKey, baseUrl);
+                KnowledgeBase knowledgeBase = new KnowledgeBase(vertx);
+                ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
 
-            SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
+                ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
+                DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, skillRegistry);
 
-            ReActAgentLoop agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, sessionManager, promptEngine, 10);
+                SkillPromptInjector skillInjector = new SkillPromptInjector(vertx, skillRegistry);
+                SkillSuggester skillSuggester = new SkillSuggester(vertx, skillRegistry);
+                StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester);
 
-            return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop);
+                FileStateEngine stateEngine = new FileStateEngine(vertx);
+                FileLogManager logManager = new FileLogManager(vertx);
+
+                SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
+
+                ReActAgentLoop agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, sessionManager, promptEngine, 10);
+
+                return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop);
+            });
         });
     }
 
