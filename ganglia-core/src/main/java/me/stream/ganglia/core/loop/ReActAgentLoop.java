@@ -58,7 +58,58 @@ public class ReActAgentLoop implements AgentLoop {
 
         return sessionManager
             .persist(context)
-            .compose(v -> runLoop(context, 0));
+            .compose(v -> {
+                // Check if there are MORE pending tool calls in the same set that need execution
+                // before we go back to reasoning.
+                return continueActingOrReason(context, 0);
+            });
+    }
+
+    private Future<String> continueActingOrReason(SessionContext context, int iteration) {
+        Turn current = context.currentTurn();
+        if (current != null && current.intermediateSteps() != null) {
+            // Find the last assistant message that had tool calls
+            Message lastAssistant = null;
+            List<Message> steps = current.intermediateSteps();
+            for (int i = steps.size() - 1; i >= 0; i--) {
+                if (steps.get(i).role() == Role.ASSISTANT && steps.get(i).toolCalls() != null) {
+                    lastAssistant = steps.get(i);
+                    break;
+                }
+            }
+
+            if (lastAssistant != null) {
+                // Find which of those calls are still unanswered
+                Set<String> answeredIds = new HashSet<>();
+                for (Message m : steps) {
+                    if (m.role() == Role.TOOL) {
+                        answeredIds.add(m.toolCallId());
+                    }
+                }
+
+                List<ToolCall> pending = new ArrayList<>();
+                for (ToolCall tc : lastAssistant.toolCalls()) {
+                    if (!answeredIds.contains(tc.id())) {
+                        pending.add(tc);
+                    }
+                }
+
+                if (!pending.isEmpty()) {
+                    logger.debug("Continuing execution of {} pending tool calls.", pending.size());
+                    return act(pending, context)
+                        .compose(contextAfterTools ->
+                            sessionManager.persist(contextAfterTools)
+                                .compose(v -> runLoop(contextAfterTools, iteration + 1))
+                        ).recover(err -> {
+                            if (err instanceof AgentInterruptException) {
+                                return Future.succeededFuture(((AgentInterruptException) err).getPrompt());
+                            }
+                            return Future.failedFuture(err);
+                        });
+                }
+            }
+        }
+        return runLoop(context, iteration);
     }
 
     /**
@@ -150,35 +201,54 @@ public class ReActAgentLoop implements AgentLoop {
         String content = response.content();
         List<ToolCall> toolCalls = response.toolCalls();
 
-        if (content != null && !content.isEmpty()) {
-            logger.debug("Model response content: {}", content);
-        }
-        
-        if (hasToolCalls(toolCalls)) {
-            logger.debug("Model requested {} tool call(s).", toolCalls.size());
-        }
+        logger.debug("Model response content: {}", content);
+        logger.debug("Model requested {} tool call(s).", toolCalls.size());
 
-        Message assistantMessage = Message.assistant(content, toolCalls);
-        SessionContext nextContext = sessionManager.addStep(currentContext, assistantMessage);
+                        if (hasToolCalls(toolCalls)) {
 
-        if (hasToolCalls(toolCalls)) {
-            // Decision: Act (Execute ALL Tools)
-            // Persist the Assistant's intent (Tool Calls) BEFORE executing, so we can resume if interrupted.
-            return sessionManager.persist(nextContext)
-                .compose(v -> act(toolCalls, nextContext))
-                .compose(contextAfterTools ->
-                    // Loop: Recurse
-                    sessionManager.persist(contextAfterTools)
-                        .compose(v -> runLoop(contextAfterTools, iteration + 1))
-                );
-        } else {
-            logger.debug("No tool calls. Turn complete.");
-            // Decision: Finish
-            SessionContext finalContext = sessionManager.completeTurn(nextContext, Message.assistant(content));
-            return sessionManager.persist(finalContext)
-                .map(v -> content);
-        }
-    }
+                            // Decision: Act (Execute ALL Tools)
+
+                            // Persist the Assistant's intent (Tool Calls) BEFORE executing, so we can resume if interrupted.
+
+                            Message assistantMessage = Message.assistant(content, toolCalls);
+
+                            SessionContext nextContext = sessionManager.addStep(currentContext, assistantMessage);
+
+                
+
+                            return sessionManager.persist(nextContext)
+
+                                .compose(v -> act(toolCalls, nextContext))
+
+                                .compose(contextAfterTools ->
+
+                                    // Loop: Recurse
+
+                                    sessionManager.persist(contextAfterTools)
+
+                                        .compose(v -> runLoop(contextAfterTools, iteration + 1))
+
+                                );
+
+                        } else {
+
+                            logger.debug("No tool calls. Turn complete.");
+
+                            // Decision: Finish
+
+                            // Important: We call completeTurn on currentContext because the finishing message
+
+                            // was never added as a 'step'.
+
+                            SessionContext finalContext = sessionManager.completeTurn(currentContext, Message.assistant(content));
+
+                            return sessionManager.persist(finalContext)
+
+                                .map(v -> content);
+
+                        }
+
+            }
 
     private Future<SessionContext> act(List<ToolCall> toolCalls, SessionContext context) {
         // 3. Act: Execute ALL tool calls sequentially to accumulate context
@@ -192,14 +262,14 @@ public class ReActAgentLoop implements AgentLoop {
 
         ToolCall call = toolCalls.get(index);
         logger.debug("Executing tool call [{} of {}]: {} ({})", index + 1, toolCalls.size(), call.toolName(), call.id());
-        
+
         return toolExecutor.execute(call, currentContext)
             .compose(invokeResult -> {
                 if (invokeResult.status() == ToolInvokeResult.Status.INTERRUPT) {
                     logger.debug("Tool {} requested interrupt.", call.toolName());
                     return Future.failedFuture(new AgentInterruptException(invokeResult.output()));
                 }
-                
+
                 if (invokeResult.status() == ToolInvokeResult.Status.ERROR || invokeResult.status() == ToolInvokeResult.Status.EXCEPTION) {
                     logger.warn("Tool {} failed with status {}: {}", call.toolName(), invokeResult.status(), invokeResult.output());
                 } else {

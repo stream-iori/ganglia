@@ -42,12 +42,9 @@ public class OpenAIModelGateway implements ModelGateway {
     @Override
     public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
         ChatCompletionCreateParams params = buildParams(history, availableTools, options);
-        logger.debug("[LLM_REQUEST] Model: {}, History Size: {}, Tools: {}", 
+        logger.debug("[LLM_REQUEST] Model: {}, History Size: {}, Tools: {}",
             options.modelName(), history.size(), availableTools != null ? availableTools.size() : 0);
-        if (logger.isTraceEnabled()) {
-            logger.trace("[LLM_REQUEST_DATA] Params: {}", Json.encode(params));
-        }
-
+        traceParams(params);
         return Future.fromCompletionStage(client.chat().completions().create(params))
             .map(this::toModelResponse);
     }
@@ -55,12 +52,9 @@ public class OpenAIModelGateway implements ModelGateway {
     @Override
     public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String streamAddress) {
         ChatCompletionCreateParams params = buildParams(history, availableTools, options);
-        logger.debug("[LLM_STREAM_START] Model: {}, History Size: {}, Tools: {}", 
+        logger.debug("[LLM_STREAM_START] Model: {}, History Size: {}, Tools: {}",
             options.modelName(), history.size(), availableTools != null ? availableTools.size() : 0);
-        if (logger.isTraceEnabled()) {
-            logger.trace("[LLM_REQUEST_DATA] Params: {}", Json.encode(params));
-        }
-        
+        traceParams(params);
         Promise<ModelResponse> promise = Promise.promise();
 
         // Use OpenAI SDK Accumulator
@@ -99,6 +93,12 @@ public class OpenAIModelGateway implements ModelGateway {
         });
 
         return promise.future();
+    }
+
+    private void traceParams(ChatCompletionCreateParams params) {
+        if (logger.isTraceEnabled()) {
+            logger.trace("[LLM_REQUEST_DATA] Params: {}", Json.encode(params));
+        }
     }
 
     private ModelResponse toModelResponse(ChatCompletion completion) {

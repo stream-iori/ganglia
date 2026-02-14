@@ -13,7 +13,7 @@ public class ToolsFactory {
     private final BashFileSystemTools bashFileSystemTools;
     private final ToDoTools toDoTools;
     private final KnowledgeBaseTools knowledgeBaseTools;
-    private final SelectionTools selectionTools;
+    private final InteractionTools interactionTools;
     private final WebFetchTools webFetchTools;
     private final BashTools bashTools;
 
@@ -23,7 +23,7 @@ public class ToolsFactory {
         this.bashFileSystemTools = new BashFileSystemTools(vertx);
         this.toDoTools = new ToDoTools(vertx, compressor);
         this.knowledgeBaseTools = new KnowledgeBaseTools(vertx, knowledgeBase);
-        this.selectionTools = new SelectionTools(vertx);
+        this.interactionTools = new InteractionTools(vertx);
         this.webFetchTools = new WebFetchTools(vertx);
         this.bashTools = new BashTools(vertx);
     }
@@ -44,8 +44,8 @@ public class ToolsFactory {
         return knowledgeBaseTools;
     }
 
-    public SelectionTools getSelectionTools() {
-        return selectionTools;
+    public InteractionTools getInteractionTools() {
+        return interactionTools;
     }
 
     public WebFetchTools getWebFetchTools() {

@@ -209,3 +209,18 @@
 - [x] **Verification:**
     - [x] Write unit tests for search and write logic.
     - [x] Create an E2E scenario: "Code Exploration", where the agent uses `glob` to locate files and `grep_search` to find specific implementations.
+
+## Phase 17: Enhanced User Interaction
+**Objective:** Complete the `ask_selection` capability to support both structured selection and free-form feedback, ensuring robust recovery in error scenarios.
+
+- [x] **Unified Interaction Tool:**
+    - [x] Implement `ask_selection` tool: Support `text` input and `choice` (selection).
+    - [x] Ensure non-blocking stdin handling in `InteractiveDemo` using EventBus.
+- [x] **Loop Integration:**
+    - [x] Refine `ReActAgentLoop` resume logic to handle multi-turn interaction naturally.
+    - [x] Fix message duplication in turn completion.
+- [x] **Error Recovery Enhancement:**
+    - [x] Update `ErrorHandlingReActDemo` to use `ask_selection` when ambiguous situations arise.
+- [x] **Verification:**
+    - [x] Write unit tests for `ask_selection` with various input schemas.
+    - [x] Create E2E demo for "Interactive Troubleshooting".
