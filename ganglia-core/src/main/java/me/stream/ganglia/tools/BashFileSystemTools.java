@@ -21,8 +21,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class BashFileSystemTools implements ToolSet {
     private static final Logger log = LoggerFactory.getLogger(BashFileSystemTools.class);
-    private static final long MAX_OUTPUT_SIZE = 1 * 1024 * 1024; // 1MB
-    private static final long MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+    private static final long MAX_OUTPUT_SIZE = 8 * 1024; // 8KB
+    private static final long MAX_FILE_SIZE = 8 * 1024; // 8KB
     private static final long DEFAULT_TIMEOUT_MS = 30000; // 30 seconds
 
     private final Vertx vertx;
@@ -135,7 +135,7 @@ public class BashFileSystemTools implements ToolSet {
                     log.warn("[FS_LIMIT] Output size exceeded for: {}", toolName);
                     return ToolInvokeResult.exception(new ToolErrorResult(
                         toolName, ToolErrorResult.ErrorType.SIZE_LIMIT_EXCEEDED,
-                        "Output size exceeded limit of 1MB", null, partialOutput));
+                        "Output size exceeded limit of 8KB", null, partialOutput));
                 }
 
                 boolean finished = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS);

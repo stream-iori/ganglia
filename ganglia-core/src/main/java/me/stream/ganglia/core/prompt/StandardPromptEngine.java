@@ -49,8 +49,8 @@ public class StandardPromptEngine implements PromptEngine {
                             allFragments.addAll((Collection<? extends ContextFragment>) obj);
                         }
                     }
-                    // Limit system prompt to roughly 32k tokens (configurable in future)
-                    return composer.compose(allFragments, 32000);
+                    // Limit system prompt to roughly 2k tokens (configurable in future)
+                    return composer.compose(allFragments, 2000);
                 });
     }
 }

@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
  * Built-in tools for local filesystem operations using JVM/Vert.x APIs.
  */
 public class VertxFileSystemTools implements ToolSet {
-    private static final long MAX_FILE_SIZE = 1 * 1024 * 1024; // 1MB
+    private static final long MAX_FILE_SIZE = 8 * 1024; // 8KB
     private final Vertx vertx;
 
     public VertxFileSystemTools(Vertx vertx) {

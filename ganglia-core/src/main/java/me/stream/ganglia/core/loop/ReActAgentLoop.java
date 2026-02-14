@@ -22,6 +22,7 @@ public class ReActAgentLoop implements AgentLoop {
     private final SessionManager sessionManager;
     private final PromptEngine promptEngine;
     private final int maxIterations;
+    private final me.stream.ganglia.memory.TokenCounter tokenCounter = new me.stream.ganglia.memory.TokenCounter();
 
     public ReActAgentLoop(ModelGateway model, ToolExecutor toolExecutor, SessionManager sessionManager, PromptEngine promptEngine, int maxIterations) {
         this.model = model;
@@ -183,7 +184,12 @@ public class ReActAgentLoop implements AgentLoop {
                 List<Message> modelHistory = new ArrayList<>();
                 // Inject System Prompt for this turn
                 modelHistory.add(new Message("sys-" + iteration, Role.SYSTEM, systemPromptContent, null, null, java.time.Instant.now()));
-                modelHistory.addAll(context.history());
+                
+                // Prune history to fit in model window
+                List<Message> fullHistory = context.history();
+                List<Message> prunedHistory = pruneHistory(fullHistory, 2000); // Keep last 2000 tokens of history
+                
+                modelHistory.addAll(prunedHistory);
 
                 ModelOptions currentOptions = context.modelOptions();
                 if (currentOptions == null) {
@@ -191,10 +197,35 @@ public class ReActAgentLoop implements AgentLoop {
                     currentOptions = new ModelOptions(0.0, 4096, "gpt-4o");
                 }
 
-                logger.debug("Calling model: {} with history size: {}", currentOptions.modelName(), modelHistory.size());
+                logger.debug("Calling model: {} with history size: {} (pruned from {})", 
+                    currentOptions.modelName(), modelHistory.size(), fullHistory.size() + 1);
                 String streamAddr = "ganglia.stream." + context.sessionId();
                 return model.chatStream(modelHistory, toolExecutor.getAvailableTools(context), currentOptions, streamAddr);
             });
+    }
+
+    private List<Message> pruneHistory(List<Message> history, int maxTokens) {
+        if (history == null || history.isEmpty()) return Collections.emptyList();
+        
+        List<Message> pruned = new ArrayList<>();
+        int currentTokens = 0;
+        
+        // Iterate backwards from the most recent messages
+        for (int i = history.size() - 1; i >= 0; i--) {
+            Message msg = history.get(i);
+            // Count tokens in content + tool calls
+            int msgTokens = tokenCounter.count(msg.content());
+            if (msg.toolCalls() != null) {
+                msgTokens += tokenCounter.count(msg.toolCalls().toString());
+            }
+            
+            if (currentTokens + msgTokens > maxTokens && !pruned.isEmpty()) {
+                break;
+            }
+            pruned.add(0, msg);
+            currentTokens += msgTokens;
+        }
+        return pruned;
     }
 
     private Future<String> handleDecision(ModelResponse response, SessionContext currentContext, int iteration) {
@@ -204,51 +235,29 @@ public class ReActAgentLoop implements AgentLoop {
         logger.debug("Model response content: {}", content);
         logger.debug("Model requested {} tool call(s).", toolCalls.size());
 
-                        if (hasToolCalls(toolCalls)) {
+        if (hasToolCalls(toolCalls)) {
+            // Decision: Act (Execute ALL Tools)
+            // Persist the Assistant's intent (Tool Calls) BEFORE executing, so we can resume if interrupted.
+            Message assistantMessage = Message.assistant(content, toolCalls);
+            SessionContext nextContext = sessionManager.addStep(currentContext, assistantMessage);
 
-                            // Decision: Act (Execute ALL Tools)
-
-                            // Persist the Assistant's intent (Tool Calls) BEFORE executing, so we can resume if interrupted.
-
-                            Message assistantMessage = Message.assistant(content, toolCalls);
-
-                            SessionContext nextContext = sessionManager.addStep(currentContext, assistantMessage);
-
-                
-
-                            return sessionManager.persist(nextContext)
-
-                                .compose(v -> act(toolCalls, nextContext))
-
-                                .compose(contextAfterTools ->
-
-                                    // Loop: Recurse
-
-                                    sessionManager.persist(contextAfterTools)
-
-                                        .compose(v -> runLoop(contextAfterTools, iteration + 1))
-
-                                );
-
-                        } else {
-
-                            logger.debug("No tool calls. Turn complete.");
-
-                            // Decision: Finish
-
-                            // Important: We call completeTurn on currentContext because the finishing message
-
-                            // was never added as a 'step'.
-
-                            SessionContext finalContext = sessionManager.completeTurn(currentContext, Message.assistant(content));
-
-                            return sessionManager.persist(finalContext)
-
-                                .map(v -> content);
-
-                        }
-
-            }
+            return sessionManager.persist(nextContext)
+                .compose(v -> act(toolCalls, nextContext))
+                .compose(contextAfterTools ->
+                    // Loop: Recurse
+                    sessionManager.persist(contextAfterTools)
+                        .compose(v -> runLoop(contextAfterTools, iteration + 1))
+                );
+        } else {
+            logger.debug("No tool calls. Turn complete.");
+            // Decision: Finish
+            // Important: We call completeTurn on currentContext because the finishing message
+            // was never added as a 'step'.
+            SessionContext finalContext = sessionManager.completeTurn(currentContext, Message.assistant(content));
+            return sessionManager.persist(finalContext)
+                .map(v -> content);
+        }
+    }
 
     private Future<SessionContext> act(List<ToolCall> toolCalls, SessionContext context) {
         // 3. Act: Execute ALL tool calls sequentially to accumulate context

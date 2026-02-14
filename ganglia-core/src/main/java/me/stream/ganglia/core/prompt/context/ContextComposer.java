@@ -31,9 +31,17 @@ public class ContextComposer {
             pruneOne(toInclude);
         }
 
-        return toInclude.stream()
+        String result = toInclude.stream()
                 .map(f -> "## " + f.name() + "\n" + f.content())
                 .collect(Collectors.joining("\n\n"));
+        
+        // Final safety check: hard truncate if still too large
+        if (tokenCounter.count(result) > maxTokens) {
+            // This is a last resort if mandatory fragments are too large
+            return result.substring(0, Math.min(result.length(), maxTokens * 4)); // Rough character limit
+        }
+        
+        return result;
     }
 
     private int calculateTokens(List<ContextFragment> fragments) {
