@@ -24,7 +24,8 @@ Responsible for transforming `ContextSource` into standardized `ContextFragments
 ### 2.3 `ContextComposer`
 The core engine responsible for combining fragments based on priority and templates.
 - **Priority Management**: Assigns a priority (1-10) to each fragment.
-- **Token Pruning**: When total tokens exceed the model's window, non-mandatory fragments are pruned from lowest to highest priority.
+- **Token Pruning**: When total tokens exceed the model's window (targeted at 2000 tokens for system prompt), non-mandatory fragments are pruned from lowest to highest priority.
+- **Safety Truncation**: A final hard-truncation check ensures the composed prompt never overflows the model's budget.
 
 ## 3. Context Hierarchy
 

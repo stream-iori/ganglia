@@ -15,7 +15,7 @@
     </RollingFile>
   </Appenders>
   <Loggers>
-    <Logger name="me.stream.ganglia.core.llm" level="trace" additivity="false">
+    <Logger name="me.stream.ganglia.core.llm" level="debug" additivity="false">
       <AppenderRef ref="Console" level="info"/>
       <AppenderRef ref="DebugFile"/>
     </Logger>

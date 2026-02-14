@@ -45,13 +45,14 @@ The core design philosophy is inspired by **Claude Code**: a single, powerful co
 ### 3.2 Tooling & Actuation ("The Hands")
 - **Definition:** Tools are defined via Java classes implementing `ToolSet`.
 - **Hybrid Toolset:**
-  - **Low-Level:** `Bash` execution (via `BashTools`), `FileWrite` (Atomic).
-  - **High-Level:** `Grep`, `Glob`, `Edit` (Smart code replacement), `WebFetch` (via Vert.x WebClient).
+  - **Low-Level:** `Bash` execution (via `BashTools`), `write_file` (Atomic).
+  - **High-Level:** `grep_search`, `glob`, `Edit` (Smart code replacement), `web_fetch` (via Vert.x WebClient).
 - **Structured Error Handling:** Tools return a `ToolInvokeResult`.
 - **Safety:**
   - **Sandbox:** Execution of untrusted code in isolated environments.
-  - **Memory Protection:** Built-in safeguards to prevent memory exhaustion from large tool outputs (e.g., 16MB limit).
-  - **Human-in-the-Loop:** Tools marked as "Sensitive" require explicit user confirmation.
+  - **Memory Protection:** Built-in safeguards to prevent memory exhaustion from large tool outputs (e.g., 8KB limit per call).
+  - **Early Validation:** Files are verified for size (max 8KB) before reading to protect context window.
+  - **Human-in-the-Loop:** Tools marked as "Sensitive" (or explicit `ask_selection` calls) require user interaction.
 
 ### 3.3 The Memory System
 
@@ -101,7 +102,7 @@ Before executing complex requests, the system enters a **Planning Phase**:
 ### 4.2 Runtime Interrupts (Tool-Based)
 
 - **Sensitive Tools:** Tools marked as `@Sensitive` (e.g., `delete_file`, `deploy`) automatically trigger a **User Confirmation** interrupt.
-- **`ask_user` Tool:** The agent can explicitly invoke this tool to resolve ambiguities (e.g., "Which database schema should I use?").
+- **`ask_selection` Tool:** The agent can explicitly invoke this tool to resolve ambiguities or request input (supports `text` and `choice` modes).
 - **Execution Pause:** The ReAct loop suspends state and awaits user input before resuming.
 
 ## 5. Data Flow (ReAct Loop)

@@ -23,12 +23,15 @@ public class InteractiveDemo {
     private static final String INPUT_ADDRESS = "user.input.stdin";
 
     public static void main(String[] args) {
+        // Increase blocked thread check interval and max execute time to 60s 
+        // to avoid warnings during manual interaction or long reasoning turns.
         VertxOptions options = new VertxOptions()
             .setBlockedThreadCheckInterval(60000)
             .setMaxEventLoopExecuteTime(60000)
             .setMaxWorkerExecuteTime(60000);
         Vertx vertx = Vertx.vertx(options);
 
+        // Start a dedicated thread for reading from stdin to keep Vert.x reactive
         new Thread(() -> {
             Scanner scanner = new Scanner(System.in);
             while (scanner.hasNextLine()) {
@@ -56,7 +59,7 @@ public class InteractiveDemo {
                 System.out.println("Commands: 'exit' or 'quit' to stop.");
                 System.out.println("Type your goal (e.g., 'Find all files and ask me which one to read')");
                 
-                // Establish stream listener ONCE
+                // Established stream listener ONCE to avoid duplicate output
                 ui.listenToStream(sessionId);
 
                 System.out.print("\nUser: ");
@@ -81,8 +84,6 @@ public class InteractiveDemo {
             return;
         }
 
-        String finalContent = ar.result();
-
         ganglia.sessionManager().getSession(sessionId).onSuccess(context -> {
             if (hasPendingInteraction(context)) {
                 System.out.println("\n[INTERACTION REQUIRED]");
@@ -90,14 +91,14 @@ public class InteractiveDemo {
                 
                 waitForInput(vertx).onSuccess(feedback -> {
                     System.out.print("Agent: ");
+                    // Resume the loop with user feedback
                     ganglia.agentLoop().resume(feedback, context)
-                        .compose(res -> ganglia.sessionManager().getSession(sessionId))
-                        .onComplete(newAr -> handleAgentResponse(vertx, ganglia, sessionId, newAr.map(c -> "Turn Resumed")));
+                        .onComplete(res -> handleAgentResponse(vertx, ganglia, sessionId, res));
                 });
             } else {
-                // If the turn is finished, we print the final content (usually redundant with stream, 
-                // but ensures we see the full conclusion if streaming missed anything)
-                System.out.println("\n\n[Turn Complete]");
+                // Turn is fully finished
+                System.out.println("\n\n--- Workflow Complete ---");
+                System.out.println("\n--- Turn Complete ---");
                 System.out.print("\nUser: ");
                 handleNextUserTurn(vertx, ganglia, sessionId);
             }
@@ -119,7 +120,7 @@ public class InteractiveDemo {
         var steps = context.currentTurn().intermediateSteps();
         if (steps == null || steps.isEmpty()) return false;
 
-        // 1. Collect all tool call IDs that have been answered in this turn
+        // Collect all answered tool call IDs
         Set<String> answeredIds = new java.util.HashSet<>();
         for (var m : steps) {
             if (m.role() == me.stream.ganglia.core.model.Role.TOOL) {
@@ -127,7 +128,7 @@ public class InteractiveDemo {
             }
         }
 
-        // 2. Check if any assistant message has a tool call that hasn't been answered yet
+        // Find if any assistant message has an unanswered tool call
         for (var m : steps) {
             if (m.role() == me.stream.ganglia.core.model.Role.ASSISTANT && m.toolCalls() != null) {
                 for (var tc : m.toolCalls()) {

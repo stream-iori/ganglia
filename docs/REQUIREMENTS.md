@@ -16,13 +16,14 @@
 
 #### 1.1.2 Exception Handling
 *   **Structured Tool Failures:** The system shall capture structured tool execution errors via `ToolErrorResult` (e.g., Timeout, Size Limit Exceeded, Command Failed) and feed the detailed context back to the agent for self-correction.
-*   **Memory Protection:** The system shall enforce a maximum output size (e.g., 16MB) for all tool executions to prevent memory exhaustion.
+*   **Memory Protection:** The system shall enforce a maximum output size (e.g., 8KB) for all tool executions to prevent memory exhaustion and context window overflow.
+*   **Early Validation:** Direct file read tools shall verify file size against metadata before loading content into memory.
 *   **Loop Limits:** The system shall enforce a maximum number of iterations (e.g., 20 steps) to prevent infinite loops.
 
 ### 1.2 Tooling System ("The Hands")
 *   **Built-in Tools (Standard Library):**
-    *   **Local Filesystem (Bash-based):** Optimized system commands (e.g., `ls`, `cat`) and generic `run_shell_command` with mandatory timeout and output size limits.
-    *   **Local Filesystem (Vert.x-based):** Native non-blocking Java operations.
+    *   **Local Filesystem (Bash-based):** Optimized system commands (`list_directory`, `read_file`, `grep_search`, `glob`) and generic `run_shell_command` with mandatory timeout and 8KB output size limits.
+    *   **Local Filesystem (Vert.x-based):** Native non-blocking Java operations including `write_file`.
     *   **HTTP/Network (Vert.x-based):** Robust networking implemented via Vert.x `WebClient`.
     *   **ToDo & Plan Management:** Agent-managed internal task list.
 *   **Extension Tools (User-defined):**
@@ -47,8 +48,7 @@
     *   **Approval:** The system shall require user approval or modification of the plan before proceeding.
 *   **Runtime Interrupts:**
     *   **Sensitive Actions:** Execution of `@Sensitive` tools (e.g., `delete`, `deploy`) must trigger a blocking user confirmation prompt.
-    *   **Clarification:** The agent shall use an `ask_user` tool to request missing information during execution.
-    *   **User Selection:** The agent shall use `ask_selection` to present a list of options (e.g., disambiguating file names, choosing a design pattern) and await a specific choice.
+    *   **User Interaction:** The agent shall use `ask_selection` to present a list of options or request free-form text input and await response.
     *   **Pause/Resume:** The system shall support pausing the ReAct loop to await user input.
 
 ### 1.5 Skill System ("The Expertise")

@@ -20,10 +20,13 @@ classDiagram
     class ReActAgentLoop {
         -model: ModelGateway
         -toolExecutor: ToolExecutor
-        -stateEngine: StateEngine
-        -contextEngine: ContextEngine
+        -sessionManager: SessionManager
+        -promptEngine: PromptEngine
+        -tokenCounter: TokenCounter
         -maxIterations: int
         +run(...)
+        +resume(toolOutput: String, ...)
+        -pruneHistory(history: List~Message~, maxTokens: int) List~Message~
     }
     
     AgentLoop <|.. ReActAgentLoop
@@ -141,10 +144,11 @@ sequenceDiagram
 
     loop ReAct Cycle (Max N times)
         Note over AgentLoop, Model: 2. Reasoning Phase
-        AgentLoop->>ContextEngine: buildSystemPrompt(Context)
-        ContextEngine-->>AgentLoop: systemPrompt (Layered & Pruned)
+        AgentLoop->>AgentLoop: pruneHistory(2000 tokens)
+        AgentLoop->>PromptEngine: buildSystemPrompt(Context)
+        PromptEngine-->>AgentLoop: systemPrompt (Layered & Pruned to 2000 tokens)
         
-        AgentLoop->>Model: chatStream(history + systemPrompt, availableTools, streamAddr)
+        AgentLoop->>Model: chatStream(prunedHistory + systemPrompt, availableTools, streamAddr)
         
         par Real-time Feedback
             Model-->>User: [Stream] Publish tokens to EventBus (streamAddr)
@@ -152,19 +156,22 @@ sequenceDiagram
             Model-->>AgentLoop: ModelResponse (Accumulated Content + ToolCalls)
         end
         
-        AgentLoop->>Context: withNewMessage(AssistantMessage)
-        
         alt Has Tool Calls?
             Note over AgentLoop, ToolExec: 3. Execution Phase (Sequential)
+            AgentLoop->>ToolExec: execute(All ToolCalls)
+            ToolExec-->>AgentLoop: ToolResults (Observations)
             
-            AgentLoop->>ToolExec: execute(FirstToolCall)
-            ToolExec-->>AgentLoop: ToolResult (Observation)
-            AgentLoop->>Context: withNewMessage(ToolMessage/Observation)
+            alt Any Tool Interrupted (e.g. ask_selection)?
+                AgentLoop-->>User: Return Prompt/Interrupt
+                User->>AgentLoop: resume(Feedback)
+                AgentLoop->>AgentLoop: Execute remaining ToolCalls
+            end
             
-            AgentLoop->>State: saveSession(Context)
-            Note right of AgentLoop: Continue Loop -> Feed Observation back to Model
+            AgentLoop->>State: saveSession(Context with Observations)
+            Note right of AgentLoop: Continue Loop -> Feed Observations back to Model
             
         else No Tool Calls (Final Answer)
+            AgentLoop->>State: completeTurn & saveSession
             Note right of AgentLoop: Break Loop
         end
     end

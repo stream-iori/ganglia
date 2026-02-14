@@ -15,11 +15,12 @@ Ganglia implements a **Three-Tier Memory System** designed to balance high-fidel
 *   **Lifecycle:** Active only while the specific step is being executed. Once the step is complete, it is candidate for compression.
 
 ### Tier 2: Medium-Term Memory (The "Context Window")
-*   **Scope:** The active session (e.g., the last 10-20 turns).
+*   **Scope:** The active session history.
 *   **Granularity:** Hybrid.
     *   *Recent Turns:* Kept in full detail.
-    *   *Older Turns:* Compressed into summaries.
-*   **Mechanism:** **Sliding Window with Semantic Compression**.
+    *   *Older Turns:* Pruned or compressed based on token limits.
+*   **Mechanism:** **Sliding Window with Semantic Pruning**.
+    *   The `ReActAgentLoop` automatically prunes history to maintain a maximum of **2000 tokens** of conversation context per request.
 *   **Integration with ToDo:**
     *   The **Plan/ToDo List** serves as the backbone of this tier.
     *   When a task in the Plan is marked `DONE`, the associated Turns are summarized into a concise "Result" (e.g., "Refactored User.java to Record").
