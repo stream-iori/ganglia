@@ -84,11 +84,21 @@ public class ConfigManager {
 
     private JsonObject getDefaultConfig() {
         return new JsonObject()
+                .put("provider", "openai")
                 .put("model", "gpt-4o")
                 .put("utilityModel", "gpt-4o-mini")
                 .put("temperature", 0.0)
                 .put("maxTokens", 4096)
-                .put("baseUrl", "https://api.openai.com/v1");
+                .put("baseUrl", "https://api.openai.com/v1")
+                .put("anthropicBaseUrl", "https://api.anthropic.com/v1")
+                .put("geminiBaseUrl", "https://generativelanguage.googleapis.com")
+                .put("observability", new JsonObject()
+                        .put("enabled", false)
+                        .put("tracePath", ".ganglia/trace"));
+    }
+
+    public String getProvider() {
+        return getConfig().getString("provider", "openai");
     }
 
     public String getModel() {
@@ -109,5 +119,23 @@ public class ConfigManager {
 
     public String getBaseUrl() {
         return getConfig().getString("baseUrl");
+    }
+
+    public String getAnthropicBaseUrl() {
+        return getConfig().getString("anthropicBaseUrl", "https://api.anthropic.com/v1");
+    }
+
+    public String getGeminiBaseUrl() {
+        return getConfig().getString("geminiBaseUrl", "https://generativelanguage.googleapis.com");
+    }
+
+    public boolean isObservabilityEnabled() {
+        JsonObject obs = getConfig().getJsonObject("observability");
+        return obs != null && obs.getBoolean("enabled", false);
+    }
+
+    public String getTracePath() {
+        JsonObject obs = getConfig().getJsonObject("observability");
+        return obs != null ? obs.getString("tracePath", ".ganglia/trace") : ".ganglia/trace";
     }
 }

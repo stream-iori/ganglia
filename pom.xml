@@ -97,6 +97,16 @@
                 <version>${openai-java.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.anthropic</groupId>
+                <artifactId>anthropic-java</artifactId>
+                <version>2.11.1</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.genai</groupId>
+                <artifactId>google-genai</artifactId>
+                <version>1.36.0</version>
+            </dependency>
+            <dependency>
                 <groupId>com.knuddels</groupId>
                 <artifactId>jtokkit</artifactId>
                 <version>1.1.0</version>

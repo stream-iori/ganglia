@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -51,6 +52,31 @@ class ContextCompressorTest {
                 .onComplete(testContext.succeeding(summary -> {
                     testContext.verify(() -> {
                         assertEquals("Task completed successfully.", summary);
+                        testContext.completeNow();
+                    });
+                }));
+    }
+
+    @Test
+    void testReflect(VertxTestContext testContext) {
+        when(configManager.getUtilityModel()).thenReturn("test-utility-model");
+        when(configManager.getTemperature()).thenReturn(0.0);
+        when(configManager.getMaxTokens()).thenReturn(100);
+
+        ContextCompressor compressor = new ContextCompressor(model, configManager);
+        
+        Message msg1 = Message.user("Add a feature");
+        Message msg2 = Message.assistant("Added feature", null);
+        Turn turn = new Turn("t1", msg1, new ArrayList<>(), msg2);
+
+        when(model.chat(any(), any(), any()))
+                .thenReturn(Future.succeededFuture(new ModelResponse("- Added feature X\n- Updated docs", Collections.emptyList(), new TokenUsage(10, 5))));
+
+        compressor.reflect(turn)
+                .onComplete(testContext.succeeding(reflection -> {
+                    testContext.verify(() -> {
+                        assertTrue(reflection.startsWith("-"));
+                        assertTrue(reflection.contains("Added feature X"));
                         testContext.completeNow();
                     });
                 }));

@@ -63,7 +63,7 @@ public class MemoryRetrievalIT {
                 "If you don't know the answer, use your tools (ls, read, grep) to check that file. " +
                 "Do not hallucinate.");
 
-        agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, sessionManager, promptEngine, 10);
+        agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, 10);
 
         ModelOptions options = new ModelOptions(0.0, 1024, "moonshot-v1-8k");
         sessionContext = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());

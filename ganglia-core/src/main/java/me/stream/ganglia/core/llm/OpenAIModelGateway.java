@@ -11,10 +11,8 @@ import com.openai.models.chat.completions.*;
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
-import io.vertx.core.impl.NoStackTraceThrowable;
 import io.vertx.core.json.Json;
 import me.stream.ganglia.core.model.*;
-import me.stream.ganglia.tools.model.*;
 import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import org.slf4j.Logger;
@@ -26,13 +24,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-public class OpenAIModelGateway implements ModelGateway {
+public class OpenAIModelGateway extends AbstractModelGateway {
     private static final Logger logger = LoggerFactory.getLogger(OpenAIModelGateway.class);
     private final OpenAIClientAsync client;
-    private final Vertx vertx;
 
     public OpenAIModelGateway(Vertx vertx, String apiKey, String baseUrl) {
-        this.vertx = vertx;
+        super(vertx);
         this.client = OpenAIOkHttpClientAsync.builder()
             .apiKey(apiKey)
             .baseUrl(baseUrl)
@@ -46,11 +43,28 @@ public class OpenAIModelGateway implements ModelGateway {
             options.modelName(), history.size(), availableTools != null ? availableTools.size() : 0);
         traceParams(params);
         return Future.fromCompletionStage(client.chat().completions().create(params))
-            .map(this::toModelResponse);
+            .map(this::toModelResponse)
+            .recover(err -> Future.failedFuture(wrapException(err)));
+    }
+
+    private Throwable wrapException(Throwable throwable) {
+        if (throwable instanceof com.openai.errors.OpenAIServiceException) {
+            com.openai.errors.OpenAIServiceException e = (com.openai.errors.OpenAIServiceException) throwable;
+            return new LLMException(
+                e.getMessage(),
+                e.code().orElse(null),
+                e.statusCode(),
+                null,
+                e
+            );
+        } else if (throwable instanceof com.openai.errors.OpenAIException) {
+            return new LLMException(throwable.getMessage(), null, null, null, throwable);
+        }
+        return throwable;
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String streamAddress) {
+    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId) {
         ChatCompletionCreateParams params = buildParams(history, availableTools, options);
         logger.debug("[LLM_STREAM_START] Model: {}, History Size: {}, Tools: {}",
             options.modelName(), history.size(), availableTools != null ? availableTools.size() : 0);
@@ -59,6 +73,7 @@ public class OpenAIModelGateway implements ModelGateway {
 
         // Use OpenAI SDK Accumulator
         ChatCompletionAccumulator accumulator = ChatCompletionAccumulator.create();
+        String observationAddress = "ganglia.observations." + sessionId;
 
         AsyncStreamResponse<ChatCompletionChunk> stream = client.chat().completions().createStreaming(params);
         stream.subscribe(new AsyncStreamResponse.Handler<ChatCompletionChunk>() {
@@ -67,12 +82,10 @@ public class OpenAIModelGateway implements ModelGateway {
                 // Accumulate state
                 accumulator.accumulate(chunk);
 
-                // Publish content delta to EventBus
+                // Publish content delta to EventBus as ObservationEvent
                 for (ChatCompletionChunk.Choice choice : chunk.choices()) {
                     choice.delta().content().ifPresent(content -> {
-                        if (!content.isEmpty()) {
-                            vertx.eventBus().publish(streamAddress, content);
-                        }
+                        publishToken(sessionId, content);
                     });
                 }
             }
@@ -80,13 +93,13 @@ public class OpenAIModelGateway implements ModelGateway {
             @Override
             public void onComplete(Optional<Throwable> throwable) {
                 if (throwable.isPresent()) {
-                    promise.fail(throwable.get());
+                    promise.fail(wrapException(throwable.get()));
                 } else {
                     try {
                         ChatCompletion completion = accumulator.chatCompletion();
                         promise.complete(toModelResponse(completion));
                     } catch (Exception e) {
-                        promise.fail(e);
+                        promise.fail(wrapException(e));
                     }
                 }
             }
@@ -104,7 +117,7 @@ public class OpenAIModelGateway implements ModelGateway {
     private ModelResponse toModelResponse(ChatCompletion completion) {
         if (completion.choices().isEmpty()) {
             logger.error("Model returned an empty choice list.");
-            throw new NoStackTraceThrowable("No choices returned from OpenAI");
+            throw new LLMException("No choices returned from OpenAI");
         }
 
         ChatCompletion.Choice choice = completion.choices().get(0);

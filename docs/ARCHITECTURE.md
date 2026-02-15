@@ -31,6 +31,57 @@ The core design philosophy is inspired by **Claude Code**: a single, powerful co
 
 ## 3. Logical Architecture
 
+### 3.0 Layered Architecture (Overview)
+
+The system is organized into distinct layers to ensure modularity and ease of integration for new LLM providers or tools.
+
+```mermaid
+graph TD
+    subgraph UI ["1. Interface Layer"]
+        TUI["TerminalUI (Reactive Streaming)"]
+        App["Third-party Apps / Demos"]
+    end
+
+    subgraph Core ["2. Core Orchestration (The Heart)"]
+        Loop["ReActAgentLoop (Control Flow)"]
+        Session["SessionManager (Turn Tracking)"]
+    end
+
+    subgraph Intel ["3. Intelligence & Context (The Brain)"]
+        Prompt["PromptEngine (XML Templates)"]
+        Context["ContextEngine (GEMINI.md Logic)"]
+        Skills["SkillRegistry (Domain Expertise)"]
+        Mem["ContextCompressor (Token Management)"]
+    end
+
+    subgraph Action ["4. Actuation Layer (The Hands)"]
+        Executor["DefaultToolExecutor"]
+        Tools["ToolSets (Bash, FS, Web, Selection)"]
+    end
+
+    subgraph Gateway ["5. Model Provider Layer"]
+        Factory["ModelGatewayFactory"]
+        Providers["OpenAI / Anthropic / Gemini Gateways"]
+    end
+
+    subgraph Data ["6. Persistence & Infra"]
+        State["FileStateEngine (.ganglia/state)"]
+        KB["KnowledgeBase (MEMORY.md)"]
+        Trace["TraceManager (Observability)"]
+        Vertx["Vert.x (Non-blocking Runtime)"]
+    end
+
+    UI --> Loop
+    Loop --> Session
+    Loop --> Intel
+    Loop --> Action
+    Intel --> Data
+    Action --> Data
+    Loop --> Gateway
+    Gateway --> Data
+    Session --> State
+```
+
 ### 3.1 The Model Layer ("The Brain")
 
 - **Unified Interface:** Abstractions (`ModelProvider`, `ChatClient`) hide the specifics of LLM providers (OpenAI, Anthropic, etc.).
@@ -58,9 +109,10 @@ The core design philosophy is inspired by **Claude Code**: a single, powerful co
 
 See [Memory Architecture](MEMORY_ARCHITECTURE.md) for details.
 
-- **Three-Tier Architecture:**
+- **Three-Tier Architecture (Expanded):**
     - **Short-Term (Turn):** High-fidelity execution details.
     - **Medium-Term (Session):** Compressed context managed via the ToDo list lifecycle.
+    - **Daily Journal (Bridge):** Cross-session summaries stored in `.ganglia/memory/daily-*.md`.
     - **Long-Term (Project):** Curated `MEMORY.md` and archived logs.
 - **Retrieval:** Agentic Search (`grep`, `read`) over long-term memory.
 - **Injection:** Relevant memory fragments are injected into the active prompt by the **ContextEngine** (Priority 10).

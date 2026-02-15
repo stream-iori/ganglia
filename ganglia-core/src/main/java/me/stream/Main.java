@@ -4,20 +4,24 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import me.stream.ganglia.core.Ganglia;
 import me.stream.ganglia.core.config.ConfigManager;
-import me.stream.ganglia.core.llm.OpenAIModelGateway;
+import me.stream.ganglia.core.llm.ModelGateway;
+import me.stream.ganglia.core.llm.ModelGatewayFactory;
 import me.stream.ganglia.core.loop.ReActAgentLoop;
 import me.stream.ganglia.core.prompt.StandardPromptEngine;
 import me.stream.ganglia.core.session.DefaultSessionManager;
 import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.core.state.FileLogManager;
 import me.stream.ganglia.core.state.FileStateEngine;
+import me.stream.ganglia.core.state.TraceManager;
 import me.stream.ganglia.memory.ContextCompressor;
+import me.stream.ganglia.memory.DailyRecordManager;
 import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.skills.SkillPromptInjector;
 import me.stream.ganglia.skills.SkillRegistry;
 import me.stream.ganglia.skills.SkillSuggester;
 import me.stream.ganglia.tools.DefaultToolExecutor;
 import me.stream.ganglia.tools.ToolsFactory;
+import me.stream.ganglia.core.prompt.context.DailyContextSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,24 +43,7 @@ public class Main {
         ConfigManager configManager = new ConfigManager(vertx);
 
         return configManager.init().compose(v -> {
-            String apiKeyRaw = System.getenv("OPENAI_API_KEY");
-            if (apiKeyRaw == null) {
-                apiKeyRaw = System.getenv("MOONSHOT_API_KEY");
-            }
-
-            if (apiKeyRaw == null) {
-                logger.error("API key not found. Please set OPENAI_API_KEY or MOONSHOT_API_KEY.");
-                throw new RuntimeException("API key not found");
-            }
-
-            String baseUrlRaw = System.getenv("OPENAI_BASE_URL");
-            if (baseUrlRaw == null) {
-                baseUrlRaw = configManager.getBaseUrl();
-            }
-
-            final String apiKey = apiKeyRaw;
-            final String baseUrl = baseUrlRaw;
-            logger.debug("baseUrl:{}, apiKey:{}", baseUrlRaw, apiKeyRaw);
+            ModelGateway modelGateway = ModelGatewayFactory.create(vertx, configManager);
 
             // 1. Setup Skill System
             List<Path> skillPaths = new ArrayList<>();
@@ -71,9 +58,9 @@ public class Main {
 
             return skillRegistry.init().map(v2 -> {
                 // 2. Setup Kernel & Memory
-                OpenAIModelGateway modelGateway = new OpenAIModelGateway(vertx, apiKey, baseUrl);
                 KnowledgeBase knowledgeBase = new KnowledgeBase(vertx);
                 ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
+                DailyRecordManager dailyRecordManager = new DailyRecordManager(vertx, ".ganglia/memory");
 
                 ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
                 DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, skillRegistry);
@@ -81,13 +68,20 @@ public class Main {
                 SkillPromptInjector skillInjector = new SkillPromptInjector(vertx, skillRegistry);
                 SkillSuggester skillSuggester = new SkillSuggester(vertx, skillRegistry);
                 StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester);
+                
+                // Add Daily Source
+                promptEngine.addContextSource(new DailyContextSource(vertx, ".ganglia/memory"));
 
                 FileStateEngine stateEngine = new FileStateEngine(vertx);
                 FileLogManager logManager = new FileLogManager(vertx);
 
+                // 3. Setup Observability
+                new TraceManager(vertx, configManager);
+
                 SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
 
-                ReActAgentLoop agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, sessionManager, promptEngine, 10);
+                ReActAgentLoop agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, 
+                    promptEngine, 10, compressor, dailyRecordManager);
 
                 return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop);
             });

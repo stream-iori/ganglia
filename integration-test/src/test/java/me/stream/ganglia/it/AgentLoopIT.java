@@ -64,7 +64,7 @@ public class AgentLoopIT {
 
 
 
-                agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, sessionManager, promptEngine, 10);
+                agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, 10);
 
 
 

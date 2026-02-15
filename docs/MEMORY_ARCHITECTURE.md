@@ -16,15 +16,12 @@ Ganglia implements a **Three-Tier Memory System** designed to balance high-fidel
 
 ### Tier 2: Medium-Term Memory (The "Context Window")
 *   **Scope:** The active session history.
-*   **Granularity:** Hybrid.
-    *   *Recent Turns:* Kept in full detail.
-    *   *Older Turns:* Pruned or compressed based on token limits.
-*   **Mechanism:** **Sliding Window with Semantic Pruning**.
-    *   The `ReActAgentLoop` automatically prunes history to maintain a maximum of **2000 tokens** of conversation context per request.
-*   **Integration with ToDo:**
-    *   The **Plan/ToDo List** serves as the backbone of this tier.
-    *   When a task in the Plan is marked `DONE`, the associated Turns are summarized into a concise "Result" (e.g., "Refactored User.java to Record").
-    *   The raw Turns are evicted from the prompt context but saved to disk.
+*   **Mechanism:** Sliding Window with Semantic Pruning.
+
+### Tier 2.5: Daily Journal (Cross-Session)
+*   **Scope:** All activity within a single day.
+*   **Storage:** `.ganglia/memory/daily-YYYY-MM-DD.md`.
+*   **Role:** Bridges the gap between session-specific details and permanent project knowledge. It captures "what happened today" across different session IDs.
 
 ### Tier 3: Long-Term Memory (The "Project Knowledge")
 *   **Scope:** Cross-session project lifespan.

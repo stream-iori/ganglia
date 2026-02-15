@@ -5,6 +5,7 @@ import me.stream.ganglia.tools.model.ToDoList;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 /**
  * Represents the full context of a running session, organized by Turns.
@@ -31,14 +32,15 @@ public record SessionContext(
         if (currentTurn != null) {
             newPreviousTurns.add(currentTurn);
         }
-        Turn newCurrentTurn = new Turn(java.util.UUID.randomUUID().toString(), userMessage, new ArrayList<>(), null);
+
+        Turn newCurrentTurn = Turn.newTurn(UUID.randomUUID().toString(), userMessage);
         return new SessionContext(sessionId, newPreviousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions, toDoList);
     }
 
     public SessionContext addStep(Message step) {
         Turn newCurrentTurn = currentTurn;
         if (newCurrentTurn == null) {
-            newCurrentTurn = new Turn(java.util.UUID.randomUUID().toString(), null, new ArrayList<>(), null);
+            newCurrentTurn = new Turn(UUID.randomUUID().toString(), null, new ArrayList<>(), null);
         }
         newCurrentTurn = newCurrentTurn.withStep(step);
         return new SessionContext(sessionId, previousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions, toDoList);

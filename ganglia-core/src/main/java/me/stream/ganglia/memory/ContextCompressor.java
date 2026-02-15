@@ -46,4 +46,31 @@ public class ContextCompressor {
         return model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions)
                 .map(ModelResponse::content);
     }
+
+    /**
+     * Reflects on a single turn to extract concise accomplishments.
+     */
+    public Future<String> reflect(Turn turn) {
+        if (turn == null) return Future.succeededFuture("");
+
+        var content = new StringBuilder("Please extract the technical accomplishments and key facts from the following interaction. " +
+                "Format as a concise bulleted list. Focus on WHAT was changed or learned.\n\n");
+        
+        for (var m : turn.flatten()) {
+            content.append(m.role()).append(": ").append(m.content()).append("\n");
+        }
+
+        content.append("\nAccomplishments:");
+
+        var userMsg = Message.user(content.toString());
+
+        ModelOptions summaryOptions = new ModelOptions(
+                configManager.getTemperature(),
+                configManager.getMaxTokens(),
+                configManager.getUtilityModel()
+        );
+
+        return model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions)
+                .map(ModelResponse::content);
+    }
 }

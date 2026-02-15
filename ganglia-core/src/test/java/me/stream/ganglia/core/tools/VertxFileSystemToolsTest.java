@@ -36,7 +36,7 @@ public class VertxFileSystemToolsTest {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
                     assertTrue(res.output().contains("Successfully written"));
                 });
-                return tools.execute("read_file", Map.of("path", filePath), null);
+                return tools.execute("vertx_read", Map.of("path", filePath), null);
             })
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
@@ -52,7 +52,7 @@ public class VertxFileSystemToolsTest {
         String filePath = tempDir.resolve("test_ls.txt").toString();
         
         vertx.fileSystem().writeFile(filePath, io.vertx.core.buffer.Buffer.buffer("test"))
-            .compose(v -> tools.execute("list_directory", Map.of("path", tempDir.toString()), null))
+            .compose(v -> tools.execute("vertx_ls", Map.of("path", tempDir.toString()), null))
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());

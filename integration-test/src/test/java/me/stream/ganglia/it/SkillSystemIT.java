@@ -76,7 +76,7 @@ public class SkillSystemIT {
             FileLogManager logManager = new FileLogManager(vertx);
             SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
 
-            agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, sessionManager, promptEngine, 5);
+            agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, 5);
 
             ModelOptions options = new ModelOptions(0.0, 1024, "moonshot-v1-8k");
             sessionContext = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());

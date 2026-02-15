@@ -14,6 +14,10 @@ public record Turn(
     List<Message> intermediateSteps, // Thoughts, ToolCalls, ToolResults
     Message finalResponse
 ) {
+    public static Turn newTurn(String id, Message msg) {
+        return new Turn(id, msg, new ArrayList<>(), null);
+    }
+
     public Turn withStep(Message step) {
         ArrayList<Message> newSteps = new ArrayList<>(intermediateSteps);
         newSteps.add(step);

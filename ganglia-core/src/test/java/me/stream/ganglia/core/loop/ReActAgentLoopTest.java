@@ -41,14 +41,19 @@ class ReActAgentLoopTest {
     PromptEngine prompt;
     @Mock
     me.stream.ganglia.core.config.ConfigManager configManager;
+    @Mock
+    io.vertx.core.Vertx vertx;
+    @Mock
+    io.vertx.core.eventbus.EventBus eventBus;
 
     SessionManager sessionManager;
 
     @Test
     void testHappyPathMultipleTools() throws Exception {
         // Setup
+        when(vertx.eventBus()).thenReturn(eventBus);
         sessionManager = new DefaultSessionManager(state, logManager, configManager);
-        ReActAgentLoop loop = new ReActAgentLoop(model, tools, sessionManager, prompt, 5);
+        ReActAgentLoop loop = new ReActAgentLoop(vertx, model, tools, sessionManager, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         SessionContext context = new SessionContext("test-session", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
@@ -92,8 +97,9 @@ class ReActAgentLoopTest {
     @Test
     void testInterruptAndResume() throws Exception {
         // Setup
+        when(vertx.eventBus()).thenReturn(eventBus);
         sessionManager = new DefaultSessionManager(state, logManager, configManager);
-        ReActAgentLoop loop = new ReActAgentLoop(model, tools, sessionManager, prompt, 5);
+        ReActAgentLoop loop = new ReActAgentLoop(vertx, model, tools, sessionManager, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         SessionContext context = new SessionContext("test-session", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
@@ -131,8 +137,9 @@ class ReActAgentLoopTest {
     @Test
     void testStreamingFeedback() throws Exception {
         // Setup
+        when(vertx.eventBus()).thenReturn(eventBus);
         sessionManager = new DefaultSessionManager(state, logManager, configManager);
-        ReActAgentLoop loop = new ReActAgentLoop(model, tools, sessionManager, prompt, 5);
+        ReActAgentLoop loop = new ReActAgentLoop(vertx, model, tools, sessionManager, prompt, 5);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         String sessionId = "stream-session";
         SessionContext context = new SessionContext(sessionId, Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
@@ -144,9 +151,8 @@ class ReActAgentLoopTest {
 
         ModelResponse finalResponse = new ModelResponse("Final Answer", Collections.emptyList(), new TokenUsage(10, 10));
 
-        // Mock chatStream to return success but we want to verify it was CALLED with correct address
-        String expectedAddr = "ganglia.stream." + sessionId;
-        when(model.chatStream(anyList(), anyList(), eq(options), eq(expectedAddr)))
+        // Mock chatStream to return success but we want to verify it was CALLED with correct sessionId
+        when(model.chatStream(anyList(), anyList(), eq(options), eq(sessionId)))
                 .thenReturn(Future.succeededFuture(finalResponse));
 
         // Run
@@ -154,6 +160,6 @@ class ReActAgentLoopTest {
 
         // Verify
         assertEquals("Final Answer", result);
-        verify(model).chatStream(anyList(), anyList(), eq(options), eq(expectedAddr));
+        verify(model).chatStream(anyList(), anyList(), eq(options), eq(sessionId));
     }
 }

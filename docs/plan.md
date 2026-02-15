@@ -224,3 +224,80 @@
 - [x] **Verification:**
     - [x] Write unit tests for `ask_selection` with various input schemas.
     - [x] Create E2E demo for "Interactive Troubleshooting".
+    
+    ## Phase 18: Advanced Observability & Traceability
+    **Objective:** Enable deep introspection of the agent's reasoning and tool execution steps via structured events and persistent trace logs.
+    
+    - [x] **Structured Event Model:**
+        - [x] Define `ObservationEvent` and `ObservationType` (e.g., `THOUGHT`, `TOOL_CALL`, `TOOL_RESULT`, `ERROR`).
+        - [x] Implement a unified EventBus addressing scheme for observations: `ganglia.observations.<sessionId>`.
+    - [x] **Observability Configuration:**
+        - [x] Add `ganglia.observability.enabled` and `ganglia.observability.trace_path` to `ConfigManager`.
+        - [x] Support hot-reloading for the observability toggle.
+    - [x] **Trace Persistence (TraceManager):**
+        - [x] Implement `TraceManager` to subscribe to observation events.
+        - [x] Implement date-based file rotation (e.g., `trace-2026-02-14.md`).
+        - [x] Format events into structured Markdown for high readability.
+    - [x] **Loop Instrumentation:**
+        - [x] Update `ReActAgentLoop` to emit `ObservationEvent` at every key lifecycle stage (Reasoning, Acting, Iterating).
+    - [x] **UI Layer Enhancement:**
+        - [x] Update `TerminalUI` to consume `ObservationEvent` instead of raw strings.
+        - [x] Implement specialized rendering for Thoughts (italics/subtle color) and Tool Calls (boxes/icons).
+    - [x] **Verification:**
+            - [x] Verify `trace.md` generation across multiple days.
+            - [x] Ensure low performance overhead when observability is disabled.
+        
+        ## Phase 19: Anthropic Claude Integration
+        **Objective:** Support Anthropic Claude models via a dedicated `ModelGateway` implementation, providing an alternative to OpenAI.
+        
+        - [x] **Anthropic Model Gateway:**
+            - [x] Implement `AnthropicModelGateway` using the `anthropic-java` SDK.
+            - [x] Map Ganglia's `Message` and `Role` models to Anthropic's `MessageParam` and `ContentBlock`.
+            - [x] Implement specific handling for `SYSTEM` messages (Anthropic requires a separate top-level `system` parameter).
+        - [x] **Streaming & Observations:**
+            - [x] Implement `chatStream` using Anthropic's `createStreaming` API.
+            - [x] Ensure `ObservationEvent` (especially `TOKEN_RECEIVED`) is correctly published during the stream.
+        - [x] **Structured Error Mapping:**
+            - [x] Map `AnthropicServiceException` and its subclasses to the structured `LlmException`.
+            - [x] Extract `status_code`, `error.type`, and `request_id` from Anthropic responses.
+        - [x] **Multi-Provider Configuration:**
+            - [x] Update `ConfigManager` to support a `provider` setting (`openai` | `anthropic`).
+            - [x] Add support for `ANTHROPIC_API_KEY` and `ANTHROPIC_BASE_URL` environment variables.
+            - [x] Update `Main.bootstrap` to dynamically instantiate the correct `ModelGateway` based on configuration.
+        - [x] **Verification:**
+            - [x] Implement `AnthropicModelGatewayTest` using mocks.
+            - [x] Create a "Claude Demo" to verify tool execution and reasoning with `claude-3-5-sonnet`.
+
+        ## Phase 20: Google Gemini Integration
+        **Objective:** Support Google Gemini models via a dedicated `ModelGateway` implementation using the Google GenAI SDK.
+
+        - [x] **Gemini Model Gateway:**
+            - [x] Implement `GeminiModelGateway` using the `google-genai` SDK.
+            - [x] Map Ganglia's `Message`, `Role`, and `ToolCall` models to Gemini's `Content`, `Part`, and `FunctionCall`.
+            - [x] Ensure proper handling of `system_instruction` in Gemini.
+        - [x] **Streaming & Observations:**
+            - [x] Implement `chatStream` using Gemini's streaming generation API.
+            - [x] Publish `ObservationEvent` tokens to the EventBus during streaming.
+        - [x] **Multi-Provider Configuration:**
+            - [x] Add `gemini` as a valid provider in `ConfigManager`.
+            - [x] Support `GOOGLE_API_KEY` environment variable.
+            - [x] Update `Main.bootstrap` to support the Gemini provider.
+        - [x] **Verification:**
+            - [ ] Implement `GeminiModelGatewayTest` (Deferred due to complex SDK mocking).
+            - [x] Create a "Gemini Demo" to verify full-cycle reasoning and tool use with `gemini-2.0-flash`.
+
+## Phase 21: Daily Journal Memory System
+**Objective:** Capture and persist cross-session daily accomplishments to improve project-wide continuity.
+
+- [ ] **Daily Record Manager:**
+    - [ ] Implement `DailyRecordManager`: Handle append-only logic for `.ganglia/memory/daily-*.md`.
+    - [ ] Integrate with Vert.x FileSystem for atomic updates.
+- [ ] **Reflection Logic:**
+    - [ ] Enhance `ContextCompressor` with a `reflect` method to generate concise bullet points from a Turn.
+    - [ ] Configure `ReActAgentLoop` to trigger reflection at the end of each turn or session.
+- [ ] **Context Integration:**
+    - [ ] Implement `DailyContextSource` for the `ContextEngine`.
+    - [ ] Inject the current day's journal into the system prompt at Priority 9.
+- [ ] **Verification:**
+    - [ ] Create an E2E test where an agent in Session A performs an action, and an agent in Session B (started later) correctly identifies that action via the Daily Record.
+        

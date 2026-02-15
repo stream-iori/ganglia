@@ -57,7 +57,7 @@ public class FullWorkflowIT {
         SessionManager sessionManager = new DefaultSessionManager(stateEngine, null, configManager);
 
         StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, null, null);
-        agentLoop = new ReActAgentLoop(modelGateway, toolExecutor, sessionManager, promptEngine, 10);
+        agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, 10);
     }
 
     @Test
