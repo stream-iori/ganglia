@@ -159,7 +159,7 @@ public class GeminiModelGateway extends AbstractModelGateway {
         if (msg.role() == Role.TOOL) {
             Map<String, Object> responseMap = new HashMap<>();
             responseMap.put("result", msg.content());
-            parts.add(Part.fromFunctionResponse(msg.toolName(), responseMap));
+            parts.add(Part.fromFunctionResponse(msg.toolObservation().toolName(), responseMap));
         } else {
             if (msg.content() != null && !msg.content().isEmpty()) {
                 parts.add(Part.fromText(msg.content()));

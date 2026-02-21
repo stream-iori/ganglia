@@ -33,13 +33,15 @@ class SkillIntegrationTest {
 
     @Mock
     KnowledgeBase knowledgeBase;
+    @Mock
+    DefaultToolExecutor toolExecutor;
 
     @Test
     void testSkillPromptInjection(Vertx vertx, VertxTestContext testContext) {
         Path skillsDir = Paths.get("src/test/resources/skills");
         SkillRegistry registry = new SkillRegistry(vertx, List.of(skillsDir));
         SkillPromptInjector injector = new SkillPromptInjector(vertx, registry);
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, injector, null);
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, injector, null, toolExecutor);
 
         registry.init().compose(v -> {
             SessionContext context = new SessionContext(
@@ -66,7 +68,7 @@ class SkillIntegrationTest {
         Path skillsDir = Paths.get("src/test/resources/skills");
         SkillRegistry registry = new SkillRegistry(vertx, List.of(skillsDir));
         SkillSuggester suggester = new SkillSuggester(vertx, registry);
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, suggester);
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, suggester, toolExecutor);
 
         registry.init().compose(v -> {
             return vertx.fileSystem().writeFile("./dummy.test", io.vertx.core.buffer.Buffer.buffer("dummy"))

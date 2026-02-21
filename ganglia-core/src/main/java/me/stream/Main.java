@@ -16,6 +16,8 @@ import me.stream.ganglia.core.state.TraceManager;
 import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.memory.DailyRecordManager;
 import me.stream.ganglia.memory.KnowledgeBase;
+import me.stream.ganglia.memory.MemoryService;
+import me.stream.ganglia.core.state.TokenUsageManager;
 import me.stream.ganglia.skills.SkillPromptInjector;
 import me.stream.ganglia.skills.SkillRegistry;
 import me.stream.ganglia.skills.SkillSuggester;
@@ -67,7 +69,7 @@ public class Main {
 
                 SkillPromptInjector skillInjector = new SkillPromptInjector(vertx, skillRegistry);
                 SkillSuggester skillSuggester = new SkillSuggester(vertx, skillRegistry);
-                StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester);
+                StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester, toolExecutor);
                 
                 // Add Daily Source
                 promptEngine.addContextSource(new DailyContextSource(vertx, ".ganglia/memory"));
@@ -75,13 +77,15 @@ public class Main {
                 FileStateEngine stateEngine = new FileStateEngine(vertx);
                 FileLogManager logManager = new FileLogManager(vertx);
 
-                // 3. Setup Observability
+                // 3. Setup Observability & Usage
                 new TraceManager(vertx, configManager);
+                new TokenUsageManager(vertx);
+                new MemoryService(vertx, compressor, dailyRecordManager);
 
                 SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
 
                 ReActAgentLoop agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, 
-                    promptEngine, 10, compressor, dailyRecordManager);
+                    promptEngine, 10);
 
                 return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop);
             });

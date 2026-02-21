@@ -5,6 +5,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public record ToDoList(List<ToDoItem> items) {
+    public ToDoList {
+        if (items == null) {
+            items = java.util.Collections.emptyList();
+        }
+    }
+
     public static ToDoList empty() {
         return new ToDoList(new ArrayList<>());
     }

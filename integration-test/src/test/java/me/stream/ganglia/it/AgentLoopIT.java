@@ -5,6 +5,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.llm.OpenAIModelGateway;
 import me.stream.ganglia.core.loop.ReActAgentLoop;
+import me.stream.ganglia.core.model.LLMRequest;
 import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.core.model.ModelOptions;
@@ -22,11 +23,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -58,11 +61,24 @@ public class AgentLoopIT {
                 FileLogManager logManager = new FileLogManager(vertx);
                 SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
 
-                PromptEngine promptEngine = context -> io.vertx.core.Future.succeededFuture("You are a helpful assistant with bash file access tools. " +
-                "Your task is to list files in 'src/test/resources/integration' using 'ls', read them using 'cat', and concatenate their content. " +
-                "The final answer should only be the concatenated string without spaces or newlines.");
+                PromptEngine promptEngine = mock(PromptEngine.class);
+                when(promptEngine.prepareRequest(any(), anyInt())).thenAnswer(inv -> {
+                    SessionContext ctx = inv.getArgument(0);
+                    int iter = inv.getArgument(1);
+                    String systemPrompt = "You are a helpful assistant with bash file access tools. " +
+                        "Your task is to list files in 'src/test/resources/integration' using 'ls', read them using 'cat', and concatenate their content. " +
+                        "The final answer should only be the concatenated string without spaces or newlines.";
 
+                    List<me.stream.ganglia.core.model.Message> messages = new java.util.ArrayList<>();
+                    messages.add(me.stream.ganglia.core.model.Message.system(systemPrompt));
+                    messages.addAll(ctx.history());
 
+                    return io.vertx.core.Future.succeededFuture(new LLMRequest(
+                        messages,
+                        toolExecutor.getAvailableTools(ctx),
+                        ctx.modelOptions()
+                    ));
+                });
 
                 agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, 10);
 

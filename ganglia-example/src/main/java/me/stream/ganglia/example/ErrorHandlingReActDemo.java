@@ -105,8 +105,8 @@ public class ErrorHandlingReActDemo {
         if (lastMsg.role() == me.stream.ganglia.core.model.Role.ASSISTANT && lastMsg.toolCalls() != null) {
             java.util.Set<String> answeredIds = new java.util.HashSet<>();
             for (var m : steps) {
-                if (m.role() == me.stream.ganglia.core.model.Role.TOOL) {
-                    answeredIds.add(m.toolCallId());
+                if (m.role() == me.stream.ganglia.core.model.Role.TOOL && m.toolObservation() != null) {
+                    answeredIds.add(m.toolObservation().toolCallId());
                 }
             }
             for (var tc : lastMsg.toolCalls()) {

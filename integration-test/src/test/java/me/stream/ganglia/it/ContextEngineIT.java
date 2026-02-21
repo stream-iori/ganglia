@@ -18,6 +18,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import me.stream.ganglia.tools.ToolExecutor;
+import static org.mockito.Mockito.mock;
+
 @ExtendWith(VertxExtension.class)
 public class ContextEngineIT {
 
@@ -26,7 +29,8 @@ public class ContextEngineIT {
 
     @BeforeEach
     void setUp(Vertx vertx) {
-        promptEngine = new StandardPromptEngine(vertx, new KnowledgeBase(vertx), null, null);
+        ToolExecutor toolExecutor = mock(ToolExecutor.class);
+        promptEngine = new StandardPromptEngine(vertx, new KnowledgeBase(vertx), null, null, toolExecutor);
     }
 
     @AfterEach

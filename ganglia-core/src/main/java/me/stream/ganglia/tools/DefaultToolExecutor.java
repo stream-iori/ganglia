@@ -56,15 +56,13 @@ public class DefaultToolExecutor implements ToolExecutor {
         }
 
         // 2. Try tools from active skills
-        if (context.activeSkillIds() != null) {
-            for (String skillId : context.activeSkillIds()) {
-                ToolSet ts = getSkillToolSet(skillId);
-                if (ts != null && hasTool(ts, toolName)) {
-                    log.debug("Found tool {} in skill toolset: {} (Skill: {})", toolName, ts.getClass().getSimpleName(), skillId);
-                    return ts.execute(toolName, toolCall.arguments(), context)
-                        .onSuccess(res -> log.debug("[TOOL_RESULT] Name: {}, ID: {}, Status: {}", toolName, toolCall.id(), res.status()))
-                        .onFailure(err -> log.error("[TOOL_ERROR] Name: {}, ID: {}, Error: {}", toolName, toolCall.id(), err.getMessage()));
-                }
+        for (String skillId : context.activeSkillIds()) {
+            ToolSet ts = getSkillToolSet(skillId);
+            if (ts != null && hasTool(ts, toolName)) {
+                log.debug("Found tool {} in active skills : {} (Skill: {})", toolName, ts.getClass().getSimpleName(), skillId);
+                return ts.execute(toolName, toolCall.arguments(), context)
+                    .onSuccess(res -> log.debug("[SKILL_RESULT] Name: {}, ID: {}, Status: {}", toolName, toolCall.id(), res.status()))
+                    .onFailure(err -> log.error("[SKILL_ERROR] Name: {}, ID: {}, Error: {}", toolName, toolCall.id(), err.getMessage()));
             }
         }
 
@@ -103,7 +101,9 @@ public class DefaultToolExecutor implements ToolExecutor {
 
         return skillToolCache.computeIfAbsent(skillId, id -> {
             SkillManifest skill = skillRegistry.getSkill(id);
-            if (skill == null || skill.tools() == null || skill.tools().isEmpty()) return null;
+            // TODO 没有Tool的Skill不应该存在吗？，多个Tool的支持
+
+            if (skill == null || skill.tools().isEmpty()) return null;
 
             // For now, we only support skills that provide ONE ToolSet class.
             // In a more advanced implementation, we'd handle multiple classes or individual tool methods.

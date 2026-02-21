@@ -123,8 +123,8 @@ public class InteractiveDemo {
         // Collect all answered tool call IDs
         Set<String> answeredIds = new java.util.HashSet<>();
         for (var m : steps) {
-            if (m.role() == me.stream.ganglia.core.model.Role.TOOL) {
-                answeredIds.add(m.toolCallId());
+            if (m.role() == me.stream.ganglia.core.model.Role.TOOL && m.toolObservation() != null) {
+                answeredIds.add(m.toolObservation().toolCallId());
             }
         }
 

@@ -56,7 +56,7 @@ public class FullWorkflowIT {
         when(stateEngine.saveSession(any())).thenReturn(io.vertx.core.Future.succeededFuture());
         SessionManager sessionManager = new DefaultSessionManager(stateEngine, null, configManager);
 
-        StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, null, null);
+        StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, null, null, toolExecutor);
         agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, 10);
     }
 

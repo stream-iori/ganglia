@@ -24,16 +24,16 @@ public class DefaultSessionManager implements SessionManager {
     @Override
     public Future<SessionContext> getSession(String sessionId) {
         return stateEngine.loadSession(sessionId)
-                .map(this::ensureModelOptions)
-                .recover(err -> Future.succeededFuture(createSession(sessionId)));
+            .map(this::ensureModelOptions)
+            .recover(err -> Future.succeededFuture(createSession(sessionId)));
     }
 
     private SessionContext ensureModelOptions(SessionContext context) {
         if (context.modelOptions() == null) {
             ModelOptions options = new ModelOptions(
-                    configManager.getTemperature(),
-                    configManager.getMaxTokens(),
-                    configManager.getModel()
+                configManager.getTemperature(),
+                configManager.getMaxTokens(),
+                configManager.getModel()
             );
             return context.withModelOptions(options);
         }
@@ -42,16 +42,17 @@ public class DefaultSessionManager implements SessionManager {
 
     @Override
     public Future<Void> persist(SessionContext context) {
-        return stateEngine.saveSession(context)
-                .compose(v -> logManager != null ? logManager.appendLog(context) : Future.succeededFuture());
+        return stateEngine
+            .saveSession(context)
+            .compose(v -> logManager.appendLog(context));
     }
 
     @Override
     public SessionContext createSession(String sessionId) {
         ModelOptions options = new ModelOptions(
-                configManager.getTemperature(),
-                configManager.getMaxTokens(),
-                configManager.getModel()
+            configManager.getTemperature(),
+            configManager.getMaxTokens(),
+            configManager.getModel()
         );
         return new SessionContext(
             sessionId,

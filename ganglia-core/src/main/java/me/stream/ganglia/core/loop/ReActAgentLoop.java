@@ -2,6 +2,7 @@ package me.stream.ganglia.core.loop;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import me.stream.ganglia.core.llm.LLMException;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ReActAgentLoop implements AgentLoop {
     private static final Logger logger = LoggerFactory.getLogger(ReActAgentLoop.class);
@@ -24,22 +26,15 @@ public class ReActAgentLoop implements AgentLoop {
     private final PromptEngine promptEngine;
     private final int maxIterations;
     private final Vertx vertx;
-    private final me.stream.ganglia.memory.ContextCompressor compressor;
-    private final me.stream.ganglia.memory.DailyRecordManager dailyRecordManager;
-    private final me.stream.ganglia.memory.TokenCounter tokenCounter = new me.stream.ganglia.memory.TokenCounter();
 
-    public ReActAgentLoop(Vertx vertx, ModelGateway model, ToolExecutor toolExecutor, SessionManager sessionManager, 
-                          PromptEngine promptEngine, int maxIterations, 
-                          me.stream.ganglia.memory.ContextCompressor compressor, 
-                          me.stream.ganglia.memory.DailyRecordManager dailyRecordManager) {
+    public ReActAgentLoop(Vertx vertx, ModelGateway model, ToolExecutor toolExecutor, SessionManager sessionManager,
+                          PromptEngine promptEngine, int maxIterations) {
         this.vertx = vertx;
         this.model = model;
         this.toolExecutor = toolExecutor;
         this.sessionManager = sessionManager;
         this.promptEngine = promptEngine;
         this.maxIterations = maxIterations;
-        this.compressor = compressor;
-        this.dailyRecordManager = dailyRecordManager;
     }
 
     private void publishObservation(String sessionId, ObservationType type, String content) {
@@ -48,7 +43,7 @@ public class ReActAgentLoop implements AgentLoop {
 
     private void publishObservation(String sessionId, ObservationType type, String content, Map<String, Object> data) {
         ObservationEvent event = ObservationEvent.of(sessionId, type, content, data);
-        vertx.eventBus().publish("ganglia.observations." + sessionId, io.vertx.core.json.JsonObject.mapFrom(event));
+        vertx.eventBus().publish("ganglia.observations." + sessionId, JsonObject.mapFrom(event));
     }
 
     @Override
@@ -58,9 +53,7 @@ public class ReActAgentLoop implements AgentLoop {
         // 1. Initialization
         Message userMessage = Message.user(userInput);
         SessionContext context = sessionManager.startTurn(initialContext, userMessage);
-
-        return sessionManager.persist(context)
-            .compose(v -> runLoop(context, 0));
+        return sessionManager.persist(context).compose(v -> runLoop(context, 0));
     }
 
     @Override
@@ -88,46 +81,23 @@ public class ReActAgentLoop implements AgentLoop {
 
     private Future<String> continueActingOrReason(SessionContext context, int iteration) {
         Turn current = context.currentTurn();
-        if (current != null && current.intermediateSteps() != null) {
-            // Find the last assistant message that had tool calls
-            Message lastAssistant = null;
-            List<Message> steps = current.intermediateSteps();
-            for (int i = steps.size() - 1; i >= 0; i--) {
-                if (steps.get(i).role() == Role.ASSISTANT && steps.get(i).toolCalls() != null) {
-                    lastAssistant = steps.get(i);
-                    break;
-                }
-            }
+        if (current != null) {
+            List<ToolCall> pending = current.getPendingToolCalls();
 
-            if (lastAssistant != null) {
-                // Find which of those calls are still unanswered
-                Set<String> answeredIds = new HashSet<>();
-                for (Message m : steps) {
-                    if (m.role() == Role.TOOL) {
-                        answeredIds.add(m.toolCallId());
-                    }
-                }
-
-                List<ToolCall> pending = new ArrayList<>();
-                for (ToolCall tc : lastAssistant.toolCalls()) {
-                    if (!answeredIds.contains(tc.id())) {
-                        pending.add(tc);
-                    }
-                }
-
-                if (!pending.isEmpty()) {
-                    logger.debug("Continuing execution of {} pending tool calls.", pending.size());
-                    return act(pending, context)
-                        .compose(contextAfterTools ->
-                            sessionManager.persist(contextAfterTools)
-                                .compose(v -> runLoop(contextAfterTools, iteration + 1))
-                        ).recover(err -> {
-                            if (err instanceof AgentInterruptException) {
-                                return Future.succeededFuture(((AgentInterruptException) err).getPrompt());
-                            }
-                            return Future.failedFuture(err);
-                        });
-                }
+            if (!pending.isEmpty()) {
+                logger.debug("Continuing execution of {} pending tool calls.", pending.size());
+                return act(pending, context)
+                    .compose(contextAfterTools ->
+                        sessionManager
+                            .persist(contextAfterTools)
+                            .compose(v -> runLoop(contextAfterTools, iteration + 1))
+                    )
+                    .recover(err -> {
+                        if (err instanceof AgentInterruptException) {
+                            return Future.succeededFuture(((AgentInterruptException) err).getPrompt());
+                        }
+                        return Future.failedFuture(err);
+                    });
             }
         }
         return runLoop(context, iteration);
@@ -145,29 +115,9 @@ public class ReActAgentLoop implements AgentLoop {
         Turn current = context.currentTurn();
         if (current == null) return null;
 
-        List<Message> steps = current.intermediateSteps();
-
-        // 1. Collect all tool call IDs that have already been answered.
-        Set<String> answeredIds = new HashSet<>();
-        if (steps != null) {
-            for (Message m : steps) {
-                if (m.role() == Role.TOOL) {
-                    answeredIds.add(m.toolCallId());
-                }
-            }
-
-            // 2. Scan the assistant's messages to find the first tool call not in the 'answered' set.
-            for (Message m : steps) {
-                if (m.role() == Role.ASSISTANT && m.toolCalls() != null) {
-                    for (ToolCall tc : m.toolCalls()) {
-                        if (!answeredIds.contains(tc.id())) {
-                            return tc;
-                        }
-                    }
-                }
-            }
-        }
-        return null;
+        return current.getPendingToolCalls().stream()
+            .findFirst()
+            .orElse(null);
     }
 
     private Future<String> runLoop(SessionContext currentContext, int iteration) {
@@ -203,55 +153,15 @@ public class ReActAgentLoop implements AgentLoop {
     // --- Core Logic Steps ---
 
     private Future<ModelResponse> reason(SessionContext context, int iteration) {
-        logger.debug("Building system prompt for iteration: {}", iteration);
+        logger.debug("Building LLM request for iteration: {}", iteration);
         publishObservation(context.sessionId(), ObservationType.REASONING_STARTED, null);
-        // 2. Reason: Construct Prompt and Call Model
-        return promptEngine.buildSystemPrompt(context)
-            .compose(systemPromptContent -> {
-                List<Message> modelHistory = new ArrayList<>();
-                // Inject System Prompt for this turn
-                modelHistory.add(new Message("sys-" + iteration, Role.SYSTEM, systemPromptContent, null, null, null, java.time.Instant.now()));
 
-                // Prune history to fit in model window
-                List<Message> fullHistory = context.history();
-                List<Message> prunedHistory = pruneHistory(fullHistory, 2000); // Keep last 2000 tokens of history
-
-                modelHistory.addAll(prunedHistory);
-
-                ModelOptions currentOptions = context.modelOptions();
-                if (currentOptions == null) {
-                    // Fallback should ideally not be reached if SessionManager does its job
-                    currentOptions = new ModelOptions(0.0, 4096, "gpt-4o");
-                }
-
-                logger.debug("Calling model: {} with history size: {} (pruned from {})",
-                    currentOptions.modelName(), modelHistory.size(), fullHistory.size() + 1);
-                return model.chatStream(modelHistory, toolExecutor.getAvailableTools(context), currentOptions, context.sessionId());
+        return promptEngine.prepareRequest(context, iteration)
+            .compose(request -> {
+                logger.debug("Calling model: {} with history size: {}",
+                    request.options().modelName(), request.messages().size());
+                return model.chatStream(request.messages(), request.tools(), request.options(), context.sessionId());
             });
-    }
-
-    private List<Message> pruneHistory(List<Message> history, int maxTokens) {
-        if (history == null || history.isEmpty()) return Collections.emptyList();
-
-        List<Message> pruned = new ArrayList<>();
-        int currentTokens = 0;
-
-        // Iterate backwards from the most recent messages
-        for (int i = history.size() - 1; i >= 0; i--) {
-            Message msg = history.get(i);
-            // Count tokens in content + tool calls
-            int msgTokens = tokenCounter.count(msg.content());
-            if (msg.toolCalls() != null) {
-                msgTokens += tokenCounter.count(msg.toolCalls().toString());
-            }
-
-            if (currentTokens + msgTokens > maxTokens && !pruned.isEmpty()) {
-                break;
-            }
-            pruned.add(0, msg);
-            currentTokens += msgTokens;
-        }
-        return pruned;
     }
 
     private Future<String> handleDecision(ModelResponse response, SessionContext currentContext, int iteration) {
@@ -262,7 +172,14 @@ public class ReActAgentLoop implements AgentLoop {
         logger.debug("Model requested {} tool call(s).", toolCalls.size());
         publishObservation(currentContext.sessionId(), ObservationType.REASONING_FINISHED, content);
 
-        if (hasToolCalls(toolCalls)) {
+        // Record usage asynchronously
+        if (response.usage() != null) {
+            vertx.eventBus().publish("ganglia.usage.record", new io.vertx.core.json.JsonObject()
+                .put("sessionId", currentContext.sessionId())
+                .put("usage", io.vertx.core.json.JsonObject.mapFrom(response.usage())));
+        }
+
+        if (!toolCalls.isEmpty()) {
             // Decision: Act (Execute ALL Tools)
             // Persist the Assistant's intent (Tool Calls) BEFORE executing, so we can resume if interrupted.
             Message assistantMessage = Message.assistant(content, toolCalls);
@@ -279,20 +196,19 @@ public class ReActAgentLoop implements AgentLoop {
             logger.debug("No tool calls. Turn complete.");
             publishObservation(currentContext.sessionId(), ObservationType.TURN_FINISHED, content);
             // Decision: Finish
-            // Important: We call completeTurn on currentContext because the finishing message
-            // reached a final answer.
-            // was never added as a 'step'.
             SessionContext finalContext = sessionManager.completeTurn(currentContext, Message.assistant(content));
-            
-            // Async background reflection for Daily Journal
-            if (dailyRecordManager != null && compressor != null && finalContext.currentTurn() != null) {
+
+            // Async background reflection for Daily Journal via EventBus
+            if (finalContext.currentTurn() != null) {
                 String goal = finalContext.currentTurn().userMessage().content();
-                compressor.reflect(finalContext.currentTurn())
-                    .compose(summary -> dailyRecordManager.record(finalContext.sessionId(), goal, summary))
-                    .onFailure(err -> logger.error("Daily Journal reflection failed", err));
+                vertx.eventBus().publish("ganglia.memory.reflect", new JsonObject()
+                    .put("sessionId", finalContext.sessionId())
+                    .put("goal", goal)
+                    .put("turn", JsonObject.mapFrom(finalContext.currentTurn())));
             }
 
-            return sessionManager.persist(finalContext)
+            return sessionManager
+                .persist(finalContext)
                 .map(v -> content);
         }
     }
@@ -313,18 +229,20 @@ public class ReActAgentLoop implements AgentLoop {
 
         return toolExecutor.execute(call, currentContext)
             .compose(invokeResult -> {
-                if (invokeResult.status() == ToolInvokeResult.Status.INTERRUPT) {
-                    logger.debug("Tool {} requested interrupt.", call.toolName());
-                    publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, "Interrupted: " + invokeResult.output());
-                    return Future.failedFuture(new AgentInterruptException(invokeResult.output()));
-                }
-
-                if (invokeResult.status() == ToolInvokeResult.Status.ERROR || invokeResult.status() == ToolInvokeResult.Status.EXCEPTION) {
-                    logger.warn("Tool {} failed with status {}: {}", call.toolName(), invokeResult.status(), invokeResult.output());
-                    publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, "Error: " + invokeResult.output());
-                } else {
-                    logger.debug("Tool {} executed successfully.", call.toolName());
-                    publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, invokeResult.output());
+                switch (invokeResult.status()) {
+                    case INTERRUPT -> {
+                        logger.debug("Tool {} requested interrupt.", call.toolName());
+                        publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, "Interrupted: " + invokeResult.output());
+                        return Future.failedFuture(new AgentInterruptException(invokeResult.output()));
+                    }
+                    case ERROR, EXCEPTION -> {
+                        logger.warn("Tool {} failed with status {}: {}", call.toolName(), invokeResult.status(), invokeResult.output());
+                        publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, "Error: " + invokeResult.output());
+                    }
+                    case SUCCESS -> {
+                        logger.debug("Tool {} executed successfully.", call.toolName());
+                        publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, invokeResult.output());
+                    }
                 }
 
                 Message toolMsg = Message.tool(call.id(), call.toolName(), invokeResult.output());
@@ -333,9 +251,5 @@ public class ReActAgentLoop implements AgentLoop {
             })
             .compose(nextContext -> sessionManager.persist(nextContext).map(v -> nextContext))
             .compose(nextContext -> executeToolsSequentially(toolCalls, index + 1, nextContext));
-    }
-
-    private boolean hasToolCalls(List<ToolCall> toolCalls) {
-        return toolCalls != null && !toolCalls.isEmpty();
     }
 }

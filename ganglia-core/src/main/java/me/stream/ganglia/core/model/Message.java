@@ -1,9 +1,12 @@
 package me.stream.ganglia.core.model;
 
+import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.tools.model.ToolCall;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -14,12 +17,41 @@ public record Message(
     Role role, // SYSTEM, USER, ASSISTANT, TOOL
     String content,
     List<ToolCall> toolCalls, // Present if role is ASSISTANT and tools are called
-    String toolCallId, // Present if role is TOOL (linking to the call)
-    String toolName, // Present if role is TOOL
+    ToolObservation toolObservation, // Present if role is TOOL
     Instant timestamp
 ) {
+
+    public Message {
+        if (toolCalls == null) {
+            toolCalls = Collections.emptyList();
+        }
+        if (timestamp == null) {
+            timestamp = Instant.now();
+        }
+    }
+
+    /**
+     * Counts the total tokens in this message (content + tool calls).
+     */
+    public int countTokens(TokenCounter counter) {
+        int tokens = counter.count(content);
+        if (toolCalls != null && !toolCalls.isEmpty()) {
+            tokens += counter.count(toolCalls.toString());
+        }
+        return tokens;
+    }
+
+    /**
+     * Aggregates attributes related to a tool execution result.
+     */
+    public record ToolObservation(String toolCallId, String toolName) {}
+
     public static Message user(String content) {
-        return new Message(UUID.randomUUID().toString(), Role.USER, content, null, null, null, Instant.now());
+        return new Message(UUID.randomUUID().toString(), Role.USER, content, null, null, Instant.now());
+    }
+
+    public static Message system(String content) {
+        return new Message(UUID.randomUUID().toString(), Role.SYSTEM, content, null, null, Instant.now());
     }
 
     public static Message assistant(String content) {
@@ -27,7 +59,7 @@ public record Message(
     }
 
     public static Message assistant(String content, List<ToolCall> toolCalls) {
-        return new Message(UUID.randomUUID().toString(), Role.ASSISTANT, content, toolCalls, null, null, Instant.now());
+        return new Message(UUID.randomUUID().toString(), Role.ASSISTANT, content, toolCalls, null, Instant.now());
     }
 
     public static Message tool(String toolCallId, String content) {
@@ -35,6 +67,6 @@ public record Message(
     }
 
     public static Message tool(String toolCallId, String toolName, String content) {
-        return new Message(UUID.randomUUID().toString(), Role.TOOL, content, null, toolCallId, toolName, Instant.now());
+        return new Message(UUID.randomUUID().toString(), Role.TOOL, content, null, new ToolObservation(toolCallId, toolName), Instant.now());
     }
 }

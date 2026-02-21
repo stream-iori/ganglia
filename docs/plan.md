@@ -289,15 +289,62 @@
 ## Phase 21: Daily Journal Memory System
 **Objective:** Capture and persist cross-session daily accomplishments to improve project-wide continuity.
 
-- [ ] **Daily Record Manager:**
-    - [ ] Implement `DailyRecordManager`: Handle append-only logic for `.ganglia/memory/daily-*.md`.
-    - [ ] Integrate with Vert.x FileSystem for atomic updates.
-- [ ] **Reflection Logic:**
-    - [ ] Enhance `ContextCompressor` with a `reflect` method to generate concise bullet points from a Turn.
-    - [ ] Configure `ReActAgentLoop` to trigger reflection at the end of each turn or session.
+- [x] **Daily Record Manager:**
+    - [x] Implement `DailyRecordManager`: Handle append-only logic for `.ganglia/memory/daily-*.md`.
+    - [x] Integrate with Vert.x FileSystem for atomic updates.
+- [x] **Reflection Logic:**
+    - [x] Enhance `ContextCompressor` with a `reflect` method to generate concise bullet points from a Turn.
 - [ ] **Context Integration:**
-    - [ ] Implement `DailyContextSource` for the `ContextEngine`.
-    - [ ] Inject the current day's journal into the system prompt at Priority 9.
+    - [x] Implement `DailyContextSource` for the `ContextEngine`.
+    - [x] Inject the current day's journal into the system prompt at Priority 9.
 - [ ] **Verification:**
     - [ ] Create an E2E test where an agent in Session A performs an action, and an agent in Session B (started later) correctly identifies that action via the Daily Record.
+
+## Phase 22: Memory & Usage Logic Decoupling
+**Objective:** Decouple memory reflection and token usage tracking from the ReAct loop using EventBus.
+
+- [x] **Event Infrastructure:**
+    - [x] Define EventBus addresses for Memory Reflection and Token Usage recording.
+- [x] **Memory Service:**
+    - [x] Implement `MemoryService` to handle `ganglia.memory.reflect` events.
+    - [x] Move reflection and daily recording logic from `ReActAgentLoop` to `MemoryService`.
+- [x] **Usage Manager:**
+    - [x] Implement `TokenUsageManager` (or similar) to handle `ganglia.usage.record` events.
+- [x] **ReAct Loop Refactoring:**
+    - [x] Remove direct dependencies on `ContextCompressor` and `DailyRecordManager` from `ReActAgentLoop`.
+    - [x] Publish EventBus messages for memory reflection and token usage.
+- [x] **Bootstrap Update:**
+    - [x] Register `MemoryService` and `TokenUsageManager` in `Main.bootstrap`.
+- [x] **Verification:**
+    - [x] Verify that Daily Records are still generated correctly.
+    - [x] Verify that Token Usage is recorded/logged as expected.
+
+## Phase 23: PromptEngine Refactoring
+**Objective:** Centralize LLM request preparation, history pruning, and model options management in PromptEngine.
+
+- [x] **Core Models:**
+    - [x] Define `LlmRequest` record to encapsulate messages, tools, and options.
+- [x] **PromptEngine Interface Update:**
+    - [x] Add `prepareRequest` and `pruneHistory` methods to the `PromptEngine` interface.
+- [x] **StandardPromptEngine Implementation:**
+    - [x] Implement `pruneHistory` logic (moved from `ReActAgentLoop`).
+    - [x] Implement `prepareRequest` to orchestrate system prompt construction, history pruning, tool resolution, and model options fallback.
+- [x] **ReActAgentLoop Refactoring:**
+    - [x] Simplify `reason` method to use `promptEngine.prepareRequest`.
+    - [x] Remove `pruneHistory` and `ModelOptions` fallback logic from `ReActAgentLoop`.
+- [x] **Verification:**
+    - [x] Update `ReActAgentLoopTest` and `StandardPromptEngineTest` to reflect the new interface and behavior.
+    - [x] Ensure full ReAct cycle still works as expected.
+
+## Phase 24: Prompt Construction Refinement (Tools & Skills)
+**Objective:** Consolidate all tool and skill-related prompt construction within PromptEngine using ContextSource.
+
+- [x] **ToolContextSource:**
+    - [x] Implement `ToolContextSource` to inject tool-specific guidelines and best practices.
+- [x] **StandardPromptEngine Update:**
+    - [x] Register `ToolContextSource` to dynamically enhance system prompt based on available tools.
+- [x] **Skill Integration:**
+    - [x] Ensure `SkillContextSource` is properly integrated into the unified prompt construction flow.
+- [x] **Verification:**
+    - [x] Verify that the system prompt now includes clear instructions for tool usage.
         

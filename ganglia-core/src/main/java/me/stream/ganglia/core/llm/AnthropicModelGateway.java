@@ -128,7 +128,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
         List<ContentBlockParam> content = new ArrayList<>();
         if (msg.role() == Role.TOOL) {
             content.add(ContentBlockParam.ofToolResult(ToolResultBlockParam.builder()
-                    .toolUseId(msg.toolCallId())
+                    .toolUseId(msg.toolObservation().toolCallId())
                     .content(msg.content())
                     .build()));
         } else {

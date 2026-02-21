@@ -1,11 +1,10 @@
 package me.stream.ganglia.core.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.tools.model.ToDoList;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * Represents the full context of a running session, organized by Turns.
@@ -19,6 +18,27 @@ public record SessionContext(
     ModelOptions modelOptions,
     ToDoList toDoList
 ) {
+    /**
+     * Compact constructor to ensure data integrity and null safety.
+     */
+    public SessionContext {
+        if (sessionId == null) {
+            sessionId = UUID.randomUUID().toString();
+        }
+        if (previousTurns == null) {
+            previousTurns = Collections.emptyList();
+        }
+        if (metadata == null) {
+            metadata = Collections.emptyMap();
+        }
+        if (activeSkillIds == null) {
+            activeSkillIds = Collections.emptyList();
+        }
+        if (toDoList == null) {
+            toDoList = ToDoList.empty();
+        }
+    }
+
     public SessionContext withNewMessage(Message msg) {
         if (msg.role() == Role.USER) {
             return startTurn(msg);
@@ -49,7 +69,7 @@ public record SessionContext(
     public SessionContext completeTurn(Message response) {
         Turn newCurrentTurn = currentTurn;
         if (newCurrentTurn == null) {
-            newCurrentTurn = new Turn(java.util.UUID.randomUUID().toString(), null, new ArrayList<>(), null);
+            newCurrentTurn = new Turn(UUID.randomUUID().toString(), null, new ArrayList<>(), null);
         }
         newCurrentTurn = newCurrentTurn.withResponse(response);
         return new SessionContext(sessionId, previousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions, toDoList);
@@ -64,6 +84,28 @@ public record SessionContext(
             list.addAll(currentTurn.flatten());
         }
         return list;
+    }
+
+    /**
+     * Returns a pruned history (most recent messages) that fits within maxTokens.
+     */
+    @JsonIgnore
+    public List<Message> getPrunedHistory(int maxTokens, TokenCounter counter) {
+        List<Message> fullHistory = history();
+        if (fullHistory.isEmpty()) return Collections.emptyList();
+
+        List<Message> pruned = new ArrayList<>();
+        int currentTokens = 0;
+
+        // Iterate backwards from the most recent messages
+        for (int i = fullHistory.size() - 1; i >= 0; i--) {
+            Message msg = fullHistory.get(i);
+            int msgTokens = msg.countTokens(counter);
+            if (currentTokens + msgTokens > maxTokens && !pruned.isEmpty()) break;
+            pruned.add(0, msg);
+            currentTokens += msgTokens;
+        }
+        return pruned;
     }
 
     public SessionContext withModelOptions(ModelOptions newOptions) {

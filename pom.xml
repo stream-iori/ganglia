@@ -22,10 +22,21 @@
         <slf4j.version>2.0.16</slf4j.version>
         <log4j.version>2.25.3</log4j.version>
         <openai-java.version>4.17.0</openai-java.version>
+        <commonmark.version>0.27.1</commonmark.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>org.commonmark</groupId>
+                <artifactId>commonmark</artifactId>
+                <version>${commonmark.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.commonmark</groupId>
+                <artifactId>commonmark-ext-gfm-tables</artifactId>
+                <version>${commonmark.version}</version>
+            </dependency>
             <dependency>
                 <groupId>me.stream</groupId>
                 <artifactId>ganglia-core</artifactId>

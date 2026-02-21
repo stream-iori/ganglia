@@ -60,8 +60,15 @@ class ReActAgentLoopTest {
         // Mocks behavior
         when(state.saveSession(any())).thenReturn(Future.succeededFuture());
         when(logManager.appendLog(any())).thenReturn(Future.succeededFuture());
-        when(prompt.buildSystemPrompt(any())).thenReturn(Future.succeededFuture("System Prompt"));
-        when(tools.getAvailableTools(any())).thenReturn(Collections.emptyList());
+
+        // Mock prepareRequest to return a valid LlmRequest
+        when(prompt.prepareRequest(any(), anyInt())).thenAnswer(invocation -> {
+            SessionContext ctx = invocation.getArgument(0);
+            int iter = invocation.getArgument(1);
+            List<Message> messages = List.of(Message.system("System Prompt"));
+            return Future.succeededFuture(new LLMRequest(messages, Collections.emptyList(), ctx.modelOptions()));
+        });
+
 
         // 1st Model Call: Returns TWO Tool Calls
         ToolCall toolCall1 = new ToolCall("call-1", "test-tool-1", Map.of("arg", "1"));
@@ -105,8 +112,10 @@ class ReActAgentLoopTest {
 
         when(state.saveSession(any())).thenReturn(Future.succeededFuture());
         when(logManager.appendLog(any())).thenReturn(Future.succeededFuture());
-        when(prompt.buildSystemPrompt(any())).thenReturn(Future.succeededFuture("System Prompt"));
-        when(tools.getAvailableTools(any())).thenReturn(Collections.emptyList());
+        when(prompt.prepareRequest(any(), anyInt())).thenAnswer(inv -> {
+            SessionContext ctx = inv.getArgument(0);
+            return Future.succeededFuture(new LLMRequest(Collections.emptyList(), Collections.emptyList(), ctx.modelOptions()));
+        });
 
         // 1. Initial Run -> Interrupt
         ToolCall selectionCall = new ToolCall("call-select", "ask_selection", Map.of("q", "Choose"));
@@ -146,8 +155,10 @@ class ReActAgentLoopTest {
 
         when(state.saveSession(any())).thenReturn(Future.succeededFuture());
         when(logManager.appendLog(any())).thenReturn(Future.succeededFuture());
-        when(prompt.buildSystemPrompt(any())).thenReturn(Future.succeededFuture("System Prompt"));
-        when(tools.getAvailableTools(any())).thenReturn(Collections.emptyList());
+        when(prompt.prepareRequest(any(), anyInt())).thenAnswer(inv -> {
+            SessionContext ctx = inv.getArgument(0);
+            return Future.succeededFuture(new LLMRequest(Collections.emptyList(), Collections.emptyList(), ctx.modelOptions()));
+        });
 
         ModelResponse finalResponse = new ModelResponse("Final Answer", Collections.emptyList(), new TokenUsage(10, 10));
 

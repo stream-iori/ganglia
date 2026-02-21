@@ -3,10 +3,7 @@ package me.stream.ganglia.skills;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public record SkillManifest(
@@ -20,6 +17,12 @@ public record SkillManifest(
     SkillTrigger activationTriggers,
     String instructions
 ) {
+
+   public SkillManifest {
+       if (prompts == null) prompts = Collections.emptyList();
+       if (tools == null) tools = Collections.emptyList();
+   }
+
     public static SkillManifest fromJson(JsonObject json) {
         return new SkillManifest(
             json.getString("id"),
@@ -56,11 +59,11 @@ public record SkillManifest(
         }
 
         Map<String, String> metadata = parseFrontmatter(frontmatter);
-        
+
         String skillId = metadata.getOrDefault("id", folderId);
         List<String> filePatterns = parseList(metadata.getOrDefault("filePatterns", ""));
         List<String> keywords = parseList(metadata.getOrDefault("keywords", ""));
-        
+
         return new SkillManifest(
             skillId,
             metadata.getOrDefault("version", "1.0.0"),

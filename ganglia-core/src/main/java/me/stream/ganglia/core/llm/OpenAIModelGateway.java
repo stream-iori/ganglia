@@ -76,7 +76,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
         String observationAddress = "ganglia.observations." + sessionId;
 
         AsyncStreamResponse<ChatCompletionChunk> stream = client.chat().completions().createStreaming(params);
-        stream.subscribe(new AsyncStreamResponse.Handler<ChatCompletionChunk>() {
+        stream.subscribe(new AsyncStreamResponse.Handler<>() {
             @Override
             public void onNext(ChatCompletionChunk chunk) {
                 // Accumulate state
@@ -195,7 +195,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
             case TOOL:
                 return ChatCompletionMessageParam.ofTool(
                     ChatCompletionToolMessageParam.builder()
-                        .toolCallId(msg.toolCallId())
+                        .toolCallId(msg.toolObservation().toolCallId())
                         .content(msg.content())
                         .build()
                 );

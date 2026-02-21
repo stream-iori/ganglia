@@ -68,7 +68,7 @@ public class SkillSystemIT {
 
             SkillPromptInjector skillInjector = new SkillPromptInjector(vertx, skillRegistry);
             SkillSuggester skillSuggester = new SkillSuggester(vertx, skillRegistry);
-            StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester);
+            StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester, toolExecutor);
 
             StateEngine stateEngine = mock(StateEngine.class);
             when(stateEngine.saveSession(any())).thenReturn(Future.succeededFuture());
