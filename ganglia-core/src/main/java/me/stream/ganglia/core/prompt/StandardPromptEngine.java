@@ -6,6 +6,7 @@ import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.prompt.context.*;
+import me.stream.ganglia.core.prompt.context.SubAgentContextSource;
 import me.stream.ganglia.skills.SkillPromptInjector;
 import me.stream.ganglia.skills.SkillSuggester;
 import me.stream.ganglia.tools.ToolExecutor;
@@ -20,7 +21,7 @@ public class StandardPromptEngine implements PromptEngine {
     private final List<ContextSource> sources = new ArrayList<>();
     private final ContextComposer composer;
     private final TokenCounter tokenCounter;
-    private final ToolExecutor toolExecutor;
+    private ToolExecutor toolExecutor;
 
     public StandardPromptEngine(Vertx vertx,
                                 KnowledgeBase knowledgeBase,
@@ -38,9 +39,21 @@ public class StandardPromptEngine implements PromptEngine {
         sources.add(new FileContextSource(vertx, resolver, "GANGLIA.md"));
         sources.add(new EnvironmentSource(vertx));
         sources.add(new SkillContextSource(skillInjector, skillSuggester));
-        sources.add(new ToolContextSource(this.toolExecutor));
+        if (this.toolExecutor != null) {
+            sources.add(new ToolContextSource(this.toolExecutor));
+        }
         sources.add(new ToDoContextSource());
         sources.add(new MemoryContextSource());
+        sources.add(new SubAgentContextSource());
+    }
+
+    public void setToolExecutor(ToolExecutor toolExecutor) {
+        this.toolExecutor = toolExecutor;
+        // Re-add ToolContextSource if it wasn't added during construction
+        boolean hasToolSource = sources.stream().anyMatch(s -> s instanceof ToolContextSource);
+        if (!hasToolSource && toolExecutor != null) {
+            sources.add(new ToolContextSource(toolExecutor));
+        }
     }
 
     public void addContextSource(ContextSource source) {
@@ -80,8 +93,19 @@ public class StandardPromptEngine implements PromptEngine {
                 currentOptions = new ModelOptions(0.0, 4096, "gpt-4o");
             }
 
-            // 4. Resolve Tools
+            // 4. Resolve Tools (with sub-agent filtering)
             var tools = toolExecutor.getAvailableTools(context);
+            
+            boolean isSub = (boolean) context.metadata().getOrDefault("is_sub_agent", false);
+            if (isSub) {
+                String persona = (String) context.metadata().getOrDefault("sub_agent_persona", "GENERAL");
+                if ("INVESTIGATOR".equals(persona)) {
+                    // Filter out tools that modify files
+                    tools = tools.stream()
+                        .filter(t -> !t.name().equals("write_file") && !t.name().equals("replace_in_file") && !t.name().equals("run_shell_command"))
+                        .toList();
+                }
+            }
 
             return new LLMRequest(modelHistory, tools, currentOptions);
         });

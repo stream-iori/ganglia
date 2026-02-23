@@ -377,4 +377,19 @@
     - [x] Overload `Main.bootstrap` to support injecting custom `ModelGateway` for mock-free integration testing.
 - [x] **Verification:**
     - [x] Verify `AutonomousReActDemo` runs without `RejectedExecutionException` noise.
+
+## Phase 27: Sub-Agent Delegation System
+**Objective:** Enable the primary Orchestrator Agent to spawn focused, short-lived Sub-Agents for specialized tasks, keeping the main context clean and efficient.
+
+- [ ] **Sub-Agent Core Logic:**
+    - [ ] Implement `SubAgentTool` to allow the ReAct loop to spawn nested agent instances.
+    - [ ] Create `ContextScoper` to isolate and prune history before passing it to a child agent.
+- [ ] **Specialized Personas:**
+    - [ ] Define "Investigator" and "Refactorer" persona templates with restricted toolsets.
+    - [ ] Implement logic to return a structured "Summary Report" from child to parent.
+- [ ] **Recursion Control:**
+    - [ ] Implement hard limits on nesting depth and sub-agent iteration counts.
+- [ ] **Verification:**
+    - [ ] Create an integration test where a Parent Agent delegates a codebase investigation to an "Investigator" Sub-Agent and acts on its report.
+
         

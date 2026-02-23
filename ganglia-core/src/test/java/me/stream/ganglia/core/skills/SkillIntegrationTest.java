@@ -28,6 +28,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
 
 @ExtendWith({VertxExtension.class, MockitoExtension.class})
 class SkillIntegrationTest {
@@ -99,7 +100,19 @@ class SkillIntegrationTest {
     void testFullSkillLifecycle(Vertx vertx, VertxTestContext testContext) {
         Path skillsDir = Paths.get("src/test/resources/skills");
         SkillRegistry registry = new SkillRegistry(vertx, List.of(skillsDir));
-        DefaultToolExecutor toolExecutor = new DefaultToolExecutor(new ToolsFactory(vertx, null, knowledgeBase), registry);
+        me.stream.ganglia.core.llm.ModelGateway model = mock(me.stream.ganglia.core.llm.ModelGateway.class);
+        me.stream.ganglia.core.session.SessionManager sessionManager = mock(me.stream.ganglia.core.session.SessionManager.class);
+        me.stream.ganglia.core.prompt.PromptEngine promptEngine = mock(me.stream.ganglia.core.prompt.PromptEngine.class);
+        me.stream.ganglia.core.config.ConfigManager config = mock(me.stream.ganglia.core.config.ConfigManager.class);
+        
+        DefaultToolExecutor toolExecutor = new DefaultToolExecutor(
+            new ToolsFactory(vertx, null, knowledgeBase), 
+            registry,
+            model,
+            sessionManager,
+            promptEngine,
+            config
+        );
 
         registry.init().onComplete(testContext.succeeding(v -> {
             SessionContext context = new SessionContext(

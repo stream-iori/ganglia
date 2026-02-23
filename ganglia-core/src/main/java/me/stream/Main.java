@@ -108,24 +108,37 @@ public class Main {
                 DailyRecordManager dailyRecordManager = new DailyRecordManager(vertx, ".ganglia/memory");
 
                 ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
-                DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, skillRegistry);
-
+                
+                // Initialize PromptEngine without toolExecutor first to break cycle
                 SkillPromptInjector skillInjector = new SkillPromptInjector(vertx, skillRegistry);
                 SkillSuggester skillSuggester = new SkillSuggester(vertx, skillRegistry);
-                StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester, toolExecutor, tokenCounter);
+                StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester, null, tokenCounter);
+                
+                // Initialize SessionManager
+                FileStateEngine stateEngine = new FileStateEngine(vertx);
+                FileLogManager logManager = new FileLogManager(vertx);
+                SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
+
+                // Initialize ToolExecutor with all dependencies for SubAgentTools
+                DefaultToolExecutor toolExecutor = new DefaultToolExecutor(
+                    toolsFactory, 
+                    skillRegistry, 
+                    modelGateway, 
+                    sessionManager, 
+                    promptEngine, 
+                    configManager
+                );
+
+                // Now wire back the toolExecutor to the promptEngine
+                promptEngine.setToolExecutor(toolExecutor);
                 
                 // Add Daily Source
                 promptEngine.addContextSource(new DailyContextSource(vertx, ".ganglia/memory"));
-
-                FileStateEngine stateEngine = new FileStateEngine(vertx);
-                FileLogManager logManager = new FileLogManager(vertx);
 
                 // 3. Setup Observability & Usage
                 new TraceManager(vertx, configManager);
                 new TokenUsageManager(vertx, tokenCounter);
                 new MemoryService(vertx, compressor, dailyRecordManager);
-
-                SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
 
                 ReActAgentLoop agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, 
                     promptEngine, configManager);

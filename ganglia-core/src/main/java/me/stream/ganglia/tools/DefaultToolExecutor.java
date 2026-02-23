@@ -1,7 +1,12 @@
 package me.stream.ganglia.tools;
 
+import io.vertx.core.Vertx;
+import me.stream.ganglia.core.config.ConfigManager;
 import io.vertx.core.Future;
+import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.SessionContext;
+import me.stream.ganglia.core.prompt.PromptEngine;
+import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.skills.SkillManifest;
 import me.stream.ganglia.skills.SkillRegistry;
 import me.stream.ganglia.skills.SkillTools;
@@ -26,7 +31,12 @@ public class DefaultToolExecutor implements ToolExecutor {
     private final SkillRegistry skillRegistry;
     private final Map<String, ToolSet> skillToolCache = new ConcurrentHashMap<>();
 
-    public DefaultToolExecutor(ToolsFactory factory, SkillRegistry skillRegistry) {
+    public DefaultToolExecutor(ToolsFactory factory, 
+                               SkillRegistry skillRegistry,
+                               ModelGateway model,
+                               SessionManager sessionManager,
+                               PromptEngine promptEngine,
+                               ConfigManager config) {
         this.skillRegistry = skillRegistry;
 
         // Add all built-in toolsets
@@ -38,6 +48,10 @@ public class DefaultToolExecutor implements ToolExecutor {
         builtInToolSets.add(factory.getWebFetchTools());
         builtInToolSets.add(factory.getBashTools());
         builtInToolSets.add(factory.getFileEditTools());
+        
+        // Add SubAgentTools (passing 'this' as the executor for the child)
+        builtInToolSets.add(factory.createSubAgentTools(model, sessionManager, promptEngine, config, this));
+        
         builtInToolSets.add(new SkillTools(skillRegistry));
     }
 

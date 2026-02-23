@@ -124,6 +124,7 @@ See [Memory Architecture](MEMORY_ARCHITECTURE.md) for details.
   - For complex sub-tasks, the agent can spawn a "clone" (a fresh instance with specific context).
   - The clone performs the task and returns the result as a tool output.
   - This keeps the main context window clean.
+  - See [Sub-Agent Design](SUB_AGENT_DESIGN.md) for implementation details.
 
 ### 3.5 Skill System ("The Expertise")
 

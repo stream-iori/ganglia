@@ -1,14 +1,11 @@
 package me.stream.ganglia.example;
 
 import io.vertx.core.Vertx;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Utility class for Demo applications.
  */
 public class DemoUtil {
-    private static final Logger logger = LoggerFactory.getLogger(DemoUtil.class);
 
     /**
      * Gracefully shuts down the demo application.
@@ -17,11 +14,10 @@ public class DemoUtil {
      * @param vertx The Vert.x instance to close.
      */
     public static void gracefulShutdown(Vertx vertx) {
-        System.out.println("
-Cleaning up background tasks...");
+        System.out.println("Cleaning up background tasks...");
         // Delay to allow EventBus messages (like reflection) to be processed
         vertx.setTimer(2000, id -> {
-            vertx.close(ar -> {
+            vertx.close().onComplete(ar -> {
                 if (ar.succeeded()) {
                     System.out.println("Ganglia shutdown successfully.");
                 } else {
