@@ -1,4 +1,4 @@
-package me.stream.ganglia.core.memory;
+package me.stream.ganglia.memory;
 
 import io.vertx.core.Future;
 import io.vertx.junit5.VertxExtension;

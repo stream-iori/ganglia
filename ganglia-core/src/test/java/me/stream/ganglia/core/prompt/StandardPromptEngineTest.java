@@ -6,12 +6,10 @@ import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.core.model.*;
-import me.stream.ganglia.tools.ToolExecutor;
+import me.stream.ganglia.stubs.StubToolExecutor;
 import me.stream.ganglia.tools.model.ToDoList;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.List;
@@ -19,21 +17,15 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
 
-@ExtendWith({VertxExtension.class, MockitoExtension.class})
+@ExtendWith(VertxExtension.class)
 class StandardPromptEngineTest {
-
-    @Mock
-    KnowledgeBase knowledgeBase;
-    @Mock
-    ToolExecutor toolExecutor;
 
     @Test
     void testBuildPromptInjectsToDo(Vertx vertx, VertxTestContext testContext) {
         TokenCounter counter = new TokenCounter();
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, null, toolExecutor, counter);
+        StubToolExecutor toolExecutor = new StubToolExecutor();
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, null, toolExecutor, counter);
         ToDoList toDoList = ToDoList.empty().addTask("Task A");
         SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, toDoList);
 
@@ -49,7 +41,8 @@ class StandardPromptEngineTest {
         vertx.fileSystem().writeFile("GANGLIA.md", io.vertx.core.buffer.Buffer.buffer(guidelines))
             .compose(v -> {
                 TokenCounter counter = new TokenCounter();
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, null, toolExecutor, counter);
+                StubToolExecutor toolExecutor = new StubToolExecutor();
+                StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, null, toolExecutor, counter);
                 SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
                 return engine.buildSystemPrompt(context);
             })
@@ -80,9 +73,9 @@ class StandardPromptEngineTest {
 
     @Test
     void testPrepareRequest(Vertx vertx, VertxTestContext testContext) {
-        when(toolExecutor.getAvailableTools(any())).thenReturn(Collections.emptyList());
+        StubToolExecutor toolExecutor = new StubToolExecutor(); // Returns empty list by default
         TokenCounter counter = new TokenCounter();
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, null, toolExecutor, counter);
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, null, toolExecutor, counter);
         
         ModelOptions options = new ModelOptions(0.0, 100, "test-model");
         SessionContext context = new SessionContext("sid", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());

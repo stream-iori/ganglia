@@ -1,4 +1,4 @@
-package me.stream.ganglia.core.skills;
+package me.stream.ganglia.skills;
 
 import io.vertx.core.json.JsonObject;
 import me.stream.ganglia.skills.SkillManifest;

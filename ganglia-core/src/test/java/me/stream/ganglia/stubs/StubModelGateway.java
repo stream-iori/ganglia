@@ -1,0 +1,44 @@
+package me.stream.ganglia.stubs;
+
+import io.vertx.core.Future;
+import me.stream.ganglia.core.llm.ModelGateway;
+import me.stream.ganglia.core.model.Message;
+import me.stream.ganglia.core.model.ModelOptions;
+import me.stream.ganglia.core.model.ModelResponse;
+import me.stream.ganglia.tools.model.ToolDefinition;
+
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Queue;
+
+public class StubModelGateway implements ModelGateway {
+
+    private final Queue<ModelResponse> responses = new LinkedList<>();
+
+    @Override
+    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
+        if (responses.isEmpty()) {
+            return Future.failedFuture("No stub response available");
+        }
+        return Future.succeededFuture(responses.poll());
+    }
+
+    @Override
+    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId) {
+        // For testing, chatStream behaves like chat but we can simulate events if needed.
+        if (responses.isEmpty()) {
+            return Future.failedFuture("No stub response available");
+        }
+        return Future.succeededFuture(responses.poll());
+    }
+
+    public void addResponse(ModelResponse response) {
+        responses.offer(response);
+    }
+
+    public void addResponses(ModelResponse... responses) {
+        for (ModelResponse r : responses) {
+            this.responses.offer(r);
+        }
+    }
+}

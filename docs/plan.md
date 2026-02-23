@@ -392,4 +392,22 @@
 - [ ] **Verification:**
     - [ ] Create an integration test where a Parent Agent delegates a codebase investigation to an "Investigator" Sub-Agent and acts on its report.
 
+## Phase 28: Unit Test Refactoring & De-Mocking
+**Objective:** Improve test reliability and maintainability by replacing heavy Mockito usage with high-fidelity Fakes and Stubs.
+
+- [x] **Test Infrastructure (Stubs & Fakes):**
+    - [x] Implement `InMemoryStateEngine` and `InMemoryLogManager` for state persistence testing.
+    - [x] Implement `StubModelGateway` with response queuing and streaming support.
+    - [x] Implement `StubToolExecutor` for controlled tool interaction testing.
+- [x] **Core Logic Refactoring:**
+    - [x] Refactor `ReActAgentLoopTest` to use Fakes and Stubs, focusing on state validation over behavior verification.
+    - [x] Refactor `SessionManagerTest` to use `InMemoryStateEngine`.
+    - [x] Refactor `MemoryServiceTest` to use real EventBus communication and `StubModelGateway`.
+- [x] **Standardization:**
+    - [x] Align test package structure with source code.
+    - [x] Reduce `MockitoExtension` usage in favor of real object composition where feasible (e.g., `ConfigManager`, `TokenCounter`).
+- [x] **Verification:**
+    - [x] Ensure all refactored tests pass with `mvn test`.
+    - [x] Verify that test execution time and readability are improved.
+
         

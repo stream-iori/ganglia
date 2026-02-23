@@ -1,4 +1,4 @@
-package me.stream.ganglia.core.memory;
+package me.stream.ganglia.memory;
 
 import me.stream.ganglia.memory.TokenCounter;
 import org.junit.jupiter.api.Test;

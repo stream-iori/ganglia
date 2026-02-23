@@ -1,4 +1,4 @@
-package me.stream.ganglia.core.tools;
+package me.stream.ganglia.tools;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;

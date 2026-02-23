@@ -1,46 +1,40 @@
 package me.stream.ganglia.core.session;
 
-import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.model.Message;
-import me.stream.ganglia.core.model.Role;
 import me.stream.ganglia.core.model.SessionContext;
-import me.stream.ganglia.core.state.LogManager;
-import me.stream.ganglia.core.state.StateEngine;
+import me.stream.ganglia.stubs.InMemoryLogManager;
+import me.stream.ganglia.stubs.InMemoryStateEngine;
+import me.stream.ganglia.stubs.StubConfigManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
-@ExtendWith({VertxExtension.class, MockitoExtension.class})
+@ExtendWith(VertxExtension.class)
 class SessionManagerTest {
 
-    @Mock
-    StateEngine stateEngine;
-    @Mock
-    LogManager logManager;
-    @Mock
-    me.stream.ganglia.core.config.ConfigManager configManager;
-
+    InMemoryStateEngine stateEngine;
+    InMemoryLogManager logManager;
+    StubConfigManager configManager;
     SessionManager sessionManager;
+    Vertx vertx;
 
     @BeforeEach
     void setUp() {
+        vertx = Vertx.vertx();
+        stateEngine = new InMemoryStateEngine();
+        logManager = new InMemoryLogManager();
+        configManager = new StubConfigManager(vertx);
         sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
     }
 
     @Test
     void testGetSessionNew(VertxTestContext testContext) {
-        when(stateEngine.loadSession("new-id")).thenReturn(Future.failedFuture("not found"));
-
+        // No pre-loading, so it should return new session
         sessionManager.getSession("new-id").onComplete(testContext.succeeding(context -> {
             assertEquals("new-id", context.sessionId());
             assertNull(context.currentTurn());
@@ -51,13 +45,16 @@ class SessionManagerTest {
     @Test
     void testPersist(VertxTestContext testContext) {
         SessionContext context = sessionManager.createSession("id");
-        when(stateEngine.saveSession(context)).thenReturn(Future.succeededFuture());
-        when(logManager.appendLog(context)).thenReturn(Future.succeededFuture());
-
+        
         sessionManager.persist(context).onComplete(testContext.succeeding(v -> {
-            verify(stateEngine).saveSession(context);
-            verify(logManager).appendLog(context);
-            testContext.completeNow();
+            testContext.verify(() -> {
+                // Verify it is in state engine
+                assertTrue(stateEngine.getSessions().containsKey("id"));
+                // Verify it is in log manager
+                assertEquals(1, logManager.getLogs().size());
+                assertEquals("id", logManager.getLogs().get(0).sessionId());
+                testContext.completeNow();
+            });
         }));
     }
 

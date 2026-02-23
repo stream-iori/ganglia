@@ -1,55 +1,64 @@
 package me.stream.ganglia.memory;
 
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import me.stream.ganglia.core.model.Message;
-import me.stream.ganglia.core.model.Role;
-import me.stream.ganglia.core.model.Turn;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
+import me.stream.ganglia.core.model.*;
+import me.stream.ganglia.stubs.StubConfigManager;
+import me.stream.ganglia.stubs.StubModelGateway;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(VertxExtension.class)
 class MemoryServiceTest {
 
-    private Vertx vertx;
-    @Mock
     private ContextCompressor compressor;
-    @Mock
     private DailyRecordManager dailyRecordManager;
-
     private MemoryService memoryService;
+    private StubModelGateway modelGateway;
+    private StubConfigManager configManager;
+    private final String TEST_MEMORY_PATH = "target/test-memory";
 
     @BeforeEach
-    void setUp() {
-        vertx = Vertx.vertx();
-        memoryService = new MemoryService(vertx, compressor, dailyRecordManager);
+    void setUp(Vertx vertx, VertxTestContext testContext) {
+        this.modelGateway = new StubModelGateway();
+        this.configManager = new StubConfigManager(vertx);
+        this.compressor = new ContextCompressor(modelGateway, configManager);
+        this.dailyRecordManager = new DailyRecordManager(vertx, TEST_MEMORY_PATH);
+        this.memoryService = new MemoryService(vertx, compressor, dailyRecordManager);
+        
+        // Ensure clean directory
+        vertx.fileSystem().deleteRecursive(TEST_MEMORY_PATH)
+            .recover(err -> io.vertx.core.Future.succeededFuture()) // Ignore if not exists
+            .onComplete(ar -> testContext.completeNow());
+    }
+    
+    @AfterEach
+    void tearDown(Vertx vertx, VertxTestContext testContext) {
+        vertx.fileSystem().deleteRecursive(TEST_MEMORY_PATH)
+             .recover(err -> io.vertx.core.Future.succeededFuture())
+             .onComplete(ar -> testContext.completeNow());
     }
 
     @Test
-    void testHandleReflectEvent() throws Exception {
+    void testHandleReflectEvent(Vertx vertx, VertxTestContext testContext) {
         // Setup Turn data
         Message userMsg = Message.user("Write a file");
         Turn turn = new Turn("turn-1", userMsg, new ArrayList<>(), null);
         
         String sessionId = "session-123";
         String goal = "Write a file";
+        String accomplishment = "Summary of writing file";
 
-        when(compressor.reflect(any())).thenReturn(Future.succeededFuture("Summary of writing file"));
-        when(dailyRecordManager.record(eq(sessionId), eq(goal), eq("Summary of writing file")))
-            .thenReturn(Future.succeededFuture());
+        // Mock LLM response for reflection
+        ModelResponse reflectionResponse = new ModelResponse(accomplishment, Collections.emptyList(), new TokenUsage(10, 10));
+        modelGateway.addResponse(reflectionResponse);
 
         // Publish event to EventBus
         JsonObject event = new JsonObject()
@@ -59,19 +68,32 @@ class MemoryServiceTest {
 
         vertx.eventBus().publish(MemoryService.ADDRESS_REFLECT, event);
 
-        // Wait a bit for async processing
-        Thread.sleep(500);
-
-        // Verify
-        verify(compressor, timeout(1000)).reflect(any(Turn.class));
-        
-        ArgumentCaptor<Turn> turnCaptor = ArgumentCaptor.forClass(Turn.class);
-        verify(compressor).reflect(turnCaptor.capture());
-        assertEquals("turn-1", turnCaptor.getValue().id());
-        assertEquals("Write a file", turnCaptor.getValue().userMessage().content());
-
-        verify(dailyRecordManager, timeout(1000)).record(eq(sessionId), eq(goal), eq("Summary of writing file"));
-        
-        vertx.close();
+        // Verify by checking file system eventually
+        testContext.verify(() -> {
+            vertx.setPeriodic(100, id -> {
+                vertx.fileSystem().readDir(TEST_MEMORY_PATH)
+                    .onSuccess(files -> {
+                        if (!files.isEmpty()) {
+                            vertx.cancelTimer(id);
+                            // Check content
+                            String file = files.get(0);
+                            vertx.fileSystem().readFile(file)
+                                .onSuccess(buffer -> {
+                                    String content = buffer.toString();
+                                    if (content.contains(accomplishment) && content.contains(sessionId)) {
+                                        testContext.completeNow();
+                                    }
+                                });
+                        }
+                    });
+            });
+            
+            // Timeout if not found
+            vertx.setTimer(2000, id -> {
+                if (!testContext.completed()) {
+                    testContext.failNow("Timeout waiting for daily record file");
+                }
+            });
+        });
     }
 }
