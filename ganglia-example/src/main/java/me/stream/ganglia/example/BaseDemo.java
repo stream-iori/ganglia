@@ -47,14 +47,12 @@ public class BaseDemo {
                                 } else {
                                     System.err.println("\n\nError: " + ar.cause().getMessage());
                                 }
-                                vertx.close();
-                                System.exit(0);
+                                DemoUtil.gracefulShutdown(vertx);
                             });
                     })
                     .onFailure(err -> {
                         System.err.println("Failed to initialize session: " + err.getMessage());
-                        vertx.close();
-                        System.exit(0);
+                        DemoUtil.gracefulShutdown(vertx);
                     });
             });
     }

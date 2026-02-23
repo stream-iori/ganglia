@@ -22,8 +22,7 @@ public class ErrorHandlingReActDemo {
         Main.bootstrap(vertx)
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
-                vertx.close();
-                System.exit(1);
+                DemoUtil.gracefulShutdown(vertx);
             })
             .onSuccess(ganglia -> {
                 TerminalUI ui = new TerminalUI(vertx);
@@ -60,15 +59,13 @@ public class ErrorHandlingReActDemo {
                                 // Cleanup
                                 vertx.fileSystem().delete("actual_data.txt")
                                     .onComplete(v2 -> {
-                                        vertx.close();
-                                        System.exit(0);
+                                        DemoUtil.gracefulShutdown(vertx);
                                     });
                             });
                     })
                     .onFailure(err -> {
                         System.err.println("Setup failed: " + err.getMessage());
-                        vertx.close();
-                        System.exit(1);
+                        DemoUtil.gracefulShutdown(vertx);
                     });
             });
     }

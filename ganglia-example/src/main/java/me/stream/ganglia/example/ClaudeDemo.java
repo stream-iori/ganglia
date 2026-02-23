@@ -22,7 +22,7 @@ public class ClaudeDemo {
         Main.bootstrap(vertx)
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
-                vertx.close();
+                DemoUtil.gracefulShutdown(vertx);
             })
             .onSuccess(ganglia -> {
                 TerminalUI ui = new TerminalUI(vertx);
@@ -51,7 +51,7 @@ public class ClaudeDemo {
                             System.err.println("\n\nWorkflow Error: " + ar.cause().getMessage());
                             ar.cause().printStackTrace();
                         }
-                        vertx.close();
+                        DemoUtil.gracefulShutdown(vertx);
                     });
             });
     }

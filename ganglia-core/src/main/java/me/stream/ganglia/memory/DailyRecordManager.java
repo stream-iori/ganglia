@@ -43,6 +43,12 @@ public class DailyRecordManager {
                 }
             })
             .onSuccess(v -> logger.debug("Daily record updated for session: {}", sessionId))
-            .onFailure(err -> logger.error("Failed to update daily record", err));
+            .onFailure(err -> {
+                if (err instanceof java.util.concurrent.RejectedExecutionException) {
+                    logger.debug("Daily record update aborted due to shutdown: {}", sessionId);
+                } else {
+                    logger.error("Failed to update daily record", err);
+                }
+            });
     }
 }

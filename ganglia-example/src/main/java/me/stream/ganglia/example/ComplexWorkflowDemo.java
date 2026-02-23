@@ -20,8 +20,7 @@ public class ComplexWorkflowDemo {
         Main.bootstrap(vertx)
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
-                vertx.close();
-                System.exit(1);
+                DemoUtil.gracefulShutdown(vertx);
             })
             .onSuccess(ganglia -> {
                 TerminalUI ui = new TerminalUI(vertx);
@@ -55,8 +54,7 @@ public class ComplexWorkflowDemo {
                         } else {
                             System.err.println("\n\nWorkflow Error: " + ar.cause().getMessage());
                         }
-                        vertx.close();
-                        System.exit(0);
+                        DemoUtil.gracefulShutdown(vertx);
                     });
             });
     }

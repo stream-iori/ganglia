@@ -37,9 +37,8 @@ public class InteractiveDemo {
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 if ("exit".equalsIgnoreCase(line.trim()) || "quit".equalsIgnoreCase(line.trim())) {
-                    System.out.println("Exiting...");
-                    vertx.close();
-                    System.exit(0);
+                    DemoUtil.gracefulShutdown(vertx);
+                    break;
                 }
                 vertx.eventBus().publish(INPUT_ADDRESS, line);
             }
@@ -48,7 +47,7 @@ public class InteractiveDemo {
         Main.bootstrap(vertx)
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
-                vertx.close();
+                DemoUtil.gracefulShutdown(vertx);
             })
             .onSuccess(ganglia -> {
                 TerminalUI ui = new TerminalUI(vertx);

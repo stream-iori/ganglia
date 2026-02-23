@@ -20,18 +20,18 @@ public class AutonomousReActDemo {
         Main.bootstrap(vertx)
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
-                vertx.close();
+                DemoUtil.gracefulShutdown(vertx);
             })
             .onSuccess(ganglia -> {
                 TerminalUI ui = new TerminalUI(vertx);
                 String sessionId = "react-demo-" + UUID.randomUUID().toString().substring(0, 8);
-                
+
                 System.out.println("--- Ganglia Autonomous ReAct Demo ---");
                 System.out.println("Session ID: " + sessionId);
 
                 // 1. Setup initial state: Create a file for the agent to find
-                vertx.fileSystem().writeFile("react_test_data.txt", 
-                    io.vertx.core.buffer.Buffer.buffer("Task: Sum these numbers: 123, 456, 789"))
+                vertx.fileSystem().writeFile("react_test_data.txt",
+                        io.vertx.core.buffer.Buffer.buffer("Task: Sum these numbers: 123, 456, 789"))
                     .onSuccess(v -> {
                         // 2. Start streaming
                         ui.listenToStream(sessionId);
@@ -39,9 +39,9 @@ public class AutonomousReActDemo {
                         // 3. Single high-level prompt requiring multiple steps:
                         // Discover -> Read -> Process -> Write -> Delete
                         String input = "Find the file named 'react_test_data.txt', " +
-                                       "read its content, calculate the sum of numbers in it, " +
-                                       "write the result into a new file 'react_result.txt', " +
-                                       "verify 'react_result.txt' exists, then delete BOTH files.";
+                            "read its content, calculate the sum of numbers in it, " +
+                            "write the result into a new file 'react_result.txt', " +
+                            "verify 'react_result.txt' exists, then delete BOTH files.";
 
                         System.out.println("\nUser: " + input);
                         System.out.println("\n--- Agent Autonomous Reasoning Loop Start ---");
@@ -56,12 +56,12 @@ public class AutonomousReActDemo {
                                 } else {
                                     System.err.println("\n\nWorkflow Error: " + ar.cause().getMessage());
                                 }
-                                vertx.close();
+                                DemoUtil.gracefulShutdown(vertx);
                             });
                     })
                     .onFailure(err -> {
                         System.err.println("Setup failed: " + err.getMessage());
-                        vertx.close();
+                        DemoUtil.gracefulShutdown(vertx);
                     });
             });
     }

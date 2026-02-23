@@ -365,4 +365,16 @@
 - [x] **Verification:**
     - [x] Write unit tests for `FileEditTools` covering various edge cases (special characters, line endings).
     - [x] Create an integration test: "Surgical Refactoring", where the agent reads a file and performs a targeted replacement.
+
+## Phase 26: Graceful Shutdown & Demo Refactoring
+**Objective:** Implement a unified graceful shutdown mechanism for all demo applications to handle asynchronous background tasks properly.
+
+- [x] **Shared Utility (`DemoUtil`):**
+    - [x] Implement `gracefulShutdown(vertx)` with timer-based delay and clean process exit.
+- [x] **Demo Refactoring:**
+    - [x] Update all example demos (`BaseDemo`, `AutonomousReActDemo`, `ClaudeDemo`, `ComplexWorkflowDemo`, `ErrorHandlingReActDemo`, `GeminiDemo`, `InteractiveDemo`) to use `DemoUtil`.
+- [x] **Kernel Support:**
+    - [x] Overload `Main.bootstrap` to support injecting custom `ModelGateway` for mock-free integration testing.
+- [x] **Verification:**
+    - [x] Verify `AutonomousReActDemo` runs without `RejectedExecutionException` noise.
         

@@ -49,9 +49,24 @@ public class MemoryService {
 
     private void handleReflect(String sessionId, String goal, Turn turn) {
         logger.debug("Starting background reflection for session: {}", sessionId);
+        
         compressor.reflect(turn)
             .compose(summary -> dailyRecordManager.record(sessionId, goal, summary))
             .onSuccess(v -> logger.debug("Background reflection and recording completed for session: {}", sessionId))
-            .onFailure(err -> logger.error("Background reflection failed for session: {}", sessionId, err));
+            .onFailure(err -> {
+                if (isShutdownError(err)) {
+                    logger.debug("Background task for session {} was aborted due to shutdown.", sessionId);
+                } else {
+                    logger.error("Background reflection failed for session: {}", sessionId, err);
+                }
+            });
+    }
+
+    private boolean isShutdownError(Throwable err) {
+        if (err == null) return false;
+        if (err instanceof java.util.concurrent.RejectedExecutionException) return true;
+        if (err instanceof java.util.concurrent.CompletionException && err.getCause() instanceof java.util.concurrent.RejectedExecutionException) return true;
+        if (err.getMessage() != null && err.getMessage().contains("rejected from java.util.concurrent.ThreadPoolExecutor")) return true;
+        return isShutdownError(err.getCause());
     }
 }
