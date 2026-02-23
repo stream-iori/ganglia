@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.tools.InteractionTools;
+import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +32,7 @@ public class InteractionToolsTest {
             "type", "text"
         );
 
-        tools.execute("ask_selection", args, null)
+        tools.execute(new ToolCall("id", "ask_selection", args), null)
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.INTERRUPT, res.status());
@@ -49,7 +50,7 @@ public class InteractionToolsTest {
             "options", List.of("file1.txt", "file2.txt")
         );
 
-        tools.execute("ask_selection", args, null)
+        tools.execute(new ToolCall("id", "ask_selection", args), null)
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.INTERRUPT, res.status());

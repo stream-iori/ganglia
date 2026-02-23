@@ -3,6 +3,7 @@ package me.stream.ganglia.tools;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import me.stream.ganglia.core.model.SessionContext;
+import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolErrorResult;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
@@ -32,15 +33,7 @@ public class BashTools implements ToolSet {
     public List<ToolDefinition> getDefinitions() {
         return List.of(
             new ToolDefinition("run_shell_command", "Execute arbitrary bash commands",
-                """
-                {
-                  "type": "object",
-                  "properties": {
-                    "command": { "type": "string", "description": "The command to execute" }
-                  },
-                  "required": ["command"]
-                }
-                """)
+                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"command\": {\n      \"type\": \"string\",\n      \"description\": \"The command to execute\"\n    }\n  },\n  \"required\": [\"command\"]\n}")
         );
     }
 

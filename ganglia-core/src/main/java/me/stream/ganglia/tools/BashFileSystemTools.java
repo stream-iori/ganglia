@@ -2,6 +2,7 @@ package me.stream.ganglia.tools;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolErrorResult;
 import me.stream.ganglia.tools.model.ToolInvokeResult;

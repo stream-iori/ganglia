@@ -11,9 +11,7 @@ import me.stream.ganglia.skills.SkillSuggester;
 import me.stream.ganglia.tools.ToolExecutor;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Standard implementation of PromptEngine using the ContextEngine mechanism.
@@ -28,9 +26,10 @@ public class StandardPromptEngine implements PromptEngine {
                                 KnowledgeBase knowledgeBase,
                                 SkillPromptInjector skillInjector,
                                 SkillSuggester skillSuggester,
-                                ToolExecutor toolExecutor) {
+                                ToolExecutor toolExecutor,
+                                TokenCounter tokenCounter) {
         MarkdownContextResolver resolver = new MarkdownContextResolver(vertx);
-        this.tokenCounter = new TokenCounter();
+        this.tokenCounter = tokenCounter;
         this.composer = new ContextComposer(this.tokenCounter);
         this.toolExecutor = toolExecutor;
 

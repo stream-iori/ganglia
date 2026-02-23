@@ -43,8 +43,11 @@ public class ContextCompressor {
             );
         }
 
-        return model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions)
-                .map(ModelResponse::content);
+        Future<ModelResponse> future = model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions);
+        if (future == null) {
+            return Future.failedFuture("Model gateway returned null for LLM call.");
+        }
+        return future.map(ModelResponse::content);
     }
 
     /**
@@ -70,7 +73,10 @@ public class ContextCompressor {
                 configManager.getUtilityModel()
         );
 
-        return model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions)
-                .map(ModelResponse::content);
+        Future<ModelResponse> future = model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions);
+        if (future == null) {
+            return Future.failedFuture("Model gateway returned null for LLM call.");
+        }
+        return future.map(ModelResponse::content);
     }
 }

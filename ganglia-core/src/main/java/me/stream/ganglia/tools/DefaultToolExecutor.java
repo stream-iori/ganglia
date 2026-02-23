@@ -37,6 +37,7 @@ public class DefaultToolExecutor implements ToolExecutor {
         builtInToolSets.add(factory.getInteractionTools());
         builtInToolSets.add(factory.getWebFetchTools());
         builtInToolSets.add(factory.getBashTools());
+        builtInToolSets.add(factory.getFileEditTools());
         builtInToolSets.add(new SkillTools(skillRegistry));
     }
 
@@ -49,7 +50,7 @@ public class DefaultToolExecutor implements ToolExecutor {
         for (ToolSet ts : builtInToolSets) {
             if (hasTool(ts, toolName)) {
                 log.debug("Found tool {} in built-in toolset: {}", toolName, ts.getClass().getSimpleName());
-                return ts.execute(toolName, toolCall.arguments(), context)
+                return ts.execute(toolCall, context)
                     .onSuccess(res -> log.debug("[TOOL_RESULT] Name: {}, ID: {}, Status: {}", toolName, toolCall.id(), res.status()))
                     .onFailure(err -> log.error("[TOOL_ERROR] Name: {}, ID: {}, Error: {}", toolName, toolCall.id(), err.getMessage()));
             }
@@ -60,7 +61,7 @@ public class DefaultToolExecutor implements ToolExecutor {
             ToolSet ts = getSkillToolSet(skillId);
             if (ts != null && hasTool(ts, toolName)) {
                 log.debug("Found tool {} in active skills : {} (Skill: {})", toolName, ts.getClass().getSimpleName(), skillId);
-                return ts.execute(toolName, toolCall.arguments(), context)
+                return ts.execute(toolCall, context)
                     .onSuccess(res -> log.debug("[SKILL_RESULT] Name: {}, ID: {}, Status: {}", toolName, toolCall.id(), res.status()))
                     .onFailure(err -> log.error("[SKILL_ERROR] Name: {}, ID: {}, Error: {}", toolName, toolCall.id(), err.getMessage()));
             }

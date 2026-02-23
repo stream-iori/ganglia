@@ -3,6 +3,7 @@ package me.stream.ganglia.core.state;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import me.stream.ganglia.core.model.TokenUsage;
+import me.stream.ganglia.memory.TokenCounter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,16 +17,20 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TokenUsageManager {
     private static final Logger logger = LoggerFactory.getLogger(TokenUsageManager.class);
     public static final String ADDRESS_RECORD = "ganglia.usage.record";
+    public static final String ADDRESS_ESTIMATE = "ganglia.usage.estimate";
 
     private final Vertx vertx;
+    private final TokenCounter tokenCounter;
     private final Map<String, SessionUsage> sessionTotals = new ConcurrentHashMap<>();
 
-    public TokenUsageManager(Vertx vertx) {
+    public TokenUsageManager(Vertx vertx, TokenCounter tokenCounter) {
         this.vertx = vertx;
+        this.tokenCounter = tokenCounter;
         register();
     }
 
     private void register() {
+        // ... (existing consumer for ADDRESS_RECORD)
         vertx.eventBus().<JsonObject>consumer(ADDRESS_RECORD, message -> {
             JsonObject body = message.body();
             String sessionId = body.getString("sessionId");
@@ -43,7 +48,22 @@ public class TokenUsageManager {
                 logger.error("Failed to parse TokenUsage object from event for session: {}", sessionId, e);
             }
         });
-        logger.info("TokenUsageManager registered on address: {}", ADDRESS_RECORD);
+
+        vertx.eventBus().<JsonObject>consumer(ADDRESS_ESTIMATE, message -> {
+            JsonObject body = message.body();
+            String sessionId = body.getString("sessionId");
+            String prompt = body.getString("prompt");
+            String completion = body.getString("completion");
+
+            if (sessionId == null) return;
+
+            int pTokens = tokenCounter.count(prompt);
+            int cTokens = tokenCounter.count(completion);
+            recordUsage(sessionId, new TokenUsage(pTokens, cTokens));
+            logger.debug("Recorded estimated usage for session: {}. [P={}, C={}]", sessionId, pTokens, cTokens);
+        });
+
+        logger.info("TokenUsageManager registered on addresses: {}, {}", ADDRESS_RECORD, ADDRESS_ESTIMATE);
     }
 
     private void recordUsage(String sessionId, TokenUsage usage) {

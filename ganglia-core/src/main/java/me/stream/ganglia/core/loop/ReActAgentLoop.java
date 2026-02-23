@@ -3,6 +3,7 @@ package me.stream.ganglia.core.loop;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import me.stream.ganglia.core.config.ConfigManager;
 import me.stream.ganglia.core.llm.LLMException;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
@@ -10,12 +11,10 @@ import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.tools.ToolExecutor;
 import me.stream.ganglia.tools.model.ToolCall;
-import me.stream.ganglia.tools.model.ToolInvokeResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class ReActAgentLoop implements AgentLoop {
     private static final Logger logger = LoggerFactory.getLogger(ReActAgentLoop.class);
@@ -24,17 +23,21 @@ public class ReActAgentLoop implements AgentLoop {
     private final ToolExecutor toolExecutor;
     private final SessionManager sessionManager;
     private final PromptEngine promptEngine;
-    private final int maxIterations;
+    private final ConfigManager configManager;
     private final Vertx vertx;
 
     public ReActAgentLoop(Vertx vertx, ModelGateway model, ToolExecutor toolExecutor, SessionManager sessionManager,
-                          PromptEngine promptEngine, int maxIterations) {
+                          PromptEngine promptEngine, ConfigManager configManager) {
         this.vertx = vertx;
         this.model = model;
         this.toolExecutor = toolExecutor;
         this.sessionManager = sessionManager;
         this.promptEngine = promptEngine;
-        this.maxIterations = maxIterations;
+        this.configManager = configManager;
+    }
+
+    public PromptEngine promptEngine() {
+        return promptEngine;
     }
 
     private void publishObservation(String sessionId, ObservationType type, String content) {
@@ -53,7 +56,7 @@ public class ReActAgentLoop implements AgentLoop {
         // 1. Initialization
         Message userMessage = Message.user(userInput);
         SessionContext context = sessionManager.startTurn(initialContext, userMessage);
-        return sessionManager.persist(context).compose(v -> runLoop(context, 0));
+        return sessionManager.persist(context).compose(v -> runLoop(context));
     }
 
     @Override
@@ -75,11 +78,11 @@ public class ReActAgentLoop implements AgentLoop {
             .compose(v -> {
                 // Check if there are MORE pending tool calls in the same set that need execution
                 // before we go back to reasoning.
-                return continueActingOrReason(context, 0);
+                return continueActingOrReason(context);
             });
     }
 
-    private Future<String> continueActingOrReason(SessionContext context, int iteration) {
+    private Future<String> continueActingOrReason(SessionContext context) {
         Turn current = context.currentTurn();
         if (current != null) {
             List<ToolCall> pending = current.getPendingToolCalls();
@@ -90,7 +93,7 @@ public class ReActAgentLoop implements AgentLoop {
                     .compose(contextAfterTools ->
                         sessionManager
                             .persist(contextAfterTools)
-                            .compose(v -> runLoop(contextAfterTools, iteration + 1))
+                            .compose(v -> runLoop(contextAfterTools))
                     )
                     .recover(err -> {
                         if (err instanceof AgentInterruptException) {
@@ -100,7 +103,7 @@ public class ReActAgentLoop implements AgentLoop {
                     });
             }
         }
-        return runLoop(context, iteration);
+        return runLoop(context);
     }
 
     /**
@@ -120,15 +123,17 @@ public class ReActAgentLoop implements AgentLoop {
             .orElse(null);
     }
 
-    private Future<String> runLoop(SessionContext currentContext, int iteration) {
+    private Future<String> runLoop(SessionContext currentContext) {
+        int iteration = currentContext.getIterationCount();
+        int maxIterations = configManager.getMaxIterations();
         if (iteration >= maxIterations) {
             logger.warn("Iteration limit reached ({}) for session: {}", maxIterations, currentContext.sessionId());
             return Future.succeededFuture("Max iterations reached without final answer.");
         }
 
         logger.debug("Loop iteration: {} for session: {}", iteration, currentContext.sessionId());
-        return reason(currentContext, iteration)
-            .compose(response -> handleDecision(response, currentContext, iteration))
+        return reason(currentContext)
+            .compose(response -> handleDecision(response, currentContext))
             .recover(err -> {
                 if (err instanceof AgentInterruptException) {
                     logger.info("Agent loop interrupted for session: {}. Waiting for user interaction.", currentContext.sessionId());
@@ -152,7 +157,8 @@ public class ReActAgentLoop implements AgentLoop {
 
     // --- Core Logic Steps ---
 
-    private Future<ModelResponse> reason(SessionContext context, int iteration) {
+    private Future<ModelResponse> reason(SessionContext context) {
+        int iteration = context.getIterationCount();
         logger.debug("Building LLM request for iteration: {}", iteration);
         publishObservation(context.sessionId(), ObservationType.REASONING_STARTED, null);
 
@@ -164,7 +170,7 @@ public class ReActAgentLoop implements AgentLoop {
             });
     }
 
-    private Future<String> handleDecision(ModelResponse response, SessionContext currentContext, int iteration) {
+    private Future<String> handleDecision(ModelResponse response, SessionContext currentContext) {
         String content = response.content();
         List<ToolCall> toolCalls = response.toolCalls();
 
@@ -190,7 +196,7 @@ public class ReActAgentLoop implements AgentLoop {
                 .compose(contextAfterTools ->
                     // Loop: Recurse
                     sessionManager.persist(contextAfterTools)
-                        .compose(v -> runLoop(contextAfterTools, iteration + 1))
+                        .compose(v -> runLoop(contextAfterTools))
                 );
         } else {
             logger.debug("No tool calls. Turn complete.");

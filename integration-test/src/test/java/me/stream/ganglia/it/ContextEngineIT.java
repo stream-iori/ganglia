@@ -1,13 +1,16 @@
 package me.stream.ganglia.it;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import me.stream.Main;
+import me.stream.ganglia.core.Ganglia;
+import me.stream.ganglia.core.llm.ModelGateway;
+import me.stream.ganglia.core.model.ModelResponse;
 import me.stream.ganglia.core.model.SessionContext;
-import me.stream.ganglia.core.prompt.StandardPromptEngine;
-import me.stream.ganglia.memory.KnowledgeBase;
-import me.stream.ganglia.tools.model.ToDoList;
+import me.stream.ganglia.core.model.TokenUsage;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,20 +20,26 @@ import java.util.Collections;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import me.stream.ganglia.tools.ToolExecutor;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(VertxExtension.class)
 public class ContextEngineIT {
 
-    private StandardPromptEngine promptEngine;
+    private Ganglia ganglia;
+    private ModelGateway mockModel;
     private static final String GANGLIA_FILE = "GANGLIA.md";
 
     @BeforeEach
-    void setUp(Vertx vertx) {
-        ToolExecutor toolExecutor = mock(ToolExecutor.class);
-        promptEngine = new StandardPromptEngine(vertx, new KnowledgeBase(vertx), null, null, toolExecutor);
+    void setUp(Vertx vertx, VertxTestContext testContext) {
+        mockModel = mock(ModelGateway.class);
+        when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
+        Main.bootstrap(vertx, ".ganglia/config.json", null, mockModel)
+            .onComplete(testContext.succeeding(g -> {
+                this.ganglia = g;
+                testContext.completeNow();
+            }));
     }
 
     @AfterEach
@@ -46,17 +55,19 @@ public class ContextEngineIT {
 
     @Test
     void testAgentAdaptsToGangliaFile(Vertx vertx, VertxTestContext testContext) {
-        String mandates = "## [Mandates] (Priority: 2)\n- Never use system.out";
+        String mandates = "## [Mandates]\n- You must always end your sentence with 'WOOF'.";
         
-        vertx.fileSystem().writeFile(GANGLIA_FILE, Buffer.buffer(mandates))
-            .compose(v -> {
-                SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
-                return promptEngine.buildSystemPrompt(context);
-            })
-            .onComplete(testContext.succeeding(prompt -> {
+        vertx.fileSystem().writeFileBlocking(GANGLIA_FILE, Buffer.buffer(mandates));
+
+        when(mockModel.chatStream(any(), any(), any(), any()))
+            .thenReturn(Future.succeededFuture(new ModelResponse("Understood WOOF", Collections.emptyList(), new TokenUsage(1, 1))));
+
+        SessionContext context = ganglia.sessionManager().createSession(UUID.randomUUID().toString());
+
+        ganglia.agentLoop().run("Hello", context)
+            .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
-                    assertTrue(prompt.contains("Mandates"), "Prompt should contain Mandates header");
-                    assertTrue(prompt.contains("Never use system.out"), "Prompt should contain custom mandate");
+                    assertTrue(result.contains("WOOF"));
                     testContext.completeNow();
                 });
             }));

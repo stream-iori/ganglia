@@ -16,6 +16,7 @@ public class ToolsFactory {
     private final InteractionTools interactionTools;
     private final WebFetchTools webFetchTools;
     private final BashTools bashTools;
+    private final FileEditTools fileEditTools;
 
     public ToolsFactory(Vertx vertx, ContextCompressor compressor, KnowledgeBase knowledgeBase) {
         this.vertx = vertx;
@@ -26,6 +27,7 @@ public class ToolsFactory {
         this.interactionTools = new InteractionTools(vertx);
         this.webFetchTools = new WebFetchTools(vertx);
         this.bashTools = new BashTools(vertx);
+        this.fileEditTools = new FileEditTools(vertx);
     }
 
     public VertxFileSystemTools getVertxFileSystemTools() {
@@ -54,5 +56,9 @@ public class ToolsFactory {
 
     public BashTools getBashTools() {
         return bashTools;
+    }
+
+    public FileEditTools getFileEditTools() {
+        return fileEditTools;
     }
 }

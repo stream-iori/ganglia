@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.tools.model.ToDoList;
 
+import java.util.stream.Collectors;
 import java.util.*;
+import java.util.stream.Stream;
 
 /**
  * Represents the full context of a running session, organized by Turns.
@@ -76,14 +78,10 @@ public record SessionContext(
     }
 
     public List<Message> history() {
-        List<Message> list = new ArrayList<>();
-        for (Turn t : previousTurns) {
-            list.addAll(t.flatten());
-        }
-        if (currentTurn != null) {
-            list.addAll(currentTurn.flatten());
-        }
-        return list;
+        return Stream.concat(
+            previousTurns.stream().flatMap(t -> t.flatten().stream()),
+            currentTurn != null ? currentTurn.flatten().stream() : Stream.empty()
+        ).collect(Collectors.toList());
     }
 
     /**
@@ -114,5 +112,13 @@ public record SessionContext(
 
     public SessionContext withToDoList(ToDoList newToDoList) {
         return new SessionContext(sessionId, previousTurns, currentTurn, metadata, activeSkillIds, modelOptions, newToDoList);
+    }
+
+    /**
+     * Returns the iteration count for the current turn.
+     */
+    @JsonIgnore
+    public int getIterationCount() {
+        return currentTurn != null ? currentTurn.getIterationCount() : 0;
     }
 }

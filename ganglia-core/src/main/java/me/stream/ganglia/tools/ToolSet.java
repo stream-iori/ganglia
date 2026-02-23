@@ -2,6 +2,7 @@ package me.stream.ganglia.tools;
 
 import io.vertx.core.Future;
 import me.stream.ganglia.core.model.SessionContext;
+import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
 
@@ -10,5 +11,10 @@ import java.util.Map;
 
 public interface ToolSet {
     List<ToolDefinition> getDefinitions();
+    
     Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context);
+
+    default Future<ToolInvokeResult> execute(ToolCall call, SessionContext context) {
+        return execute(call.toolName(), call.arguments(), context);
+    }
 }

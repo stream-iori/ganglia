@@ -91,4 +91,18 @@ public record Turn(
             .filter(tc -> !answeredIds.contains(tc.id()))
             .toList();
     }
+
+    /**
+     * Calculates how many iterations of reasoning-acting have been performed in this turn.
+     * Each iteration corresponds to an assistant message in the intermediate steps.
+     */
+    @JsonIgnore
+    public int getIterationCount() {
+        if (intermediateSteps == null || intermediateSteps.isEmpty()) {
+            return 0;
+        }
+        return (int) intermediateSteps.stream()
+            .filter(m -> m.role() == Role.ASSISTANT)
+            .count();
+    }
 }

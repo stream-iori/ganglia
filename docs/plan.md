@@ -347,4 +347,22 @@
     - [x] Ensure `SkillContextSource` is properly integrated into the unified prompt construction flow.
 - [x] **Verification:**
     - [x] Verify that the system prompt now includes clear instructions for tool usage.
+
+## Phase 25: Surgical File Replacement Tool
+**Objective:** Implement a robust, surgical file editing tool (`replace_in_file`) to allow the agent to make precise modifications without overwriting entire files.
+
+- [x] **Core Engine (`FileEditor`):**
+    - [x] Implement non-blocking literal string replacement logic using Vert.x FileSystem.
+    - [x] Implement atomic write pattern (write to `.tmp` then `move`).
+    - [x] Implement strict occurrence counting and validation.
+- [x] **Tool Encapsulation (`FileEditTools`):**
+    - [x] Create `FileEditTools` to wrap the engine for the ReAct loop.
+    - [x] Define JSON Schema for `replace_in_file` requiring exact matching with context.
+    - [x] Implement error handling for `MATCH_FAILURE` and `AMBIGUITY_FAILURE`.
+- [x] **Integration:**
+    - [x] Register the new tool in `ToolsFactory`.
+    - [ ] Update System Prompt via `ToolContextSource` to prefer `replace_in_file` over `write_file` for modifications.
+- [x] **Verification:**
+    - [x] Write unit tests for `FileEditTools` covering various edge cases (special characters, line endings).
+    - [x] Create an integration test: "Surgical Refactoring", where the agent reads a file and performs a targeted replacement.
         

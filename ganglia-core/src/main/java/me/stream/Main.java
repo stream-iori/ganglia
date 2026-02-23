@@ -2,6 +2,7 @@ package me.stream;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import me.stream.ganglia.core.Ganglia;
 import me.stream.ganglia.core.config.ConfigManager;
 import me.stream.ganglia.core.llm.ModelGateway;
@@ -17,6 +18,7 @@ import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.memory.DailyRecordManager;
 import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.memory.MemoryService;
+import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.core.state.TokenUsageManager;
 import me.stream.ganglia.skills.SkillPromptInjector;
 import me.stream.ganglia.skills.SkillRegistry;
@@ -42,10 +44,50 @@ public class Main {
      * @return An initialized Ganglia instance.
      */
     public static Future<Ganglia> bootstrap(Vertx vertx) {
-        ConfigManager configManager = new ConfigManager(vertx);
+        return bootstrap(vertx, null);
+    }
+
+    /**
+     * Bootstraps the Ganglia core components with a custom config path.
+     *
+     * @param vertx      The Vert.x instance.
+     * @param configPath Custom path to config.json.
+     * @return An initialized Ganglia instance.
+     */
+    public static Future<Ganglia> bootstrap(Vertx vertx, String configPath) {
+        return bootstrap(vertx, configPath, null);
+    }
+
+    /**
+     * Bootstraps the Ganglia core components with a custom config path and/or override config.
+     *
+     * @param vertx         The Vert.x instance.
+     * @param configPath    Custom path to config.json (can be null).
+     * @param overrideConfig Optional JsonObject to override configuration (can be null).
+     * @return An initialized Ganglia instance.
+     */
+    public static Future<Ganglia> bootstrap(Vertx vertx, String configPath, JsonObject overrideConfig) {
+        return bootstrap(vertx, configPath, overrideConfig, null);
+    }
+
+    /**
+     * Bootstraps the Ganglia core components with full control over configuration and model gateway.
+     *
+     * @param vertx                The Vert.x instance.
+     * @param configPath           Custom path to config.json.
+     * @param overrideConfig       Optional JsonObject to override configuration.
+     * @param modelGatewayOverride Optional ModelGateway implementation to use instead of the factory-created one.
+     * @return An initialized Ganglia instance.
+     */
+    public static Future<Ganglia> bootstrap(Vertx vertx, String configPath, JsonObject overrideConfig, ModelGateway modelGatewayOverride) {
+        ConfigManager configManager = configPath != null ? new ConfigManager(vertx, configPath) : new ConfigManager(vertx);
+
+        if (overrideConfig != null) {
+            configManager.updateConfig(overrideConfig);
+        }
 
         return configManager.init().compose(v -> {
-            ModelGateway modelGateway = ModelGatewayFactory.create(vertx, configManager);
+            ModelGateway modelGateway = modelGatewayOverride != null ? modelGatewayOverride : ModelGatewayFactory.create(vertx, configManager);
 
             // 1. Setup Skill System
             List<Path> skillPaths = new ArrayList<>();
@@ -60,6 +102,7 @@ public class Main {
 
             return skillRegistry.init().map(v2 -> {
                 // 2. Setup Kernel & Memory
+                TokenCounter tokenCounter = new TokenCounter();
                 KnowledgeBase knowledgeBase = new KnowledgeBase(vertx);
                 ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
                 DailyRecordManager dailyRecordManager = new DailyRecordManager(vertx, ".ganglia/memory");
@@ -69,7 +112,7 @@ public class Main {
 
                 SkillPromptInjector skillInjector = new SkillPromptInjector(vertx, skillRegistry);
                 SkillSuggester skillSuggester = new SkillSuggester(vertx, skillRegistry);
-                StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester, toolExecutor);
+                StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester, toolExecutor, tokenCounter);
                 
                 // Add Daily Source
                 promptEngine.addContextSource(new DailyContextSource(vertx, ".ganglia/memory"));
@@ -79,13 +122,13 @@ public class Main {
 
                 // 3. Setup Observability & Usage
                 new TraceManager(vertx, configManager);
-                new TokenUsageManager(vertx);
+                new TokenUsageManager(vertx, tokenCounter);
                 new MemoryService(vertx, compressor, dailyRecordManager);
 
                 SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
 
                 ReActAgentLoop agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, 
-                    promptEngine, 10);
+                    promptEngine, configManager);
 
                 return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop);
             });

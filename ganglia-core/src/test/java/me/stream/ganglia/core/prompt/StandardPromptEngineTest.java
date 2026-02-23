@@ -32,7 +32,8 @@ class StandardPromptEngineTest {
 
     @Test
     void testBuildPromptInjectsToDo(Vertx vertx, VertxTestContext testContext) {
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, null, toolExecutor);
+        TokenCounter counter = new TokenCounter();
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, null, toolExecutor, counter);
         ToDoList toDoList = ToDoList.empty().addTask("Task A");
         SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, toDoList);
 
@@ -47,7 +48,8 @@ class StandardPromptEngineTest {
         String guidelines = "## [Guidelines]\n- Rule 1";
         vertx.fileSystem().writeFile("GANGLIA.md", io.vertx.core.buffer.Buffer.buffer(guidelines))
             .compose(v -> {
-                StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, null, toolExecutor);
+                TokenCounter counter = new TokenCounter();
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, null, toolExecutor, counter);
                 SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
                 return engine.buildSystemPrompt(context);
             })
@@ -79,7 +81,8 @@ class StandardPromptEngineTest {
     @Test
     void testPrepareRequest(Vertx vertx, VertxTestContext testContext) {
         when(toolExecutor.getAvailableTools(any())).thenReturn(Collections.emptyList());
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, null, toolExecutor);
+        TokenCounter counter = new TokenCounter();
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, null, toolExecutor, counter);
         
         ModelOptions options = new ModelOptions(0.0, 100, "test-model");
         SessionContext context = new SessionContext("sid", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());

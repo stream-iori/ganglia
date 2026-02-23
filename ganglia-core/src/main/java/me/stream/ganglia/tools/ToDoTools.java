@@ -59,6 +59,11 @@ public class ToDoTools implements ToolSet {
         };
     }
 
+    @Override
+    public Future<ToolInvokeResult> execute(ToolCall call, SessionContext context) {
+        return execute(call.toolName(), call.arguments(), context);
+    }
+
     public Future<ToolInvokeResult> add(Map<String, Object> args, SessionContext context) {
         String description = (String) args.get("description");
         ToDoList currentList = context.toDoList();

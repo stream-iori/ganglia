@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.model.SessionContext;
+import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToDoList;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
 import me.stream.ganglia.tools.BashTools;
@@ -32,7 +33,7 @@ class BashToolsTest {
 
     @Test
     void testRunShellCommand(VertxTestContext testContext) {
-        tools.execute("run_shell_command", Map.of("command", "echo 'hello world'"), context)
+        tools.execute(new ToolCall("id", "run_shell_command", Map.of("command", "echo 'hello world'")), context)
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, result.status());

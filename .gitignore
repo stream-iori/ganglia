@@ -65,6 +65,7 @@ local.properties
 # SDKMAN!
 .sdkmanrc
 
+config.json
 .ganglia/
 
 brainstorm/

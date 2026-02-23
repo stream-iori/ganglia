@@ -52,8 +52,9 @@ class ReActAgentLoopTest {
     void testHappyPathMultipleTools() throws Exception {
         // Setup
         when(vertx.eventBus()).thenReturn(eventBus);
+        when(configManager.getMaxIterations()).thenReturn(5);
         sessionManager = new DefaultSessionManager(state, logManager, configManager);
-        ReActAgentLoop loop = new ReActAgentLoop(vertx, model, tools, sessionManager, prompt, 5);
+        ReActAgentLoop loop = new ReActAgentLoop(vertx, model, tools, sessionManager, prompt, configManager);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         SessionContext context = new SessionContext("test-session", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
@@ -105,8 +106,9 @@ class ReActAgentLoopTest {
     void testInterruptAndResume() throws Exception {
         // Setup
         when(vertx.eventBus()).thenReturn(eventBus);
+        when(configManager.getMaxIterations()).thenReturn(5);
         sessionManager = new DefaultSessionManager(state, logManager, configManager);
-        ReActAgentLoop loop = new ReActAgentLoop(vertx, model, tools, sessionManager, prompt, 5);
+        ReActAgentLoop loop = new ReActAgentLoop(vertx, model, tools, sessionManager, prompt, configManager);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         SessionContext context = new SessionContext("test-session", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
@@ -147,8 +149,9 @@ class ReActAgentLoopTest {
     void testStreamingFeedback() throws Exception {
         // Setup
         when(vertx.eventBus()).thenReturn(eventBus);
+        when(configManager.getMaxIterations()).thenReturn(5);
         sessionManager = new DefaultSessionManager(state, logManager, configManager);
-        ReActAgentLoop loop = new ReActAgentLoop(vertx, model, tools, sessionManager, prompt, 5);
+        ReActAgentLoop loop = new ReActAgentLoop(vertx, model, tools, sessionManager, prompt, configManager);
         ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
         String sessionId = "stream-session";
         SessionContext context = new SessionContext(sessionId, Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());

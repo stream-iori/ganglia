@@ -31,7 +31,8 @@ public class DailyRecordManager {
                        "- **Goal:** " + goal + "\n" +
                        "- **Accomplishments:**\n" + accomplishments + "\n";
 
-        return vertx.fileSystem().exists(filePath)
+        return vertx.fileSystem().mkdirs(basePath)
+            .compose(v -> vertx.fileSystem().exists(filePath))
             .compose(exists -> {
                 if (exists) {
                     return vertx.fileSystem().readFile(filePath)

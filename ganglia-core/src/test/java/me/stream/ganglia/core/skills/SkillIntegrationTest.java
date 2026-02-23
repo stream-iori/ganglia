@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.memory.KnowledgeBase;
+import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.tools.model.ToDoList;
 import me.stream.ganglia.core.prompt.StandardPromptEngine;
@@ -41,7 +42,8 @@ class SkillIntegrationTest {
         Path skillsDir = Paths.get("src/test/resources/skills");
         SkillRegistry registry = new SkillRegistry(vertx, List.of(skillsDir));
         SkillPromptInjector injector = new SkillPromptInjector(vertx, registry);
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, injector, null, toolExecutor);
+        TokenCounter tokenCounter = new TokenCounter();
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, injector, null, toolExecutor, tokenCounter);
 
         registry.init().compose(v -> {
             SessionContext context = new SessionContext(
@@ -57,8 +59,6 @@ class SkillIntegrationTest {
         }).onComplete(testContext.succeeding(prompt -> {
             assertTrue(prompt.contains("ACTIVE SKILLS"));
             assertTrue(prompt.contains("Skill: Test Skill (test-skill)"));
-            // Note: Since SKILL.md is not present in src/test/resources/skills/test-skill/ (only skill.json)
-            // our new injector will show "Legacy JSON format" message unless we add SKILL.md there.
             testContext.completeNow();
         }));
     }
@@ -68,7 +68,8 @@ class SkillIntegrationTest {
         Path skillsDir = Paths.get("src/test/resources/skills");
         SkillRegistry registry = new SkillRegistry(vertx, List.of(skillsDir));
         SkillSuggester suggester = new SkillSuggester(vertx, registry);
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, suggester, toolExecutor);
+        TokenCounter tokenCounter = new TokenCounter();
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, knowledgeBase, null, suggester, toolExecutor, tokenCounter);
 
         registry.init().compose(v -> {
             return vertx.fileSystem().writeFile("./dummy.test", io.vertx.core.buffer.Buffer.buffer("dummy"))

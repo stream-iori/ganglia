@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import me.stream.ganglia.core.config.model.ModelConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -45,9 +47,18 @@ class ConfigManagerTest {
 
     @Test
     void testLoadFromFile(Vertx vertx, VertxTestContext testContext) throws IOException {
+        // Create structured JSON
+        JsonObject primaryModel = new JsonObject()
+                .put("name", "custom-model")
+                .put("temperature", 0.7)
+                .put("maxTokens", 1000)
+                .put("type", "openai")
+                .put("apiKey", "test-key")
+                .put("baseUrl", "http://test.url");
+
         JsonObject customConfig = new JsonObject()
-                .put("model", "custom-model")
-                .put("temperature", 0.7);
+                .put("models", Map.of("primary", primaryModel));
+
         Files.write(Paths.get(TEST_CONFIG_FILE), customConfig.encodePrettily().getBytes());
 
         ConfigManager configManager = new ConfigManager(vertx, TEST_CONFIG_FILE);
@@ -55,6 +66,7 @@ class ConfigManagerTest {
             testContext.verify(() -> {
                 assertEquals("custom-model", configManager.getModel());
                 assertEquals(0.7, configManager.getTemperature());
+                assertEquals("http://test.url", configManager.getBaseUrl());
                 assertEquals("gpt-4o-mini", configManager.getUtilityModel()); // Should have default
                 testContext.completeNow();
             });
@@ -63,9 +75,14 @@ class ConfigManagerTest {
 
     @Test
     void testImmediateConfigAvailability(Vertx vertx) throws IOException {
+        JsonObject primaryModel = new JsonObject()
+                .put("name", "immediate-model")
+                .put("temperature", 0.9)
+                .put("type", "openai");
+
         JsonObject customConfig = new JsonObject()
-                .put("model", "immediate-model")
-                .put("temperature", 0.9);
+                .put("models", Map.of("primary", primaryModel));
+
         Files.write(Paths.get(TEST_CONFIG_FILE), customConfig.encodePrettily().getBytes());
 
         // Instantiate and check immediately
@@ -84,13 +101,20 @@ class ConfigManagerTest {
 
                 // Register listener for change
                 configManager.listen(newConfig -> {
-                    if ("reloaded-model".equals(newConfig.getString("model"))) {
+                    ModelConfig mc = newConfig.getModel("primary");
+                    if (mc != null && "reloaded-model".equals(mc.name())) {
                         testContext.completeNow();
                     }
                 });
 
-                // Update file
-                JsonObject updatedConfig = new JsonObject().put("model", "reloaded-model");
+                // Update file with structured data
+                JsonObject reloadedModel = new JsonObject()
+                        .put("name", "reloaded-model")
+                        .put("type", "openai");
+                
+                JsonObject updatedConfig = new JsonObject()
+                        .put("models", Map.of("primary", reloadedModel));
+
                 try {
                     Files.write(Paths.get(TEST_CONFIG_FILE), updatedConfig.encodePrettily().getBytes());
                 } catch (IOException e) {

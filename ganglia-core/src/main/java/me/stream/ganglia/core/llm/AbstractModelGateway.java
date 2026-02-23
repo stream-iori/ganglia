@@ -2,8 +2,10 @@ package me.stream.ganglia.core.llm;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import me.stream.ganglia.core.model.Message;
 import me.stream.ganglia.core.model.ObservationEvent;
 import me.stream.ganglia.core.model.ObservationType;
+import me.stream.ganglia.core.model.Role;
 
 /**
  * Base class for ModelGateways to reduce boilerplate.
@@ -24,14 +26,14 @@ public abstract class AbstractModelGateway implements ModelGateway {
         ObservationEvent obs = ObservationEvent.of(sessionId, ObservationType.TOKEN_RECEIVED, token);
         vertx.eventBus().publish(address, JsonObject.mapFrom(obs));
     }
-    
+
     /**
      * Common logic to merge multiple system messages into one if needed.
      */
-    protected String mergeSystemMessages(java.util.List<me.stream.ganglia.core.model.Message> history) {
+    protected String mergeSystemMessages(java.util.List<Message> history) {
         return history.stream()
-            .filter(m -> m.role() == me.stream.ganglia.core.model.Role.SYSTEM)
-            .map(me.stream.ganglia.core.model.Message::content)
+            .filter(m -> m.role() == Role.SYSTEM)
+            .map(Message::content)
             .reduce((a, b) -> a + "\n" + b)
             .orElse(null);
     }

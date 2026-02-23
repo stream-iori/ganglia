@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.tools.BashFileSystemTools;
+import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -33,7 +35,7 @@ public class BashFileSystemToolsTest {
         Path file2 = tempDir.resolve("file2.txt");
         Files.writeString(file2, "Another file without that.");
 
-        tools.execute("grep_search", Map.of("path", tempDir.toString(), "pattern", "pattern"), null)
+        tools.execute(new ToolCall("id", "grep_search", Map.of("path", tempDir.toString(), "pattern", "pattern")), null)
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
@@ -52,7 +54,7 @@ public class BashFileSystemToolsTest {
         Files.writeString(tempDir.resolve("subdir/b.java"), "java");
         Files.writeString(tempDir.resolve("c.txt"), "text");
 
-        tools.execute("glob", Map.of("path", tempDir.toString(), "pattern", "**/*.java"), null)
+        tools.execute(new ToolCall("id", "glob", Map.of("path", tempDir.toString(), "pattern", "**/*.java")), null)
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());

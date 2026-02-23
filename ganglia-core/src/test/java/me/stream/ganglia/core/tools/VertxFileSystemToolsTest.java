@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.tools.VertxFileSystemTools;
+import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,13 +31,13 @@ public class VertxFileSystemToolsTest {
         String filePath = tempDir.resolve("test.txt").toString();
         String content = "Hello, Ganglia!";
 
-        tools.execute("write_file", Map.of("path", filePath, "content", content), null)
+        tools.execute(new ToolCall("id", "write_file", Map.of("path", filePath, "content", content)), null)
             .compose(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
                     assertTrue(res.output().contains("Successfully written"));
                 });
-                return tools.execute("vertx_read", Map.of("path", filePath), null);
+                return tools.execute(new ToolCall("id", "vertx_read", Map.of("path", filePath)), null);
             })
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
@@ -52,7 +53,7 @@ public class VertxFileSystemToolsTest {
         String filePath = tempDir.resolve("test_ls.txt").toString();
         
         vertx.fileSystem().writeFile(filePath, io.vertx.core.buffer.Buffer.buffer("test"))
-            .compose(v -> tools.execute("vertx_ls", Map.of("path", tempDir.toString()), null))
+            .compose(v -> tools.execute(new ToolCall("id", "vertx_ls", Map.of("path", tempDir.toString())), null))
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());

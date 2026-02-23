@@ -6,11 +6,14 @@ import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+import me.stream.ganglia.core.config.model.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 public class ConfigManager {
@@ -20,8 +23,9 @@ public class ConfigManager {
     private final Vertx vertx;
     private final ConfigRetriever retriever;
     private final String configPath;
-    private JsonObject currentConfig;
-    private final List<Consumer<JsonObject>> listeners = new ArrayList<>();
+    private JsonObject currentJson;
+    private GangliaConfig currentConfig;
+    private final List<Consumer<GangliaConfig>> listeners = new ArrayList<>();
 
     public ConfigManager(Vertx vertx) {
         this(vertx, DEFAULT_CONFIG_FILE);
@@ -42,17 +46,20 @@ public class ConfigManager {
 
         this.retriever = ConfigRetriever.create(vertx, options);
         
-        // Use config from configPath firstly (initial synchronous load)
-        this.currentConfig = getDefaultConfig();
+        // Initial setup with defaults
+        this.currentJson = getDefaultConfig();
+        
+        // Load initial file if exists
         try {
             if (vertx.fileSystem().existsBlocking(configPath)) {
                 JsonObject fileConfig = vertx.fileSystem().readFileBlocking(configPath).toJsonObject();
-                this.currentConfig.mergeIn(fileConfig, true);
+                this.currentJson.mergeIn(fileConfig, true);
                 logger.debug("Initial configuration loaded from {}", configPath);
             }
         } catch (Exception e) {
-            logger.warn("Failed to load initial configuration from {}: {}", configPath, e.getMessage());
+            logger.warn("No initial configuration file found or failed to load at {}. Using defaults.", configPath);
         }
+        this.currentConfig = this.currentJson.mapTo(GangliaConfig.class);
     }
 
     public Future<Void> init() {
@@ -68,74 +75,96 @@ public class ConfigManager {
                 });
     }
 
-    private synchronized void updateConfig(JsonObject newConfig) {
-        // Merge with defaults to ensure all keys exist
-        this.currentConfig = getDefaultConfig().mergeIn(newConfig, true);
+    public synchronized void updateConfig(JsonObject newConfig) {
+        // Merge with current state or defaults
+        if (this.currentJson == null) {
+            this.currentJson = getDefaultConfig();
+        }
+        this.currentJson.mergeIn(newConfig, true);
+        
+        this.currentConfig = this.currentJson.mapTo(GangliaConfig.class);
         listeners.forEach(l -> l.accept(this.currentConfig));
     }
 
-    public synchronized JsonObject getConfig() {
-        return currentConfig.copy();
+    public synchronized GangliaConfig getGangliaConfig() {
+        return currentConfig;
     }
 
-    public void listen(Consumer<JsonObject> listener) {
+    public void listen(Consumer<GangliaConfig> listener) {
         listeners.add(listener);
     }
 
     private JsonObject getDefaultConfig() {
-        return new JsonObject()
-                .put("provider", "openai")
-                .put("model", "gpt-4o")
-                .put("utilityModel", "gpt-4o-mini")
+        // Create structured default JSON
+        JsonObject primaryModel = new JsonObject()
+                .put("name", "gpt-4o")
                 .put("temperature", 0.0)
                 .put("maxTokens", 4096)
-                .put("baseUrl", "https://api.openai.com/v1")
-                .put("anthropicBaseUrl", "https://api.anthropic.com/v1")
-                .put("geminiBaseUrl", "https://generativelanguage.googleapis.com")
+                .put("type", "openai")
+                .put("apiKey", "")
+                .put("baseUrl", "https://api.openai.com/v1");
+
+        JsonObject utilityModel = new JsonObject()
+                .put("name", "gpt-4o-mini")
+                .put("temperature", 0.0)
+                .put("maxTokens", 2048)
+                .put("type", "openai")
+                .put("apiKey", "")
+                .put("baseUrl", "https://api.openai.com/v1");
+
+        Map<String, Object> models = new HashMap<>();
+        models.put("primary", primaryModel);
+        models.put("utility", utilityModel);
+
+        return new JsonObject()
+                .put("agent", new JsonObject().put("maxIterations", 10))
+                .put("models", models)
                 .put("observability", new JsonObject()
                         .put("enabled", false)
                         .put("tracePath", ".ganglia/trace"));
     }
 
-    public String getProvider() {
-        return getConfig().getString("provider", "openai");
-    }
+    // --- Backward compatibility and convenience getters ---
 
     public String getModel() {
-        return getConfig().getString("model");
+        ModelConfig mc = currentConfig.getModel("primary");
+        return mc != null ? mc.name() : "gpt-4o";
     }
 
     public String getUtilityModel() {
-        return getConfig().getString("utilityModel");
+        ModelConfig mc = currentConfig.getModel("utility");
+        return mc != null ? mc.name() : "gpt-4o-mini";
     }
 
     public double getTemperature() {
-        return getConfig().getDouble("temperature");
+        ModelConfig mc = currentConfig.getModel("primary");
+        return mc != null ? mc.temperature() : 0.0;
     }
 
     public int getMaxTokens() {
-        return getConfig().getInteger("maxTokens");
+        ModelConfig mc = currentConfig.getModel("primary");
+        return mc != null ? mc.maxTokens() : 4096;
+    }
+
+    public int getMaxIterations() {
+        return currentConfig.agent() != null ? currentConfig.agent().maxIterations() : 10;
     }
 
     public String getBaseUrl() {
-        return getConfig().getString("baseUrl");
+        ModelConfig mc = currentConfig.getModel("primary");
+        return mc != null ? mc.baseUrl() : "https://api.openai.com/v1";
     }
 
-    public String getAnthropicBaseUrl() {
-        return getConfig().getString("anthropicBaseUrl", "https://api.anthropic.com/v1");
-    }
-
-    public String getGeminiBaseUrl() {
-        return getConfig().getString("geminiBaseUrl", "https://generativelanguage.googleapis.com");
+    public String getProvider() {
+        ModelConfig mc = currentConfig.getModel("primary");
+        return mc != null ? mc.type() : "openai";
     }
 
     public boolean isObservabilityEnabled() {
-        JsonObject obs = getConfig().getJsonObject("observability");
-        return obs != null && obs.getBoolean("enabled", false);
+        return currentConfig.observability() != null && currentConfig.observability().enabled();
     }
 
     public String getTracePath() {
-        JsonObject obs = getConfig().getJsonObject("observability");
-        return obs != null ? obs.getString("tracePath", ".ganglia/trace") : ".ganglia/trace";
+        return (currentConfig.observability() != null) ? currentConfig.observability().tracePath() : ".ganglia/trace";
     }
 }

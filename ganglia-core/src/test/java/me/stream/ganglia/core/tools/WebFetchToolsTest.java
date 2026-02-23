@@ -6,6 +6,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.model.SessionContext;
+import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToDoList;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
 import me.stream.ganglia.tools.WebFetchTools;
@@ -42,7 +43,7 @@ class WebFetchToolsTest {
                 int port = s.actualPort();
                 String url = "http://localhost:" + port;
 
-                tools.execute("web_fetch", Map.of("url", url), context)
+                tools.execute(new ToolCall("id", "web_fetch", Map.of("url", url)), context)
                     .onComplete(testContext.succeeding(result -> {
                         testContext.verify(() -> {
                             assertEquals(ToolInvokeResult.Status.SUCCESS, result.status());
