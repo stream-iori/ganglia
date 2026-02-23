@@ -6,6 +6,9 @@ import me.stream.ganglia.core.model.Turn;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.RejectedExecutionException;
+
 /**
  * Background service that handles memory-related tasks like reflection and daily recording.
  * Listens for events on the EventBus to stay decoupled from the main agent loop.
@@ -49,7 +52,7 @@ public class MemoryService {
 
     private void handleReflect(String sessionId, String goal, Turn turn) {
         logger.debug("Starting background reflection for session: {}", sessionId);
-        
+
         compressor.reflect(turn)
             .compose(summary -> dailyRecordManager.record(sessionId, goal, summary))
             .onSuccess(v -> logger.debug("Background reflection and recording completed for session: {}", sessionId))
@@ -64,8 +67,8 @@ public class MemoryService {
 
     private boolean isShutdownError(Throwable err) {
         if (err == null) return false;
-        if (err instanceof java.util.concurrent.RejectedExecutionException) return true;
-        if (err instanceof java.util.concurrent.CompletionException && err.getCause() instanceof java.util.concurrent.RejectedExecutionException) return true;
+        if (err instanceof RejectedExecutionException) return true;
+        if (err instanceof CompletionException && err.getCause() instanceof RejectedExecutionException) return true;
         if (err.getMessage() != null && err.getMessage().contains("rejected from java.util.concurrent.ThreadPoolExecutor")) return true;
         return isShutdownError(err.getCause());
     }

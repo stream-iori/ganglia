@@ -1,57 +1,56 @@
 package me.stream.ganglia.memory;
 
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-
-import java.io.File;
 
 /**
- * Manages the long-term knowledge base (MEMORY.md).
+ * Interface for the long-term knowledge base.
  */
-public class KnowledgeBase {
-    private final Vertx vertx;
-    private final String filePath;
+public interface KnowledgeBase {
+    String DEFAULT_TOPIC = "project";
 
-    private static final String DEFAULT_TEMPLATE = """
-            # Project Memory
+    /**
+     * Ensures the storage for a specific topic is initialized.
+     *
+     * @param topic The knowledge topic.
+     * @return A Future completing when initialized.
+     */
+    Future<Void> ensureInitialized(String topic);
 
-            ## User Preferences
+    /**
+     * Reads the knowledge content for a specific topic.
+     *
+     * @param topic The knowledge topic.
+     * @return A Future completing with the content.
+     */
+    Future<String> read(String topic);
 
-            ## Project Conventions
+    /**
+     * Appends content to the knowledge base for a specific topic.
+     *
+     * @param topic   The knowledge topic.
+     * @param content The content to append.
+     * @return A Future completing when the content is appended.
+     */
+    Future<Void> append(String topic, String content);
 
-            ## Architecture Decisions
-
-            """;
-
-    public KnowledgeBase(Vertx vertx, String filePath) {
-        this.vertx = vertx;
-        this.filePath = filePath;
+    /**
+     * Ensures the default project topic is initialized.
+     */
+    default Future<Void> ensureInitialized() {
+        return ensureInitialized(DEFAULT_TOPIC);
     }
 
-    public KnowledgeBase(Vertx vertx) {
-        this(vertx, "MEMORY.md");
+    /**
+     * Reads the default project topic content.
+     */
+    default Future<String> read() {
+        return read(DEFAULT_TOPIC);
     }
 
-    public Future<Void> ensureInitialized() {
-        return vertx.fileSystem().exists(filePath)
-                .compose(exists -> {
-                    if (!exists) {
-                        return vertx.fileSystem().writeFile(filePath, Buffer.buffer(DEFAULT_TEMPLATE));
-                    }
-                    return Future.succeededFuture();
-                });
-    }
-
-    public Future<String> read() {
-        return vertx.fileSystem().readFile(filePath)
-                .map(Buffer::toString)
-                .recover(err -> Future.succeededFuture("")); // Return empty if error
-    }
-
-    public Future<Void> append(String content) {
-        return ensureInitialized()
-                .compose(v -> vertx.fileSystem().open(filePath, new io.vertx.core.file.OpenOptions().setAppend(true)))
-                .compose(asyncFile -> asyncFile.write(Buffer.buffer("\n" + content + "\n")).compose(v -> asyncFile.close()));
+    /**
+     * Appends content to the default project topic.
+     */
+    default Future<Void> append(String content) {
+        return append(DEFAULT_TOPIC, content);
     }
 }

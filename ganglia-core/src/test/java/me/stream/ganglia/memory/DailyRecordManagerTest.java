@@ -23,7 +23,7 @@ public class DailyRecordManagerTest {
     @BeforeEach
     void setUp(Vertx vertx, @TempDir Path tempDir) {
         testPath = tempDir.toString();
-        manager = new DailyRecordManager(vertx, testPath);
+        manager = new FileSystemDailyRecordManager(vertx, testPath);
     }
 
     @Test

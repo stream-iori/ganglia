@@ -21,7 +21,7 @@ class KnowledgeBaseTest {
     @BeforeEach
     void setUp(Vertx vertx) {
         this.vertx = vertx;
-        this.knowledgeBase = new KnowledgeBase(vertx, TEST_MEMORY_FILE);
+        this.knowledgeBase = new FileSystemKnowledgeBase(vertx, TEST_MEMORY_FILE);
     }
 
     @AfterEach

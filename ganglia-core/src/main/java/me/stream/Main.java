@@ -16,6 +16,8 @@ import me.stream.ganglia.core.state.FileStateEngine;
 import me.stream.ganglia.core.state.TraceManager;
 import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.memory.DailyRecordManager;
+import me.stream.ganglia.memory.FileSystemDailyRecordManager;
+import me.stream.ganglia.memory.FileSystemKnowledgeBase;
 import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.memory.MemoryService;
 import me.stream.ganglia.memory.TokenCounter;
@@ -103,9 +105,9 @@ public class Main {
             return skillRegistry.init().map(v2 -> {
                 // 2. Setup Kernel & Memory
                 TokenCounter tokenCounter = new TokenCounter();
-                KnowledgeBase knowledgeBase = new KnowledgeBase(vertx);
+                KnowledgeBase knowledgeBase = new FileSystemKnowledgeBase(vertx);
                 ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
-                DailyRecordManager dailyRecordManager = new DailyRecordManager(vertx, ".ganglia/memory");
+                DailyRecordManager dailyRecordManager = new FileSystemDailyRecordManager(vertx, ".ganglia/memory");
 
                 ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
                 

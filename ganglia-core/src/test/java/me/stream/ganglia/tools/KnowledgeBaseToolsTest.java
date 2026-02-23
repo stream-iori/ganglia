@@ -4,6 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.memory.KnowledgeBase;
+import me.stream.ganglia.memory.FileSystemKnowledgeBase;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.tools.model.ToDoList;
 import me.stream.ganglia.tools.KnowledgeBaseTools;
@@ -29,7 +30,7 @@ class KnowledgeBaseToolsTest {
     @BeforeEach
     void setUp(Vertx vertx) {
         this.vertx = vertx;
-        this.knowledgeBase = new KnowledgeBase(vertx, TEST_MEMORY_FILE);
+        this.knowledgeBase = new FileSystemKnowledgeBase(vertx, TEST_MEMORY_FILE);
         this.tools = new KnowledgeBaseTools(vertx, knowledgeBase);
     }
 

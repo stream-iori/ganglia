@@ -7,6 +7,8 @@ import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.stubs.StubConfigManager;
 import me.stream.ganglia.stubs.StubModelGateway;
+import me.stream.ganglia.memory.DailyRecordManager;
+import me.stream.ganglia.memory.FileSystemDailyRecordManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,7 +32,7 @@ class MemoryServiceTest {
         this.modelGateway = new StubModelGateway();
         this.configManager = new StubConfigManager(vertx);
         this.compressor = new ContextCompressor(modelGateway, configManager);
-        this.dailyRecordManager = new DailyRecordManager(vertx, TEST_MEMORY_PATH);
+        this.dailyRecordManager = new FileSystemDailyRecordManager(vertx, TEST_MEMORY_PATH);
         this.memoryService = new MemoryService(vertx, compressor, dailyRecordManager);
         
         // Ensure clean directory
