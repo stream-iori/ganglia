@@ -27,7 +27,7 @@ public class FileContextSource implements ContextSource {
                 .compose(exists -> {
                     if (exists) {
                         return vertx.fileSystem().readFile(filePath)
-                                .map(buffer -> resolver.parse(filePath, buffer.toString()));
+                                .compose(buffer -> resolver.parse(filePath, buffer.toString()));
                     }
                     return Future.succeededFuture(Collections.emptyList());
                 });

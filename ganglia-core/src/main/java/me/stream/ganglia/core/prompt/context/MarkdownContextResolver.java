@@ -1,5 +1,6 @@
 package me.stream.ganglia.core.prompt.context;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.commonmark.ext.gfm.tables.TablesExtension;
 import org.commonmark.node.*;
@@ -13,12 +14,16 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Resolves context fragments from Markdown files by parsing H2 headers using CommonMark.
+ * Resolves context fragments from Markdown files by parsing H2 headers.
+ * Extracts metadata like name, priority, and mandatory status from headers using the format:
+ * {@code ## [Name] (Priority: 5, Mandatory)}
  */
 public class MarkdownContextResolver {
     private final Vertx vertx;
     private final Parser parser;
-    private static final Pattern HEADER_META_PATTERN = Pattern.compile("\\[(.+?)\\](?:\\s+\\(Priority:\\s+(\\d+)(?:,\\s+(Mandatory))?\\))?");
+
+    private static final Pattern HEADER_META_PATTERN = Pattern.compile(
+            "\\[(?<name>.+?)\\](?:\\s+\\(Priority:\\s+(?<priority>\\d+)(?:,\\s+(?<mandatory>Mandatory))?\\))?");
 
     public MarkdownContextResolver(Vertx vertx) {
         this.vertx = vertx;
@@ -28,154 +33,114 @@ public class MarkdownContextResolver {
                 .build();
     }
 
-    public List<ContextFragment> parse(String sourceName, String content) {
-        Node document = parser.parse(content);
-        List<ContextFragment> fragments = new ArrayList<>();
-        
-        Node child = document.getFirstChild();
-        String currentName = null;
-        int currentPriority = 5;
-        boolean currentMandatory = false;
-        int fragmentStart = -1;
-        int fragmentEnd = -1;
-
-        while (child != null) {
-            if (child instanceof Heading && ((Heading) child).getLevel() == 2) {
-                // If we were tracking a fragment, save it
-                if (currentName != null && fragmentStart != -1) {
-                    fragments.add(new ContextFragment(currentName, content.substring(fragmentStart, fragmentEnd).trim(), currentPriority, currentMandatory));
-                }
-                
-                // Parse new H2
-                String headerText = getHeaderText((Heading) child);
-                Matcher matcher = HEADER_META_PATTERN.matcher(headerText);
-                
-                if (matcher.find()) {
-                    currentName = matcher.group(1);
-                    String priorityStr = matcher.group(2);
-                    currentPriority = (priorityStr != null) ? Integer.parseInt(priorityStr) : 5;
-                    currentMandatory = matcher.group(3) != null;
-                } else {
-                    currentName = headerText;
-                    currentPriority = 5;
-                    currentMandatory = false;
-                }
-                
-                fragmentStart = -1;
-                fragmentEnd = -1;
-            } else if (currentName != null) {
-                // Collect content for current H2
-                List<SourceSpan> spans = child.getSourceSpans();
-                if (spans != null && !spans.isEmpty()) {
-                    // SourceSpans in commonmark-java provide line and column, but we need character offsets.
-                    // However, for Block nodes with IncludeSourceSpans.BLOCKS, 
-                    // some implementations of CommonMark provide character offsets in specific attributes
-                    // or we have to calculate them.
-                    
-                    // Actually, a much simpler and more robust way in CommonMark 
-                    // when we want to preserve original markdown between headers 
-                    // is to just use the end of the header and the start of the next header 
-                    // from the original string, using the parser just to find the header positions.
-                    
-                    // Let's re-evaluate: CommonMark's Heading node DOES NOT easily 
-                    // give character offsets in the original string without more complex setup.
-                }
-            }
-            child = child.getNext();
+    /**
+     * Parses the markdown content into a list of {@link ContextFragment}s asynchronously.
+     * Each H2 header starts a new fragment. Everything before the first H2 header is ignored.
+     * This method uses {@code vertx.executeBlocking} to avoid blocking the EventLoop.
+     *
+     * @param sourceName The name of the source (e.g., file path), used for logging/debugging.
+     * @param content    The markdown content to parse.
+     * @return A future that completes with the list of context fragments found in the content.
+     */
+    public Future<List<ContextFragment>> parse(String sourceName, String content) {
+        if (content == null || content.isBlank()) {
+            return Future.succeededFuture(Collections.emptyList());
         }
 
-        // The regex approach was actually quite good for "slicing", 
-        // but it lacked proper markdown understanding (e.g. headers inside code blocks).
-        // Let's use CommonMark to find the exact character offsets of H2 headers.
-        
-        return parseWithOffsets(content);
+        return vertx.executeBlocking(() -> parseSync(content), false);
     }
 
-    private List<ContextFragment> parseWithOffsets(String content) {
+    private List<ContextFragment> parseSync(String content) {
         Node document = parser.parse(content);
-        List<HeaderInfo> headers = new ArrayList<>();
-        
-        Node child = document.getFirstChild();
-        while (child != null) {
-            if (child instanceof Heading && ((Heading) child).getLevel() == 2) {
-                // We use a trick: the parser doesn't give offsets, but we can find this header 
-                // in the original string by its content, starting from the last found position.
-                headers.add(new HeaderInfo(getHeaderText((Heading) child), child));
-            }
-            child = child.getNext();
+        List<H2Header> h2Headers = findH2Headers(document);
+
+        if (h2Headers.isEmpty()) {
+            return Collections.emptyList();
         }
-        
+
+        int[] lineOffsets = calculateLineOffsets(content);
         List<ContextFragment> fragments = new ArrayList<>();
-        int lastPos = 0;
-        for (int i = 0; i < headers.size(); i++) {
-            HeaderInfo current = headers.get(i);
-            // Find where this H2 starts in the original string
-            // We search for "## " + title
-            String searchStr = "## " + getOriginalHeaderLine(content, lastPos, current.title);
-            int start = content.indexOf(searchStr, lastPos);
-            if (start == -1) continue; // Should not happen
-            
-            // If there was a previous header, its content ends here
-            if (!fragments.isEmpty()) {
-                // Update previous fragment content
-                int prevIdx = fragments.size() - 1;
-                ContextFragment prev = fragments.get(prevIdx);
-                String fragContent = content.substring(lastPos, start).trim();
-                fragments.set(prevIdx, new ContextFragment(prev.name(), fragContent, prev.priority(), prev.isMandatory()));
-            }
-            
-            // Prepare current fragment
-            Matcher matcher = HEADER_META_PATTERN.matcher(current.title);
-            String name;
-            int priority = 5;
-            boolean mandatory = false;
-            
-            if (matcher.find()) {
-                name = matcher.group(1);
-                String priorityStr = matcher.group(2);
-                priority = (priorityStr != null) ? Integer.parseInt(priorityStr) : 5;
-                mandatory = matcher.group(3) != null;
-            } else {
-                name = current.title;
-            }
-            
-            // The content starts after the header line
-            int nextNewLine = content.indexOf("\n", start);
-            lastPos = (nextNewLine == -1) ? content.length() : nextNewLine + 1;
-            
-            fragments.add(new ContextFragment(name, "", priority, mandatory));
+
+        for (int i = 0; i < h2Headers.size(); i++) {
+            H2Header current = h2Headers.get(i);
+            int nextHeaderLine = (i + 1 < h2Headers.size()) ? h2Headers.get(i + 1).lineIndex() : -1;
+
+            int contentStart = getLineStartOffset(current.lineIndex() + 1, lineOffsets, content.length());
+            int contentEnd = (nextHeaderLine != -1) ? lineOffsets[nextHeaderLine] : content.length();
+
+            String fragmentContent = content.substring(contentStart, contentEnd).trim();
+            HeaderMetadata meta = parseMetadata(current.title());
+
+            fragments.add(new ContextFragment(meta.name(), fragmentContent, meta.priority(), meta.mandatory()));
         }
-        
-        // Final content
-        if (!fragments.isEmpty()) {
-            int prevIdx = fragments.size() - 1;
-            ContextFragment prev = fragments.get(prevIdx);
-            String fragContent = content.substring(lastPos).trim();
-            fragments.set(prevIdx, new ContextFragment(prev.name(), fragContent, prev.priority(), prev.isMandatory()));
-        }
-        
+
         return fragments;
     }
 
-    private String getOriginalHeaderLine(String content, int startFrom, String title) {
-        // The title might have been normalized by commonmark (e.g. entities resolved).
-        // But for our purpose, we expect it to be mostly literal.
-        return title; 
+    private List<H2Header> findH2Headers(Node document) {
+        List<H2Header> headers = new ArrayList<>();
+        Node child = document.getFirstChild();
+        while (child != null) {
+            if (child instanceof Heading heading && heading.getLevel() == 2) {
+                List<SourceSpan> spans = heading.getSourceSpans();
+                if (spans != null && !spans.isEmpty()) {
+                    headers.add(new H2Header(getHeaderText(heading), spans.get(0).getLineIndex()));
+                }
+            }
+            child = child.getNext();
+        }
+        return headers;
+    }
+
+    private int getLineStartOffset(int lineIndex, int[] lineOffsets, int maxLength) {
+        if (lineIndex < 0) return 0;
+        if (lineIndex >= lineOffsets.length) return maxLength;
+        return lineOffsets[lineIndex];
+    }
+
+    private int[] calculateLineOffsets(String content) {
+        List<Integer> offsets = new ArrayList<>();
+        offsets.add(0);
+        for (int i = 0; i < content.length(); i++) {
+            if (content.charAt(i) == '\n') {
+                offsets.add(i + 1);
+            }
+        }
+        return offsets.stream().mapToInt(Integer::intValue).toArray();
     }
 
     private String getHeaderText(Heading heading) {
         StringBuilder sb = new StringBuilder();
-        Node child = heading.getFirstChild();
+        appendNodeText(heading, sb);
+        return sb.toString().trim();
+    }
+
+    private void appendNodeText(Node node, StringBuilder sb) {
+        Node child = node.getFirstChild();
         while (child != null) {
-            if (child instanceof Text) {
-                sb.append(((Text) child).getLiteral());
-            } else if (child instanceof Code) {
-                sb.append(((Code) child).getLiteral());
+            if (child instanceof Text text) {
+                sb.append(text.getLiteral());
+            } else if (child instanceof Code code) {
+                sb.append(code.getLiteral());
+            } else {
+                appendNodeText(child, sb);
             }
             child = child.getNext();
         }
-        return sb.toString();
     }
-    
-    private record HeaderInfo(String title, Node node) {}
+
+    private HeaderMetadata parseMetadata(String headerText) {
+        Matcher matcher = HEADER_META_PATTERN.matcher(headerText);
+        if (matcher.find()) {
+            String name = matcher.group("name");
+            String priorityStr = matcher.group("priority");
+            int priority = (priorityStr != null) ? Integer.parseInt(priorityStr) : 5;
+            boolean mandatory = matcher.group("mandatory") != null;
+            return new HeaderMetadata(name, priority, mandatory);
+        }
+        return new HeaderMetadata(headerText, 5, false);
+    }
+
+    private record H2Header(String title, int lineIndex) {}
+    private record HeaderMetadata(String name, int priority, boolean mandatory) {}
 }

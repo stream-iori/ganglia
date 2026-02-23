@@ -27,22 +27,64 @@ class MarkdownContextResolverTest {
                 # Project
                 ## [Mandates] (Priority: 2)
                 - Do not delete
-                ## [Context] (Priority: 3)
+                ## [Context] (Priority: 3, Mandatory)
                 - Use Java 17
+                ## Simple Header
+                Some content for simple header.
                 """;
 
-        List<ContextFragment> fragments = resolver.parse("test.md", content);
+        resolver.parse("test.md", content)
+                .onComplete(testContext.succeeding(fragments -> {
+                    testContext.verify(() -> {
+                        assertEquals(3, fragments.size());
 
-        assertEquals(2, fragments.size());
-        
-        ContextFragment f1 = fragments.stream().filter(f -> f.name().contains("Mandates")).findFirst().orElseThrow();
-        assertEquals(2, f1.priority());
-        assertTrue(f1.content().contains("- Do not delete"));
+                        ContextFragment f1 = fragments.get(0);
+                        assertEquals("Mandates", f1.name());
+                        assertEquals(2, f1.priority());
+                        assertFalse(f1.isMandatory());
+                        assertEquals("- Do not delete", f1.content());
 
-        ContextFragment f2 = fragments.stream().filter(f -> f.name().contains("Context")).findFirst().orElseThrow();
-        assertEquals(3, f2.priority());
-        assertTrue(f2.content().contains("- Use Java 17"));
-        
-        testContext.completeNow();
+                        ContextFragment f2 = fragments.get(1);
+                        assertEquals("Context", f2.name());
+                        assertEquals(3, f2.priority());
+                        assertTrue(f2.isMandatory());
+                        assertEquals("- Use Java 17", f2.content());
+
+                        ContextFragment f3 = fragments.get(2);
+                        assertEquals("Simple Header", f3.name());
+                        assertEquals(5, f3.priority());
+                        assertFalse(f3.isMandatory());
+                        assertEquals("Some content for simple header.", f3.content());
+
+                        testContext.completeNow();
+                    });
+                }));
+    }
+
+    @Test
+    void testEmptyContent(VertxTestContext testContext) {
+        resolver.parse("empty.md", "")
+                .onComplete(testContext.succeeding(fragments -> {
+                    testContext.verify(() -> {
+                        assertTrue(fragments.isEmpty());
+                        testContext.completeNow();
+                    });
+                }));
+    }
+
+    @Test
+    void testNoH2Headers(VertxTestContext testContext) {
+        String content = """
+                # Title
+                ### H3 Header
+                Some content
+                """;
+        resolver.parse("no_h2.md", content)
+                .onComplete(testContext.succeeding(fragments -> {
+                    testContext.verify(() -> {
+                        assertTrue(fragments.isEmpty());
+                        testContext.completeNow();
+                    });
+                }));
     }
 }

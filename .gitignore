@@ -66,6 +66,7 @@ local.properties
 .sdkmanrc
 
 config.json
+.gemini/
 .ganglia/
 
 brainstorm/
