@@ -147,15 +147,18 @@
 - [x] **Final Check:**
     - [x] Verify all scenarios pass using real model calls (if configured) or high-fidelity mocks.
 
-## Phase 15: Skill System Redesign (Script-based & File-driven)
-**Objective:** Transition to a standardized, file-based skill system where tools are defined as scripts in `SKILL.md`, following the Gemini CLI standard.
+## Phase 15: Skill System Redesign (Hybrid: Script & Java JAR)
+**Objective:** Transition to a standardized, file-based skill system that supports both external scripts and dynamically loaded Java JARs.
 
 - [x] **Core Model & Parsing:**
     - [x] Update `SkillManifest` to support the `tools` YAML array in frontmatter (name, command, schema).
-    - [x] Enhance `MarkdownContextResolver` or `SkillManifest` to handle variable substitution logic (e.g., `${skillDir}`).
+    - [x] Enhance `SkillManifest` to handle variable substitution logic (e.g., `${skillDir}`).
 - [x] **Script Tool Execution Engine:**
     - [x] Implement `ScriptToolSet`: A dynamic toolset that spawns external processes based on `SKILL.md` templates.
-    - [x] Implement parameter injection and sanitization for script commands.
+- [x] **Java JAR Extension System:**
+    - [x] Implement `JarSkillLoader`: Discovery of skills bundled as JAR files.
+    - [x] Implement isolated `ClassLoader` management for each Java skill.
+    - [x] Create `JavaSkillToolSet` to dynamically instantiate and run `ToolSet` implementations from JARs.
 - [x] **Lazy Loading & Dynamic Registration:**
     - [x] Refactor `SkillService` to support metadata-only discovery and lazy-loading of full instructions.
     - [x] Update `DefaultToolExecutor` to dynamically register script tools upon skill activation.
@@ -163,7 +166,7 @@
     - [x] Update `FileSystemSkillLoader` to scan both project-local `.ganglia/skills/` and user-global `~/.ganglia/skills/`.
 - [x] **Verification:**
     - [x] Port `git-smart-commit` to the new script-based format.
-    - [x] Create `SkillSystemIT` to verify the full flow: Discovery -> Activation (Interrupt) -> Script Tool Execution -> Observation.
+    - [x] Create `SkillSystemIT` to verify Discovery -> Activation -> Execution.
 
 ## Phase 13: Systemic Context Engine (GEMINI.md Mechanism)
 **Objective:** Decouple prompt construction from code using file-driven context.

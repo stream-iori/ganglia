@@ -90,6 +90,10 @@ public class ConfigManager {
         return currentConfig;
     }
 
+    public synchronized JsonObject getConfig() {
+        return currentJson;
+    }
+
     public void listen(Consumer<GangliaConfig> listener) {
         listeners.add(listener);
     }

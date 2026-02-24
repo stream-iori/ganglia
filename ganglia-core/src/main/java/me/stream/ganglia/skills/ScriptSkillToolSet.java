@@ -21,15 +21,15 @@ import java.util.stream.Collectors;
 /**
  * A ToolSet that executes external scripts defined in a skill.
  */
-public class ScriptToolSet implements ToolSet {
-    private static final Logger logger = LoggerFactory.getLogger(ScriptToolSet.class);
+public class ScriptSkillToolSet implements ToolSet {
+    private static final Logger logger = LoggerFactory.getLogger(ScriptSkillToolSet.class);
 
     private final Vertx vertx;
     private final String skillId;
     private final String skillDir;
-    private final List<ScriptToolDefinition> scriptTools;
+    private final List<SkillToolDefinition> scriptTools;
 
-    public ScriptToolSet(Vertx vertx, String skillId, String skillDir, List<ScriptToolDefinition> scriptTools) {
+    public ScriptSkillToolSet(Vertx vertx, String skillId, String skillDir, List<SkillToolDefinition> scriptTools) {
         this.vertx = vertx;
         this.skillId = skillId;
         this.skillDir = skillDir;
@@ -62,8 +62,11 @@ public class ScriptToolSet implements ToolSet {
         return execute(new ToolCall(UUID.randomUUID().toString(), toolName, args), context);
     }
 
-    private Future<ToolInvokeResult> executeScript(ScriptToolDefinition def, Map<String, Object> args) {
-        String command = substituteVariables(def.command(), args);
+    private Future<ToolInvokeResult> executeScript(SkillToolDefinition def, Map<String, Object> args) {
+        if (def.script() == null) {
+            return Future.failedFuture("Tool definition missing script info: " + def.name());
+        }
+        String command = substituteVariables(def.script().command(), args);
         logger.debug("Executing script tool {} for skill {}: {}", def.name(), skillId, command);
 
         return vertx.executeBlocking(() -> {

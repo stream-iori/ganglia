@@ -18,10 +18,11 @@ public record SkillManifest(
     String author,
     List<PromptDefinition> prompts,
     List<String> tools,
-    List<ScriptToolDefinition> scriptTools,
+    List<SkillToolDefinition> skillTools,
     SkillTrigger activationTriggers,
     String instructions,
-    String skillDir
+    String skillDir,
+    String jarPath
 ) {
     private static final Logger logger = LoggerFactory.getLogger(SkillManifest.class);
     private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
@@ -29,7 +30,7 @@ public record SkillManifest(
     public SkillManifest {
         if (prompts == null) prompts = Collections.emptyList();
         if (tools == null) tools = Collections.emptyList();
-        if (scriptTools == null) scriptTools = Collections.emptyList();
+        if (skillTools == null) skillTools = Collections.emptyList();
     }
 
     public static SkillManifest fromJson(JsonObject json) {
@@ -48,15 +49,16 @@ public record SkillManifest(
             Collections.emptyList(),
             SkillTrigger.fromJson(json.getJsonObject("activationTriggers")),
             "",
+            null,
             null
         );
     }
 
     public static SkillManifest fromMarkdown(String folderId, String content) {
-        return fromMarkdown(folderId, content, null);
+        return fromMarkdown(folderId, content, null, null);
     }
 
-    public static SkillManifest fromMarkdown(String folderId, String content, String skillDir) {
+    public static SkillManifest fromMarkdown(String folderId, String content, String skillDir, String jarPath) {
         String frontmatter = "";
         String body = "";
 
@@ -75,49 +77,74 @@ public record SkillManifest(
 
         Map<String, Object> metadata = parseFrontmatter(frontmatter);
 
-        String skillId = metadata.getOrDefault("id", folderId).toString();
+        String skillId = getString(metadata, "id", folderId);
         
-        List<ScriptToolDefinition> scriptTools = new ArrayList<>();
-        if (metadata.get("tools") instanceof List<?> toolsList) {
+        List<SkillToolDefinition> skillTools = new ArrayList<>();
+        Object toolsObj = metadata.get("tools");
+        if (toolsObj instanceof List<?> toolsList) {
             for (Object item : toolsList) {
                 if (item instanceof Map<?, ?> toolMap) {
-                    scriptTools.add(new ScriptToolDefinition(
-                        (String) toolMap.get("name"),
-                        (String) toolMap.get("description"),
-                        (String) toolMap.get("command"),
-                        (String) toolMap.get("schema")
+                    String type = getString(toolMap, "type", "SCRIPT");
+                    SkillToolDefinition.ScriptInfo scriptInfo = null;
+                    SkillToolDefinition.JavaInfo javaInfo = null;
+
+                    if ("SCRIPT".equals(type)) {
+                        String command = getString(toolMap, "command", null);
+                        if (command == null && toolMap.get("script") instanceof Map<?, ?> sm) {
+                            command = getString(sm, "command", null);
+                        }
+                        scriptInfo = new SkillToolDefinition.ScriptInfo(command);
+                    } else if ("JAVA".equals(type)) {
+                        String className = getString(toolMap, "className", null);
+                        if (className == null && toolMap.get("java") instanceof Map<?, ?> jm) {
+                            className = getString(jm, "className", null);
+                        }
+                        javaInfo = new SkillToolDefinition.JavaInfo(className);
+                    }
+
+                    skillTools.add(new SkillToolDefinition(
+                        getString(toolMap, "name", null),
+                        getString(toolMap, "description", null),
+                        type,
+                        scriptInfo,
+                        javaInfo,
+                        getString(toolMap, "schema", null)
                     ));
                 }
             }
         }
 
-        SkillTrigger trigger = null;
+        List<String> filePatterns = Collections.emptyList();
+        List<String> keywords = Collections.emptyList();
         Object triggerObj = metadata.get("activationTriggers");
         if (triggerObj instanceof Map<?, ?> tm) {
-            List<String> filePatterns = parseList(tm.get("filePatterns"));
-            List<String> keywords = parseList(tm.get("keywords"));
-            trigger = new SkillTrigger(filePatterns, keywords);
+            filePatterns = parseList(tm.get("filePatterns"));
+            keywords = parseList(tm.get("keywords"));
         } else {
-            // Legacy/alternative flat format support
-            trigger = new SkillTrigger(
-                parseList(metadata.get("filePatterns")),
-                parseList(metadata.get("keywords"))
-            );
+            filePatterns = parseList(metadata.get("filePatterns"));
+            keywords = parseList(metadata.get("keywords"));
         }
+        SkillTrigger trigger = new SkillTrigger(filePatterns, keywords);
 
         return new SkillManifest(
             skillId,
-            metadata.getOrDefault("version", "1.0.0").toString(),
-            metadata.getOrDefault("name", skillId).toString(),
-            metadata.getOrDefault("description", "").toString(),
-            metadata.getOrDefault("author", "Unknown").toString(),
+            getString(metadata, "version", "1.0.0"),
+            getString(metadata, "name", skillId),
+            getString(metadata, "description", ""),
+            getString(metadata, "author", "Unknown"),
             new ArrayList<>(),
             new ArrayList<>(),
-            scriptTools,
+            skillTools,
             trigger,
             body,
-            skillDir
+            skillDir,
+            jarPath
         );
+    }
+
+    private static String getString(Map<?, ?> map, String key, String defaultValue) {
+        Object val = map.get(key);
+        return val != null ? val.toString() : defaultValue;
     }
 
     private static Map<String, Object> parseFrontmatter(String frontmatter) {

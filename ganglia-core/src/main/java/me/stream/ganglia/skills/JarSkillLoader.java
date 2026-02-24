@@ -6,18 +6,23 @@ import io.vertx.core.file.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.InputStream;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
-public class FileSystemSkillLoader implements SkillLoader {
-    private static final Logger log = LoggerFactory.getLogger(FileSystemSkillLoader.class);
+/**
+ * Loads skills from JAR files.
+ */
+public class JarSkillLoader implements SkillLoader {
+    private static final Logger log = LoggerFactory.getLogger(JarSkillLoader.class);
 
     private final Vertx vertx;
     private final List<Path> baseDirs;
 
-    public FileSystemSkillLoader(Vertx vertx, List<Path> baseDirs) {
+    public JarSkillLoader(Vertx vertx, List<Path> baseDirs) {
         this.vertx = vertx;
         this.baseDirs = baseDirs;
     }
@@ -45,8 +50,10 @@ public class FileSystemSkillLoader implements SkillLoader {
                 return fs.readDir(baseDir.toString())
                     .compose(list -> {
                         List<Future<SkillManifest>> futures = new ArrayList<>();
-                        for (String skillPath : list) {
-                            futures.add(loadSingleSkill(skillPath));
+                        for (String path : list) {
+                            if (path.endsWith(".jar")) {
+                                futures.add(loadFromJar(path));
+                            }
                         }
                         return Future.join(futures).map(composite -> {
                             List<SkillManifest> loaded = new ArrayList<>();
@@ -60,28 +67,25 @@ public class FileSystemSkillLoader implements SkillLoader {
             });
     }
 
-    private Future<SkillManifest> loadSingleSkill(String skillPath) {
-        FileSystem fs = vertx.fileSystem();
-        String skillMdPath = skillPath + "/SKILL.md";
-        String skillJsonPath = skillPath + "/skill.json";
-        String absoluteSkillDir = Paths.get(skillPath).toAbsolutePath().toString();
-
-        return fs.exists(skillMdPath)
-            .compose(mdExists -> {
-                if (mdExists) {
-                    return fs.readFile(skillMdPath)
-                        .map(buffer -> {
-                            String folderName = Paths.get(skillPath).getFileName().toString();
-                            return SkillManifest.fromMarkdown(folderName, buffer.toString(), absoluteSkillDir, null);
-                        });
-                } else {
-                    return fs.exists(skillJsonPath)
-                        .compose(jsonExists -> {
-                            if (!jsonExists) return Future.succeededFuture(null);
-                            return fs.readFile(skillJsonPath)
-                                .map(buffer -> SkillManifest.fromJson(buffer.toJsonObject()));
-                        });
+    private Future<SkillManifest> loadFromJar(String jarPath) {
+        return vertx.executeBlocking(() -> {
+            try (JarFile jar = new JarFile(jarPath)) {
+                JarEntry entry = jar.getJarEntry("SKILL.md");
+                if (entry == null) {
+                    log.warn("JAR skill at {} missing SKILL.md", jarPath);
+                    return null;
                 }
-            });
+
+                try (InputStream is = jar.getInputStream(entry)) {
+                    String content = new String(is.readAllBytes());
+                    String filename = Path.of(jarPath).getFileName().toString();
+                    String folderId = filename.substring(0, filename.length() - 4);
+                    return SkillManifest.fromMarkdown(folderId, content, null, jarPath);
+                }
+            } catch (Exception e) {
+                log.error("Failed to load skill from JAR {}: {}", jarPath, e.getMessage());
+                return null;
+            }
+        });
     }
 }

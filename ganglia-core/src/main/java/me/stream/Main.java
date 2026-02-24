@@ -98,8 +98,21 @@ public class Main {
             }
             skillPaths.add(Paths.get("skills"));
 
-            SkillLoader skillLoader = new FileSystemSkillLoader(vertx, skillPaths);
-            SkillService skillService = new DefaultSkillService(skillLoader);
+            // Resolve loaders from config
+            List<SkillLoader> loaders = new ArrayList<>();
+            JsonObject skillConfig = configManager.getConfig().getJsonObject("skills");
+            List<String> loaderTypes = (skillConfig != null && skillConfig.containsKey("loaders")) 
+                ? skillConfig.getJsonArray("loaders").getList() 
+                : List.of("filesystem", "jar");
+
+            if (loaderTypes.contains("filesystem")) {
+                loaders.add(new FileSystemSkillLoader(vertx, skillPaths));
+            }
+            if (loaderTypes.contains("jar")) {
+                loaders.add(new JarSkillLoader(vertx, skillPaths));
+            }
+
+            SkillService skillService = new DefaultSkillService(loaders);
             SkillRuntime skillRuntime = new DefaultSkillRuntime(vertx, skillService);
 
             return skillService.init().map(v2 -> {

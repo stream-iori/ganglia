@@ -1,101 +1,87 @@
-# Ganglia Skill System Redesign (Script-based & File-driven)
+# Ganglia Skill System Redesign (Hybrid: Script & Java JAR)
 
-> **Status:** Initial Design
+> **Status:** Updated Design
 > **Module:** `ganglia-skills`
 > **Related:** [Architecture](ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 
 ## 1. Objective
-To align Ganglia's skill system with the open standard established by Gemini CLI. The system moves away from Java-based tool definitions for skills, embracing a file-driven approach where skills are defined by a `SKILL.md` file and tools are executed as external scripts (Python, Node.js, Bash, etc.).
+To provide a highly extensible skill system that supports both lightweight script-based tools (Gemini CLI style) and heavy-duty Java-based extensions loaded dynamically via ClassLoaders. This hybrid approach ensures ease of creation for end-users while allowing enterprise-grade integrations.
 
-## 2. Skill Structure
-A skill is a directory containing a `SKILL.md` file.
+## 2. Skill Types & Structures
 
-### 2.1 Directory Layout
+### 2.1 Script-based Skill (Folder)
+Standard Gemini CLI structure.
 ```text
-my-skill/
-├── SKILL.md          # Mandatory: Metadata, Instructions, and Tool Definitions
-├── scripts/          # Optional: Executable scripts (python, sh, js)
-└── assets/           # Optional: Static resources
+my-script-skill/
+├── SKILL.md          # Tool definitions (command template)
+└── scripts/          # python, node, bash scripts
 ```
 
-### 2.2 The `SKILL.md` Format
-The file uses YAML frontmatter for configuration and Markdown for instructions.
+### 2.2 JAR-based Skill (Extensible)
+A JAR file containing logic and metadata.
+```text
+my-java-skill.jar
+├── SKILL.md          # Tool definitions (class mapping)
+└── me/stream/...     # Compiled classes
+```
 
+## 3. Tool Definition Matrix
+
+The `tools` array in `SKILL.md` frontmatter uses a structured schema to support different execution modes:
+
+### `SkillToolDefinition` Structure
+- `name`: (Required) Tool name for the LLM.
+- `description`: (Required) Tool description.
+- `type`: (Required) `SCRIPT` or `JAVA`.
+- `script`: Embedded record for `SCRIPT` type.
+    - `command`: (Required) Execution command template.
+- `java`: Embedded record for `JAVA` type.
+    - `className`: (Required) Java class implementing `ToolSet`.
+- `schema`: (Required) JSON Schema for arguments.
+
+### Example `SKILL.md` for Java:
 ```markdown
 ---
-id: py-linter
-name: Python Linter
-description: Provides deep linting for Python files using Ruff.
-activationTriggers:
-  filePatterns: ["*.py"]
+id: db-expert
 tools:
-  - name: python_lint
-    description: Run ruff on a specific file.
-    command: "ruff check ${file}"
+  - name: query_database
+    type: JAVA
+    java:
+      className: "me.stream.ganglia.skills.db.DbTool"
     schema: |
-      {
-        "type": "object",
-        "properties": {
-          "file": { "type": "string", "description": "Path to the python file" }
-        },
-        "required": ["file"]
-      }
+      { "type": "object", ... }
 ---
-# Python Linting Instructions
-You are a Python quality expert. When using the `python_lint` tool:
-1. Always suggest fixes for the errors found.
-2. Refer to PEP 8 standards.
+Instructions for DB expert...
 ```
 
-## 3. Core Components
+## 4. Component Architecture
 
-### 3.1 `SkillManifest` (Enhanced)
-Updated to support the `tools` array in frontmatter. Each tool entry contains:
-- `name`: Tool name for the LLM.
-- `command`: Bash-like command template with variable substitution (e.g., `${file}`, `${skillDir}`).
-- `schema`: JSON Schema for parameter validation.
+### 4.1 Hybrid `SkillLoader`
+The system uses multiple loaders to discover skills. The loaders to be used are determined at startup based on configuration.
+- **`FileSystemSkillLoader`**: Scans directories for `SKILL.md`.
+- **`JarSkillLoader`**: Scans for `.jar` files in skill directories, loads the internal `SKILL.md`, and prepares a `URLClassLoader` for that specific skill.
 
-### 3.2 `ScriptToolSet` (New)
-A dynamic `ToolSet` implementation that:
-1. Map skill-defined tools to executable processes.
-2. Performs variable substitution in the `command` string using arguments provided by the LLM.
-3. Executes the process using a non-blocking bridge (wrapping `ProcessBuilder` or reusing `BashTools` logic).
-4. Captures `stdout` and `stderr` as the tool observation.
+### 4.2 Dynamic ClassLoading
+To prevent dependency hell:
+- Each Java-based skill gets its own **Isolated ClassLoader**.
+- The `DefaultSkillRuntime` manages these ClassLoaders.
 
-### 3.3 `FileSystemSkillLoader`
-Scans for `SKILL.md` files in:
-1. **Workspace Scope**: `./.ganglia/skills/`
-2. **User Scope**: `~/.ganglia/skills/`
+### 4.3 Tool Execution
+- **`ScriptSkillToolSet`**: Orchestrates external process execution with variable substitution.
+- **`JavaSkillToolSet`**: Orchestrates reflection-based execution of Java tools from JARs.
 
-### 3.4 `SkillRuntime` (Lazy Activation)
-- **Discovery**: At startup, only the metadata (id, name, description, triggers) is loaded.
-- **Activation**: When `activate_skill(id)` is called:
-    1. The Markdown body (instructions) is loaded and injected into the System Prompt.
-    2. The defined script tools are instantiated and registered in the `DefaultToolExecutor`.
+## 5. Startup Configuration
+Ganglia can be configured to use specific skill loading strategies via `ganglia-config.json`:
 
-## 4. Execution Workflow
-
-```mermaid
-sequenceDiagram
-    participant LLM
-    participant Loop as ReActAgentLoop
-    participant Exec as ToolExecutor
-    participant ScriptSet as ScriptToolSet
-    participant Proc as External Process
-
-    LLM->>Loop: Thought: I need to lint this file.
-    LLM->>Loop: ToolCall: python_lint(file="main.py")
-    Loop->>Exec: execute(python_lint)
-    Exec->>ScriptSet: execute(python_lint, {file: "main.py"})
-    ScriptSet->>ScriptSet: Substitute "ruff check ${file}" -> "ruff check main.py"
-    ScriptSet->>Proc: Spawn "ruff check main.py"
-    Proc-->>ScriptSet: Output: "L001: Missing docstring"
-    ScriptSet-->>Exec: ToolInvokeResult(success, "L001: Missing docstring")
-    Exec-->>Loop: Observation
-    Loop-->>LLM: Feed observation...
+```json
+{
+  "skills": {
+    "loaders": ["filesystem", "jar"],
+    "paths": [".ganglia/skills", "~/skills"]
+  }
+}
 ```
 
-## 5. Security & Safety
-- **Sandbox**: All script tools run with the same constraints as `run_shell_command` (timeouts, restricted working directory).
-- **Confirmation**: Activating a skill requires user consent (Interrupt).
-- **Variable Injection**: Arguments are sanitized before being placed into the command template to prevent shell injection.
+## 6. Security & Sandboxing
+- **Script Tools**: Restricted via process-level timeouts and working directory limits.
+- **Java Tools**: Restricted via ClassLoader isolation and (future) JVM-level security policies.

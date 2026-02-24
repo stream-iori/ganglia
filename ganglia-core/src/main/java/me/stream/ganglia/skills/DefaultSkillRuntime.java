@@ -9,7 +9,9 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -18,6 +20,7 @@ public class DefaultSkillRuntime implements SkillRuntime {
 
     private final Vertx vertx;
     private final SkillService skillService;
+    private final Map<String, ClassLoader> classLoaderCache = new ConcurrentHashMap<>();
 
     public DefaultSkillRuntime(Vertx vertx, SkillService skillService) {
         this.vertx = vertx;
@@ -112,12 +115,26 @@ public class DefaultSkillRuntime implements SkillRuntime {
         List<me.stream.ganglia.tools.ToolSet> toolSets = new ArrayList<>();
         for (String skillId : activeSkillIds) {
             skillService.getSkill(skillId).ifPresent(skill -> {
+                List<SkillToolDefinition> scriptTools = skill.skillTools().stream()
+                    .filter(t -> "SCRIPT".equals(t.type()))
+                    .toList();
+                
+                List<SkillToolDefinition> javaTools = skill.skillTools().stream()
+                    .filter(t -> "JAVA".equals(t.type()))
+                    .toList();
+
                 // 1. Handle Script Tools
-                if (skill.scriptTools() != null && !skill.scriptTools().isEmpty()) {
-                    toolSets.add(new ScriptToolSet(vertx, skill.id(), skill.skillDir(), skill.scriptTools()));
+                if (!scriptTools.isEmpty()) {
+                    toolSets.add(new ScriptSkillToolSet(vertx, skill.id(), skill.skillDir(), scriptTools));
                 }
 
-                // 2. Handle Legacy Java Tools
+                // 2. Handle Java Tools
+                if (!javaTools.isEmpty()) {
+                    ClassLoader cl = getClassLoader(skill);
+                    toolSets.add(new JavaSkillToolSet(skill.id(), cl, javaTools));
+                }
+
+                // 3. Handle Legacy Java Tools (className平铺在tools里)
                 if (skill.tools() != null && !skill.tools().isEmpty()) {
                     for (String className : skill.tools()) {
                         try {
@@ -131,6 +148,21 @@ public class DefaultSkillRuntime implements SkillRuntime {
             });
         }
         return toolSets;
+    }
+
+    private ClassLoader getClassLoader(SkillManifest skill) {
+        if (skill.jarPath() == null) {
+            return getClass().getClassLoader();
+        }
+        return classLoaderCache.computeIfAbsent(skill.id(), id -> {
+            try {
+                java.net.URL jarUrl = new java.io.File(skill.jarPath()).toURI().toURL();
+                return new java.net.URLClassLoader(new java.net.URL[]{jarUrl}, getClass().getClassLoader());
+            } catch (Exception e) {
+                log.error("Failed to create ClassLoader for skill JAR {}: {}", skill.jarPath(), e.getMessage());
+                return getClass().getClassLoader();
+            }
+        });
     }
 
     @Override
