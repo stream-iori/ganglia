@@ -25,7 +25,7 @@ class StandardPromptEngineTest {
     void testBuildPromptInjectsToDo(Vertx vertx, VertxTestContext testContext) {
         TokenCounter counter = new TokenCounter();
         StubToolExecutor toolExecutor = new StubToolExecutor();
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, null, toolExecutor, counter);
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, toolExecutor, counter);
         ToDoList toDoList = ToDoList.empty().addTask("Task A");
         SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, toDoList);
 
@@ -42,7 +42,7 @@ class StandardPromptEngineTest {
             .compose(v -> {
                 TokenCounter counter = new TokenCounter();
                 StubToolExecutor toolExecutor = new StubToolExecutor();
-                StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, null, toolExecutor, counter);
+                StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, toolExecutor, counter);
                 SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
                 return engine.buildSystemPrompt(context);
             })
@@ -75,7 +75,7 @@ class StandardPromptEngineTest {
     void testPrepareRequest(Vertx vertx, VertxTestContext testContext) {
         StubToolExecutor toolExecutor = new StubToolExecutor(); // Returns empty list by default
         TokenCounter counter = new TokenCounter();
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, null, toolExecutor, counter);
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, toolExecutor, counter);
         
         ModelOptions options = new ModelOptions(0.0, 100, "test-model");
         SessionContext context = new SessionContext("sid", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());

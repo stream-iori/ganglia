@@ -1,125 +1,101 @@
-# Ganglia Skill System Design
+# Ganglia Skill System Redesign (Script-based & File-driven)
 
 > **Status:** Initial Design
 > **Module:** `ganglia-skills`
 > **Related:** [Architecture](ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 
-## 1. Introduction
-A **Skill** in Ganglia is a modular package that extends the agent's capabilities with domain-specific expertise. It encapsulates specialized system prompts, best practices, and custom tools. This modular approach keeps the core agent lightweight while allowing it to scale its expertise on demand.
+## 1. Objective
+To align Ganglia's skill system with the open standard established by Gemini CLI. The system moves away from Java-based tool definitions for skills, embracing a file-driven approach where skills are defined by a `SKILL.md` file and tools are executed as external scripts (Python, Node.js, Bash, etc.).
 
-## 2. Skill Anatomy
-A skill is a self-contained directory or JAR file containing a manifest and associated resources.
+## 2. Skill Structure
+A skill is a directory containing a `SKILL.md` file.
 
-### 2.1 File Structure
+### 2.1 Directory Layout
 ```text
-<skill-root>/
-├── skill.json              # Metadata and configuration
-├── prompts/                # Domain-specific instructions (Markdown)
-│   ├── best_practices.md
-│   └── architecture_rules.md
-├── tools/                  # (Optional) Compiled Java tool classes
-│   └── specialized/
-│       └── CustomTool.class
-└── resources/              # (Optional) Static knowledge or templates
+my-skill/
+├── SKILL.md          # Mandatory: Metadata, Instructions, and Tool Definitions
+├── scripts/          # Optional: Executable scripts (python, sh, js)
+└── assets/           # Optional: Static resources
 ```
 
-### 2.2 The Manifest (`skill.json`)
-The manifest defines how the skill integrates with the agent.
+### 2.2 The `SKILL.md` Format
+The file uses YAML frontmatter for configuration and Markdown for instructions.
 
-```json
-{
-  "id": "java-vertx-expert",
-  "version": "1.0.0",
-  "name": "Java & Vert.x Specialist",
-  "description": "Provides idiomatic Java 17 patterns and Vert.x 5 diagnostic tools.",
-  "author": "Ganglia Core Team",
-  "prompts": [
-    {
-      "id": "vertx-guidelines",
-      "path": "prompts/best_practices.md",
-      "priority": 10
-    }
-  ],
-  "tools": [
-    "me.stream.ganglia.skills.vertx.VertxInspectorTool"
-  ],
-  "activationTriggers": {
-    "filePatterns": ["pom.xml", "build.gradle", ".*\.java"],
-    "keywords": ["vertx", "eventbus", "reactive"]
-  }
-}
+```markdown
+---
+id: py-linter
+name: Python Linter
+description: Provides deep linting for Python files using Ruff.
+activationTriggers:
+  filePatterns: ["*.py"]
+tools:
+  - name: python_lint
+    description: Run ruff on a specific file.
+    command: "ruff check ${file}"
+    schema: |
+      {
+        "type": "object",
+        "properties": {
+          "file": { "type": "string", "description": "Path to the python file" }
+        },
+        "required": ["file"]
+      }
+---
+# Python Linting Instructions
+You are a Python quality expert. When using the `python_lint` tool:
+1. Always suggest fixes for the errors found.
+2. Refer to PEP 8 standards.
 ```
 
-## 3. System Components
+## 3. Core Components
 
-### 3.1 `SkillRegistry`
-The central catalog of all installed skills.
-- **Discovery:** Scans fixed locations (e.g., `~/.ganglia/skills/`) and the classpath for `skill.json` files.
-- **Indexing:** Maintains a searchable index of skill capabilities and triggers.
+### 3.1 `SkillManifest` (Enhanced)
+Updated to support the `tools` array in frontmatter. Each tool entry contains:
+- `name`: Tool name for the LLM.
+- `command`: Bash-like command template with variable substitution (e.g., `${file}`, `${skillDir}`).
+- `schema`: JSON Schema for parameter validation.
 
-### 3.2 `SkillManager`
-Manages the lifecycle of skills within an active `SessionContext`.
-- **Activation:** When a skill is activated, its ID is added to `SessionContext.activeSkillIds`.
-- **Resource Loading:** Loads prompts and instantiates tool classes from the skill package.
-- **Persistence:** Skill activation state is saved as part of the session state.
+### 3.2 `ScriptToolSet` (New)
+A dynamic `ToolSet` implementation that:
+1. Map skill-defined tools to executable processes.
+2. Performs variable substitution in the `command` string using arguments provided by the LLM.
+3. Executes the process using a non-blocking bridge (wrapping `ProcessBuilder` or reusing `BashTools` logic).
+4. Captures `stdout` and `stderr` as the tool observation.
 
-### 3.3 `SkillPromptInjector`
-A specialized `ContextSource` for the `ContextEngine` that merges skill content into the system prompt.
-- **Composition:** Iterates through active skills and appends their prompt content into a designated `<skills_context>` block.
-- **Hierarchy:** Injected into the prompt at **Priority 5**, ensuring domain-specific heuristics steer the agent after core mandates but before the specific task plan.
-- **De-duplication:** Ensures that if multiple skills provide overlapping instructions, they are handled gracefully (e.g., via priority).
+### 3.3 `FileSystemSkillLoader`
+Scans for `SKILL.md` files in:
+1. **Workspace Scope**: `./.ganglia/skills/`
+2. **User Scope**: `~/.ganglia/skills/`
 
-### 3.4 `DynamicToolRegistry`
-Extends the `ToolExecutor` to support tools provided by skills.
-- **On-demand Registration:** When a skill is activated, its tools are dynamically registered and become available for the agent to call.
+### 3.4 `SkillRuntime` (Lazy Activation)
+- **Discovery**: At startup, only the metadata (id, name, description, triggers) is loaded.
+- **Activation**: When `activate_skill(id)` is called:
+    1. The Markdown body (instructions) is loaded and injected into the System Prompt.
+    2. The defined script tools are instantiated and registered in the `DefaultToolExecutor`.
 
-## 4. Interaction Patterns
+## 4. Execution Workflow
 
-### 4.1 Manual Activation
-The user can explicitly request a skill:
-> "Use the AWS skill to help me deploy this."
+```mermaid
+sequenceDiagram
+    participant LLM
+    participant Loop as ReActAgentLoop
+    participant Exec as ToolExecutor
+    participant ScriptSet as ScriptToolSet
+    participant Proc as External Process
 
-### 4.2 Agentic Discovery
-The agent has access to a `list_available_skills` tool. If it encounters a task for which it lacks specific tools or knowledge, it can:
-1. Search the `SkillRegistry`.
-2. Propose activation to the user: "I see you are working with Kubernetes. Should I activate the 'k8s-expert' skill?"
-3. Invoke `activate_skill(id)`.
-
-### 4.3 Trigger-based Suggestions
-The system monitors the environment (file structure, technology stack). If a match is found in `activationTriggers`, the agent can proactively suggest the skill.
+    LLM->>Loop: Thought: I need to lint this file.
+    LLM->>Loop: ToolCall: python_lint(file="main.py")
+    Loop->>Exec: execute(python_lint)
+    Exec->>ScriptSet: execute(python_lint, {file: "main.py"})
+    ScriptSet->>ScriptSet: Substitute "ruff check ${file}" -> "ruff check main.py"
+    ScriptSet->>Proc: Spawn "ruff check main.py"
+    Proc-->>ScriptSet: Output: "L001: Missing docstring"
+    ScriptSet-->>Exec: ToolInvokeResult(success, "L001: Missing docstring")
+    Exec-->>Loop: Observation
+    Loop-->>LLM: Feed observation...
+```
 
 ## 5. Security & Safety
-- **Tool Sandboxing:** Tools provided by skills are subject to the same execution guards (timeouts, memory limits) as built-in tools.
-- **Human-in-the-Loop:** Tools marked as `@Sensitive` within a skill manifest still require explicit user confirmation.
-- **Code Signing:** (Future) Support for signed skill packages to prevent execution of malicious third-party code.
-
-## 6. Skill Discovery & Activation Workflow
-
-The identification and triggering of local Skills rely on an automated **"Scan -> Description Match -> Function Calling"** mechanism.
-
-### 6.1 Discovery Phase
-At session startup or via the `/skills reload` command, the system scans specific local directories for `SKILL.md` files:
-- **Project Level:** `.ganglia/skills/` within the current project.
-- **User Level:** `~/.ganglia/skills/` in the user's home directory.
-- **Identification:** Each skill must reside in its own folder and contain a `SKILL.md` file defining its metadata (Frontmatter) and instructions.
-
-### 6.2 Prompt Injection (Lightweight Declaration)
-To optimize token usage, the system employs a "Lightweight Declaration" strategy:
-- **Metadata Extraction:** The CLI extracts the `name` and `description` of all available skills.
-- **Tool Declaration:** These are injected as "Available Tools" into the system prompt or passed via the API's `tools` definition, allowing the model to know *what* is available without loading the full instructions yet.
-
-### 6.3 Model Decision
-When a user provides an instruction:
-- **Semantic Analysis:** The model compares user intent against the descriptions of available skills.
-- **Keyword Matching:** Rules defined in the skill's metadata (e.g., "trigger when user mentions 'audit' or 'test'") guide the model's decision-making process.
-
-### 6.4 Trigger & Activation
-Once the model decides to use a skill, it initiates a **Function Call**:
-1. **Instruction:** The model issues `activate_skill(skill_id="...")`.
-2. **Consent:** The CLI prompts the user for permission to load the skill (Security Guard).
-3. **Full Injection:** Upon approval, the complete content of `SKILL.md` (the "Body") and associated resource paths are injected into the active context window.
-
-### 6.5 Execution Phase
-Once activated, the model operates with "Domain Expertise":
-- **Chained Operations:** The model may use its new instructions to call other tools (e.g., `run_shell_command`) to execute scripts within the skill directory.
-- **Result Feedback:** Output from these scripts is fed back to the model for final synthesis and response.
+- **Sandbox**: All script tools run with the same constraints as `run_shell_command` (timeouts, restricted working directory).
+- **Confirmation**: Activating a skill requires user consent (Interrupt).
+- **Variable Injection**: Arguments are sanitized before being placed into the command template to prevent shell injection.

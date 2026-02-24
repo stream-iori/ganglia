@@ -7,8 +7,7 @@ import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.prompt.context.*;
 import me.stream.ganglia.core.prompt.context.SubAgentContextSource;
-import me.stream.ganglia.skills.SkillPromptInjector;
-import me.stream.ganglia.skills.SkillSuggester;
+import me.stream.ganglia.skills.SkillRuntime;
 import me.stream.ganglia.tools.ToolExecutor;
 
 import java.util.ArrayList;
@@ -25,8 +24,7 @@ public class StandardPromptEngine implements PromptEngine {
 
     public StandardPromptEngine(Vertx vertx,
                                 KnowledgeBase knowledgeBase,
-                                SkillPromptInjector skillInjector,
-                                SkillSuggester skillSuggester,
+                                SkillRuntime skillRuntime,
                                 ToolExecutor toolExecutor,
                                 TokenCounter tokenCounter) {
         MarkdownContextResolver resolver = new MarkdownContextResolver(vertx);
@@ -38,7 +36,7 @@ public class StandardPromptEngine implements PromptEngine {
         sources.add(new PersonaContextSource());
         sources.add(new FileContextSource(vertx, resolver, "GANGLIA.md"));
         sources.add(new EnvironmentSource(vertx));
-        sources.add(new SkillContextSource(skillInjector, skillSuggester));
+        sources.add(new SkillContextSource(skillRuntime));
         if (this.toolExecutor != null) {
             sources.add(new ToolContextSource(this.toolExecutor));
         }

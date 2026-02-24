@@ -10,13 +10,16 @@ import me.stream.ganglia.tools.model.ToolInvokeResult;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class SkillTools implements ToolSet {
-    private final SkillRegistry registry;
+    private final SkillService skillService;
+    private final SkillRuntime skillRuntime;
 
-    public SkillTools(SkillRegistry registry) {
-        this.registry = registry;
+    public SkillTools(SkillService skillService, SkillRuntime skillRuntime) {
+        this.skillService = skillService;
+        this.skillRuntime = skillRuntime;
     }
 
     @Override
@@ -48,7 +51,7 @@ public class SkillTools implements ToolSet {
     }
 
     private Future<ToolInvokeResult> listSkills() {
-        List<SkillManifest> skills = registry.listAvailableSkills();
+        List<SkillManifest> skills = skillService.getAvailableSkills();
         if (skills.isEmpty()) {
             return Future.succeededFuture(ToolInvokeResult.success("No skills available."));
         }
@@ -65,16 +68,13 @@ public class SkillTools implements ToolSet {
         if (confirmedObj instanceof Boolean) confirmed = (Boolean) confirmedObj;
         else if (confirmedObj instanceof String) confirmed = Boolean.parseBoolean((String) confirmedObj);
         
-        SkillManifest skill = registry.getSkill(skillId);
-        if (skill == null) {
+        Optional<SkillManifest> skillOpt = skillService.getSkill(skillId);
+        if (skillOpt.isEmpty()) {
             return Future.succeededFuture(ToolInvokeResult.error("Skill not found: " + skillId));
         }
+        SkillManifest skill = skillOpt.get();
 
-        List<String> activeSkills = context.activeSkillIds();
-        if (activeSkills == null) activeSkills = new ArrayList<>();
-        else activeSkills = new ArrayList<>(activeSkills);
-
-        if (activeSkills.contains(skillId)) {
+        if (context.activeSkillIds().contains(skillId)) {
             return Future.succeededFuture(ToolInvokeResult.success("Skill already active: " + skillId));
         }
 
@@ -86,19 +86,7 @@ public class SkillTools implements ToolSet {
             ));
         }
 
-        activeSkills.add(skillId);
-
-        // Create new context with updated skill IDs
-        SessionContext nextContext = new SessionContext(
-            context.sessionId(),
-            context.previousTurns(),
-            context.currentTurn(),
-            context.metadata(),
-            activeSkills,
-            context.modelOptions(),
-            context.toDoList()
-        );
-
-        return Future.succeededFuture(ToolInvokeResult.success("Skill successfully activated: " + skill.name(), nextContext));
+        return skillRuntime.activateSkill(skillId, context)
+            .map(nextContext -> ToolInvokeResult.success("Skill successfully activated: " + skill.name(), nextContext));
     }
 }

@@ -1,7 +1,11 @@
 package me.stream.ganglia.skills;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -14,14 +18,19 @@ public record SkillManifest(
     String author,
     List<PromptDefinition> prompts,
     List<String> tools,
+    List<ScriptToolDefinition> scriptTools,
     SkillTrigger activationTriggers,
-    String instructions
+    String instructions,
+    String skillDir
 ) {
+    private static final Logger logger = LoggerFactory.getLogger(SkillManifest.class);
+    private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
-   public SkillManifest {
-       if (prompts == null) prompts = Collections.emptyList();
-       if (tools == null) tools = Collections.emptyList();
-   }
+    public SkillManifest {
+        if (prompts == null) prompts = Collections.emptyList();
+        if (tools == null) tools = Collections.emptyList();
+        if (scriptTools == null) scriptTools = Collections.emptyList();
+    }
 
     public static SkillManifest fromJson(JsonObject json) {
         return new SkillManifest(
@@ -36,12 +45,18 @@ public record SkillManifest(
             json.getJsonArray("tools", new JsonArray()).stream()
                 .map(Object::toString)
                 .collect(Collectors.toList()),
+            Collections.emptyList(),
             SkillTrigger.fromJson(json.getJsonObject("activationTriggers")),
-            ""
+            "",
+            null
         );
     }
 
     public static SkillManifest fromMarkdown(String folderId, String content) {
+        return fromMarkdown(folderId, content, null);
+    }
+
+    public static SkillManifest fromMarkdown(String folderId, String content, String skillDir) {
         String frontmatter = "";
         String body = "";
 
@@ -58,63 +73,78 @@ public record SkillManifest(
             body = content;
         }
 
-        Map<String, String> metadata = parseFrontmatter(frontmatter);
+        Map<String, Object> metadata = parseFrontmatter(frontmatter);
 
-        String skillId = metadata.getOrDefault("id", folderId);
-        List<String> filePatterns = parseList(metadata.getOrDefault("filePatterns", ""));
-        List<String> keywords = parseList(metadata.getOrDefault("keywords", ""));
+        String skillId = metadata.getOrDefault("id", folderId).toString();
+        
+        List<ScriptToolDefinition> scriptTools = new ArrayList<>();
+        if (metadata.get("tools") instanceof List<?> toolsList) {
+            for (Object item : toolsList) {
+                if (item instanceof Map<?, ?> toolMap) {
+                    scriptTools.add(new ScriptToolDefinition(
+                        (String) toolMap.get("name"),
+                        (String) toolMap.get("description"),
+                        (String) toolMap.get("command"),
+                        (String) toolMap.get("schema")
+                    ));
+                }
+            }
+        }
+
+        SkillTrigger trigger = null;
+        Object triggerObj = metadata.get("activationTriggers");
+        if (triggerObj instanceof Map<?, ?> tm) {
+            List<String> filePatterns = parseList(tm.get("filePatterns"));
+            List<String> keywords = parseList(tm.get("keywords"));
+            trigger = new SkillTrigger(filePatterns, keywords);
+        } else {
+            // Legacy/alternative flat format support
+            trigger = new SkillTrigger(
+                parseList(metadata.get("filePatterns")),
+                parseList(metadata.get("keywords"))
+            );
+        }
 
         return new SkillManifest(
             skillId,
-            metadata.getOrDefault("version", "1.0.0"),
-            metadata.getOrDefault("name", skillId),
-            metadata.getOrDefault("description", ""),
-            metadata.getOrDefault("author", "Unknown"),
+            metadata.getOrDefault("version", "1.0.0").toString(),
+            metadata.getOrDefault("name", skillId).toString(),
+            metadata.getOrDefault("description", "").toString(),
+            metadata.getOrDefault("author", "Unknown").toString(),
             new ArrayList<>(),
-            parseList(metadata.getOrDefault("tools", "")),
-            new SkillTrigger(filePatterns, keywords),
-            body
+            new ArrayList<>(),
+            scriptTools,
+            trigger,
+            body,
+            skillDir
         );
     }
 
-    private static Map<String, String> parseFrontmatter(String frontmatter) {
-        Map<String, String> metadata = new HashMap<>();
-        if (frontmatter.isEmpty()) return metadata;
-
-        String[] lines = frontmatter.split("\n");
-        for (String line : lines) {
-            int colon = line.indexOf(':');
-            if (colon != -1) {
-                String key = line.substring(0, colon).trim();
-                String value = line.substring(colon + 1).trim();
-                if (value.startsWith("\"") && value.endsWith("\"")) {
-                    value = value.substring(1, value.length() - 1);
-                } else if (value.startsWith("'") && value.endsWith("'")) {
-                    value = value.substring(1, value.length() - 1);
-                }
-                metadata.put(key, value);
-            }
+    private static Map<String, Object> parseFrontmatter(String frontmatter) {
+        if (frontmatter.isEmpty()) return new HashMap<>();
+        try {
+            return yamlMapper.readValue(frontmatter, Map.class);
+        } catch (Exception e) {
+            logger.warn("Failed to parse YAML frontmatter: {}. Falling back to empty map.", e.getMessage());
+            return new HashMap<>();
         }
-        return metadata;
     }
 
-    private static List<String> parseList(String value) {
-        if (value == null || value.isEmpty()) return new ArrayList<>();
-        if (value.startsWith("[") && value.endsWith("]")) {
-            value = value.substring(1, value.length() - 1);
+    private static List<String> parseList(Object value) {
+        if (value == null) return Collections.emptyList();
+        if (value instanceof List<?> list) {
+            return list.stream().map(Object::toString).collect(Collectors.toList());
         }
-        List<String> result = new ArrayList<>();
-        for (String s : value.split(",")) {
-            String trimmed = s.trim();
-            if (trimmed.startsWith("\"") && trimmed.endsWith("\"")) {
-                trimmed = trimmed.substring(1, trimmed.length() - 1);
+        if (value instanceof String s) {
+            if (s.startsWith("[") && s.endsWith("]")) {
+                s = s.substring(1, s.length() - 1);
             }
-            if (trimmed.startsWith("'") && trimmed.endsWith("'")) {
-                trimmed = trimmed.substring(1, trimmed.length() - 1);
-            }
-            if (!trimmed.isEmpty()) result.add(trimmed);
+            return Arrays.stream(s.split(","))
+                .map(String::trim)
+                .filter(item -> !item.isEmpty())
+                .collect(Collectors.toList());
         }
-        return result;
+        return Collections.emptyList();
     }
 
     public record PromptDefinition(String id, String path, int priority) {

@@ -147,21 +147,23 @@
 - [x] **Final Check:**
     - [x] Verify all scenarios pass using real model calls (if configured) or high-fidelity mocks.
 
-## Phase 15: Skill System Refactoring (SKILL.md & Lazy Activation)
-**Objective:** Transition to a lightweight, file-based skill discovery and activation mechanism.
+## Phase 15: Skill System Redesign (Script-based & File-driven)
+**Objective:** Transition to a standardized, file-based skill system where tools are defined as scripts in `SKILL.md`, following the Gemini CLI standard.
 
-- [x] **Unified Skill Format:**
-    - [x] Migrate from `skill.json` to `SKILL.md` with YAML Frontmatter for metadata.
-    - [x] Update `SkillManifest` to parse Markdown files with frontmatter.
-- [x] **Lazy Activation Logic:**
-    - [x] Refactor `SkillRegistry` to only expose name/description during initial prompt construction.
-    - [x] Implement `activate_skill` tool to load the full `SKILL.md` body into the context window.
-- [x] **User Consent Layer:**
-    - [x] Add an interrupt/confirmation step in the CLI when `activate_skill` is invoked.
-- [x] **Discovery Expansion:**
-    - [x] Support scanning `~/.ganglia/skills/` and project-local `.ganglia/skills/`.
+- [x] **Core Model & Parsing:**
+    - [x] Update `SkillManifest` to support the `tools` YAML array in frontmatter (name, command, schema).
+    - [x] Enhance `MarkdownContextResolver` or `SkillManifest` to handle variable substitution logic (e.g., `${skillDir}`).
+- [x] **Script Tool Execution Engine:**
+    - [x] Implement `ScriptToolSet`: A dynamic toolset that spawns external processes based on `SKILL.md` templates.
+    - [x] Implement parameter injection and sanitization for script commands.
+- [x] **Lazy Loading & Dynamic Registration:**
+    - [x] Refactor `SkillService` to support metadata-only discovery and lazy-loading of full instructions.
+    - [x] Update `DefaultToolExecutor` to dynamically register script tools upon skill activation.
+- [x] **Scope & Discovery:**
+    - [x] Update `FileSystemSkillLoader` to scan both project-local `.ganglia/skills/` and user-global `~/.ganglia/skills/`.
 - [x] **Verification:**
-    - [x] Port the `git-smart-commit` skill to the new `SKILL.md` format and verify the discovery-activation-execution flow.
+    - [x] Port `git-smart-commit` to the new script-based format.
+    - [x] Create `SkillSystemIT` to verify the full flow: Discovery -> Activation (Interrupt) -> Script Tool Execution -> Observation.
 
 ## Phase 13: Systemic Context Engine (GEMINI.md Mechanism)
 **Objective:** Decouple prompt construction from code using file-driven context.

@@ -2,28 +2,26 @@ package me.stream.ganglia.core.prompt.context;
 
 import io.vertx.core.Future;
 import me.stream.ganglia.core.model.SessionContext;
-import me.stream.ganglia.skills.SkillPromptInjector;
-import me.stream.ganglia.skills.SkillSuggester;
+import me.stream.ganglia.skills.SkillRuntime;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class SkillContextSource implements ContextSource {
-    private final SkillPromptInjector skillInjector;
-    private final SkillSuggester skillSuggester;
+    private final SkillRuntime skillRuntime;
 
-    public SkillContextSource(SkillPromptInjector skillInjector, SkillSuggester skillSuggester) {
-        this.skillInjector = skillInjector;
-        this.skillSuggester = skillSuggester;
+    public SkillContextSource(SkillRuntime skillRuntime) {
+        this.skillRuntime = skillRuntime;
     }
 
     @Override
     public Future<List<ContextFragment>> getFragments(SessionContext sessionContext) {
-        Future<String> skillsFuture = skillInjector != null ?
-                skillInjector.injectSkills(sessionContext.activeSkillIds()) : Future.succeededFuture("");
+        if (skillRuntime == null) {
+            return Future.succeededFuture(new ArrayList<>());
+        }
 
-        Future<String> suggestionsFuture = skillSuggester != null ?
-                skillSuggester.suggestSkills(".", sessionContext.activeSkillIds()) : Future.succeededFuture("");
+        Future<String> skillsFuture = skillRuntime.getActiveSkillsPrompt(sessionContext);
+        Future<String> suggestionsFuture = skillRuntime.suggestSkills(sessionContext);
 
         return Future.join(skillsFuture, suggestionsFuture).map(composite -> {
             List<ContextFragment> fragments = new ArrayList<>();

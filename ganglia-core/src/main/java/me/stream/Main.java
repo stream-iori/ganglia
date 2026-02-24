@@ -22,9 +22,7 @@ import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.memory.MemoryService;
 import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.core.state.TokenUsageManager;
-import me.stream.ganglia.skills.SkillPromptInjector;
-import me.stream.ganglia.skills.SkillRegistry;
-import me.stream.ganglia.skills.SkillSuggester;
+import me.stream.ganglia.skills.*;
 import me.stream.ganglia.tools.DefaultToolExecutor;
 import me.stream.ganglia.tools.ToolsFactory;
 import me.stream.ganglia.core.prompt.context.DailyContextSource;
@@ -100,9 +98,11 @@ public class Main {
             }
             skillPaths.add(Paths.get("skills"));
 
-            SkillRegistry skillRegistry = new SkillRegistry(vertx, skillPaths);
+            SkillLoader skillLoader = new FileSystemSkillLoader(vertx, skillPaths);
+            SkillService skillService = new DefaultSkillService(skillLoader);
+            SkillRuntime skillRuntime = new DefaultSkillRuntime(vertx, skillService);
 
-            return skillRegistry.init().map(v2 -> {
+            return skillService.init().map(v2 -> {
                 // 2. Setup Kernel & Memory
                 TokenCounter tokenCounter = new TokenCounter();
                 KnowledgeBase knowledgeBase = new FileSystemKnowledgeBase(vertx);
@@ -111,20 +111,19 @@ public class Main {
 
                 ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
                 
-                // Initialize PromptEngine without toolExecutor first to break cycle
-                SkillPromptInjector skillInjector = new SkillPromptInjector(vertx, skillRegistry);
-                SkillSuggester skillSuggester = new SkillSuggester(vertx, skillRegistry);
-                StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillInjector, skillSuggester, null, tokenCounter);
+                // Initialize PromptEngine
+                StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillRuntime, null, tokenCounter);
                 
                 // Initialize SessionManager
                 FileStateEngine stateEngine = new FileStateEngine(vertx);
                 FileLogManager logManager = new FileLogManager(vertx);
                 SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
 
-                // Initialize ToolExecutor with all dependencies for SubAgentTools
+                // Initialize ToolExecutor
                 DefaultToolExecutor toolExecutor = new DefaultToolExecutor(
                     toolsFactory, 
-                    skillRegistry, 
+                    skillService,
+                    skillRuntime,
                     modelGateway, 
                     sessionManager, 
                     promptEngine, 
