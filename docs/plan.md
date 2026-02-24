@@ -420,4 +420,36 @@
     - [x] Ensure all refactored tests pass with `mvn test`.
     - [x] Verify that test execution time and readability are improved.
 
+## Phase 29: Structural Robustness & Error Handling
+**Objective:** Enhance the system's ability to handle LLM instability and invalid tool calls.
+
+- [x] **LLM Reliability:**
+    - [x] Implement `LLMException` mapping in all `ModelGateway` providers.
+    - [x] Add Jittered Exponential Backoff to the reasoning loop using Vert.x timers.
+- [x] **Tool Call Defense:**
+    - [x] Implement `ToolCallValidator` using JSON Schema to verify arguments before execution.
+    - [x] Create `JsonSanitizer` to handle common model formatting errors (Markdown tags, trailing commas).
+- [x] **Verification:**
+    - [x] Create a test case where the model returns invalid JSON and verify the system automatically prompts for correction.
+
+## Phase 30: Model Fallback & Quota Management
+**Objective:** Prevent session death due to API limits or primary model failure.
+
+- [x] **Fallback Logic:**
+    - [x] Implement `FallbackModelGateway`: Automatically route requests to the utility model if the primary model returns 429 or 5xx.
+- [x] **Resource Quotas:**
+    - [x] Implement a global `Semaphore` to limit concurrent sub-agent reasoning calls.
+    - [x] Add token usage monitoring with early warning alerts.
+
+## Phase 31: Lifecycle & Orphan Protection
+**Objective:** Ensure the system cleans up resources even in abnormal exit scenarios.
+
+- [x] **Process Management:**
+    - [x] Implement `ProcessTracker` to keep track of all spawned child processes.
+    - [x] Register JVM shutdown hooks to kill all tracked processes.
+- [x] **Atomic FS Operations:**
+    - [x] Update all file-writing tools to use the strict "Write-then-Move" pattern.
+- [x] **Verification:**
+    - [x] Verify that killing the main Ganglia process cleans up all sub-agent Python/Bash processes.
+
         

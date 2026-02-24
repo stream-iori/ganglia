@@ -30,26 +30,29 @@ public class GeminiModelGateway extends AbstractModelGateway {
         GenerateContentConfig config = buildConfig(history, availableTools, options);
         List<Content> contents = buildContents(history);
 
-        return vertx.executeBlocking(() -> {
+        return withSemaphore(vertx.executeBlocking(() -> {
             try {
                 GenerateContentResponse response = client.models.generateContent(options.modelName(), contents, config);
                 return toModelResponse(response);
             } catch (Exception e) {
                 throw new RuntimeException(wrapException(e));
             }
-        });
+        }));
     }
 
     @Override
     public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId) {
         GenerateContentConfig config = buildConfig(history, availableTools, options);
         List<Content> contents = buildContents(history);
-        Promise<ModelResponse> promise = Promise.promise();
-        String observationAddress = "ganglia.observations." + sessionId;
+        
+        return withSemaphore(doChatStream(options.modelName(), contents, config, sessionId));
+    }
 
+    private Future<ModelResponse> doChatStream(String modelName, List<Content> contents, GenerateContentConfig config, String sessionId) {
+        Promise<ModelResponse> promise = Promise.promise();
         vertx.executeBlocking(() -> {
             try {
-                Iterable<GenerateContentResponse> stream = client.models.generateContentStream(options.modelName(), contents, config);
+                Iterable<GenerateContentResponse> stream = client.models.generateContentStream(modelName, contents, config);
 
                 StringBuilder fullContent = new StringBuilder();
                 List<ToolCall> allToolCalls = new ArrayList<>();

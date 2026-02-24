@@ -36,17 +36,20 @@ public class AnthropicModelGateway extends AbstractModelGateway {
     @Override
     public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
         MessageCreateParams params = buildParams(history, availableTools, options);
-        return Future.fromCompletionStage(client.messages().create(params))
+        return withSemaphore(Future.fromCompletionStage(client.messages().create(params))
             .map(this::toModelResponse)
-            .recover(err -> Future.failedFuture(wrapException(err)));
+            .recover(err -> Future.failedFuture(wrapException(err))));
     }
 
     @Override
     public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId) {
         MessageCreateParams params = buildParams(history, availableTools, options);
+        return withSemaphore(doChatStream(params, sessionId));
+    }
+
+    private Future<ModelResponse> doChatStream(MessageCreateParams params, String sessionId) {
         Promise<ModelResponse> promise = Promise.promise();
         MessageAccumulator accumulator = accumulatorSupplier.get();
-        String observationAddress = "ganglia.observations." + sessionId;
 
         client.messages().createStreaming(params).subscribe(new com.anthropic.core.http.AsyncStreamResponse.Handler<RawMessageStreamEvent>() {
             @Override

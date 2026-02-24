@@ -12,6 +12,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.Json;
+import me.stream.ganglia.core.llm.util.JsonSanitizer;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToolDefinition;
@@ -42,9 +43,9 @@ public class OpenAIModelGateway extends AbstractModelGateway {
         logger.debug("[LLM_REQUEST] Model: {}, History Size: {}, Tools: {}",
             options.modelName(), history.size(), availableTools != null ? availableTools.size() : 0);
         traceParams(params);
-        return Future.fromCompletionStage(client.chat().completions().create(params))
+        return withSemaphore(Future.fromCompletionStage(client.chat().completions().create(params))
             .map(this::toModelResponse)
-            .recover(err -> Future.failedFuture(wrapException(err)));
+            .recover(err -> Future.failedFuture(wrapException(err))));
     }
 
     private Throwable wrapException(Throwable throwable) {
@@ -69,11 +70,14 @@ public class OpenAIModelGateway extends AbstractModelGateway {
         logger.debug("[LLM_STREAM_START] Model: {}, History Size: {}, Tools: {}",
             options.modelName(), history.size(), availableTools != null ? availableTools.size() : 0);
         traceParams(params);
-        Promise<ModelResponse> promise = Promise.promise();
+        
+        return withSemaphore(doChatStream(params, sessionId));
+    }
 
+    private Future<ModelResponse> doChatStream(ChatCompletionCreateParams params, String sessionId) {
+        Promise<ModelResponse> promise = Promise.promise();
         // Use OpenAI SDK Accumulator
         ChatCompletionAccumulator accumulator = ChatCompletionAccumulator.create();
-        String observationAddress = "ganglia.observations." + sessionId;
 
         AsyncStreamResponse<ChatCompletionChunk> stream = client.chat().completions().createStreaming(params);
         stream.subscribe(new AsyncStreamResponse.Handler<>() {
@@ -252,9 +256,10 @@ public class OpenAIModelGateway extends AbstractModelGateway {
 
     private Map<String, Object> parseJson(String json) {
         try {
-            return Json.decodeValue(json, Map.class);
+            String sanitized = JsonSanitizer.sanitize(json);
+            return Json.decodeValue(sanitized, Map.class);
         } catch (Exception e) {
-            logger.error("Failed to decode arguments", e);
+            logger.error("Failed to decode arguments: {}", json, e);
             return Collections.emptyMap();
         }
     }

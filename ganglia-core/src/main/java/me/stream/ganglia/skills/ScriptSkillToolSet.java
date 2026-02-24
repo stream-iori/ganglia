@@ -3,6 +3,7 @@ package me.stream.ganglia.skills;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import me.stream.ganglia.core.model.SessionContext;
+import me.stream.ganglia.core.util.ProcessTracker;
 import me.stream.ganglia.tools.ToolSet;
 import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToolDefinition;
@@ -73,6 +74,7 @@ public class ScriptSkillToolSet implements ToolSet {
             try {
                 ProcessBuilder pb = new ProcessBuilder("bash", "-c", command);
                 Process process = pb.start();
+                ProcessTracker.track(process);
                 
                 StringBuilder output = new StringBuilder();
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {

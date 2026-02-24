@@ -85,8 +85,15 @@ public class VertxFileSystemTools implements ToolSet {
     private Future<ToolInvokeResult> write(Map<String, Object> args) {
         String path = (String) args.get("path");
         String content = (String) args.get("content");
-        return vertx.fileSystem().writeFile(path, Buffer.buffer(content))
+        String tmpPath = path + ".tmp." + System.currentTimeMillis();
+
+        return vertx.fileSystem().writeFile(tmpPath, Buffer.buffer(content))
+            .compose(v -> vertx.fileSystem().move(tmpPath, path, new io.vertx.core.file.CopyOptions().setReplaceExisting(true)))
             .map(v -> ToolInvokeResult.success("Successfully written to " + path))
-            .recover(err -> Future.succeededFuture(ToolInvokeResult.error("Error writing to file: " + err.getMessage())));
+            .recover(err -> {
+                // Try cleanup tmp
+                vertx.fileSystem().delete(tmpPath);
+                return Future.succeededFuture(ToolInvokeResult.error("Error writing to file: " + err.getMessage()));
+            });
     }
 }

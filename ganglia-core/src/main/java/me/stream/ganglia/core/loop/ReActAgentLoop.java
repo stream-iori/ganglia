@@ -1,6 +1,7 @@
 package me.stream.ganglia.core.loop;
 
 import io.vertx.core.Future;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import me.stream.ganglia.core.config.ConfigManager;
@@ -159,16 +160,51 @@ public class ReActAgentLoop implements AgentLoop {
     // --- Core Logic Steps ---
 
     private Future<ModelResponse> reason(SessionContext context) {
+        return retryReason(context, 0);
+    }
+
+    private Future<ModelResponse> retryReason(SessionContext context, int attempt) {
         int iteration = context.getIterationCount();
-        logger.debug("Building LLM request for iteration: {}", iteration);
-        publishObservation(context.sessionId(), ObservationType.REASONING_STARTED, null);
+        if (attempt == 0) {
+            publishObservation(context.sessionId(), ObservationType.REASONING_STARTED, null);
+        }
 
         return promptEngine.prepareRequest(context, iteration)
             .compose(request -> {
-                logger.debug("Calling model: {} with history size: {}",
-                    request.options().modelName(), request.messages().size());
+                logger.debug("Calling model: {} with history size: {} (Attempt: {})",
+                    request.options().modelName(), request.messages().size(), attempt + 1);
                 return model.chatStream(request.messages(), request.tools(), request.options(), context.sessionId());
+            })
+            .recover(err -> {
+                if (shouldRetry(err) && attempt < 3) { // Max 3 retries
+                    long delay = calculateDelay(attempt);
+                    logger.warn("Transient LLM error for session {}. Retrying in {}ms... Error: {}", 
+                        context.sessionId(), delay, err.getMessage());
+                    
+                    Promise<ModelResponse> promise = Promise.promise();
+                    vertx.setTimer(delay, id -> {
+                        retryReason(context, attempt + 1).onComplete(promise);
+                    });
+                    return promise.future();
+                }
+                return Future.failedFuture(err);
             });
+    }
+
+    private boolean shouldRetry(Throwable err) {
+        if (err instanceof LLMException) {
+            LLMException le = (LLMException) err;
+            int status = le.httpStatusCode().orElse(0);
+            return status == 429 || (status >= 500 && status < 600);
+        }
+        return false;
+    }
+
+    private long calculateDelay(int attempt) {
+        long base = 1000; // 1s
+        long delay = (long) (base * Math.pow(2, attempt));
+        long jitter = (long) (Math.random() * 500); // 0-500ms jitter
+        return delay + jitter;
     }
 
     private Future<String> handleDecision(ModelResponse response, SessionContext currentContext) {

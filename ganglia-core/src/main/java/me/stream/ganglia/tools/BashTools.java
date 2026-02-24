@@ -3,6 +3,7 @@ package me.stream.ganglia.tools;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import me.stream.ganglia.core.model.SessionContext;
+import me.stream.ganglia.core.util.ProcessTracker;
 import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolErrorResult;
@@ -56,6 +57,7 @@ public class BashTools implements ToolSet {
                 ProcessBuilder pb = new ProcessBuilder("bash", "-c", command);
                 pb.redirectErrorStream(true);
                 process = pb.start();
+                ProcessTracker.track(process);
 
                 StreamResult streamResult = readStreamWithLimit(process.getInputStream(), MAX_OUTPUT_SIZE);
                 partialOutput = streamResult.content;

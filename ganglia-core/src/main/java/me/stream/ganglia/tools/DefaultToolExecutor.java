@@ -7,6 +7,7 @@ import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.session.SessionManager;
+import me.stream.ganglia.core.llm.util.ToolCallValidator;
 import me.stream.ganglia.skills.SkillManifest;
 import me.stream.ganglia.skills.SkillRuntime;
 import me.stream.ganglia.skills.SkillService;
@@ -32,6 +33,7 @@ public class DefaultToolExecutor implements ToolExecutor {
     private final List<ToolSet> builtInToolSets = new ArrayList<>();
     private final SkillService skillService;
     private final SkillRuntime skillRuntime;
+    private final ToolCallValidator validator = new ToolCallValidator();
 
     public DefaultToolExecutor(ToolsFactory factory, 
                                SkillService skillService,
@@ -64,7 +66,17 @@ public class DefaultToolExecutor implements ToolExecutor {
         String toolName = toolCall.toolName();
         log.debug("[TOOL_INVOKE] Name: {}, ID: {}, Args: {}", toolName, toolCall.id(), toolCall.arguments());
 
-        // 1. Try built-in tools
+        // 1. Find the tool definition for validation
+        ToolDefinition definition = findDefinition(toolCall, context);
+        if (definition != null) {
+            String validationError = validator.validate(toolName, toolCall.arguments(), definition.jsonSchema());
+            if (validationError != null) {
+                log.warn("[TOOL_VALIDATION_ERROR] Name: {}, Error: {}", toolName, validationError);
+                return Future.succeededFuture(ToolInvokeResult.error(validationError));
+            }
+        }
+
+        // 2. Try built-in tools
         for (ToolSet ts : builtInToolSets) {
             if (hasTool(ts, toolName)) {
                 log.debug("Found tool {} in built-in toolset: {}", toolName, ts.getClass().getSimpleName());
@@ -74,7 +86,7 @@ public class DefaultToolExecutor implements ToolExecutor {
             }
         }
 
-        // 2. Try tools from active skills
+        // 3. Try tools from active skills
         List<ToolSet> skillTools = skillRuntime.getActiveSkillsTools(context);
         for (ToolSet ts : skillTools) {
             if (hasTool(ts, toolName)) {
@@ -87,6 +99,13 @@ public class DefaultToolExecutor implements ToolExecutor {
 
         log.warn("No tool implementation found for: {}", toolName);
         return Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
+    }
+
+    private ToolDefinition findDefinition(ToolCall call, SessionContext context) {
+        return getAvailableTools(context).stream()
+            .filter(d -> d.name().equals(call.toolName()))
+            .findFirst()
+            .orElse(null);
     }
 
     @Override

@@ -134,6 +134,11 @@
                 <version>1.1.0</version>
             </dependency>
             <dependency>
+                <groupId>com.networknt</groupId>
+                <artifactId>json-schema-validator</artifactId>
+                <version>1.5.5</version>
+            </dependency>
+            <dependency>
                 <groupId>io.vertx</groupId>
                 <artifactId>vertx-stack-depchain</artifactId>
                 <version>${vertx.version}</version>

@@ -13,23 +13,36 @@ public class ModelGatewayFactory {
     private static final Logger logger = LoggerFactory.getLogger(ModelGatewayFactory.class);
 
     public static ModelGateway create(Vertx vertx, ConfigManager configManager) {
-        ModelConfig primary = configManager.getGangliaConfig().getModel("primary");
-        if (primary == null) {
+        ModelConfig primaryConfig = configManager.getGangliaConfig().getModel("primary");
+        if (primaryConfig == null) {
             logger.error("No 'primary' model configuration found.");
             throw new RuntimeException("Missing primary model configuration");
         }
 
-        String type = primary.type();
-        String apiKey = primary.apiKey();
+        ModelGateway primaryGateway = createProvider(vertx, primaryConfig);
+
+        ModelConfig utilityConfig = configManager.getGangliaConfig().getModel("utility");
+        if (utilityConfig != null) {
+            ModelGateway utilityGateway = createProvider(vertx, utilityConfig);
+            logger.info("Initializing fallback mechanism: Primary -> Utility ({})", utilityConfig.name());
+            return new FallbackModelGateway(primaryGateway, utilityGateway, utilityConfig.name());
+        }
+
+        return primaryGateway;
+    }
+
+    private static ModelGateway createProvider(Vertx vertx, ModelConfig config) {
+        String type = config.type();
+        String apiKey = config.apiKey();
 
         if (apiKey == null || apiKey.isEmpty()) {
-            logger.warn("No API key found in configuration for provider: {}.", type);
+            logger.warn("No API key found in configuration for provider: {} (Model: {}).", type, config.name());
         }
 
         return switch (type.toLowerCase()) {
-            case "anthropic" -> createAnthropic(vertx, primary);
-            case "gemini" -> createGemini(vertx, primary);
-            default -> createOpenAI(vertx, primary);
+            case "anthropic" -> createAnthropic(vertx, config);
+            case "gemini" -> createGemini(vertx, config);
+            default -> createOpenAI(vertx, config);
         };
     }
 
