@@ -30,37 +30,27 @@ public class MemoryService {
 
     private void register() {
         vertx.eventBus().<JsonObject>consumer(ADDRESS_REFLECT, message -> {
-            JsonObject body = message.body();
-            String sessionId = body.getString("sessionId");
-            String goal = body.getString("goal");
-            JsonObject turnJson = body.getJsonObject("turn");
-
-            if (sessionId == null || goal == null || turnJson == null) {
-                logger.error("Invalid reflect event received: {}", body);
-                return;
-            }
-
             try {
-                Turn turn = turnJson.mapTo(Turn.class);
-                handleReflect(sessionId, goal, turn);
+                ReflectEvent event = message.body().mapTo(ReflectEvent.class);
+                handleReflect(event);
             } catch (Exception e) {
-                logger.error("Failed to parse Turn object from event for session: {}", sessionId, e);
+                logger.error("Failed to parse ReflectEvent from message: {}", message.body(), e);
             }
         });
         logger.info("MemoryService registered on address: {}", ADDRESS_REFLECT);
     }
 
-    private void handleReflect(String sessionId, String goal, Turn turn) {
-        logger.debug("Starting background reflection for session: {}", sessionId);
+    private void handleReflect(ReflectEvent event) {
+        logger.debug("Starting background reflection for session: {}", event.sessionId());
 
-        compressor.reflect(turn)
-            .compose(summary -> dailyRecordManager.record(sessionId, goal, summary))
-            .onSuccess(v -> logger.debug("Background reflection and recording completed for session: {}", sessionId))
+        compressor.reflect(event.turn())
+            .compose(summary -> dailyRecordManager.record(event.sessionId(), event.goal(), summary))
+            .onSuccess(v -> logger.debug("Background reflection and recording completed for session: {}", event.sessionId()))
             .onFailure(err -> {
                 if (isShutdownError(err)) {
-                    logger.debug("Background task for session {} was aborted due to shutdown.", sessionId);
+                    logger.debug("Background task for session {} was aborted due to shutdown.", event.sessionId());
                 } else {
-                    logger.error("Background reflection failed for session: {}", sessionId, err);
+                    logger.error("Background reflection failed for session: {}", event.sessionId(), err);
                 }
             });
     }

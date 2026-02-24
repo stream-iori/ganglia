@@ -378,19 +378,24 @@
 - [x] **Verification:**
     - [x] Verify `AutonomousReActDemo` runs without `RejectedExecutionException` noise.
 
-## Phase 27: Sub-Agent Delegation System
-**Objective:** Enable the primary Orchestrator Agent to spawn focused, short-lived Sub-Agents for specialized tasks, keeping the main context clean and efficient.
+## Phase 27: Sub-Agent Graph Orchestration System
+**Objective:** Enable the primary Orchestrator Agent to delegate tasks as a Directed Acyclic Graph (DAG), supporting both parallel and sequential execution of focused, short-lived Sub-Agents.
 
-- [ ] **Sub-Agent Core Logic:**
-    - [ ] Implement `SubAgentTool` to allow the ReAct loop to spawn nested agent instances.
-    - [ ] Create `ContextScoper` to isolate and prune history before passing it to a child agent.
-- [ ] **Specialized Personas:**
-    - [ ] Define "Investigator" and "Refactorer" persona templates with restricted toolsets.
-    - [ ] Implement logic to return a structured "Summary Report" from child to parent.
-- [ ] **Recursion Control:**
-    - [ ] Implement hard limits on nesting depth and sub-agent iteration counts.
-- [ ] **Verification:**
-    - [ ] Create an integration test where a Parent Agent delegates a codebase investigation to an "Investigator" Sub-Agent and acts on its report.
+- [x] **Core Models & Tooling:**
+    - [x] Implement `TaskNode` and `TaskEdge` models for DAG representation.
+    - [x] Create `SubAgentGraphTools` with the `propose_task_graph` tool.
+    - [x] Implement `isInterrupt=true` for the `propose_task_graph` tool to ensure human-in-the-loop approval.
+- [x] **Graph Executor Implementation:**
+    - [x] Implement `GraphExecutor`: Handle topological sorting and concurrent execution using Vert.x `Future.all()`.
+    - [x] Create `ContextScoper` to isolate and prune history before passing it to child agents.
+- [x] **Specialized Personas & Reporting:**
+    - [x] Define "Investigator" and "Refactorer" persona templates with restricted toolsets.
+    - [x] Implement logic to return a structured "Summary Report" from each child node and a final aggregated report for the parent.
+- [x] **Recursion & Parallelism Control:**
+    - [x] Implement hard limits on nesting depth (max 1 level) and concurrency (implicitly handled by non-blocking Vert.x futures, but recursion is limited).
+- [x] **Verification:**
+    - [x] Create an integration test where a Parent Agent proposes a graph with two parallel "Investigator" tasks followed by a sequential "Synthesis" task.
+    - [x] Verify that the CLI correctly interrupts for user approval and that the graph executes as intended.
 
 ## Phase 28: Unit Test Refactoring & De-Mocking
 **Objective:** Improve test reliability and maintainability by replacing heavy Mockito usage with high-fidelity Fakes and Stubs.

@@ -7,6 +7,8 @@
 ## 1. Objective
 To enable complex task decomposition and efficient context management by allowing a primary Orchestrator Agent to delegate specialized sub-tasks to transient, focused "Sub-Agents" (Clones). This reduces the primary context window pressure and allows for expert-level execution in specific domains.
 
+For complex multi-task orchestration (parallel/sequential), see [Sub-Agent Graph Orchestration](SUB_AGENT_GRAPH_DESIGN.md).
+
 ## 2. Core Implementation Logic
 
 The Sub-Agent pattern in Ganglia follows a **Parent-Child** hierarchy invoked via a specialized tool.

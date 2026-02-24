@@ -9,6 +9,7 @@ import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.session.SessionManager;
+import me.stream.ganglia.memory.ReflectEvent;
 import me.stream.ganglia.tools.ToolExecutor;
 import me.stream.ganglia.tools.model.ToolCall;
 import org.slf4j.Logger;
@@ -207,10 +208,8 @@ public class ReActAgentLoop implements AgentLoop {
             // Async background reflection for Daily Journal via EventBus
             if (finalContext.currentTurn() != null) {
                 String goal = finalContext.currentTurn().userMessage().content();
-                vertx.eventBus().publish("ganglia.memory.reflect", new JsonObject()
-                    .put("sessionId", finalContext.sessionId())
-                    .put("goal", goal)
-                    .put("turn", JsonObject.mapFrom(finalContext.currentTurn())));
+                ReflectEvent event = new ReflectEvent(finalContext.sessionId(), goal, finalContext.currentTurn());
+                vertx.eventBus().publish("ganglia.memory.reflect", JsonObject.mapFrom(event));
             }
 
             return sessionManager

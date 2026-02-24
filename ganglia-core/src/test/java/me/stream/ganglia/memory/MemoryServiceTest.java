@@ -63,12 +63,9 @@ class MemoryServiceTest {
         modelGateway.addResponse(reflectionResponse);
 
         // Publish event to EventBus
-        JsonObject event = new JsonObject()
-            .put("sessionId", sessionId)
-            .put("goal", goal)
-            .put("turn", JsonObject.mapFrom(turn));
+        ReflectEvent event = new ReflectEvent(sessionId, goal, turn);
 
-        vertx.eventBus().publish(MemoryService.ADDRESS_REFLECT, event);
+        vertx.eventBus().publish(MemoryService.ADDRESS_REFLECT, JsonObject.mapFrom(event));
 
         // Verify by checking file system eventually
         testContext.verify(() -> {

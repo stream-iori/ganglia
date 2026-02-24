@@ -7,6 +7,8 @@ import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.memory.KnowledgeBase;
+import me.stream.ganglia.tools.subagent.DefaultGraphExecutor;
+import me.stream.ganglia.tools.subagent.GraphExecutor;
 
 /**
  * Factory for creating and managing built-in tool sets.
@@ -67,6 +69,7 @@ public class ToolsFactory {
     }
 
     public SubAgentTools createSubAgentTools(ModelGateway model, SessionManager sessionManager, PromptEngine promptEngine, ConfigManager config, ToolExecutor executor) {
-        return new SubAgentTools(vertx, model, sessionManager, promptEngine, config, executor);
+        GraphExecutor graphExecutor = new DefaultGraphExecutor(vertx, model, executor, sessionManager, promptEngine, config);
+        return new SubAgentTools(vertx, model, sessionManager, promptEngine, config, executor, graphExecutor);
     }
 }
