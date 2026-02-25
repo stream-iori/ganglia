@@ -3,6 +3,7 @@ package me.stream.ganglia.core.session;
 import io.vertx.core.Future;
 import me.stream.ganglia.core.model.Message;
 import me.stream.ganglia.core.model.SessionContext;
+import me.stream.ganglia.memory.ContextCompressor;
 
 import java.util.List;
 
@@ -49,4 +50,13 @@ public interface SessionManager {
      * Deletes a session and its associated data.
      */
     Future<Void> deleteSession(String sessionId);
+
+    /**
+     * Compresses older turns in the session to save context window space.
+     * @param context The session context to compress.
+     * @param turnsToKeep Number of recent turns to keep as raw messages.
+     * @param compressor The compressor to use.
+     * @return Future with the updated SessionContext.
+     */
+    Future<SessionContext> compressSession(SessionContext context, int turnsToKeep, ContextCompressor compressor);
 }

@@ -32,6 +32,7 @@ class ReActAgentLoopTest {
     StubPromptEngine prompt;
     StubConfigManager configManager;
     SessionManager sessionManager;
+    me.stream.ganglia.memory.ContextCompressor compressor;
     ReActAgentLoop loop;
 
     @BeforeEach
@@ -44,7 +45,8 @@ class ReActAgentLoopTest {
         prompt = new StubPromptEngine();
         configManager = new StubConfigManager(vertx);
         sessionManager = new DefaultSessionManager(state, logManager, configManager);
-        loop = new ReActAgentLoop(vertx, model, tools, sessionManager, prompt, configManager);
+        compressor = new me.stream.ganglia.memory.ContextCompressor(model, configManager);
+        loop = new ReActAgentLoop(vertx, model, tools, sessionManager, prompt, configManager, compressor);
     }
 
     @Test

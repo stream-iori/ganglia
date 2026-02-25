@@ -8,6 +8,7 @@ import me.stream.ganglia.core.loop.ReActAgentLoop;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.session.SessionManager;
+import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
@@ -33,10 +34,11 @@ public class SubAgentTools implements ToolSet {
     private final ConfigManager configManager;
     private final ToolExecutor toolExecutor;
     private final GraphExecutor graphExecutor;
+    private final ContextCompressor compressor;
 
     public SubAgentTools(Vertx vertx, ModelGateway modelGateway, SessionManager sessionManager,
                          PromptEngine promptEngine, ConfigManager configManager, ToolExecutor toolExecutor,
-                         GraphExecutor graphExecutor) {
+                         GraphExecutor graphExecutor, ContextCompressor compressor) {
         this.vertx = vertx;
         this.modelGateway = modelGateway;
         this.sessionManager = sessionManager;
@@ -44,6 +46,7 @@ public class SubAgentTools implements ToolSet {
         this.configManager = configManager;
         this.toolExecutor = toolExecutor;
         this.graphExecutor = graphExecutor;
+        this.compressor = compressor;
     }
 
     @Override
@@ -133,7 +136,7 @@ public class SubAgentTools implements ToolSet {
 
         SessionContext childContext = ContextScoper.scope(childSessionId, parentContext, childMetadata);
 
-        ReActAgentLoop childLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, configManager);
+        ReActAgentLoop childLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, configManager, compressor);
 
         return childLoop.run("TASK: " + task, childContext)
             .map(report -> ToolInvokeResult.success("--- SUB-AGENT REPORT ---\n" + report + "\n--- END REPORT ---"))

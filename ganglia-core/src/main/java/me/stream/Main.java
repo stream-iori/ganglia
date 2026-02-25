@@ -140,7 +140,8 @@ public class Main {
                     modelGateway, 
                     sessionManager, 
                     promptEngine, 
-                    configManager
+                    configManager,
+                    compressor
                 );
 
                 // Now wire back the toolExecutor to the promptEngine
@@ -155,7 +156,7 @@ public class Main {
                 new MemoryService(vertx, compressor, dailyRecordManager);
 
                 ReActAgentLoop agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, 
-                    promptEngine, configManager);
+                    promptEngine, configManager, compressor);
 
                 return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop);
             });

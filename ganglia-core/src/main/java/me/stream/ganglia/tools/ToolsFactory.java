@@ -68,8 +68,8 @@ public class ToolsFactory {
         return fileEditTools;
     }
 
-    public SubAgentTools createSubAgentTools(ModelGateway model, SessionManager sessionManager, PromptEngine promptEngine, ConfigManager config, ToolExecutor executor) {
-        GraphExecutor graphExecutor = new DefaultGraphExecutor(vertx, model, executor, sessionManager, promptEngine, config);
-        return new SubAgentTools(vertx, model, sessionManager, promptEngine, config, executor, graphExecutor);
+    public SubAgentTools createSubAgentTools(ModelGateway model, SessionManager sessionManager, PromptEngine promptEngine, ConfigManager config, ToolExecutor executor, ContextCompressor compressor) {
+        GraphExecutor graphExecutor = new DefaultGraphExecutor(vertx, model, executor, sessionManager, promptEngine, config, compressor);
+        return new SubAgentTools(vertx, model, sessionManager, promptEngine, config, executor, graphExecutor, compressor);
     }
 }

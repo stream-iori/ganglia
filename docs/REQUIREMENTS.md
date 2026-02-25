@@ -16,14 +16,13 @@
 
 #### 1.1.2 Exception Handling
 *   **Structured Tool Failures:** The system shall capture structured tool execution errors via `ToolErrorResult` (e.g., Timeout, Size Limit Exceeded, Command Failed) and feed the detailed context back to the agent for self-correction.
-*   **Memory Protection:** The system shall enforce a maximum output size (e.g., 8KB) for all tool executions to prevent memory exhaustion and context window overflow.
-*   **Early Validation:** Direct file read tools shall verify file size against metadata before loading content into memory.
+*   **Memory Protection:** The system shall enforce a maximum output size (e.g., 64KB) for all tool executions to prevent memory exhaustion and context window overflow.
+*   **Line-based Pagination:** Direct file read tools shall support `offset` and `limit` parameters to allow reading large files in chunks, providing metadata about the remaining content.
 *   **Loop Limits:** The system shall enforce a maximum number of iterations (e.g., 20 steps) to prevent infinite loops.
 
 ### 1.2 Tooling System ("The Hands")
 *   **Built-in Tools (Standard Library):**
-    *   **Local Filesystem (Bash-based):** Optimized system commands (`list_directory`, `read_file`, `grep_search`, `glob`) and generic `run_shell_command` with mandatory timeout and 8KB output size limits.
-    *   **Local Filesystem (Vert.x-based):** Native non-blocking Java operations including `write_file`.
+    *   **Local Filesystem (Bash-based):** Optimized system commands (`list_directory`, `read_file`, `grep_search`, `glob`) and generic `run_shell_command` with mandatory timeout and 64KB output size limits. `read_file` supports line-based pagination.
     *   **HTTP/Network (Vert.x-based):** Robust networking implemented via Vert.x `WebClient`.
     *   **ToDo & Plan Management:** Agent-managed internal task list.
 *   **Extension Tools (User-defined):**

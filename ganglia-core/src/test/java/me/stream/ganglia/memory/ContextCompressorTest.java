@@ -81,4 +81,27 @@ class ContextCompressorTest {
                     });
                 }));
     }
+
+    @Test
+    void testCompress(VertxTestContext testContext) {
+        when(configManager.getUtilityModel()).thenReturn("test-utility-model");
+        when(configManager.getTemperature()).thenReturn(0.0);
+        when(configManager.getMaxTokens()).thenReturn(100);
+
+        ContextCompressor compressor = new ContextCompressor(model, configManager);
+        
+        Turn t1 = Turn.newTurn("t1", Message.user("Task 1"));
+        Turn t2 = Turn.newTurn("t2", Message.user("Task 2"));
+
+        when(model.chat(any(), any(), any()))
+                .thenReturn(Future.succeededFuture(new ModelResponse("DENSE SUMMARY", Collections.emptyList(), new TokenUsage(20, 10))));
+
+        compressor.compress(List.of(t1, t2))
+                .onComplete(testContext.succeeding(res -> {
+                    testContext.verify(() -> {
+                        assertEquals("DENSE SUMMARY", res);
+                        testContext.completeNow();
+                    });
+                }));
+    }
 }

@@ -40,7 +40,8 @@ public class GraphExecutorTest {
         this.configManager = new StubConfigManager(vertx);
         this.sessionManager = new DefaultSessionManager(new InMemoryStateEngine(), new InMemoryLogManager(), configManager);
         this.promptEngine = new StubPromptEngine();
-        this.graphExecutor = new DefaultGraphExecutor(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, configManager);
+        me.stream.ganglia.memory.ContextCompressor compressor = new me.stream.ganglia.memory.ContextCompressor(modelGateway, configManager);
+        this.graphExecutor = new DefaultGraphExecutor(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, configManager, compressor);
     }
 
     @Test

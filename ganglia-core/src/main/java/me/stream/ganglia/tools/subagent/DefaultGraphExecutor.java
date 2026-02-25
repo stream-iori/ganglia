@@ -8,6 +8,7 @@ import me.stream.ganglia.core.loop.ReActAgentLoop;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.session.SessionManager;
+import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.tools.ToolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,15 +26,18 @@ public class DefaultGraphExecutor implements GraphExecutor {
     private final SessionManager sessionManager;
     private final PromptEngine promptEngine;
     private final ConfigManager configManager;
+    private final ContextCompressor compressor;
 
     public DefaultGraphExecutor(Vertx vertx, ModelGateway modelGateway, ToolExecutor toolExecutor,
-                                SessionManager sessionManager, PromptEngine promptEngine, ConfigManager configManager) {
+                                SessionManager sessionManager, PromptEngine promptEngine, ConfigManager configManager,
+                                ContextCompressor compressor) {
         this.vertx = vertx;
         this.modelGateway = modelGateway;
         this.toolExecutor = toolExecutor;
         this.sessionManager = sessionManager;
         this.promptEngine = promptEngine;
         this.configManager = configManager;
+        this.compressor = compressor;
     }
 
     @Override
@@ -109,7 +113,7 @@ public class DefaultGraphExecutor implements GraphExecutor {
 
         SessionContext childContext = ContextScoper.scope(childSessionId, parentContext, childMetadata);
 
-        ReActAgentLoop childLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, configManager);
+        ReActAgentLoop childLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, configManager, compressor);
 
         StringBuilder promptBuilder = new StringBuilder("TASK: ").append(node.task()).append("\n\n");
         if (!dependencyResults.isEmpty()) {

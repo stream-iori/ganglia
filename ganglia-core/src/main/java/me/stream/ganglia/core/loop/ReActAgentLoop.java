@@ -10,9 +10,12 @@ import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.session.SessionManager;
+import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.memory.ReflectEvent;
+import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.tools.ToolExecutor;
 import me.stream.ganglia.tools.model.ToolCall;
+import me.stream.ganglia.tools.model.ToolInvokeResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,15 +30,18 @@ public class ReActAgentLoop implements AgentLoop {
     private final PromptEngine promptEngine;
     private final ConfigManager configManager;
     private final Vertx vertx;
+    private final ContextCompressor compressor;
+    private final TokenCounter tokenCounter = new TokenCounter();
 
     public ReActAgentLoop(Vertx vertx, ModelGateway model, ToolExecutor toolExecutor, SessionManager sessionManager,
-                          PromptEngine promptEngine, ConfigManager configManager) {
+                          PromptEngine promptEngine, ConfigManager configManager, ContextCompressor compressor) {
         this.vertx = vertx;
         this.model = model;
         this.toolExecutor = toolExecutor;
         this.sessionManager = sessionManager;
         this.promptEngine = promptEngine;
         this.configManager = configManager;
+        this.compressor = compressor;
     }
 
     public PromptEngine promptEngine() {
@@ -131,6 +137,33 @@ public class ReActAgentLoop implements AgentLoop {
         if (iteration >= maxIterations) {
             logger.warn("Iteration limit reached ({}) for session: {}", maxIterations, currentContext.sessionId());
             return Future.succeededFuture("Max iterations reached without final answer.");
+        }
+
+        // --- Proactive Context Compression Check ---
+        int totalTokens = currentContext.history().stream()
+                .mapToInt(m -> m.countTokens(tokenCounter))
+                .sum();
+        
+        int limit = configManager.getContextLimit();
+        double threshold = configManager.getCompressionThreshold();
+
+        // --- Robustness: Financial Guardrail ---
+        if (totalTokens > 500000) { // Hard limit of 500k tokens per session
+            logger.error("Session token limit exceeded ({}). Aborting loop.", totalTokens);
+            publishObservation(currentContext.sessionId(), ObservationType.ERROR, "Session token limit exceeded. Safety abort.");
+            return Future.failedFuture("Session reached maximum safety token limit (500,000).");
+        }
+
+        if (totalTokens > limit * threshold && currentContext.previousTurns().size() > 1) {
+            logger.info("Context threshold reached ({} > {}). Triggering compression...", totalTokens, (int)(limit * threshold));
+            publishObservation(currentContext.sessionId(), ObservationType.SYSTEM_EVENT, "Auto-compressing context...");
+            
+            return sessionManager.compressSession(currentContext, 1, compressor)
+                    .compose(compressedContext -> {
+                        logger.info("Compression complete. New token count: {}", 
+                            compressedContext.history().stream().mapToInt(m -> m.countTokens(tokenCounter)).sum());
+                        return runLoop(compressedContext); // Restart this iteration with compressed context
+                    });
         }
 
         logger.debug("Loop iteration: {} for session: {}", iteration, currentContext.sessionId());
@@ -288,6 +321,27 @@ public class ReActAgentLoop implements AgentLoop {
 
                 Message toolMsg = Message.tool(call.id(), call.toolName(), invokeResult.output());
                 SessionContext contextToUse = invokeResult.modifiedContext() != null ? invokeResult.modifiedContext() : currentContext;
+                
+                // --- Robustness: Consecutive Failure Tracking ---
+                if (invokeResult.status() == ToolInvokeResult.Status.ERROR || invokeResult.status() == ToolInvokeResult.Status.EXCEPTION) {
+                    int fails = (int) contextToUse.metadata().getOrDefault("consecutive_tool_failures", 0);
+                    if (fails >= 2) {
+                        logger.warn("Tool {} failed {} times consecutively. Aborting loop to prevent runaway usage.", call.toolName(), fails + 1);
+                        return Future.failedFuture("Aborting due to repetitive tool failures: " + invokeResult.output());
+                    }
+                    Map<String, Object> newMetadata = new HashMap<>(contextToUse.metadata());
+                    newMetadata.put("consecutive_tool_failures", fails + 1);
+                    contextToUse = new SessionContext(contextToUse.sessionId(), contextToUse.previousTurns(), contextToUse.currentTurn(), 
+                        newMetadata, contextToUse.activeSkillIds(), contextToUse.modelOptions(), contextToUse.toDoList());
+                } else {
+                    if (contextToUse.metadata().containsKey("consecutive_tool_failures")) {
+                        Map<String, Object> newMetadata = new HashMap<>(contextToUse.metadata());
+                        newMetadata.remove("consecutive_tool_failures");
+                        contextToUse = new SessionContext(contextToUse.sessionId(), contextToUse.previousTurns(), contextToUse.currentTurn(), 
+                            newMetadata, contextToUse.activeSkillIds(), contextToUse.modelOptions(), contextToUse.toDoList());
+                    }
+                }
+
                 return Future.succeededFuture(sessionManager.addStep(contextToUse, toolMsg));
             })
             .compose(nextContext -> sessionManager.persist(nextContext).map(v -> nextContext))

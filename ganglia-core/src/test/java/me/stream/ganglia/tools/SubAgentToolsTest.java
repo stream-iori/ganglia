@@ -35,6 +35,7 @@ public class SubAgentToolsTest {
         
         StubModelGateway modelGateway = new StubModelGateway();
         StubConfigManager configManager = new StubConfigManager(vertx);
+        me.stream.ganglia.memory.ContextCompressor compressor = new me.stream.ganglia.memory.ContextCompressor(modelGateway, configManager);
         subAgentTools = new SubAgentTools(
             vertx,
             modelGateway,
@@ -42,7 +43,8 @@ public class SubAgentToolsTest {
             null, // promptEngine
             configManager,
             null, // toolExecutor
-            graphExecutor
+            graphExecutor,
+            compressor
         );
     }
 

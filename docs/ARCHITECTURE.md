@@ -101,8 +101,8 @@ graph TD
 - **Structured Error Handling:** Tools return a `ToolInvokeResult`.
 - **Safety:**
   - **Sandbox:** Execution of untrusted code in isolated environments.
-  - **Memory Protection:** Built-in safeguards to prevent memory exhaustion from large tool outputs (e.g., 8KB limit per call).
-  - **Early Validation:** Files are verified for size (max 8KB) before reading to protect context window.
+  - **Memory Protection:** Built-in safeguards to prevent memory exhaustion from large tool outputs (e.g., 64KB limit per call).
+  - **Line-based Pagination:** Direct file read tools (`read_file`) support `offset` and `limit` to handle large files without overflow.
   - **Human-in-the-Loop:** Tools marked as "Sensitive" (or explicit `ask_selection` calls) require user interaction.
 
 ### 3.3 The Memory System
@@ -111,7 +111,7 @@ See [Memory Architecture](MEMORY_ARCHITECTURE.md) for details.
 
 - **Three-Tier Architecture (Expanded):**
     - **Short-Term (Turn):** High-fidelity execution details.
-    - **Medium-Term (Session):** Compressed context managed via the ToDo list lifecycle.
+    - **Medium-Term (Session):** Managed via **Proactive Context Compression** (triggered at 70% of the model's window).
     - **Daily Journal (Bridge):** Cross-session summaries stored in `.ganglia/memory/daily-*.md`.
     - **Long-Term (Project):** Curated `MEMORY.md` and archived logs.
 - **Retrieval:** Agentic Search (`grep`, `read`) over long-term memory.

@@ -11,12 +11,15 @@ Ganglia implements a **Three-Tier Memory System** designed to balance high-fidel
 ### Tier 1: Short-Term Memory (The "Turn")
 *   **Scope:** A single User-Agent interaction cycle (e.g., "Fix bug X").
 *   **Granularity:** Extremely high. Contains raw "Thoughts", exact "Tool Calls", and full "Observations" (e.g., file contents, command outputs).
+*   **Pagination:** Large observations (e.g., source files) are handled via **Line-based Pagination** (`offset`/`limit`) to keep the turn context manageable while allowing full access to data.
 *   **Storage:** In-memory `Turn` objects within `SessionContext`.
 *   **Lifecycle:** Active only while the specific step is being executed. Once the step is complete, it is candidate for compression.
 
 ### Tier 2: Medium-Term Memory (The "Context Window")
 *   **Scope:** The active session history.
-*   **Mechanism:** Sliding Window with Semantic Pruning.
+*   **Mechanism:** **Proactive Rolling Compression**.
+*   **Trigger:** Automatically triggered when total history tokens exceed a configurable threshold (default: 70% of `contextLimit`).
+*   **Action:** Older turns are sent to `ContextCompressor` to generate a dense "State Summary". This summary replaces the raw turns in the message history, preserving key facts while freeing up significant token space.
 
 ### Tier 2.5: Daily Journal (Cross-Session)
 *   **Scope:** All activity within a single day.

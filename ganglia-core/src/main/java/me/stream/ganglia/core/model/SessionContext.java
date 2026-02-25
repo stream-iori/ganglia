@@ -114,6 +114,10 @@ public record SessionContext(
         return new SessionContext(sessionId, previousTurns, currentTurn, metadata, activeSkillIds, modelOptions, newToDoList);
     }
 
+    public SessionContext withPreviousTurns(List<Turn> newPreviousTurns) {
+        return new SessionContext(sessionId, newPreviousTurns, currentTurn, metadata, activeSkillIds, modelOptions, toDoList);
+    }
+
     /**
      * Returns the iteration count for the current turn.
      */

@@ -104,6 +104,7 @@ public class ConfigManager {
                 .put("name", "gpt-4o")
                 .put("temperature", 0.0)
                 .put("maxTokens", 4096)
+                .put("contextLimit", 128000)
                 .put("type", "openai")
                 .put("apiKey", "")
                 .put("baseUrl", "https://api.openai.com/v1");
@@ -112,6 +113,7 @@ public class ConfigManager {
                 .put("name", "gpt-4o-mini")
                 .put("temperature", 0.0)
                 .put("maxTokens", 2048)
+                .put("contextLimit", 128000)
                 .put("type", "openai")
                 .put("apiKey", "")
                 .put("baseUrl", "https://api.openai.com/v1");
@@ -121,7 +123,9 @@ public class ConfigManager {
         models.put("utility", utilityModel);
 
         return new JsonObject()
-                .put("agent", new JsonObject().put("maxIterations", 10))
+                .put("agent", new JsonObject()
+                        .put("maxIterations", 10)
+                        .put("compressionThreshold", 0.7))
                 .put("models", models)
                 .put("observability", new JsonObject()
                         .put("enabled", false)
@@ -148,6 +152,15 @@ public class ConfigManager {
     public int getMaxTokens() {
         ModelConfig mc = currentConfig.getModel("primary");
         return mc != null ? mc.maxTokens() : 4096;
+    }
+
+    public int getContextLimit() {
+        ModelConfig mc = currentConfig.getModel("primary");
+        return mc != null ? mc.contextLimit() : 128000;
+    }
+
+    public double getCompressionThreshold() {
+        return currentConfig.agent() != null ? currentConfig.agent().compressionThreshold() : 0.7;
     }
 
     public int getMaxIterations() {

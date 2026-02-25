@@ -1,6 +1,5 @@
 package me.stream.ganglia.tools;
 
-import io.vertx.core.Vertx;
 import me.stream.ganglia.core.config.ConfigManager;
 import io.vertx.core.Future;
 import me.stream.ganglia.core.llm.ModelGateway;
@@ -8,7 +7,7 @@ import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.core.llm.util.ToolCallValidator;
-import me.stream.ganglia.skills.SkillManifest;
+import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.skills.SkillRuntime;
 import me.stream.ganglia.skills.SkillService;
 import me.stream.ganglia.skills.SkillTools;
@@ -20,9 +19,6 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Default implementation of ToolExecutor that orchestrates built-in tool sets and skill tools.
@@ -35,13 +31,14 @@ public class DefaultToolExecutor implements ToolExecutor {
     private final SkillRuntime skillRuntime;
     private final ToolCallValidator validator = new ToolCallValidator();
 
-    public DefaultToolExecutor(ToolsFactory factory, 
+    public DefaultToolExecutor(ToolsFactory factory,
                                SkillService skillService,
                                SkillRuntime skillRuntime,
                                ModelGateway model,
                                SessionManager sessionManager,
                                PromptEngine promptEngine,
-                               ConfigManager config) {
+                               ConfigManager config,
+                               ContextCompressor compressor) {
         this.skillService = skillService;
         this.skillRuntime = skillRuntime;
 
@@ -54,10 +51,10 @@ public class DefaultToolExecutor implements ToolExecutor {
         builtInToolSets.add(factory.getWebFetchTools());
         builtInToolSets.add(factory.getBashTools());
         builtInToolSets.add(factory.getFileEditTools());
-        
+
         // Add SubAgentTools (passing 'this' as the executor for the child)
-        builtInToolSets.add(factory.createSubAgentTools(model, sessionManager, promptEngine, config, this));
-        
+        builtInToolSets.add(factory.createSubAgentTools(model, sessionManager, promptEngine, config, this, compressor));
+
         builtInToolSets.add(new SkillTools(skillService, skillRuntime));
     }
 

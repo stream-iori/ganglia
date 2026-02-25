@@ -42,5 +42,10 @@ public enum ObservationType {
     /**
      * An error occurred in the loop.
      */
-    ERROR
+    ERROR,
+
+    /**
+     * A system-level event like context compression.
+     */
+    SYSTEM_EVENT
 }

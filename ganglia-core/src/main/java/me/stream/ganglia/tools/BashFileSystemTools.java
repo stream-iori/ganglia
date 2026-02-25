@@ -2,7 +2,7 @@ package me.stream.ganglia.tools;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import me.stream.ganglia.tools.model.ToolCall;
+import me.stream.ganglia.core.util.PathSanitizer;
 import me.stream.ganglia.tools.model.ToolDefinition;
 import me.stream.ganglia.tools.model.ToolErrorResult;
 import me.stream.ganglia.tools.model.ToolInvokeResult;
@@ -13,6 +13,7 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -22,23 +23,49 @@ import java.util.concurrent.TimeUnit;
  */
 public class BashFileSystemTools implements ToolSet {
     private static final Logger log = LoggerFactory.getLogger(BashFileSystemTools.class);
-    private static final long MAX_OUTPUT_SIZE = 8 * 1024; // 8KB
-    private static final long MAX_FILE_SIZE = 8 * 1024; // 8KB
+    private static final long MAX_OUTPUT_SIZE = 64 * 1024; // 64KB
     private static final long DEFAULT_TIMEOUT_MS = 30000; // 30 seconds
 
     private final Vertx vertx;
+    private final PathSanitizer sanitizer;
 
     public BashFileSystemTools(Vertx vertx) {
+        this(vertx, new PathSanitizer());
+    }
+
+    public BashFileSystemTools(Vertx vertx, PathSanitizer sanitizer) {
         this.vertx = vertx;
+        this.sanitizer = sanitizer;
     }
 
     @Override
     public List<ToolDefinition> getDefinitions() {
         return List.of(
             new ToolDefinition("list_directory", "List files in a directory using bash ls",
-                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The directory path to list\"\n    }\n  },\n  \"required\": [\"path\"]\n}"),
-            new ToolDefinition("read_file", "Read content of a file using bash cat",
-                "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"path\": {\n      \"type\": \"string\",\n      \"description\": \"The file path to read\"\n    }\n  },\n  \"required\": [\"path\"]\n}"),
+                """
+                {
+                  "type": "object",
+                  "properties": {
+                    "path": {
+                      "type": "string",
+                      "description": "The directory path to list"
+                    }
+                  },
+                  "required": ["path"]
+                }
+                """),
+            new ToolDefinition("read_file", "Read content of a file with line-based pagination",
+                """
+                {
+                  "type": "object",
+                  "properties": {
+                    "path": { "type": "string", "description": "The file path to read" },
+                    "offset": { "type": "integer", "description": "0-based line index to start reading from. Defaults to 0.", "default": 0 },
+                    "limit": { "type": "integer", "description": "Maximum number of lines to read. Defaults to 500.", "default": 500 }
+                  },
+                  "required": ["path"]
+                }
+                """),
             new ToolDefinition("grep_search", "Search for a pattern in files within a directory",
                 """
                 {
@@ -67,39 +94,68 @@ public class BashFileSystemTools implements ToolSet {
 
     @Override
     public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, me.stream.ganglia.core.model.SessionContext context) {
-        return switch (toolName) {
-            case "list_directory" -> ls(args);
-            case "read_file" -> cat(args);
-            case "grep_search" -> grepSearch(args);
-            case "glob" -> glob(args);
-            default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
-        };
+        try {
+            return switch (toolName) {
+                case "list_directory" -> ls(args);
+                case "read_file" -> cat(args);
+                case "grep_search" -> grepSearch(args);
+                case "glob" -> glob(args);
+                default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
+            };
+        } catch (SecurityException | IllegalArgumentException e) {
+            log.warn("[SANDBOX_VIOLATION] Tool: {}, Error: {}", toolName, e.getMessage());
+            return Future.succeededFuture(ToolInvokeResult.error("Security/Validation Error: " + e.getMessage()));
+        }
     }
 
     private Future<ToolInvokeResult> ls(Map<String, Object> args) {
-        String path = (String) args.get("path");
+        String path = sanitizer.sanitize((String) args.get("path"));
         return execute("ls", List.of("ls", "-F", path), DEFAULT_TIMEOUT_MS);
     }
 
     public Future<ToolInvokeResult> cat(Map<String, Object> args) {
-        String path = (String) args.get("path");
-        return vertx.fileSystem().props(path)
-            .compose(props -> {
-                if (props.size() > MAX_FILE_SIZE) {
-                    return Future.succeededFuture(ToolInvokeResult.error(
-                        "File is too large: " + props.size() + " bytes. Max allowed is " + MAX_FILE_SIZE + " bytes."));
+        String rawPath = (String) args.get("path");
+        String safePath = sanitizer.sanitize(rawPath);
+        int offset = ((Number) args.getOrDefault("offset", 0)).intValue();
+        int limit = ((Number) args.getOrDefault("limit", 500)).intValue();
+
+        String escapedPath = PathSanitizer.escapeShellArg(safePath);
+
+        String script = """
+            file=%s
+            offset=%d
+            limit=%d
+            total=$(wc -l < "$file" | tr -d ' ')
+            start=$((offset + 1))
+            end=$((offset + limit))
+            
+            sed -n "${start},${end}p" "$file"
+            echo ""
+            
+            if [ $end -lt $total ]; then actual_end=$end; else actual_end=$total; fi
+            echo "--- [Lines $offset to $actual_end of $total] ---"
+            
+            if [ $end -lt $total ]; then
+              echo "Hint: More lines available. Use 'read_file' with 'offset: $end' to read more."
+            fi
+            """.formatted(escapedPath, offset, limit);
+
+        return vertx.fileSystem().exists(safePath)
+            .compose(exists -> {
+                if (!exists) {
+                    return Future.succeededFuture(ToolInvokeResult.error("File not found: " + safePath));
                 }
-                return execute("cat", List.of("cat", path), DEFAULT_TIMEOUT_MS);
+                return execute("read_file", List.of("bash", "-c", script), DEFAULT_TIMEOUT_MS);
             })
-            .recover(err -> Future.succeededFuture(ToolInvokeResult.error("Error checking file properties: " + err.getMessage())));
+            .recover(err -> Future.succeededFuture(ToolInvokeResult.error("Error reading file: " + err.getMessage())));
     }
 
     private Future<ToolInvokeResult> grepSearch(Map<String, Object> args) {
-        String path = (String) args.get("path");
+        String path = sanitizer.sanitize((String) args.get("path"));
         String pattern = (String) args.get("pattern");
         String include = (String) args.get("include");
 
-        List<String> command = new java.util.ArrayList<>(List.of("grep", "-rnE", pattern, path));
+        List<String> command = new ArrayList<>(List.of("grep", "-rnE", pattern, path));
         if (include != null && !include.isEmpty()) {
             command.add("--include=" + include);
         }
@@ -107,12 +163,10 @@ public class BashFileSystemTools implements ToolSet {
     }
 
     private Future<ToolInvokeResult> glob(Map<String, Object> args) {
-        String path = (String) args.get("path");
+        String path = sanitizer.sanitize((String) args.get("path"));
         String pattern = (String) args.get("pattern");
 
         // Convert simple glob to find command
-        // Note: This is a simplified version. For complex globs, we might need a better parser.
-        // But for common cases like **/*.java, we can handle it.
         String findPattern = pattern.replace("**/", "");
         List<String> command = List.of("find", path, "-name", findPattern);
 

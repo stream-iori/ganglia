@@ -28,8 +28,10 @@ Instead of crashing on tool failure (e.g., `FileNotFound`, `PermissionDenied`), 
 
 ### 3.2 Resource Guardrails
 - **Execution Timeouts**: Every tool has a hard timeout (default 30s).
-- **Output Size Limits**: Tool results are truncated at 8KB to prevent context window bloat.
-- **Process Isolation**: Script-based skills run in isolated processes via `bash -c`, preventing them from affecting the main JVM memory space.
+- **Output Size Limits**: Tool results are capped at 64KB to prevent context window bloat. For larger files, the system uses **Line-based Pagination**.
+- **Strict Sandbox Enforcement**: All file-system tools use `PathSanitizer` to ensure operations are confined to the project root, preventing path traversal attacks.
+- **Shell Injection Prevention**: Utility methods escape all shell arguments before script formatting.
+- **Process Isolation**: Script-based skills run in isolated processes via `bash -c`.
 
 ### 3.3 Atomic Side-Effects
 Destructive operations like `write_file` or `replace_in_file` follow the **Write-then-Move** pattern:
@@ -46,7 +48,9 @@ Before executing any tool, the arguments are validated against the tool's JSON S
 
 ### 4.2 Context Window Management
 - **Token Budgeting**: The `PromptEngine` calculates the budget for System Prompt, History, and Response.
-- **Aggressive Summarization**: When history consumes >70% of the window, the `ContextCompressor` is triggered to replace older turns with concise summaries.
+- **Proactive Compression**: Implementation of a 70% threshold monitor in `ReActAgentLoop`. When history consumes >70% of the window, the `ContextCompressor` is triggered to replace older turns with concise summaries, ensuring continuity without overflow.
+- **Financial Guardrail**: A hard session-level token limit (e.g., 500k tokens) is enforced to prevent runaway costs.
+- **Tool Failure Circuit Breaker**: If a tool fails consecutively (3 times), the loop is aborted to prevent token waste on repetitive errors.
 
 ## 5. Orchestration & Coordination Robustness
 

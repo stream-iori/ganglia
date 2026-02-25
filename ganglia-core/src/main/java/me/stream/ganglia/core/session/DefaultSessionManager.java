@@ -5,8 +5,10 @@ import me.stream.ganglia.core.config.ConfigManager;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.state.LogManager;
 import me.stream.ganglia.core.state.StateEngine;
+import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.tools.model.ToDoList;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -88,5 +90,29 @@ public class DefaultSessionManager implements SessionManager {
     @Override
     public Future<Void> deleteSession(String sessionId) {
         return Future.succeededFuture();
+    }
+
+    @Override
+    public Future<SessionContext> compressSession(SessionContext context, int turnsToKeep, ContextCompressor compressor) {
+        List<Turn> allPrevious = context.previousTurns();
+        if (allPrevious.size() <= turnsToKeep) {
+            return Future.succeededFuture(context);
+        }
+
+        int compressCount = allPrevious.size() - turnsToKeep;
+        List<Turn> toCompress = allPrevious.subList(0, compressCount);
+        List<Turn> toKeep = new ArrayList<>(allPrevious.subList(compressCount, allPrevious.size()));
+
+        return compressor.compress(toCompress)
+            .map(summary -> {
+                Message summaryMsg = Message.system("SUMMARY OF PREVIOUS INTERACTIONS:\n" + summary);
+                Turn summaryTurn = Turn.newTurn("summary-" + System.currentTimeMillis(), summaryMsg);
+                
+                List<Turn> newPrevious = new ArrayList<>();
+                newPrevious.add(summaryTurn);
+                newPrevious.addAll(toKeep);
+                
+                return context.withPreviousTurns(newPrevious);
+            });
     }
 }
