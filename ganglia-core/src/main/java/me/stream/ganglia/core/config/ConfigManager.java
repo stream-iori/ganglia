@@ -163,6 +163,12 @@ public class ConfigManager {
         return currentConfig.agent() != null ? currentConfig.agent().compressionThreshold() : 0.7;
     }
 
+    public String getProjectRoot() {
+        return (currentConfig.agent() != null && currentConfig.agent().projectRoot() != null) 
+            ? currentConfig.agent().projectRoot() 
+            : System.getProperty("user.dir");
+    }
+
     public int getMaxIterations() {
         return currentConfig.agent() != null ? currentConfig.agent().maxIterations() : 10;
     }

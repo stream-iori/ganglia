@@ -9,21 +9,21 @@ import java.nio.file.Paths;
  */
 public class PathSanitizer {
 
-    private final String sandboxRoot;
+    private final String projectRoot;
 
     public PathSanitizer() {
         this(System.getProperty("user.dir"));
     }
 
-    public PathSanitizer(String sandboxRoot) {
-        this.sandboxRoot = sandboxRoot;
+    public PathSanitizer(String projectRoot) {
+        this.projectRoot = projectRoot;
     }
 
     /**
-     * Validates that a path is within the sandbox root and returns its absolute form.
+     * Validates that a path is within the project root and returns its absolute form.
      * @param inputPath The path provided by the agent.
      * @return Absolute path string if valid.
-     * @throws SecurityException If the path escapes the sandbox.
+     * @throws SecurityException If the path escapes the project root.
      */
     public String sanitize(String inputPath) {
         if (inputPath == null || inputPath.isEmpty()) {
@@ -31,8 +31,8 @@ public class PathSanitizer {
         }
 
         try {
-            // 1. Resolve real path of the sandbox root
-            Path root = Paths.get(sandboxRoot).toAbsolutePath().normalize();
+            // 1. Resolve real path of the project root
+            Path root = Paths.get(projectRoot).toAbsolutePath().normalize();
             try {
                 root = root.toRealPath();
             } catch (IOException ignored) {}
@@ -48,13 +48,28 @@ public class PathSanitizer {
             try {
                 absoluteRequested = requested.toRealPath();
             } catch (IOException e) {
-                // If it doesn't exist, just normalize the absolute path
-                absoluteRequested = requested.toAbsolutePath().normalize();
+                // If it doesn't exist, try resolving the real path of the first existing parent
+                Path tempPath = requested;
+                Path parent = tempPath.getParent();
+                Path resolved = null;
+                while (parent != null) {
+                    try {
+                        Path realParent = parent.toRealPath();
+                        resolved = realParent.resolve(parent.relativize(tempPath)).normalize();
+                        break;
+                    } catch (IOException ignored) {
+                        parent = parent.getParent();
+                    }
+                }
+                if (resolved == null) {
+                    resolved = requested.toAbsolutePath().normalize();
+                }
+                absoluteRequested = resolved;
             }
 
-            // 3. Sandbox check
+            // 3. Project root check
             if (!absoluteRequested.startsWith(root)) {
-                throw new SecurityException("Access denied: Path escapes project sandbox (" + root + "): " + inputPath);
+                throw new SecurityException("Access denied: Path escapes project root (" + root + "): " + inputPath);
             }
 
             return absoluteRequested.toString();

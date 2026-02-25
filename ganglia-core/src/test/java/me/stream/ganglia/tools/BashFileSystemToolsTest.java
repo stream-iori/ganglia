@@ -118,4 +118,42 @@ public class BashFileSystemToolsTest {
                     }));
             }));
     }
+
+    @Test
+    void testReadFilesBatch(Vertx vertx, VertxTestContext testContext) throws Exception {
+        Path f1 = tempDir.resolve("a.txt");
+        Files.writeString(f1, "Content A");
+        Path f2 = tempDir.resolve("b.txt");
+        Files.writeString(f2, "Content B\nLine 2");
+
+        tools.execute("read_files", Map.of("paths", List.of(f1.toString(), f2.toString())), null)
+            .onComplete(testContext.succeeding(res -> {
+                testContext.verify(() -> {
+                    assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
+                    assertTrue(res.output().contains("--- FILE: " + f1.toRealPath().toString() + " ---"));
+                    assertTrue(res.output().contains("Content A"));
+                    assertTrue(res.output().contains("--- FILE: " + f2.toRealPath().toString() + " ---"));
+                    assertTrue(res.output().contains("Content B"));
+                    assertTrue(res.output().contains("Line 2"));
+                    testContext.completeNow();
+                });
+            }));
+    }
+
+    @Test
+    void testReadFilesWithErrors(Vertx vertx, VertxTestContext testContext) throws Exception {
+        Path f1 = tempDir.resolve("valid.txt");
+        Files.writeString(f1, "Valid Content");
+        String invalidPath = tempDir.resolve("missing.txt").toString();
+
+        tools.execute("read_files", Map.of("paths", List.of(f1.toString(), invalidPath)), null)
+            .onComplete(testContext.succeeding(res -> {
+                testContext.verify(() -> {
+                    assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
+                    assertTrue(res.output().contains("Valid Content"));
+                    assertTrue(res.output().contains("[ERROR: File not found"));
+                    testContext.completeNow();
+                });
+            }));
+    }
 }

@@ -38,8 +38,12 @@ public class AgentLoopIT {
         // Ensure background tasks like reflection don't crash with NPE
         when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
         
+        // Allow access to /private/var or other temp dirs by setting a broad project root for tests
+        io.vertx.core.json.JsonObject configOverride = new io.vertx.core.json.JsonObject()
+            .put("agent", new io.vertx.core.json.JsonObject().put("projectRoot", "/"));
+
         // Bootstrap with real components but mocked model
-        Main.bootstrap(vertx, ".ganglia/config.json", null, mockModel)
+        Main.bootstrap(vertx, ".ganglia/config.json", configOverride, mockModel)
             .onComplete(testContext.succeeding(g -> {
                 this.ganglia = g;
                 testContext.completeNow();

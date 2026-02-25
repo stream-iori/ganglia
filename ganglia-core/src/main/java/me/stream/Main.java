@@ -122,7 +122,7 @@ public class Main {
                 ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
                 DailyRecordManager dailyRecordManager = new FileSystemDailyRecordManager(vertx, ".ganglia/memory");
 
-                ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase);
+                ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase, configManager.getProjectRoot());
                 
                 // Initialize PromptEngine
                 StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillRuntime, null, tokenCounter);

@@ -36,7 +36,11 @@ public class MemoryRetrievalIT {
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
         when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
-        Main.bootstrap(vertx, ".ganglia/config.json", null, mockModel)
+        
+        io.vertx.core.json.JsonObject configOverride = new io.vertx.core.json.JsonObject()
+            .put("agent", new io.vertx.core.json.JsonObject().put("projectRoot", "/"));
+
+        Main.bootstrap(vertx, ".ganglia/config.json", configOverride, mockModel)
             .onComplete(testContext.succeeding(g -> {
                 this.ganglia = g;
                 testContext.completeNow();

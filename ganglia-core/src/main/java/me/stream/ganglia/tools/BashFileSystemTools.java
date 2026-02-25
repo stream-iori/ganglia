@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Built-in tools for local filesystem operations using native system commands.
@@ -88,6 +89,25 @@ public class BashFileSystemTools implements ToolSet {
                   },
                   "required": ["path", "pattern"]
                 }
+                """),
+            new ToolDefinition("read_files", "Read multiple files at once",
+                """
+                {
+                  "type": "object",
+                  "properties": {
+                    "paths": {
+                      "type": "array",
+                      "items": { "type": "string" },
+                      "description": "List of file paths to read"
+                    },
+                    "limit_per_file": {
+                      "type": "integer",
+                      "description": "Maximum number of lines to read per file. Defaults to 300.",
+                      "default": 300
+                    }
+                  },
+                  "required": ["paths"]
+                }
                 """)
         );
     }
@@ -98,6 +118,7 @@ public class BashFileSystemTools implements ToolSet {
             return switch (toolName) {
                 case "list_directory" -> ls(args);
                 case "read_file" -> cat(args);
+                case "read_files" -> readFiles(args);
                 case "grep_search" -> grepSearch(args);
                 case "glob" -> glob(args);
                 default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
@@ -148,6 +169,42 @@ public class BashFileSystemTools implements ToolSet {
                 return execute("read_file", List.of("bash", "-c", script), DEFAULT_TIMEOUT_MS);
             })
             .recover(err -> Future.succeededFuture(ToolInvokeResult.error("Error reading file: " + err.getMessage())));
+    }
+
+    private Future<ToolInvokeResult> readFiles(Map<String, Object> args) {
+        List<String> paths = (List<String>) args.get("paths");
+        if (paths == null || paths.isEmpty()) {
+            return Future.succeededFuture(ToolInvokeResult.error("No paths provided"));
+        }
+
+        int limitPerFile = ((Number) args.getOrDefault("limit_per_file", 300)).intValue();
+
+        // Sanitize and escape all paths
+        String escapedPaths = paths.stream()
+            .map(sanitizer::sanitize)
+            .map(PathSanitizer::escapeShellArg)
+            .collect(Collectors.joining(" "));
+
+        String script = """
+            limit=%d
+            files=(%s)
+            for f in "${files[@]}"; do
+              echo "--- FILE: $f ---"
+              if [ -f "$f" ]; then
+                head -n "$limit" "$f"
+                total=$(wc -l < "$f" | tr -d ' ')
+                if [ "$total" -gt "$limit" ]; then
+                  echo ""
+                  echo "--- [TRUNCATED: $limit of $total lines shown. Use 'read_file' for full content.] ---"
+                fi
+              else
+                echo "[ERROR: File not found or not a regular file]"
+              fi
+              echo ""
+            done
+            """.formatted(limitPerFile, escapedPaths);
+
+        return execute("read_files", List.of("bash", "-c", script), DEFAULT_TIMEOUT_MS);
     }
 
     private Future<ToolInvokeResult> grepSearch(Map<String, Object> args) {

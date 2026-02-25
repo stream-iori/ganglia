@@ -22,7 +22,7 @@
 
 ### 1.2 Tooling System ("The Hands")
 *   **Built-in Tools (Standard Library):**
-    *   **Local Filesystem (Bash-based):** Optimized system commands (`list_directory`, `read_file`, `grep_search`, `glob`) and generic `run_shell_command` with mandatory timeout and 64KB output size limits. `read_file` supports line-based pagination.
+    *   **Local Filesystem (Bash-based):** Optimized system commands (`list_directory`, `read_file`, `read_files`, `grep_search`, `glob`) and generic `run_shell_command` with mandatory timeout and 64KB output size limits. `read_file` supports line-based pagination, and `read_files` allows batch reading of multiple files for efficiency.
     *   **HTTP/Network (Vert.x-based):** Robust networking implemented via Vert.x `WebClient`.
     *   **ToDo & Plan Management:** Agent-managed internal task list.
 *   **Extension Tools (User-defined):**

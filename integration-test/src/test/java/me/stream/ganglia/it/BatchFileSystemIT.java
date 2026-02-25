@@ -2,7 +2,6 @@ package me.stream.ganglia.it;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.Main;
@@ -15,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -27,33 +27,30 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(VertxExtension.class)
-public class FileSystemPaginationIT {
+public class BatchFileSystemIT {
 
     private Ganglia ganglia;
     private ModelGateway mockModel;
-    private String testFilePath;
+    private String fileAPath;
+    private String fileBPath;
     private SessionContext baseContext;
 
     @BeforeEach
-    void setUp(Vertx vertx, @TempDir Path tempDir, VertxTestContext testContext) {
-        testFilePath = tempDir.resolve("large_file.txt").toString();
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < 20; i++) {
-            sb.append("Line ").append(i).append("\n");
-        }
-        vertx.fileSystem().writeFileBlocking(testFilePath, Buffer.buffer(sb.toString()));
+    void setUp(Vertx vertx, @TempDir Path tempDir, VertxTestContext testContext) throws Exception {
+        Path realTemp = tempDir.toRealPath();
+        fileAPath = realTemp.resolve("a.txt").toString();
+        fileBPath = realTemp.resolve("b.txt").toString();
+        Files.writeString(Path.of(fileAPath), "Content from A");
+        Files.writeString(Path.of(fileBPath), "Content from B");
 
         mockModel = mock(ModelGateway.class);
         
-        // Mock Tool Call: Read first 5 lines
-        ToolCall readCall = new ToolCall("call_1", "read_file", Map.of(
-            "path", testFilePath,
-            "offset", 0,
-            "limit", 5
+        ToolCall batchCall = new ToolCall("call_1", "read_files", Map.of(
+            "paths", List.of(fileAPath, fileBPath)
         ));
         
-        ModelResponse response1 = new ModelResponse("Reading first part of the file.", List.of(readCall), new TokenUsage(10, 10));
-        ModelResponse response2 = new ModelResponse("I have read the first 5 lines.", Collections.emptyList(), new TokenUsage(10, 10));
+        ModelResponse response1 = new ModelResponse("Reading both files.", List.of(batchCall), new TokenUsage(10, 10));
+        ModelResponse response2 = new ModelResponse("I have read both.", Collections.emptyList(), new TokenUsage(10, 10));
 
         when(mockModel.chatStream(any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(response1))
@@ -61,7 +58,8 @@ public class FileSystemPaginationIT {
 
         // Mock Config to have a very small context limit
         io.vertx.core.json.JsonObject configOverride = new io.vertx.core.json.JsonObject()
-            .put("agent", new io.vertx.core.json.JsonObject().put("projectRoot", "/"));
+            .put("agent", new io.vertx.core.json.JsonObject()
+                .put("projectRoot", realTemp.toString()));
 
         Main.bootstrap(vertx, ".ganglia/config.json", configOverride, mockModel)
             .onComplete(testContext.succeeding(g -> {
@@ -72,17 +70,18 @@ public class FileSystemPaginationIT {
     }
 
     @Test
-    void testPaginatedReadWorkflow(Vertx vertx, VertxTestContext testContext) {
+    void testBatchReadWorkflow(Vertx vertx, VertxTestContext testContext) {
         String sessionId = baseContext.sessionId();
-        ganglia.agentLoop().run("Read the first 5 lines of large_file.txt", baseContext)
-            .compose(response -> ganglia.sessionManager().getSession(sessionId))
+        ganglia.agentLoop().run("Compare file a and b", baseContext)
+            .compose(res -> ganglia.sessionManager().getSession(sessionId))
             .onComplete(testContext.succeeding(resultContext -> {
                 testContext.verify(() -> {
-                    // Check if the output of the tool execution in context contains pagination info
-                    boolean foundToolOutput = resultContext.history().stream()
-                        .anyMatch(m -> m.role() == Role.TOOL && m.content() != null && m.content().contains("--- [Lines 0 to 5 of 20] ---"));
+                    boolean foundBoth = resultContext.history().stream()
+                        .anyMatch(m -> m.role() == Role.TOOL && m.content() != null && 
+                                  m.content().contains("Content from A") && 
+                                  m.content().contains("Content from B"));
                     
-                    assertTrue(foundToolOutput, "Pagination metadata not found in history: " + resultContext.history());
+                    assertTrue(foundBoth, "Combined content not found in history");
                     testContext.completeNow();
                 });
             }));
