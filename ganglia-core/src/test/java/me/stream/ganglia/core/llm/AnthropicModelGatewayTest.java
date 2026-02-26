@@ -1,18 +1,17 @@
 package me.stream.ganglia.core.llm;
 
 import com.anthropic.client.AnthropicClientAsync;
+import com.anthropic.core.http.AsyncStreamResponse;
 import com.anthropic.helpers.MessageAccumulator;
 import com.anthropic.models.messages.*;
-import io.vertx.core.Future;
+import com.anthropic.services.async.MessageServiceAsync;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.EventBus;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.model.ModelOptions;
-import me.stream.ganglia.core.model.ModelResponse;
 import me.stream.ganglia.core.model.Message;
-import me.stream.ganglia.tools.model.ToolDefinition;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,9 +33,9 @@ class AnthropicModelGatewayTest {
 
     @Mock
     private AnthropicClientAsync client;
-    
+
     @Mock
-    private com.anthropic.services.async.MessageServiceAsync messageService;
+    private MessageServiceAsync messageService;
 
     @Mock
     private EventBus eventBus;
@@ -45,6 +44,7 @@ class AnthropicModelGatewayTest {
     private MessageAccumulator accumulator;
 
     private AnthropicModelGateway gateway;
+
     private Vertx vertx;
 
     @BeforeEach
@@ -58,12 +58,12 @@ class AnthropicModelGatewayTest {
     void testChatMapping(VertxTestContext testContext) {
         List<Message> history = List.of(Message.user("Hello"));
         ModelOptions options = new ModelOptions(0.0, 1024, "claude-3-5-sonnet-20241022");
-        
+
         com.anthropic.models.messages.Message anthropicMessage = mock(com.anthropic.models.messages.Message.class);
         when(anthropicMessage.content()).thenReturn(List.of(
             ContentBlock.ofText(TextBlock.builder().text("Hi there!").citations(Collections.emptyList()).build())
         ));
-        
+
         com.anthropic.models.messages.Usage usage = mock(com.anthropic.models.messages.Usage.class);
         when(usage.inputTokens()).thenReturn(10L);
         when(usage.outputTokens()).thenReturn(5L);
@@ -91,11 +91,11 @@ class AnthropicModelGatewayTest {
 
         when(vertx.eventBus()).thenReturn(eventBus);
 
-        com.anthropic.core.http.AsyncStreamResponse<RawMessageStreamEvent> streamResponse = mock(com.anthropic.core.http.AsyncStreamResponse.class);
+        var streamResponse = mock(AsyncStreamResponse.class);
         when(messageService.createStreaming(any())).thenReturn(streamResponse);
 
         // Mock accumulator.message() for final response
-        com.anthropic.models.messages.Message finalAnthropicMessage = mock(com.anthropic.models.messages.Message.class);
+        var finalAnthropicMessage = mock(com.anthropic.models.messages.Message.class);
         when(finalAnthropicMessage.content()).thenReturn(List.of(
             ContentBlock.ofText(TextBlock.builder().text("Streamed content").citations(Collections.emptyList()).build())
         ));
@@ -125,7 +125,7 @@ class AnthropicModelGatewayTest {
                 .index(0)
                 .delta(delta)
                 .build();
-        RawMessageStreamEvent deltaStreamEvent = RawMessageStreamEvent.ofContentBlockDelta(contentDeltaEvent);
+        var deltaStreamEvent = RawMessageStreamEvent.ofContentBlockDelta(contentDeltaEvent);
 
         handler.onNext(deltaStreamEvent);
 
