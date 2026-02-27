@@ -43,7 +43,6 @@ public class DefaultToolExecutor implements ToolExecutor {
         this.skillRuntime = skillRuntime;
 
         // Add all built-in toolsets
-        builtInToolSets.add(factory.getVertxFileSystemTools());
         builtInToolSets.add(factory.getBashFileSystemTools());
         builtInToolSets.add(factory.getToDoTools());
         builtInToolSets.add(factory.getKnowledgeBaseTools());

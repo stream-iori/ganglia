@@ -9,6 +9,7 @@
 
     <modules>
         <module>ganglia-core</module>
+        <module>ganglia-terminal</module>
         <module>integration-test</module>
         <module>ganglia-example</module>
     </modules>
@@ -51,6 +52,11 @@
             <dependency>
                 <groupId>me.stream</groupId>
                 <artifactId>ganglia-core</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>me.stream</groupId>
+                <artifactId>ganglia-terminal</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

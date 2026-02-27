@@ -1,7 +1,7 @@
-# Ganglia Core Kernel Design
+# Ganglia Core Kernel Architecture (Implemented)
 
 > **Module:** `ganglia-core`
-> **Status:** Detailed Design (UML & Sequence)
+> **Status:** Implemented (v1.0.0)
 > **Package:** `me.stream.ganglia.core`
 
 This document outlines the detailed design for the Core Kernel module using UML and Sequence diagrams.

@@ -64,10 +64,12 @@
 *   **Crash Recovery:** The system shall serialize session state to disk (`.ganglia/state/`) after every step, allowing recovery from crashes without data loss.
 *   **Rate Limiting:** The system shall handle API rate limits (e.g., OpenAI 429 errors) with exponential backoff.
 *   **Error Isolation:** A failure in a tool execution should not crash the main agent loop.
+*   **Deterministic Testing:** The system shall provide an E2E simulation harness to verify complex scenarios without real LLM costs.
 
 ### 2.2 Usability & Experience
 *   **Latency:** The system shall support streaming responses (tokens) to the UI to minimize perceived latency.
 *   **Transparency:** All agent actions ("Thoughts", Tool Calls) must be visible to the user in real-time.
+*   **Rich UI:** The terminal interface shall support multiline input, syntax highlighting, and Markdown rendering (via JLine 3 and Flexmark).
 *   **Editability:** Users must be able to manually edit the generated `MEMORY.md` and log files to correct the agent's understanding.
 
 ### 2.3 Observability & Debugging

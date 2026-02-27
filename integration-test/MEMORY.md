@@ -8,7 +8,3 @@
 
 
 - Execution result was SUCCESS
-
-- Execution result was SUCCESS
-
-- Execution result was SUCCESS

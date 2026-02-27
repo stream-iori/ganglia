@@ -1,7 +1,7 @@
 # Ganglia Architecture Documentation
 
-> **Status:** Draft / Initial Design
-> **Version:** 0.1.0
+> **Status:** Implemented
+> **Version:** 1.0.0
 
 ## 1. System Overview
 
@@ -12,56 +12,55 @@ The core design philosophy is inspired by **Claude Code**: a single, powerful co
 ## 2. Core Design Principles
 
 1.  **Single Control Loop (The "ReAct" Loop):**
-    - Avoid complex graphs or state machines.
-    - Use a flat message history processed by a single main thread.
+    - Avoid complex graphs or state machines for the core reasoning.
+    - Use a flat message history processed by a single main loop.
     - Flow: `Input -> [Thought -> Tool -> Observation] * N -> Answer`.
 
 2.  **Tool-First Navigation:**
-    - The agent explores codebases using tools (`grep`, `glob`, `read`) rather than relying on pre-computed, opaque vector embeddings (RAG).
+    - The agent explores codebases using tools (`grep`, `glob`, `read`) rather than relying purely on pre-computed embeddings.
     - "Agentic Search" allows the model to form its own queries and refine them based on feedback.
 
 3.  **Memory as Code:**
-    - Memory is stored in **Markdown files** (`MEMORY.md`, Session Logs) within the user's project.
-    - It is transparent, editable, and version-controlled by Git.
+    - Memory is stored in **Markdown files** (`MEMORY.md`, Daily Records) within the project.
+    - It is transparent, editable, and version-controlled.
 
 4.  **Steerability via Prompting:**
-    - Behavior is controlled by extensive, structured prompts (XML, Examples) rather than hard-coded logic.
-    - Adherence to "System Reminders" and "Tone" guidelines.
+    - Behavior is controlled by extensive, structured prompts (XML, ContextSources) rather than hard-coded logic.
     - Core mandates are managed via [Core Guidelines](CORE_GUIDELINES_DESIGN.md) (`GANGLIA.md`).
 
 ## 3. Logical Architecture
 
-### 3.0 Layered Architecture (Overview)
+### 3.0 Layered Architecture
 
-The system is organized into distinct layers to ensure modularity and ease of integration for new LLM providers or tools.
+The system is organized into distinct layers to ensure modularity.
 
 ```mermaid
 graph TD
     subgraph UI ["1. Interface Layer"]
-        TUI["TerminalUI (Reactive Streaming)"]
+        TUI["TerminalUI (JLine 3 & Markdown)"]
         App["Third-party Apps / Demos"]
     end
 
-    subgraph Core ["2. Core Orchestration (The Heart)"]
+    subgraph Core ["2. Core Orchestration"]
         Loop["ReActAgentLoop (Control Flow)"]
-        Session["SessionManager (Turn Tracking)"]
+        Session["SessionManager (State Tracking)"]
     end
 
-    subgraph Intel ["3. Intelligence & Context (The Brain)"]
-        Prompt["PromptEngine (XML Templates)"]
-        Context["ContextEngine (GEMINI.md Logic)"]
-        Skills["SkillRegistry (Domain Expertise)"]
-        Mem["ContextCompressor (Token Management)"]
+    subgraph Intel ["3. Intelligence & Context"]
+        Prompt["StandardPromptEngine (LlmRequest Preparation)"]
+        Context["ContextComposer (Source Aggregation)"]
+        Skills["SkillService (Domain Expertise)"]
+        Mem["ContextCompressor (Memory Optimization)"]
     end
 
-    subgraph Action ["4. Actuation Layer (The Hands)"]
+    subgraph Action ["4. Actuation Layer"]
         Executor["DefaultToolExecutor"]
-        Tools["ToolSets (Bash, FS, Web, Selection)"]
+        Tools["ToolSets (Bash, FS, Web, SubAgent)"]
     end
 
     subgraph Gateway ["5. Model Provider Layer"]
         Factory["ModelGatewayFactory"]
-        Providers["OpenAI / Anthropic / Gemini Gateways"]
+        Providers["OpenAI / Anthropic / Gemini / Fallback Gateways"]
     end
 
     subgraph Data ["6. Persistence & Infra"]
@@ -84,63 +83,50 @@ graph TD
 
 ### 3.1 The Model Layer ("The Brain")
 
-- **Unified Interface:** Abstractions (`ModelProvider`, `ChatClient`) hide the specifics of LLM providers (OpenAI, Anthropic, etc.).
+- **Unified Interface:** `ModelGateway` abstracts providers (OpenAI, Anthropic, Gemini).
 - **Low-Latency Streaming:** 
-  - Uses `chatStream` to provide real-time feedback to the user via the Vert.x EventBus.
-  - The reasoning process ("Thoughts") is streamed to the UI as it's generated, while the full response is accumulated internally for tool execution.
-- **Smart Routing:**
-  - **Fast Model (e.g., Haiku):** Handles routine tasks like file summarization, git history reading, and token counting.
-  - **Smart Model (e.g., GPT-4o, Sonnet):** Handles the main ReAct loop, reasoning, and planning.
-- **Streaming:** Built on Java Flow API / Reactor for real-time user feedback.
+  - Uses `chatStream` to provide real-time feedback via the Vert.x EventBus.
+  - Thoughts and content are streamed while tool calls are accumulated.
+- **Robustness:** `FallbackModelGateway` provides automatic downgrade to utility models if the primary model fails.
+- **Testing:** `StubModelGateway` and `E2ETestHarness` allow for deterministic E2E simulation without real LLM calls.
 
 ### 3.2 Tooling & Actuation ("The Hands")
-- **Definition:** Tools are defined via Java classes implementing `ToolSet`.
+- **Definition:** Tools are Java classes implementing `ToolSet`.
 - **Hybrid Toolset:**
-  - **Low-Level:** `Bash` execution (via `BashTools`), `write_file` (Atomic).
-  - **High-Level:** `grep_search`, `glob`, `Edit` (Smart code replacement), `web_fetch` (via Vert.x WebClient).
-- **Structured Error Handling:** Tools return a `ToolInvokeResult`.
+  - **Bash/FS:** Native commands and non-blocking Java FileSystem tools.
+  - **Contextual:** ToDo management, KnowledgeBase interaction.
+  - **Interaction:** `ask_selection` for human-in-the-loop.
 - **Safety:**
-  - **Sandbox:** Execution of untrusted code in isolated environments.
-  - **Memory Protection:** Built-in safeguards to prevent memory exhaustion from large tool outputs (e.g., 64KB limit per call).
-  - **Line-based Pagination:** Direct file read tools (`read_file`) support `offset` and `limit` to handle large files without overflow.
-  - **Human-in-the-Loop:** Tools marked as "Sensitive" (or explicit `ask_selection` calls) require user interaction.
+  - **Output Limits:** 64KB per tool call.
+  - **Pagination:** `read_file` supports `offset` and `limit`.
+  - **Sanitization:** `PathSanitizer` prevents directory traversal.
 
 ### 3.3 The Memory System
 
-See [Memory Architecture](MEMORY_ARCHITECTURE.md) for details.
+- **Three-Tier Architecture:**
+    - **Short-Term (Turn):** Raw interaction details.
+    - **Medium-Term (Session):** Managed via `ContextCompressor`.
+    - **Daily Journal:** Cross-session summaries in `.ganglia/memory/daily-*.md`.
+    - **Long-Term (Project):** `MEMORY.md`.
 
-- **Three-Tier Architecture (Expanded):**
-    - **Short-Term (Turn):** High-fidelity execution details.
-    - **Medium-Term (Session):** Managed via **Proactive Context Compression** (triggered at 70% of the model's window).
-    - **Daily Journal (Bridge):** Cross-session summaries stored in `.ganglia/memory/daily-*.md`.
-    - **Long-Term (Project):** Curated `MEMORY.md` and archived logs.
-- **Retrieval:** Agentic Search (`grep`, `read`) over long-term memory.
-- **Injection:** Relevant memory fragments are injected into the active prompt by the **ContextEngine** (Priority 10).
+### 3.4 Skill System ("The Expertise")
 
-### 3.4 Workflow Management
+- **Hybrid Loading:** Supports script-based skills (folder) and JAR-based skills (dynamically loaded).
+- **Isolation:** JAR skills use dedicated ClassLoaders to prevent dependency conflicts.
 
-- **To-Do List:** The agent maintains a self-managed task list to prevent getting lost in long sessions.
-- **Cloning (Transient Delegation):**
-  - For complex sub-tasks, the agent can spawn a "clone" (a fresh instance with specific context).
-  - The clone performs the task and returns the result as a tool output.
-  - This keeps the main context window clean.
-  - See [Sub-Agent Design](SUB_AGENT_DESIGN.md) for implementation details.
+### 3.5 Context Management Engine
 
-### 3.5 Skill System ("The Expertise")
+- **Source-based Composition:** `ContextComposer` aggregates `ContextSource` implementations (Persona, Environment, Tools, Skills, etc.).
+- **Prioritized Stacking:** Fragments are merged based on priority (1-10).
+- **Token Pruning:** `StandardPromptEngine` handles history pruning and context window management.
 
-- **Modularity:** Industry or domain-specific knowledge and tools are packaged as "Skills".
-- **Dynamic Activation:** Skills can be activated/deactivated per session, keeping the base system prompt focused.
-- **Context Injection:** Active skills inject specialized guidelines and register domain-specific tools into the loop.
+## 4. Interface & Interaction
 
-### 3.6 Context Management Engine (ContextEngine)
+- **Rich Terminal UI:** Powered by **JLine 3**, providing multiline input, syntax highlighting, and a sticky status bar.
+- **Markdown Rendering:** Integrated **flexmark** for ANSI-rendered Markdown output (bold, italics, code blocks, lists).
+- **E2E Simulation:** A declarative `TestScenario` framework for verifying complex agent behaviors via the `E2ETestHarness`.
 
-The **ContextEngine** is responsible for the systematic construction of the LLM system prompt. It ensures that the agent always has the most relevant information while staying within token limits.
-
-- **Layered Construction:** Stacks context fragments (Persona, Mandates, Environment, Skills, Plan, Memory) based on a strict priority hierarchy (1-10).
-- **Decoupled Resolution:** Uses `ContextResolver` to fetch data from static files (`GANGLIA.md`), dynamic state (ToDo lists), and semantic memory.
-- **Intelligent Pruning:** When the token limit is approached, the `ContextComposer` prunes lower-priority fragments (like historical memory) while preserving "Prime Directives" (Persona and Mandates).
-
-## 4. Human-in-the-Loop & Interaction
+## 5. Human-in-the-Loop & Interaction
 
 Ganglia employs a **"Plan First, Act Later"** philosophy to ensure user control over complex tasks, alongside runtime safeguards.
 
@@ -158,7 +144,7 @@ Before executing complex requests, the system enters a **Planning Phase**:
 - **`ask_selection` Tool:** The agent can explicitly invoke this tool to resolve ambiguities or request input (supports `text` and `choice` modes).
 - **Execution Pause:** The ReAct loop suspends state and awaits user input before resuming.
 
-## 5. Data Flow (ReAct Loop)
+## 6. Data Flow (ReAct Loop)
 
 ```mermaid
 graph TD
@@ -193,10 +179,11 @@ graph TD
     end
 ```
 
-## 6. Technology Stack
+## 7. Technology Stack
 
 - **Language:** Java 17+
 - **Core Framework:** Vert.x (Reactive, Non-blocking I/O)
+- **UI & Rendering:** JLine 3, Flexmark
 - **LLM Client:** OpenAI-Java (Official) 
 - **Observability:** OpenTelemetry
-- **Testing:** JUnit 5
+- **Testing:** JUnit 5, E2E Simulation Harness

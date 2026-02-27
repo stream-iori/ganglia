@@ -25,7 +25,7 @@ public class ClaudeDemo {
                 DemoUtil.gracefulShutdown(vertx);
             })
             .onSuccess(ganglia -> {
-                TerminalUI ui = new TerminalUI(vertx);
+                TerminalUI ui = TerminalUI.create(vertx);
                 String sessionId = "claude-demo-" + UUID.randomUUID().toString().substring(0, 8);
                 
                 System.out.println("--- Ganglia Claude Integration Demo ---");

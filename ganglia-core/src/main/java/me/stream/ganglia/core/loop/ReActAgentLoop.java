@@ -325,7 +325,7 @@ public class ReActAgentLoop implements AgentLoop {
                 // --- Robustness: Consecutive Failure Tracking ---
                 if (invokeResult.status() == ToolInvokeResult.Status.ERROR || invokeResult.status() == ToolInvokeResult.Status.EXCEPTION) {
                     int fails = (int) contextToUse.metadata().getOrDefault("consecutive_tool_failures", 0);
-                    if (fails >= 2) {
+                    if (fails >= 3) {
                         logger.warn("Tool {} failed {} times consecutively. Aborting loop to prevent runaway usage.", call.toolName(), fails + 1);
                         return Future.failedFuture("Aborting due to repetitive tool failures: " + invokeResult.output());
                     }

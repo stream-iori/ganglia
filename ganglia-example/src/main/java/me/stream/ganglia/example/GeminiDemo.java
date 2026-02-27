@@ -25,7 +25,7 @@ public class GeminiDemo {
                 DemoUtil.gracefulShutdown(vertx);
             })
             .onSuccess(ganglia -> {
-                TerminalUI ui = new TerminalUI(vertx);
+                TerminalUI ui = TerminalUI.create(vertx);
                 String sessionId = "gemini-demo-" + UUID.randomUUID().toString().substring(0, 8);
                 
                 System.out.println("--- Ganglia Gemini Integration Demo ---");

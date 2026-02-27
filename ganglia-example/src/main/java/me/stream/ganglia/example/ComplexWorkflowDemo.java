@@ -23,7 +23,7 @@ public class ComplexWorkflowDemo {
                 DemoUtil.gracefulShutdown(vertx);
             })
             .onSuccess(ganglia -> {
-                TerminalUI ui = new TerminalUI(vertx);
+                TerminalUI ui = TerminalUI.create(vertx);
                 String sessionId = "complex-demo-" + UUID.randomUUID().toString().substring(0, 8);
 
                 System.out.println("--- Ganglia Complex Workflow Demo ---");

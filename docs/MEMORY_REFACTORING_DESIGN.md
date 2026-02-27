@@ -1,6 +1,6 @@
-# Memory & Usage Decoupling Design
+# Memory & Usage Decoupling (Implemented)
 
-> **Status:** Draft
+> **Status:** Implemented (v1.0.0)
 > **Related:** [Architecture](ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md), [Memory Architecture](MEMORY_ARCHITECTURE.md)
 
 ## 1. Objective

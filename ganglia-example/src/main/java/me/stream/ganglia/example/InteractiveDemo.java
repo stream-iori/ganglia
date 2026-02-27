@@ -50,7 +50,7 @@ public class InteractiveDemo {
                 DemoUtil.gracefulShutdown(vertx);
             })
             .onSuccess(ganglia -> {
-                TerminalUI ui = new TerminalUI(vertx);
+                TerminalUI ui = TerminalUI.create(vertx);
                 String sessionId = "interactive-demo-" + UUID.randomUUID().toString().substring(0, 8);
 
                 System.out.println("--- Ganglia Interactive Demo ---");

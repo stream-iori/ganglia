@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  */
 public class BashFileSystemTools implements ToolSet {
     private static final Logger log = LoggerFactory.getLogger(BashFileSystemTools.class);
-    private static final long MAX_OUTPUT_SIZE = 64 * 1024; // 64KB
+    private static final long MAX_OUTPUT_SIZE = 256 * 1024; // 256KB
     private static final long DEFAULT_TIMEOUT_MS = 30000; // 30 seconds
 
     private final Vertx vertx;
@@ -220,14 +220,29 @@ public class BashFileSystemTools implements ToolSet {
     }
 
     private Future<ToolInvokeResult> glob(Map<String, Object> args) {
-        String path = sanitizer.sanitize((String) args.get("path"));
+        String rawPath = (String) args.get("path");
         String pattern = (String) args.get("pattern");
+
+        if (rawPath.contains("*") || rawPath.contains("?") || rawPath.contains("[")) {
+            return Future.succeededFuture(ToolInvokeResult.error(
+                "Invalid path: '" + rawPath + "'. The 'path' argument must be a literal base directory. " +
+                "Place your glob patterns in the 'pattern' argument instead."));
+        }
+
+        String path = sanitizer.sanitize(rawPath);
 
         // Convert simple glob to find command
         String findPattern = pattern.replace("**/", "");
         List<String> command = List.of("find", path, "-name", findPattern);
 
-        return execute("glob", command, DEFAULT_TIMEOUT_MS);
+        return vertx.fileSystem().props(path)
+            .compose(props -> {
+                if (!props.isDirectory()) {
+                    return Future.succeededFuture(ToolInvokeResult.error("Path is not a directory: " + path));
+                }
+                return execute("glob", command, DEFAULT_TIMEOUT_MS);
+            })
+            .recover(err -> Future.succeededFuture(ToolInvokeResult.error("Error accessing path: " + err.getMessage())));
     }
 
     private Future<ToolInvokeResult> execute(String toolName, List<String> commandWithArgs, long timeoutMs) {
@@ -247,7 +262,7 @@ public class BashFileSystemTools implements ToolSet {
                     log.warn("[FS_LIMIT] Output size exceeded for: {}", toolName);
                     return ToolInvokeResult.exception(new ToolErrorResult(
                         toolName, ToolErrorResult.ErrorType.SIZE_LIMIT_EXCEEDED,
-                        "Output size exceeded limit of 8KB", null, partialOutput));
+                        "Output size exceeded limit of " + (MAX_OUTPUT_SIZE / 1024) + "KB", null, partialOutput));
                 }
 
                 boolean finished = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS);

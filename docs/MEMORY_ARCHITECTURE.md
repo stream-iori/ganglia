@@ -1,57 +1,53 @@
-# Ganglia Memory Architecture
+# Ganglia Memory Architecture (Implemented)
 
 > **Philosophy:** "Memory as Code". Transparent, user-controlled, file-based, and tiered.
 
 ## 1. Overview
 
-Ganglia implements a **Three-Tier Memory System** designed to balance high-fidelity reasoning (for immediate tasks) with long-term retention (for project context), all while managing token window limits efficiently.
+Ganglia implements a **Three-Tier Memory System** designed to balance high-fidelity reasoning with long-term retention.
 
 ## 2. The Three-Tier Structure
 
 ### Tier 1: Short-Term Memory (The "Turn")
-*   **Scope:** A single User-Agent interaction cycle (e.g., "Fix bug X").
-*   **Granularity:** Extremely high. Contains raw "Thoughts", exact "Tool Calls", and full "Observations" (e.g., file contents, command outputs).
-*   **Pagination:** Large observations (e.g., source files) are handled via **Line-based Pagination** (`offset`/`limit`) to keep the turn context manageable while allowing full access to data.
-*   **Storage:** In-memory `Turn` objects within `SessionContext`.
-*   **Lifecycle:** Active only while the specific step is being executed. Once the step is complete, it is candidate for compression.
+*   **Scope:** A single User-Agent interaction cycle.
+*   **Implementation:** In-memory `Turn` objects within `SessionContext`.
+*   **Observation Handling:** Large outputs are handled via **Line-based Pagination** (`offset`/`limit`).
+*   **Lifecycle:** Active only while the specific step is being executed.
 
 ### Tier 2: Medium-Term Memory (The "Context Window")
 *   **Scope:** The active session history.
-*   **Mechanism:** **Proactive Rolling Compression**.
-*   **Trigger:** Automatically triggered when total history tokens exceed a configurable threshold (default: 70% of `contextLimit`).
-*   **Action:** Older turns are sent to `ContextCompressor` to generate a dense "State Summary". This summary replaces the raw turns in the message history, preserving key facts while freeing up significant token space.
+*   **Mechanism:** **Proactive Rolling Compression** (Triggered at 70% threshold).
+*   **Action:** `ContextCompressor` (Reflector) generates a dense "State Summary" to replace raw turns.
 
 ### Tier 2.5: Daily Journal (Cross-Session)
-*   **Scope:** All activity within a single day.
-*   **Storage:** `.ganglia/memory/daily-YYYY-MM-DD.md`.
-*   **Role:** Bridges the gap between session-specific details and permanent project knowledge. It captures "what happened today" across different session IDs.
+*   **Scope:** All activity within a project in a single day.
+*   **Implementation:** `DailyRecordManager` persists summaries to `.ganglia/memory/daily-YYYY-MM-DD.md`.
+*   **Role:** Bridges the gap between session details and permanent project knowledge.
 
 ### Tier 3: Long-Term Memory (The "Project Knowledge")
 *   **Scope:** Cross-session project lifespan.
-*   **Storage:** 
-    *   `MEMORY.md`: Curated "lessons learned", architectural decisions, and user preferences.
-    *   `.ganglia/logs/`: Archived raw logs of past sessions (searchable via tools).
-*   **Retrieval:** **Agentic Search**. The agent uses tools (`grep`, `read`) to actively look up information from this tier when needed.
+*   **Implementation:** 
+    *   `MEMORY.md`: Curated "lessons learned" and preferences.
+    *   `.ganglia/logs/`: Archived raw logs.
+*   **Retrieval:** **Agentic Search**. The agent uses `KnowledgeBaseTools` and `BashFileSystemTools` to query this tier.
 
 ## 3. Compression & Summarization Strategy
 
-To prevent context overflow, Ganglia employs an aggressive summarization strategy linked to the Task lifecycle.
+To prevent context overflow, Ganglia employs an aggressive summarization strategy.
 
 ### The "Task-Turn" Cycle
-1.  **Expansion:** User gives a goal -> Agent adds it to ToDo List.
-2.  **Execution:** Agent performs multiple Turns (Reason -> Act -> Observe). These accumulate in the Context.
-3.  **Completion:** Agent marks task as `DONE`.
-4.  **Compression (The Hook):**
-    *   **Trigger:** Task status change to `DONE`.
-    *   **Action:** The system (or a background "Reflector" agent) takes all Turns associated with that task and generates a 1-2 sentence summary.
-    *   **Replacement:** The raw Turns are removed from `SessionContext.previousTurns` and replaced by the summary in the `ToDoList` (e.g., as a "Result" note) or a dedicated "Completed Tasks" history block.
+1.  **Expansion:** User gives a goal -> Agent adds it to `ToDoList`.
+2.  **Execution:** Agent performs multiple Turns (Reason -> Act -> Observe).
+3.  **Completion:** Agent marks task as `DONE` via `ToDoTools`.
+4.  **Compression (The Hook):** `MemoryService` (EventBus listener) triggers reflection on the completed turn/task.
 
 ## 4. State Persistence
 
-*   **Session State:** Serialized to `.ganglia/state/session_ID.json` after every Turn. Includes the ToDo list, active variables, and the compressed history.
-*   **Resumption:** Loading a session restores the ToDo list and the *compressed* context, not the full raw history of every past command (unless specifically requested).
+*   **Session State:** `FileStateEngine` serializes to `.ganglia/state/session_ID.json`.
+*   **Resumption:** Loading a session restores the `ToDoList` and compressed history.
 
 ## 5. Memory-Tool Integration
 
-*   **`todo_complete`:** Not just a status update. It signals the memory system to "Pack up this context".
-*   **`remember`:** A specific tool for the agent to write important facts to `MEMORY.md` (promoting from Short/Medium to Long-term).
+*   **`todo_complete`**: Signals the memory system to pack up context.
+*   **`remember`**: Tool for the agent to write facts to `MEMORY.md`.
+*   **`grep_search`**: Search over logs and memory files.

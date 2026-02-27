@@ -1,44 +1,58 @@
 # Ganglia Project Context
 
-**Status:** Implementation Phase (Core Functional)
+**Status:** Core Implemented (v1.0.0)
 
 ## 1. Project Overview
-Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designed for high-performance, non-blocking agentic workflows. It follows a "Simple & Robust" philosophy inspired by Claude Code, using a single **ReAct control loop** and a transparent, **file-based memory system**.
+Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designed for high-performance, non-blocking agentic workflows. It follows a "Simple & Robust" philosophy inspired by Claude Code, using a single **ReAct control loop**, a decoupled **Terminal UI**, and a transparent **file-based memory system**.
 
 ## 2. Technology Stack
 - **Runtime:** Java 17-zulu (SDKMAN! managed)
 - **Core:** Vert.x 5.0.6 (Reactive, Non-blocking I/O)
+- **UI & Rendering:** JLine 3, Flexmark (ANSI Markdown)
 - **Networking:** Vert.x WebClient 5.0.6
-- **AI Integration:** OpenAI Java SDK 4.17.0 (Async/Stainless)
+- **AI Integration:** OpenAI Java SDK, Anthropic Java, Google GenAI
 - **Logging:** SLF4J 2.0.16 + Log4j2 2.24.3
-- **Testing:** JUnit 5, Mockito 5.15.2, Vertx-JUnit5
+- **Testing:** JUnit 5, Mockito, Vertx-JUnit5, **E2E Simulation Harness**
 
-## 3. Logical Architecture
-- **Brain (Model Layer):** `ModelGateway` abstraction supporting Async/Streaming interactions. Uses `chatStream` for real-time feedback via EventBus.
-- **Hands (Tooling):** `DefaultToolExecutor` orchestrates built-in and extension tools via `ToolSet` interface.
-- **Memory (Context):** Three-tier system (Turn, Session, Project) with semantic compression.
-- **Expertise (Skills):** Modular `SkillPackage` system providing domain-specific prompts and tools.
-- **Feedback (UI):** Reactive `TerminalUI` for low-latency token streaming to stdout.
-- **Orchestration:** `ReActAgentLoop` handles sequential tool execution and reasoning steps.
+## 3. Core Capabilities (Implemented)
+
+### 3.1 Reasoning & Orchestration
+- **ReAct Loop:** `ReActAgentLoop` handles iterative reasoning, tool calling, and observation feedback.
+- **Hierarchical Context:** `StandardPromptEngine` with `ContextComposer` stacks Persona, Mandates, Env, Skills, and Memory.
+- **Sub-Agents:** `SubAgentTools` for transient delegation and `GraphExecutor` for DAG-based task execution.
+
+### 3.2 Implemented Toolsets
+- **FileSystem:** `BashFileSystemTools` (ls, cat, grep, find).
+- **Bash:** `BashTools` for generic shell command execution with safety timeouts.
+- **Interaction:** `InteractionTools` (`ask_selection`) for human-in-the-loop flows.
+- **Workflow:** `ToDoTools` for managing agent-led plans and task status.
+- **Memory:** `KnowledgeBaseTools` for reading/updating `MEMORY.md`.
+- **Search:** `grep_search`, `glob`, and `web_fetch`.
+
+### 3.3 Memory & State
+- **Three-Tier Memory:** Turns (ephemeral), Sessions (compressed via `ContextCompressor`), and Long-term (`MEMORY.md` & Daily Logs).
+- **Daily Journal:** `DailyRecordManager` persists cross-session accomplishments to `.ganglia/memory/daily-*.md`.
+- **Persistence:** `FileStateEngine` ensures session continuity across restarts via JSON serialization.
+
+### 3.4 Skill System
+- **Dynamic Loading:** `FileSystemSkillLoader` and `JarSkillLoader` for script/JAR skills.
+- **Expertise Injection:** Skills inject domain-specific prompts and tools into the active context.
+
+### 3.5 Testing & Verification
+- **E2E Simulation:** `E2ETestHarness` allows for declarative scenario testing without real LLM costs.
+- **Deterministic Assertions:** Verify output, file existence, and memory state within mock-driven loops.
 
 ## 4. Directory Structure
 - `pom.xml`: Parent POM.
-- `ganglia-core/`: Core framework code and unit tests.
-    - `src/main/java/me/stream/ganglia/`:
-        - `core/`: ReAct loop, model, prompt, state, session.
-        - `memory/`: Memory system.
-        - `skills/`: Skill system.
-        - `tools/`: Tooling system.
-        - `ui/`: Terminal UI.
-- `integration-test/`: Dedicated module for integration tests (IT).
-    - `src/test/java/me/stream/ganglia/it/`: Integration test cases.
-- `ganglia-example/`: Module containing usage examples and demos.
-- `docs/`: Technical designs and documentation.
+- `ganglia-core/`: Core reasoning, model gateways, memory, and tools.
+- `ganglia-terminal/`: Decoupled UI layer using JLine 3 and Markdown rendering.
+- `integration-test/`: Automated IT and E2E simulation scenarios.
+- `ganglia-example/`: Usage examples including the `InteractiveChatDemo` CLI.
+- `docs/`: Technical designs and v1.0.0 documentation.
 
 ## 5. Development Guidelines
 - Always use **Vert.x Future** for asynchronous operations.
 - Maintain **Sequential Tool Execution** within the loop to ensure reasoning between steps.
 - Use **JDK 17 Text Blocks** for JSON schemas and large strings.
 - Strictly adhere to the **3-tier memory model** defined in `docs/MEMORY_ARCHITECTURE.md`.
-- Prefix `mvn` or `java` commands with `source "$HOME/.sdkman/bin/sdkman-init.sh" && sdk env` to ensure the correct Java 17 environment.
-- Run all tests (unit and integration) using `source "$HOME/.sdkman/bin/sdkman-init.sh" && sdk env && mvn verify`.
+- Run all tests using `source "$HOME/.sdkman/bin/sdkman-init.sh" && sdk env && mvn verify`.

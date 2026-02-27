@@ -158,7 +158,7 @@ public class Main {
                 ReActAgentLoop agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, 
                     promptEngine, configManager, compressor);
 
-                return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop);
+                return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop, configManager);
             });
         });
     }

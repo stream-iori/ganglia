@@ -1,74 +1,50 @@
-# Ganglia Module Decomposition
+# Ganglia Module Decomposition (Implemented)
 
-> **Status:** Draft / High-Level Design
-> **Based on:** Requirements v0.1.0
+> **Status:** Implemented (v1.0.0)
+> **Base:** Java 17, Vert.x 5.0.6
 
-This document decomposes the Ganglia system into logical modules based on functional and non-functional requirements.
+This document describes the implemented module structure of the Ganglia system.
 
-## 1. Core Kernel (Module: `ganglia-core`)
+## 1. Core Framework (Module: `ganglia-core`)
 
-**Responsibility:** Orchestration of the main ReAct loop, model abstraction, and state management.
-
-- **Components:**
-  - `AgentLoop`: Implements the `Input -> Thought -> Tool -> Observation` cycle.
-  - `ModelGateway`: Unified interface (`ModelProvider`) for LLM providers (OpenAI, etc.) with streaming support via EventBus for low-latency UI updates.
-  - `StateEngine`: Manages the current session state, including history maintenance and serialization for crash recovery.
-  - `ContextEngine`: Orchestrates layered prompt construction.
-    - `ContextResolver`: Fetches fragments from static files, env, and memory.
-    - `ContextComposer`: Merges fragments based on priority and applies token pruning strategies.
-
-## 2. Memory System (Module: `ganglia-memory`)
-
-**Responsibility:** Managing ephemeral and long-term context ("The Brain").
-
-*   **Components:**
-    *   `LogManager`: Handles writing daily markdown logs (`.ganglia/logs/`).
-    *   `KnowledgeBase`: Manages the curated `MEMORY.md` file (reading/updating).
-    *   `ContextPruner`: Token counting and strategy for keeping the context window within limits (sliding window/summarization).
-    *   `ContextCompressor`: Logic to summarize completed Tasks/Turns into concise history.
-    *   `retrieval-engine`: Internal logic for "Active Retrieval" (searching memory files).
-
-## 3. Tooling & Execution (Module: `ganglia-tools`)
-
-**Responsibility:** Discovery, definition, and safe execution of tools ("The Hands").
-
-*   **Components:**
-    *   `ToolRegistry`: Scans and registers classes annotated with `@AgentTool`.
-    *   `SchemaGenerator`: Converts Java method signatures into JSON Schema for the LLM.
-    *   `ToolExecutor`: Invokes tools and handles structured error mapping (`ToolErrorResult`).
-    *   `ExecutionGuard`: Enforces timeouts and memory output limits (16MB).
-    *   **Standard Library:**
-        *   `bash-tools`: Native command execution (ls, cat).
-        *   `vertx-fs-tools`: Non-blocking Java FS.
-        *   `net-tools`: HTTP client.
-        *   `todo-tools`: Plan & Task management.
-
-
-## 4. Skill System (Module: `ganglia-skills`)
-**Responsibility:** Packaging and management of industry-specific expertise (Knowledge + Tools).
-
-*   **Components:**
-    *   `SkillPackage`: Defines the structure of a skill (Manifest, Prompts, JARs).
-    *   `SkillManager`: Handles lifecycle (install, activate, deactivate) and dependency resolution.
-    *   `SkillPromptInjector`: Merges skill-specific prompts and heuristics into the active system prompt.
-    *   `SkillRegistry`: A repository or catalog of available skills (Local & Remote).
-
-## 5. Interaction & Planning (Module: `ganglia-interaction`)
-
-**Responsibility:** Human-in-the-Loop workflows and high-level planning.
+**Responsibility:** Orchestration of the main ReAct loop, model abstraction, memory management, and tool execution engine.
 
 - **Components:**
-  - `Planner`: Specialized sub-agent logic for decomposing requests into a `List<Step>`.
-  - `ApprovalFlow`: Manages the "Plan -> Review -> Approve" state machine.
-  - `InterruptManager`: Intercepts `@Sensitive` tool calls and pauses execution for user confirmation.
-  - `UserInterface`: Abstraction for receiving input and streaming output/events to the user.
+  - `ReActAgentLoop`: Core reasoning loop (Thought -> Tool -> Observation).
+  - `ModelGateway`: Abstraction for LLM providers (OpenAI, Anthropic, Gemini).
+  - `ContextEngine`: Layered system prompt construction via `ContextSource` and `ContextComposer`.
+  - `MemorySystem`: Turn-based history, Session compression, and Daily Logs (`DailyRecordManager`).
+  - `ToolExecutor`: Dynamic discovery and execution of `ToolSet` implementations.
+  - `SkillService`: Management of domain-specific expertise.
 
-## 6. Infrastructure & Support (Module: `ganglia-infra`)
+## 2. Terminal UI (Module: `ganglia-terminal`)
 
-**Responsibility:** Cross-cutting concerns and enterprise readiness.
+**Responsibility:** Rich interactive command-line interface.
 
 - **Components:**
-  - `Telemetry`: OpenTelemetry integration for tracing and metrics.
-  - `ConfigLoader`: Loading settings and API keys from env/files.
-  - `ExtensionLoader`: Mechanism for loading third-party tool JARs.
-  - `Reliability`: Circuit breakers for API calls and retry logic.
+  - `TerminalUI`: JLine 3 based terminal controller with EventBus streaming support.
+  - `MarkdownRenderer`: Flexmark-based ANSI renderer for Markdown content.
+
+## 3. Integration Testing (Module: `integration-test`)
+
+**Responsibility:** Verification of complex scenarios and cross-module workflows.
+
+- **Components:**
+  - `E2ETestHarness`: Declarative scenario testing using `StubModelGateway`.
+  - `IntegrationScenarios`: 20+ automated IT cases covering all core capabilities.
+
+## 4. Examples & Demos (Module: `ganglia-example`)
+
+**Responsibility:** Showcasing framework capabilities and providing starting points for users.
+
+- **Components:**
+  - `InteractiveChatDemo`: A full-featured interactive CLI.
+  - `AutonomousReActDemo`: Showcasing the agent's ability to solve tasks autonomously.
+  - `SubAgentCooperationDemo`: Demonstrating parent-child agent delegation.
+
+## 5. Technology Stack Summary
+
+- **Core:** Vert.x (EventBus, Futures, FileSystem).
+- **LLM SDKs:** OpenAI Java, Anthropic Java, Google GenAI.
+- **UI:** JLine 3, Flexmark.
+- **Testing:** JUnit 5, Mockito, Vertx-JUnit5.

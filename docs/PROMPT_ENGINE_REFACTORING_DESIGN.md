@@ -1,6 +1,6 @@
-# Prompt Engine Refactoring Design
+# Prompt Engine Architecture (Implemented)
 
-> **Status:** Draft
+> **Status:** Implemented (v1.0.0)
 > **Related:** [Architecture](ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md), [Context Engine Design](CONTEXT_ENGINE_DESIGN.md)
 
 ## 1. Objective

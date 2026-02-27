@@ -22,7 +22,7 @@ public class BaseDemo {
             })
             .onSuccess(ganglia -> {
                 // 2. Setup UI for streaming feedback
-                TerminalUI ui = new TerminalUI(vertx);
+                TerminalUI ui = TerminalUI.create(vertx);
 
                 String sessionId = UUID.randomUUID().toString();
 

@@ -1,6 +1,7 @@
 # Ganglia Integration Test Scenarios
 
 > **Goal**: Validate Agent's multi-tool collaboration, memory capabilities, and low-latency response in complex tasks.
+> **Implementation**: These scenarios are verified using the **E2ETestHarness**, which simulates LLM responses to ensure deterministic and cost-effective testing.
 
 ## 1. Scenario 1: Knowledge Acquisition & Long-Term Memory (Web -> Memory)
 **Description**: Agent accesses a specific URL to fetch technical specifications and records key points into long-term memory.
@@ -9,7 +10,7 @@
     1. Call `web_fetch` to get content.
     2. Extract the "Conventions" section.
     3. Call `remember` to write content to `MEMORY.md`.
-*   **Verification**: Check if `MEMORY.md` contains the expected entries.
+*   **Verification**: `MEMORY_CONTAINS` expectation in `Scenario1KnowledgeAcquisitionE2EIT`.
 
 ## 2. Scenario 2: System Diagnosis & Issue Location (Shell -> Thought)
 **Description**: Agent analyzes system status or searches for anomalies in the codebase via shell commands.
@@ -17,7 +18,7 @@
 *   **Expected Behavior**:
     1. Call `grep_search` or `run_shell_command` executing `grep -r "TODO" .`.
     2. Parse output and report to user in natural language.
-*   **Verification**: The report must contain TODO markers existing in the project.
+*   **Verification**: `OUTPUT_CONTAINS` expectation in `Scenario2SystemDiagnosisE2EIT`.
 
 ## 3. Scenario 3: Multi-Skill Collaboration (Skill -> Web -> Shell)
 **Description**: Activate a specific skill and use its tools to complete cross-domain tasks.
@@ -27,7 +28,7 @@
     2. Call `web_fetch` to get version info.
     3. Call `read_file` to read `pom.xml`.
     4. Logical judgment and providing recommendations.
-*   **Verification**: Whether the Agent correctly identifies the version in `pom.xml`.
+*   **Verification**: `OUTPUT_CONTAINS` expectation in `Scenario3MultiSkillCollaborationE2EIT`.
 
 ## 4. Scenario 4: User Interaction & Interrupt Recovery (Interrupt -> Resume)
 **Description**: Request user choice before executing sensitive operations (like shell commands).
@@ -36,7 +37,7 @@
     1. `list_directory` or `glob` to locate files.
     2. Call `ask_selection` to let user confirm which file to delete.
     3. After user selection, execute `run_shell_command` for cleanup.
-*   **Verification**: The flow correctly pauses at `ask_selection` and resumes after response.
+*   **Verification**: `OUTPUT_CONTAINS` expectation in `Scenario4UserInteractionE2EIT` after resume.
 
 ## 5. Scenario 5: Codebase Discovery & Exploration (Discovery -> Search -> Read)
 **Description**: Efficiently investigate the codebase using standard engineering tools.

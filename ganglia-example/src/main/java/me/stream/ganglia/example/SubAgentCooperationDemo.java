@@ -30,7 +30,7 @@ public class SubAgentCooperationDemo {
                 vertx.close();
             })
             .onSuccess(ganglia -> {
-                TerminalUI ui = new TerminalUI(vertx);
+                TerminalUI ui = TerminalUI.create(vertx);
                 String sessionId = "parent-session-" + UUID.randomUUID().toString().substring(0, 8);
                 
                 System.out.println("--- Ganglia Sub-Agent Cooperation Demo ---");

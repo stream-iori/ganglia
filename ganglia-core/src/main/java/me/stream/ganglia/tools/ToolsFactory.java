@@ -16,7 +16,6 @@ import me.stream.ganglia.tools.subagent.GraphExecutor;
  */
 public class ToolsFactory {
     private final Vertx vertx;
-    private final VertxFileSystemTools vertxFileSystemTools;
     private final BashFileSystemTools bashFileSystemTools;
     private final ToDoTools toDoTools;
     private final KnowledgeBaseTools knowledgeBaseTools;
@@ -31,7 +30,6 @@ public class ToolsFactory {
 
     public ToolsFactory(Vertx vertx, ContextCompressor compressor, KnowledgeBase knowledgeBase, String projectRoot) {
         this.vertx = vertx;
-        this.vertxFileSystemTools = new VertxFileSystemTools(vertx);
         this.bashFileSystemTools = new BashFileSystemTools(vertx, new PathSanitizer(projectRoot));
         this.toDoTools = new ToDoTools(vertx, compressor);
         this.knowledgeBaseTools = new KnowledgeBaseTools(vertx, knowledgeBase);
@@ -39,10 +37,6 @@ public class ToolsFactory {
         this.webFetchTools = new WebFetchTools(vertx);
         this.bashTools = new BashTools(vertx);
         this.fileEditTools = new FileEditTools(vertx);
-    }
-
-    public VertxFileSystemTools getVertxFileSystemTools() {
-        return vertxFileSystemTools;
     }
 
     public BashFileSystemTools getBashFileSystemTools() {

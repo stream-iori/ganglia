@@ -15,6 +15,13 @@
             <groupId>me.stream</groupId>
             <artifactId>ganglia-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>me.stream</groupId>
+            <artifactId>ganglia-core</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
 
         <!-- Test dependencies -->
         <dependency>
