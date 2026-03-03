@@ -9,12 +9,12 @@ To enable complex task decomposition and efficient context management by allowin
 
 ## 2. Core Implementation Logic
 
-Sub-Agents are implemented as a `Scheduleable` task type (`SubAgentTask`), decoupling their execution from the primary `ReActAgentLoop`.
+Sub-Agents are implemented as a `Schedulable` task type (`SubAgentTask`), decoupling their execution from the primary `StandardAgentLoop`.
 
 ### 2.1 Delegation Mechanism
 Sub-Agents are triggered by the Orchestrator requesting the `call_sub_agent` tool.
-- **Scheduling**: The `ScheduleableFactory` detects the intent and creates a `SubAgentTask`.
-- **Execution**: The `SubAgentTask` instantiates a new `ReActAgentLoop` with a scoped context and runs it to completion.
+- **Scheduling**: The `SchedulableFactory` detects the intent and creates a `SubAgentTask`.
+- **Execution**: The `SubAgentTask` instantiates a new `StandardAgentLoop` with a scoped context and runs it to completion.
 
 ### 2.2 Context Scoping (Isolation)
 To prevent token explosion and maintain focus, Sub-Agents operate with a restricted context via `ContextScoper`:
@@ -32,7 +32,7 @@ Sub-Agents can be initialized with custom system prompts to act as domain expert
 Sub-Agents can have restricted tool access based on their persona. For example, an `INVESTIGATOR` may be denied access to destructive tools like `run_shell_command` or `write_file`.
 
 ### 2.5 Result Consolidation
-Once a Sub-Agent finishes its loop, it returns a `ScheduleResult`:
+Once a Sub-Agent finishes its loop, it returns a `SchedulableResult`:
 - **Reporting**: The report content is appended to the parent's history as a tool observation.
 - **Recursion Control**: A hard limit on nested Sub-Agent calls (default: 1) is enforced via metadata tracking.
 
@@ -41,7 +41,7 @@ Once a Sub-Agent finishes its loop, it returns a `ScheduleResult`:
 ```mermaid
 sequenceDiagram
     participant P as Orchestrator (Parent)
-    participant F as ScheduleableFactory
+    participant F as SchedulableFactory
     participant T as SubAgentTask
     participant C as Specialist (Child)
     
@@ -57,6 +57,6 @@ sequenceDiagram
 ```
 
 ## 4. Key Components
-1.  **`SubAgentTask`**: The `Scheduleable` implementation that manages the child loop.
+1.  **`SubAgentTask`**: The `Schedulable` implementation that manages the child loop.
 2.  **`ContextScoper`**: Logic to extract and prune the relevant context fragments for the child instance.
-3.  **`ScheduleableFactory`**: Responsible for routing the delegation request to the task implementation.
+3.  **`SchedulableFactory`**: Responsible for routing the delegation request to the task implementation.

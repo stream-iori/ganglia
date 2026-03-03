@@ -7,10 +7,10 @@ import me.stream.ganglia.core.Ganglia;
 import me.stream.ganglia.core.config.ConfigManager;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.llm.ModelGatewayFactory;
-import me.stream.ganglia.core.loop.ReActAgentLoop;
+import me.stream.ganglia.core.loop.StandardAgentLoop;
 import me.stream.ganglia.core.prompt.StandardPromptEngine;
-import me.stream.ganglia.core.schedule.DefaultScheduleableFactory;
-import me.stream.ganglia.core.schedule.ScheduleableFactory;
+import me.stream.ganglia.core.schedule.DefaultSchedulableFactory;
+import me.stream.ganglia.core.schedule.SchedulableFactory;
 import me.stream.ganglia.core.session.DefaultSessionManager;
 import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.core.state.FileLogManager;
@@ -105,8 +105,8 @@ public class Main {
             // Resolve loaders from config
             List<SkillLoader> loaders = new ArrayList<>();
             JsonObject skillConfig = configManager.getConfig().getJsonObject("skills");
-            List<String> loaderTypes = (skillConfig != null && skillConfig.containsKey("loaders")) 
-                ? skillConfig.getJsonArray("loaders").getList() 
+            List<String> loaderTypes = (skillConfig != null && skillConfig.containsKey("loaders"))
+                ? skillConfig.getJsonArray("loaders").getList()
                 : List.of("filesystem", "jar");
 
             if (loaderTypes.contains("filesystem")) {
@@ -127,10 +127,10 @@ public class Main {
                 DailyRecordManager dailyRecordManager = new FileSystemDailyRecordManager(vertx, ".ganglia/memory");
 
                 ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase, configManager.getProjectRoot());
-                
+
                 // Initialize PromptEngine
                 StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillRuntime, null, tokenCounter);
-                
+
                 // Initialize SessionManager
                 FileStateEngine stateEngine = new FileStateEngine(vertx);
                 FileLogManager logManager = new FileLogManager(vertx);
@@ -142,18 +142,18 @@ public class Main {
                 // Initialize GraphExecutor
                 GraphExecutor graphExecutor = new DefaultGraphExecutor(vertx, modelGateway, sessionManager, promptEngine, configManager, compressor);
 
-                // Initialize ScheduleableFactory
-                ScheduleableFactory scheduleableFactory = new DefaultScheduleableFactory(
+                // Initialize SchedulableFactory
+                SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(
                     vertx, modelGateway, sessionManager, promptEngine, configManager, compressor,
                     toolExecutor, graphExecutor, skillService, skillRuntime
                 );
 
-                // Wire ScheduleableFactory back into PromptEngine and GraphExecutor
-                promptEngine.setScheduleableFactory(scheduleableFactory);
+                // Wire SchedulableFactory back into PromptEngine and GraphExecutor
+                promptEngine.setSchedulableFactory(scheduleableFactory);
                 if (graphExecutor instanceof DefaultGraphExecutor) {
-                    ((DefaultGraphExecutor) graphExecutor).setScheduleableFactory(scheduleableFactory);
+                    ((DefaultGraphExecutor) graphExecutor).setSchedulableFactory(scheduleableFactory);
                 }
-                
+
                 // Add Daily Source
                 promptEngine.addContextSource(new DailyContextSource(vertx, ".ganglia/memory"));
 
@@ -162,7 +162,7 @@ public class Main {
                 new TokenUsageManager(vertx, tokenCounter);
                 new MemoryService(vertx, compressor, dailyRecordManager);
 
-                ReActAgentLoop agentLoop = new ReActAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, 
+                StandardAgentLoop agentLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager,
                     promptEngine, configManager, compressor);
 
                 return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop, configManager);

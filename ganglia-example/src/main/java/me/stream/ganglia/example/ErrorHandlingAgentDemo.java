@@ -10,11 +10,11 @@ import me.stream.ganglia.ui.TerminalUI;
 import java.util.UUID;
 
 /**
- * A demo showcasing how the ReAct loop handles tool errors (e.g., file not found).
+ * A demo showcasing how the Standard loop handles tool errors (e.g., file not found).
  * The agent is asked to perform a task that starts with a failure and must
  * autonomously decide how to recover or report the error.
  */
-public class ErrorHandlingReActDemo {
+public class ErrorHandlingAgentDemo {
 
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
@@ -28,7 +28,7 @@ public class ErrorHandlingReActDemo {
                 TerminalUI ui = TerminalUI.create(vertx);
                 String sessionId = "error-demo-" + UUID.randomUUID().toString().substring(0, 8);
 
-                System.out.println("--- Ganglia Error Handling ReAct Demo ---");
+                System.out.println("--- Ganglia Error Handling Standard Demo ---");
                 System.out.println("Session ID: " + sessionId);
 
                 // 1. Setup: Create a "correct" file but the agent is told the wrong name first

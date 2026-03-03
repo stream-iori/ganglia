@@ -7,7 +7,7 @@ import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.prompt.context.*;
 import me.stream.ganglia.core.prompt.context.SubAgentContextSource;
-import me.stream.ganglia.core.schedule.ScheduleableFactory;
+import me.stream.ganglia.core.schedule.SchedulableFactory;
 import me.stream.ganglia.skills.SkillRuntime;
 
 import java.util.ArrayList;
@@ -20,12 +20,12 @@ public class StandardPromptEngine implements PromptEngine {
     private final List<ContextSource> sources = new ArrayList<>();
     private final ContextComposer composer;
     private final TokenCounter tokenCounter;
-    private ScheduleableFactory scheduleableFactory;
+    private SchedulableFactory scheduleableFactory;
 
     public StandardPromptEngine(Vertx vertx,
                                 KnowledgeBase knowledgeBase,
                                 SkillRuntime skillRuntime,
-                                ScheduleableFactory scheduleableFactory,
+                                SchedulableFactory scheduleableFactory,
                                 TokenCounter tokenCounter) {
         MarkdownContextResolver resolver = new MarkdownContextResolver(vertx);
         this.tokenCounter = tokenCounter;
@@ -45,7 +45,7 @@ public class StandardPromptEngine implements PromptEngine {
         sources.add(new SubAgentContextSource());
     }
 
-    public void setScheduleableFactory(ScheduleableFactory scheduleableFactory) {
+    public void setSchedulableFactory(SchedulableFactory scheduleableFactory) {
         this.scheduleableFactory = scheduleableFactory;
         // Re-add ToolContextSource if it wasn't added during construction
         boolean hasToolSource = sources.stream().anyMatch(s -> s instanceof ToolContextSource);

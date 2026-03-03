@@ -20,20 +20,20 @@ The Orchestrator proposes a task graph. The user must review and approve the gra
 ## 3. Implementation Logic
 
 ### 3.1 `propose_task_graph` Task
-Handled by `TaskGraphTask` (a `Scheduleable` type).
+Handled by `TaskGraphTask` (a `Schedulable` type).
 - **Arguments**: 
     - `nodes`: List of task nodes.
     - `approved`: Boolean flag indicating user consent.
 - **Behavior**: 
-    - If `approved=false`, the task returns a `ScheduleResult.INTERRUPT`, prompting the user for confirmation.
+    - If `approved=false`, the task returns a `SchedulableResult.INTERRUPT`, prompting the user for confirmation.
     - If `approved=true`, it delegates execution to the `GraphExecutor`.
 
 ### 3.2 `GraphExecutor`
 A component responsible for executing the approved DAG.
 - **Topological Sort**: Determines the execution order.
 - **Concurrent Execution**: Uses Vert.x `Future.all()` to run independent nodes in parallel.
-- **Context Management**: Each node runs in a fresh `ReActAgentLoop` with scoped context.
-- **Integration**: Depends on `ScheduleableFactory` to create the child loops.
+- **Context Management**: Each node runs in a fresh `StandardAgentLoop` with scoped context.
+- **Integration**: Depends on `SchedulableFactory` to create the child loops.
 
 ### 3.3 Data Flow
 - **Input Sharing**: Nodes receive the output of their dependencies as part of their initial prompt.
@@ -44,7 +44,7 @@ A component responsible for executing the approved DAG.
 ```mermaid
 sequenceDiagram
     participant P as Orchestrator (Parent)
-    participant F as ScheduleableFactory
+    participant F as SchedulableFactory
     participant T as TaskGraphTask
     participant U as User (CLI)
     participant E as GraphExecutor
@@ -52,7 +52,7 @@ sequenceDiagram
 
     P->>F: propose_task_graph(nodes, approved=false)
     F->>T: create TaskGraphTask
-    T-->>P: ScheduleResult.INTERRUPT
+    T-->>P: SchedulableResult.INTERRUPT
     P-->>U: Display Graph & Wait
     U-->>P: Resume with approved=true
     P->>F: propose_task_graph(nodes, approved=true)

@@ -2,8 +2,8 @@ package me.stream.ganglia.core.schedule.task;
 
 import io.vertx.core.Future;
 import me.stream.ganglia.core.model.SessionContext;
-import me.stream.ganglia.core.schedule.ScheduleResult;
-import me.stream.ganglia.core.schedule.Scheduleable;
+import me.stream.ganglia.core.schedule.SchedulableResult;
+import me.stream.ganglia.core.schedule.Schedulable;
 import me.stream.ganglia.tools.model.ToolCall;
 import me.stream.ganglia.tools.subagent.GraphExecutor;
 import me.stream.ganglia.tools.subagent.TaskGraph;
@@ -14,7 +14,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class TaskGraphTask implements Scheduleable {
+public class TaskGraphTask implements Schedulable {
     private final ToolCall call;
     private final GraphExecutor graphExecutor;
 
@@ -34,12 +34,12 @@ public class TaskGraphTask implements Scheduleable {
     }
 
     @Override
-    public Future<ScheduleResult> execute(SessionContext context) {
+    public Future<SchedulableResult> execute(SessionContext context) {
         // Check recursion
         Object levelObj = context.metadata().getOrDefault("sub_agent_level", 0);
         int currentLevel = (levelObj instanceof Number) ? ((Number) levelObj).intValue() : Integer.parseInt(levelObj.toString());
         if (currentLevel >= 1) {
-            return Future.succeededFuture(ScheduleResult.error("RECURSION_LIMIT: Nested task graphs are not allowed."));
+            return Future.succeededFuture(SchedulableResult.error("RECURSION_LIMIT: Nested task graphs are not allowed."));
         }
 
         Object approvedObj = call.arguments().getOrDefault("approved", false);
@@ -52,7 +52,7 @@ public class TaskGraphTask implements Scheduleable {
         return executeGraph(context);
     }
 
-    private Future<ScheduleResult> interruptForApproval() {
+    private Future<SchedulableResult> interruptForApproval() {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> nodes = (List<Map<String, Object>>) call.arguments().get("nodes");
         
@@ -68,10 +68,10 @@ public class TaskGraphTask implements Scheduleable {
         }
         sb.append("\\nDo you approve this execution plan? (y/n)");
 
-        return Future.succeededFuture(ScheduleResult.interrupt(sb.toString()));
+        return Future.succeededFuture(SchedulableResult.interrupt(sb.toString()));
     }
 
-    private Future<ScheduleResult> executeGraph(SessionContext context) {
+    private Future<SchedulableResult> executeGraph(SessionContext context) {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> nodeData = (List<Map<String, Object>>) call.arguments().get("nodes");
         List<TaskNode> nodes = new ArrayList<>();
@@ -91,7 +91,7 @@ public class TaskGraphTask implements Scheduleable {
 
         TaskGraph graph = new TaskGraph(nodes);
         return graphExecutor.execute(graph, context)
-            .map(ScheduleResult::success)
-            .recover(err -> Future.succeededFuture(ScheduleResult.error("GRAPH_EXECUTION_ERROR: " + err.getMessage())));
+            .map(SchedulableResult::success)
+            .recover(err -> Future.succeededFuture(SchedulableResult.error("GRAPH_EXECUTION_ERROR: " + err.getMessage())));
     }
 }

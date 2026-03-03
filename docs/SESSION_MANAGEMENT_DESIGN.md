@@ -54,7 +54,7 @@ public interface SessionManager {
 
 ### 4.1 `DefaultSessionManager`
 - **Dependency:** Uses `StateEngine` for physical persistence (JSON files).
-- **Caching:** May implement a basic in-memory cache for active sessions to reduce I/O during the ReAct loop.
+- **Caching:** May implement a basic in-memory cache for active sessions to reduce I/O during the Reasoning Loop.
 - **Initialization:** Ensures that new sessions are initialized with the default `ModelOptions` and an empty `ToDoList`.
 
 ### 4.2 Turn Lifecycle Management

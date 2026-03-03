@@ -8,7 +8,7 @@ This document outlines the detailed design for the Core Kernel module using UML 
 
 ## 1. Class Diagram: Core Components
 
-This diagram illustrates the relationships between the main entities: `AgentLoop`, `ModelGateway`, `ScheduleableFactory`, and the `Scheduleable` tasks.
+This diagram illustrates the relationships between the main entities: `AgentLoop`, `ModelGateway`, `SchedulableFactory`, and the `Schedulable` tasks.
 
 ```mermaid
 classDiagram
@@ -17,30 +17,30 @@ classDiagram
         +run(userInput: String, context: SessionContext, signal: AgentSignal) Future~String~
     }
     
-    class ReActAgentLoop {
+    class StandardAgentLoop {
         -model: ModelGateway
-        -scheduleableFactory: ScheduleableFactory
+        -scheduleableFactory: SchedulableFactory
         -sessionManager: SessionManager
         -promptEngine: PromptEngine
         -tokenCounter: TokenCounter
         +run(...)
         +resume(toolOutput: String, ...)
-        -executeScheduleablesSequentially(...)
+        -executeSchedulablesSequentially(...)
     }
     
-    AgentLoop <|.. ReActAgentLoop
+    AgentLoop <|.. StandardAgentLoop
     
-    class ScheduleableFactory {
+    class SchedulableFactory {
         <<Interface>>
-        +create(call: ToolCall, context: SessionContext) Scheduleable
+        +create(call: ToolCall, context: SessionContext) Schedulable
         +getAvailableDefinitions(context: SessionContext) List~ToolDefinition~
     }
 
-    class Scheduleable {
+    class Schedulable {
         <<Interface>>
         +id() String
         +name() String
-        +execute(context: SessionContext) Future~ScheduleResult~
+        +execute(context: SessionContext) Future~SchedulableResult~
     }
 
     class StandardToolTask {
@@ -56,13 +56,13 @@ classDiagram
         -graphExecutor: GraphExecutor
     }
 
-    Scheduleable <|.. StandardToolTask
-    Scheduleable <|.. SubAgentTask
-    Scheduleable <|.. SkillTask
-    Scheduleable <|.. TaskGraphTask
+    Schedulable <|.. StandardToolTask
+    Schedulable <|.. SubAgentTask
+    Schedulable <|.. SkillTask
+    Schedulable <|.. TaskGraphTask
 
-    ReActAgentLoop --> ScheduleableFactory : uses to create tasks
-    ScheduleableFactory ..> Scheduleable : produces
+    StandardAgentLoop --> SchedulableFactory : uses to create tasks
+    SchedulableFactory ..> Schedulable : produces
     
     class ModelGateway {
         <<Interface>>
@@ -85,14 +85,14 @@ classDiagram
         +pollSteeringMessages(sessionId: String) List~String~
     }
 
-    ReActAgentLoop --> ModelGateway : uses
-    ReActAgentLoop --> SessionManager : persists state & polls messages
-    ReActAgentLoop --> PromptEngine : prepares LLM inputs
+    StandardAgentLoop --> ModelGateway : uses
+    StandardAgentLoop --> SessionManager : persists state & polls messages
+    StandardAgentLoop --> PromptEngine : prepares LLM inputs
 ```
 
 ## 2. Sequence Diagram: The ReAct Loop
 
-This diagram details the flow of the `AgentLoop.run()` method, demonstrating the orchestration of `Scheduleable` tasks.
+This diagram details the flow of the `AgentLoop.run()` method, demonstrating the orchestration of `Schedulable` tasks.
 
 ```mermaid
 sequenceDiagram
@@ -101,8 +101,8 @@ sequenceDiagram
     participant AgentLoop
     participant PromptEngine
     participant Model as ModelGateway
-    participant Factory as ScheduleableFactory
-    participant Task as ScheduleableTask
+    participant Factory as SchedulableFactory
+    participant Task as SchedulableTask
     participant SM as SessionManager
 
     User->>AgentLoop: run(userInput, context, signal)
@@ -124,7 +124,7 @@ sequenceDiagram
         alt Has Tool Calls?
             Note over AgentLoop, Factory: 2. Scheduling Phase
             AgentLoop->>Factory: create(ToolCall)
-            Factory-->>AgentLoop: ScheduleableTask
+            Factory-->>AgentLoop: SchedulableTask
             
             Note over AgentLoop, Task: 3. Execution Phase (Sequential)
             AgentLoop->>SM: pollSteeringMessages()
@@ -133,7 +133,7 @@ sequenceDiagram
             end
 
             AgentLoop->>Task: execute(Context)
-            Task-->>AgentLoop: ScheduleResult (Observation)
+            Task-->>AgentLoop: SchedulableResult (Observation)
             
             alt Any Task Interrupted (e.g. ask_selection)?
                 AgentLoop-->>User: Return Prompt/Interrupt

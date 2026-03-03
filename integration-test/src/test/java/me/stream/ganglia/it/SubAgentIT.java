@@ -126,7 +126,7 @@ public class SubAgentIT {
                 testContext.verify(() -> {
                     // The result of the second call should be an error report from the tool
                     // Because we mock the model to return a tool call, and the loop executes it.
-                    // The loop will see the error from SubAgentTools and feed it back to the model.
+                    // The loop will see the error from SubAgentTask scheduling and feed it back to the model.
                     
                     // We can check if the model was called with an observation containing RECURSION_LIMIT
                     verify(mockModel, atLeastOnce()).chatStream(argThat(msgs -> 

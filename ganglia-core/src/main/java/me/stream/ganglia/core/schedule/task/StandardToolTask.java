@@ -2,15 +2,15 @@ package me.stream.ganglia.core.schedule.task;
 
 import io.vertx.core.Future;
 import me.stream.ganglia.core.model.SessionContext;
-import me.stream.ganglia.core.schedule.ScheduleResult;
-import me.stream.ganglia.core.schedule.Scheduleable;
+import me.stream.ganglia.core.schedule.SchedulableResult;
+import me.stream.ganglia.core.schedule.Schedulable;
 import me.stream.ganglia.tools.ToolExecutor;
 import me.stream.ganglia.tools.model.ToolCall;
 
 /**
  * A scheduleable task that wraps a standard tool execution (e.g. Bash, FileSystem).
  */
-public class StandardToolTask implements Scheduleable {
+public class StandardToolTask implements Schedulable {
     private final ToolCall toolCall;
     private final ToolExecutor toolExecutor;
 
@@ -30,16 +30,16 @@ public class StandardToolTask implements Scheduleable {
     }
 
     @Override
-    public Future<ScheduleResult> execute(SessionContext context) {
+    public Future<SchedulableResult> execute(SessionContext context) {
         return toolExecutor.execute(toolCall, context)
             .map(invokeResult -> {
-                ScheduleResult.Status status = switch (invokeResult.status()) {
-                    case SUCCESS -> ScheduleResult.Status.SUCCESS;
-                    case ERROR -> ScheduleResult.Status.ERROR;
-                    case EXCEPTION -> ScheduleResult.Status.EXCEPTION;
-                    case INTERRUPT -> ScheduleResult.Status.INTERRUPT;
+                SchedulableResult.Status status = switch (invokeResult.status()) {
+                    case SUCCESS -> SchedulableResult.Status.SUCCESS;
+                    case ERROR -> SchedulableResult.Status.ERROR;
+                    case EXCEPTION -> SchedulableResult.Status.EXCEPTION;
+                    case INTERRUPT -> SchedulableResult.Status.INTERRUPT;
                 };
-                return new ScheduleResult(status, invokeResult.output(), invokeResult.modifiedContext());
+                return new SchedulableResult(status, invokeResult.output(), invokeResult.modifiedContext());
             });
     }
 }

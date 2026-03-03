@@ -4,8 +4,8 @@ import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.model.*;
-import me.stream.ganglia.core.schedule.DefaultScheduleableFactory;
-import me.stream.ganglia.core.schedule.ScheduleableFactory;
+import me.stream.ganglia.core.schedule.DefaultSchedulableFactory;
+import me.stream.ganglia.core.schedule.SchedulableFactory;
 import me.stream.ganglia.core.session.DefaultSessionManager;
 import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.stubs.*;
@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ExtendWith(VertxExtension.class)
-class ReActAgentLoopTest {
+class StandardAgentLoopTest {
 
     Vertx vertx;
     StubModelGateway model;
@@ -35,8 +35,8 @@ class ReActAgentLoopTest {
     StubConfigManager configManager;
     SessionManager sessionManager;
     me.stream.ganglia.memory.ContextCompressor compressor;
-    ScheduleableFactory scheduleableFactory;
-    ReActAgentLoop loop;
+    SchedulableFactory scheduleableFactory;
+    StandardAgentLoop loop;
 
     @BeforeEach
     void setUp() {
@@ -49,8 +49,8 @@ class ReActAgentLoopTest {
         configManager = new StubConfigManager(vertx);
         sessionManager = new DefaultSessionManager(state, logManager, configManager);
         compressor = new me.stream.ganglia.memory.ContextCompressor(model, configManager);
-        scheduleableFactory = new DefaultScheduleableFactory(vertx, model, sessionManager, prompt, configManager, compressor, tools, null, null, null);
-        loop = new ReActAgentLoop(vertx, model, scheduleableFactory, sessionManager, prompt, configManager, compressor);
+        scheduleableFactory = new DefaultSchedulableFactory(vertx, model, sessionManager, prompt, configManager, compressor, tools, null, null, null);
+        loop = new StandardAgentLoop(vertx, model, scheduleableFactory, sessionManager, prompt, configManager, compressor);
     }
 
     @Test
@@ -66,7 +66,7 @@ class ReActAgentLoopTest {
 
         // 2nd Model Call: Returns Final Answer
         ModelResponse finalResponse = new ModelResponse("Final Answer", Collections.emptyList(), new TokenUsage(10, 10));
-        
+
         model.addResponses(toolResponse, finalResponse);
 
         // Setup Tools
@@ -98,7 +98,7 @@ class ReActAgentLoopTest {
         loop.run("Help me choose", context).onComplete(testContext.succeeding(promptMsg -> {
             testContext.verify(() -> {
                 assertEquals("Please choose: A or B", promptMsg);
-                
+
                 // Get saved session state
                 SessionContext pausedContext = state.getSessions().get("test-session-interrupt");
                 assertNotNull(pausedContext);
@@ -147,7 +147,7 @@ class ReActAgentLoopTest {
         // 2. Setup LLM to keep returning a tool call (infinite loop)
         ToolCall toolCall = new ToolCall("call-inf", "test-tool", Map.of("arg", "1"));
         ModelResponse toolResponse = new ModelResponse("Still working...", List.of(toolCall), new TokenUsage(10, 10));
-        
+
         // Add 3 responses (one more than limit) to see if it stops
         model.addResponses(toolResponse, toolResponse, toolResponse);
 

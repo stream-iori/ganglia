@@ -43,10 +43,10 @@ public class GraphExecutorTest {
         me.stream.ganglia.memory.ContextCompressor compressor = new me.stream.ganglia.memory.ContextCompressor(modelGateway, configManager);
         this.graphExecutor = new DefaultGraphExecutor(vertx, modelGateway, sessionManager, promptEngine, configManager, compressor);
         
-        me.stream.ganglia.core.schedule.ScheduleableFactory scheduleableFactory = new me.stream.ganglia.core.schedule.DefaultScheduleableFactory(
+        me.stream.ganglia.core.schedule.SchedulableFactory scheduleableFactory = new me.stream.ganglia.core.schedule.DefaultSchedulableFactory(
             vertx, modelGateway, sessionManager, promptEngine, configManager, compressor, toolExecutor, graphExecutor, null, null
         );
-        this.graphExecutor.setScheduleableFactory(scheduleableFactory);
+        this.graphExecutor.setSchedulableFactory(scheduleableFactory);
     }
 
     @Test

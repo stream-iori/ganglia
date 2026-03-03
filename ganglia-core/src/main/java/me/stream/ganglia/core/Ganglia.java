@@ -2,7 +2,7 @@ package me.stream.ganglia.core;
 
 import me.stream.ganglia.core.config.ConfigManager;
 import me.stream.ganglia.core.llm.ModelGateway;
-import me.stream.ganglia.core.loop.ReActAgentLoop;
+import me.stream.ganglia.core.loop.StandardAgentLoop;
 import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.tools.ToolExecutor;
 
@@ -13,6 +13,6 @@ public record Ganglia(
     ModelGateway modelGateway,
     ToolExecutor toolExecutor,
     SessionManager sessionManager,
-    ReActAgentLoop agentLoop,
+    StandardAgentLoop agentLoop,
     ConfigManager configManager
 ) {}

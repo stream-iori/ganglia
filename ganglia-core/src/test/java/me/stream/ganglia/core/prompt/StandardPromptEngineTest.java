@@ -3,8 +3,8 @@ package me.stream.ganglia.core.prompt;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import me.stream.ganglia.core.schedule.DefaultScheduleableFactory;
-import me.stream.ganglia.core.schedule.ScheduleableFactory;
+import me.stream.ganglia.core.schedule.DefaultSchedulableFactory;
+import me.stream.ganglia.core.schedule.SchedulableFactory;
 import me.stream.ganglia.memory.KnowledgeBase;
 import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.core.model.*;
@@ -27,7 +27,7 @@ class StandardPromptEngineTest {
     void testBuildPromptInjectsToDo(Vertx vertx, VertxTestContext testContext) {
         TokenCounter counter = new TokenCounter();
         StubToolExecutor toolExecutor = new StubToolExecutor();
-        ScheduleableFactory scheduleableFactory = new DefaultScheduleableFactory(vertx, null, null, null, null, null, toolExecutor, null, null, null);
+        SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(vertx, null, null, null, null, null, toolExecutor, null, null, null);
         StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, scheduleableFactory, counter);
         ToDoList toDoList = ToDoList.empty().addTask("Task A");
         SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, toDoList);
@@ -45,7 +45,7 @@ class StandardPromptEngineTest {
             .compose(v -> {
                 TokenCounter counter = new TokenCounter();
                 StubToolExecutor toolExecutor = new StubToolExecutor();
-                ScheduleableFactory scheduleableFactory = new DefaultScheduleableFactory(vertx, null, null, null, null, null, toolExecutor, null, null, null);
+                SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(vertx, null, null, null, null, null, toolExecutor, null, null, null);
                 StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, scheduleableFactory, counter);
                 SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
                 return engine.buildSystemPrompt(context);
@@ -79,7 +79,7 @@ class StandardPromptEngineTest {
     void testPrepareRequest(Vertx vertx, VertxTestContext testContext) {
         StubToolExecutor toolExecutor = new StubToolExecutor(); // Returns empty list by default
         TokenCounter counter = new TokenCounter();
-        ScheduleableFactory scheduleableFactory = new DefaultScheduleableFactory(vertx, null, null, null, null, null, toolExecutor, null, null, null);
+        SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(vertx, null, null, null, null, null, toolExecutor, null, null, null);
         StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, scheduleableFactory, counter);
         
         ModelOptions options = new ModelOptions(0.0, 100, "test-model");

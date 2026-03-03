@@ -7,11 +7,11 @@ This document describes the implemented module structure of the Ganglia system.
 
 ## 1. Core Framework (Module: `ganglia-core`)
 
-**Responsibility:** Orchestration of the main ReAct loop, model abstraction, scheduling, and state management.
+**Responsibility:** Orchestration of the main Reasoning Loop, model abstraction, scheduling, and state management.
 
 - **Components:**
-  - `ReActAgentLoop`: Core reasoning loop (Thought -> Task -> Observation).
-  - `ScheduleableFactory`: Unified scheduling layer that maps LLM intents to executable tasks (Tools, Sub-Agents, Skills).
+  - `StandardAgentLoop`: Core reasoning loop (Thought -> Task -> Observation).
+  - `SchedulableFactory`: Unified scheduling layer that maps LLM intents to executable tasks (Tools, Sub-Agents, Skills).
   - `ModelGateway`: Abstraction for LLM providers (OpenAI, Anthropic, Gemini).
   - `ContextEngine`: Layered system prompt construction via `ContextSource` and `ContextComposer`.
   - `MemorySystem`: Turn-based history, Session compression, and Daily Logs (`DailyRecordManager`).

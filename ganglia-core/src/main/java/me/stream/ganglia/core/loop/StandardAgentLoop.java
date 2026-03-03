@@ -9,9 +9,9 @@ import me.stream.ganglia.core.llm.LLMException;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
-import me.stream.ganglia.core.schedule.ScheduleResult;
-import me.stream.ganglia.core.schedule.Scheduleable;
-import me.stream.ganglia.core.schedule.ScheduleableFactory;
+import me.stream.ganglia.core.schedule.SchedulableResult;
+import me.stream.ganglia.core.schedule.Schedulable;
+import me.stream.ganglia.core.schedule.SchedulableFactory;
 import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.memory.ReflectEvent;
@@ -22,11 +22,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-public class ReActAgentLoop implements AgentLoop {
-    private static final Logger logger = LoggerFactory.getLogger(ReActAgentLoop.class);
+public class StandardAgentLoop implements AgentLoop {
+    private static final Logger logger = LoggerFactory.getLogger(StandardAgentLoop.class);
 
     private final ModelGateway model;
-    private final ScheduleableFactory scheduleableFactory;
+    private final SchedulableFactory scheduleableFactory;
     private final SessionManager sessionManager;
     private final PromptEngine promptEngine;
     private final ConfigManager configManager;
@@ -34,8 +34,8 @@ public class ReActAgentLoop implements AgentLoop {
     private final ContextCompressor compressor;
     private final TokenCounter tokenCounter = new TokenCounter();
 
-    public ReActAgentLoop(Vertx vertx, ModelGateway model, ScheduleableFactory scheduleableFactory, SessionManager sessionManager,
-                          PromptEngine promptEngine, ConfigManager configManager, ContextCompressor compressor) {
+    public StandardAgentLoop(Vertx vertx, ModelGateway model, SchedulableFactory scheduleableFactory, SessionManager sessionManager,
+                             PromptEngine promptEngine, ConfigManager configManager, ContextCompressor compressor) {
         this.vertx = vertx;
         this.model = model;
         this.scheduleableFactory = scheduleableFactory;
@@ -158,7 +158,7 @@ public class ReActAgentLoop implements AgentLoop {
         int totalTokens = currentContext.history().stream()
                 .mapToInt(m -> m.countTokens(tokenCounter))
                 .sum();
-        
+
         int limit = configManager.getContextLimit();
         double threshold = configManager.getCompressionThreshold();
 
@@ -172,20 +172,20 @@ public class ReActAgentLoop implements AgentLoop {
         if (totalTokens > limit * threshold && currentContext.previousTurns().size() > 1) {
             logger.info("Context threshold reached ({} > {}). Triggering compression...", totalTokens, (int)(limit * threshold));
             publishObservation(currentContext.sessionId(), ObservationType.SYSTEM_EVENT, "Auto-compressing context...");
-            
+
             return sessionManager.compressSession(currentContext, 1, compressor)
                     .compose(compressedContext -> {
-                        logger.info("Compression complete. New token count: {}", 
+                        logger.info("Compression complete. New token count: {}",
                             compressedContext.history().stream().mapToInt(m -> m.countTokens(tokenCounter)).sum());
                         return runLoop(compressedContext, signal); // Restart this iteration with compressed context
                     });
         }
 
         logger.debug("Loop iteration: {} for session: {}", iteration, currentContext.sessionId());
-        
+
         // Pass context cleanly to reason block, capture effectively final references correctly
         final SessionContext contextForReasoning = currentContext;
-        
+
         return reason(contextForReasoning, signal)
             .compose(response -> handleDecision(response, contextForReasoning, signal))
             .recover(err -> {
@@ -237,9 +237,9 @@ public class ReActAgentLoop implements AgentLoop {
             .recover(err -> {
                 if (shouldRetry(err) && attempt < 3) { // Max 3 retries
                     long delay = calculateDelay(attempt);
-                    logger.warn("Transient LLM error for session {}. Retrying in {}ms... Error: {}", 
+                    logger.warn("Transient LLM error for session {}. Retrying in {}ms... Error: {}",
                         context.sessionId(), delay, err.getMessage());
-                    
+
                     Promise<ModelResponse> promise = Promise.promise();
                     vertx.setTimer(delay, id -> {
                         retryReason(context, attempt + 1, signal).onComplete(promise);
@@ -318,15 +318,15 @@ public class ReActAgentLoop implements AgentLoop {
     }
 
     private Future<SessionContext> act(List<ToolCall> toolCalls, SessionContext context, AgentSignal signal) {
-        // Transform ToolCalls to Scheduleables
-        List<Scheduleable> scheduleables = toolCalls.stream()
+        // Transform ToolCalls to Schedulables
+        List<Schedulable> scheduleables = toolCalls.stream()
             .map(call -> scheduleableFactory.create(call, context))
             .toList();
 
-        return executeScheduleablesSequentially(scheduleables, 0, context, signal);
+        return executeSchedulablesSequentially(scheduleables, 0, context, signal);
     }
 
-    private Future<SessionContext> executeScheduleablesSequentially(List<Scheduleable> scheduleables, int index, SessionContext currentContext, AgentSignal signal) {
+    private Future<SessionContext> executeSchedulablesSequentially(List<Schedulable> scheduleables, int index, SessionContext currentContext, AgentSignal signal) {
         if (signal.isAborted()) {
             return Future.failedFuture(new AgentAbortedException());
         }
@@ -347,7 +347,7 @@ public class ReActAgentLoop implements AgentLoop {
             return Future.succeededFuture(currentContext);
         }
 
-        Scheduleable task = scheduleables.get(index);
+        Schedulable task = scheduleables.get(index);
         logger.debug("Executing task [{} of {}]: {} ({})", index + 1, scheduleables.size(), task.name(), task.id());
         publishObservation(currentContext.sessionId(), ObservationType.TOOL_STARTED, task.name());
 
@@ -373,9 +373,9 @@ public class ReActAgentLoop implements AgentLoop {
 
                 Message toolMsg = Message.tool(task.id(), task.name(), scheduleResult.output());
                 SessionContext contextToUse = scheduleResult.modifiedContext() != null ? scheduleResult.modifiedContext() : originalContextForTask;
-                
+
                 // --- Robustness: Consecutive Failure Tracking ---
-                if (scheduleResult.status() == ScheduleResult.Status.ERROR || scheduleResult.status() == ScheduleResult.Status.EXCEPTION) {
+                if (scheduleResult.status() == SchedulableResult.Status.ERROR || scheduleResult.status() == SchedulableResult.Status.EXCEPTION) {
                     int fails = (int) contextToUse.metadata().getOrDefault("consecutive_tool_failures", 0);
                     if (fails >= 3) {
                         logger.warn("Task {} failed {} times consecutively. Aborting loop to prevent runaway usage.", task.name(), fails + 1);
@@ -383,13 +383,13 @@ public class ReActAgentLoop implements AgentLoop {
                     }
                     Map<String, Object> newMetadata = new HashMap<>(contextToUse.metadata());
                     newMetadata.put("consecutive_tool_failures", fails + 1);
-                    contextToUse = new SessionContext(contextToUse.sessionId(), contextToUse.previousTurns(), contextToUse.currentTurn(), 
+                    contextToUse = new SessionContext(contextToUse.sessionId(), contextToUse.previousTurns(), contextToUse.currentTurn(),
                         newMetadata, contextToUse.activeSkillIds(), contextToUse.modelOptions(), contextToUse.toDoList());
                 } else {
                     if (contextToUse.metadata().containsKey("consecutive_tool_failures")) {
                         Map<String, Object> newMetadata = new HashMap<>(contextToUse.metadata());
                         newMetadata.remove("consecutive_tool_failures");
-                        contextToUse = new SessionContext(contextToUse.sessionId(), contextToUse.previousTurns(), contextToUse.currentTurn(), 
+                        contextToUse = new SessionContext(contextToUse.sessionId(), contextToUse.previousTurns(), contextToUse.currentTurn(),
                             newMetadata, contextToUse.activeSkillIds(), contextToUse.modelOptions(), contextToUse.toDoList());
                     }
                 }
@@ -397,6 +397,6 @@ public class ReActAgentLoop implements AgentLoop {
                 return Future.succeededFuture(sessionManager.addStep(contextToUse, toolMsg));
             })
             .compose(nextContext -> sessionManager.persist(nextContext).map(v -> nextContext))
-            .compose(nextContext -> executeScheduleablesSequentially(scheduleables, index + 1, nextContext, signal));
+            .compose(nextContext -> executeSchedulablesSequentially(scheduleables, index + 1, nextContext, signal));
     }
 }

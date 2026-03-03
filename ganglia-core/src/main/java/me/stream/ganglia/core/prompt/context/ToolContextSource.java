@@ -2,7 +2,7 @@ package me.stream.ganglia.core.prompt.context;
 
 import io.vertx.core.Future;
 import me.stream.ganglia.core.model.SessionContext;
-import me.stream.ganglia.core.schedule.ScheduleableFactory;
+import me.stream.ganglia.core.schedule.SchedulableFactory;
 import me.stream.ganglia.tools.model.ToolDefinition;
 
 import java.util.ArrayList;
@@ -16,9 +16,9 @@ import java.util.stream.Collectors;
  */
 public class ToolContextSource implements ContextSource {
 
-    private final ScheduleableFactory scheduleableFactory;
+    private final SchedulableFactory scheduleableFactory;
 
-    public ToolContextSource(ScheduleableFactory scheduleableFactory) {
+    public ToolContextSource(SchedulableFactory scheduleableFactory) {
         this.scheduleableFactory = scheduleableFactory;
     }
 

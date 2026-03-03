@@ -42,8 +42,8 @@ graph TD
     end
 
     subgraph Core ["2. Core Orchestration"]
-        Loop["ReActAgentLoop (Control Flow)"]
-        Sched["Scheduling Layer (Scheduleable & Factory)"]
+        Loop["StandardAgentLoop (Control Flow)"]
+        Sched["Scheduling Layer (Schedulable & Factory)"]
         Session["SessionManager (State Tracking)"]
     end
 
@@ -55,7 +55,7 @@ graph TD
     end
 
     subgraph Action ["4. Actuation Layer"]
-        Tasks["Scheduleable Tasks (Tool, SubAgent, Skill, Graph)"]
+        Tasks["Schedulable Tasks (Tool, SubAgent, Skill, Graph)"]
         Executor["DefaultToolExecutor (Standard Tools)"]
     end
 
@@ -94,11 +94,11 @@ graph TD
 - **Testing:** `StubModelGateway` and `E2ETestHarness` allow for deterministic E2E simulation without real LLM calls.
 
 ### 3.2 Scheduling & Actuation ("The Hands")
-- **Core Abstraction:** The `Scheduleable` interface decouples the reasoning loop from execution details. The loop doesn't know if it's scheduling a bash command or a child agent.
-- **Factory Pattern:** `ScheduleableFactory` transforms LLM `ToolCall` intents into concrete executable tasks.
+- **Core Abstraction:** The `Schedulable` interface decouples the reasoning loop from execution details. The loop doesn't know if it's scheduling a bash command or a child agent.
+- **Factory Pattern:** `SchedulableFactory` transforms LLM `ToolCall` intents into concrete executable tasks.
 - **Task Types:**
   - **StandardToolTask:** Wraps primitive operations (Bash, FileSystem, Interact) via `DefaultToolExecutor`.
-  - **SubAgentTask:** Spawns a new independent ReAct loop for scoped delegation.
+  - **SubAgentTask:** Spawns a new independent Reasoning Loop for scoped delegation.
   - **SkillTask:** Manages dynamic skill activation and executes tools from active skills.
   - **TaskGraphTask:** Orchestrates Directed Acyclic Graphs (DAGs) of tasks with user approval interrupts.
 - **Safety:**
@@ -149,13 +149,13 @@ Ganglia supports an asynchronous, PI-inspired (pi-mono) **"Steering & Abort"** m
 
 1.  **Soft Steering (Course Correction):**
     - Users can inject new instructions (Steering Messages) into the `SessionManager`'s concurrent queue at any time.
-    - The `ReActAgentLoop` checks this queue at the start of every reasoning cycle and *between* every tool execution.
+    - The `StandardAgentLoop` checks this queue at the start of every reasoning cycle and *between* every tool execution.
     - If a message is found, pending tools are aborted, the message is appended to the context, and the agent re-evaluates its plan.
 2.  **Hard Abort (Cancellation):**
     - An `AgentSignal` acts as a cancellation token.
     - Pressing `Ctrl+C` allows the user to trigger a hard stop, which immediately throws an `AgentAbortedException` and halts network calls and subsequent tool executions.
 3.  **Tool-Based Interrupts:**
-    - Tasks like `TaskGraphTask` or `SkillTask` (activation) can return a `ScheduleResult.INTERRUPT` to pause the loop and await explicit user confirmation.
+    - Tasks like `TaskGraphTask` or `SkillTask` (activation) can return a `SchedulableResult.INTERRUPT` to pause the loop and await explicit user confirmation.
 
 ## 6. Data Flow (ReAct Loop)
 
@@ -167,10 +167,10 @@ graph TD
 
     PE -->|Builds Request| Model["Model Gateway"]
 
-    Model -->|Decision: Act| Loop["ReActAgentLoop"]
+    Model -->|Decision: Act| Loop["StandardAgentLoop"]
     
-    Loop -->|ToolCall| Sched["ScheduleableFactory"]
-    Sched -->|Creates| Task["Scheduleable Task"]
+    Loop -->|ToolCall| Sched["SchedulableFactory"]
+    Sched -->|Creates| Task["Schedulable Task"]
     
     Task -->|Execute| Executor["DefaultToolExecutor (Optional)"]
     Executor -->|Run| RealWorld["Bash / FS / Web"]

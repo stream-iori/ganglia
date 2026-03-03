@@ -16,7 +16,7 @@ The `ModelGateway` abstracts provider-specific errors into a unified `LLMExcepti
 - `AuthenticationException`: Critical failure, alerts the user.
 
 ### 2.2 Retry with Backoff
-Core ReAct loops use Vert.x timers to implement jittered exponential backoff for transient errors (500, 502, 503, 504, 429).
+Core Reasoning Loops use Vert.x timers to implement jittered exponential backoff for transient errors (500, 502, 503, 504, 429).
 
 ### 2.3 Model Fallback
 If the `primary` model fails consistently or hits quota limits, the system can automatically downgrade to the `utility` model defined in `ConfigManager` to attempt completion of simpler tasks.
@@ -48,7 +48,7 @@ Before executing any tool, the arguments are validated against the tool's JSON S
 
 ### 4.2 Context Window Management
 - **Token Budgeting**: The `PromptEngine` calculates the budget for System Prompt, History, and Response.
-- **Proactive Compression**: Implementation of a 70% threshold monitor in `ReActAgentLoop`. When history consumes >70% of the window, the `ContextCompressor` is triggered to replace older turns with concise summaries, ensuring continuity without overflow.
+- **Proactive Compression**: Implementation of a 70% threshold monitor in `StandardAgentLoop`. When history consumes >70% of the window, the `ContextCompressor` is triggered to replace older turns with concise summaries, ensuring continuity without overflow.
 - **Financial Guardrail**: A hard session-level token limit (e.g., 500k tokens) is enforced to prevent runaway costs.
 - **Tool Failure Circuit Breaker**: If a tool fails consecutively (3 times), the loop is aborted to prevent token waste on repetitive errors.
 
@@ -71,6 +71,6 @@ After every `Observation` is added to the context, the `SessionManager` persists
 
 ### 6.2 Graceful Shutdown
 Ganglia listens for SIGTERM/SIGINT to:
-1. Stop the current ReAct loop.
+1. Stop the current Reasoning Loop.
 2. Persist final state.
 3. Clean up child processes and temporary files.

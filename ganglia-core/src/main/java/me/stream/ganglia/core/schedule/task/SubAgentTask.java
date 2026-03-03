@@ -4,12 +4,12 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import me.stream.ganglia.core.config.ConfigManager;
 import me.stream.ganglia.core.llm.ModelGateway;
-import me.stream.ganglia.core.loop.ReActAgentLoop;
+import me.stream.ganglia.core.loop.StandardAgentLoop;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.prompt.PromptEngine;
-import me.stream.ganglia.core.schedule.ScheduleResult;
-import me.stream.ganglia.core.schedule.Scheduleable;
-import me.stream.ganglia.core.schedule.ScheduleableFactory;
+import me.stream.ganglia.core.schedule.SchedulableResult;
+import me.stream.ganglia.core.schedule.Schedulable;
+import me.stream.ganglia.core.schedule.SchedulableFactory;
 import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.tools.model.ToolCall;
@@ -19,7 +19,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class SubAgentTask implements Scheduleable {
+public class SubAgentTask implements Schedulable {
     private final ToolCall call;
     private final Vertx vertx;
     private final ModelGateway modelGateway;
@@ -27,11 +27,11 @@ public class SubAgentTask implements Scheduleable {
     private final PromptEngine promptEngine;
     private final ConfigManager configManager;
     private final ContextCompressor compressor;
-    private final ScheduleableFactory scheduleableFactory;
+    private final SchedulableFactory scheduleableFactory;
 
     public SubAgentTask(ToolCall call, Vertx vertx, ModelGateway modelGateway, SessionManager sessionManager,
                         PromptEngine promptEngine, ConfigManager configManager, ContextCompressor compressor,
-                        ScheduleableFactory scheduleableFactory) {
+                        SchedulableFactory scheduleableFactory) {
         this.call = call;
         this.vertx = vertx;
         this.modelGateway = modelGateway;
@@ -53,16 +53,16 @@ public class SubAgentTask implements Scheduleable {
     }
 
     @Override
-    public Future<ScheduleResult> execute(SessionContext parentContext) {
+    public Future<SchedulableResult> execute(SessionContext parentContext) {
         String task = (String) call.arguments().get("task");
         String persona = (String) call.arguments().getOrDefault("persona", "GENERAL");
 
         // 1. Recursion Control
         Object levelObj = parentContext.metadata().getOrDefault("sub_agent_level", 0);
         int currentLevel = (levelObj instanceof Number) ? ((Number) levelObj).intValue() : Integer.parseInt(levelObj.toString());
-        
+
         if (currentLevel >= 1) {
-            return Future.succeededFuture(ScheduleResult.error("RECURSION_LIMIT: Nested sub-agents are not allowed."));
+            return Future.succeededFuture(SchedulableResult.error("RECURSION_LIMIT: Nested sub-agents are not allowed."));
         }
 
         // 2. Prepare Child Context metadata
@@ -74,11 +74,11 @@ public class SubAgentTask implements Scheduleable {
 
         SessionContext childContext = ContextScoper.scope(childSessionId, parentContext, childMetadata);
 
-        // Note: ReActAgentLoop now requires ScheduleableFactory instead of ToolExecutor
-        ReActAgentLoop childLoop = new ReActAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, compressor);
+        // Note: StandardAgentLoop now requires SchedulableFactory instead of ToolExecutor
+        StandardAgentLoop childLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, compressor);
 
         return childLoop.run("TASK: " + task, childContext)
-            .map(report -> ScheduleResult.success("--- SUB-AGENT REPORT ---\n" + report + "\n--- END REPORT ---"))
-            .recover(err -> Future.succeededFuture(ScheduleResult.error("SUB_AGENT_ERROR: " + err.getMessage())));
+            .map(report -> SchedulableResult.success("--- SUB-AGENT REPORT ---\n" + report + "\n--- END REPORT ---"))
+            .recover(err -> Future.succeededFuture(SchedulableResult.error("SUB_AGENT_ERROR: " + err.getMessage())));
     }
 }

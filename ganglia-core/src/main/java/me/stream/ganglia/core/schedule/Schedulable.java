@@ -4,9 +4,9 @@ import io.vertx.core.Future;
 import me.stream.ganglia.core.model.SessionContext;
 
 /**
- * Represents an executable task that can be scheduled by the ReActAgentLoop.
+ * Represents an executable task that can be scheduled by the StandardAgentLoop.
  */
-public interface Scheduleable {
+public interface Schedulable {
     /**
      * @return The unique identifier of this scheduleable task.
      */
@@ -22,5 +22,5 @@ public interface Scheduleable {
      * @param context The current session context.
      * @return A future containing the result of the execution.
      */
-    Future<ScheduleResult> execute(SessionContext context);
+    Future<SchedulableResult> execute(SessionContext context);
 }

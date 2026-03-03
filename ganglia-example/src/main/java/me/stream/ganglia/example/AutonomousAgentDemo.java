@@ -8,11 +8,11 @@ import me.stream.ganglia.ui.TerminalUI;
 import java.util.UUID;
 
 /**
- * A demo showcasing the autonomous ReAct (Reasoning and Acting) loop.
+ * A demo showcasing the autonomous Standard (Reasoning and Acting) loop.
  * The agent receives a single complex goal and must decide which tools
  * to use in sequence to achieve it.
  */
-public class AutonomousReActDemo {
+public class AutonomousAgentDemo {
 
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
@@ -24,9 +24,9 @@ public class AutonomousReActDemo {
             })
             .onSuccess(ganglia -> {
                 TerminalUI ui = TerminalUI.create(vertx);
-                String sessionId = "react-demo-" + UUID.randomUUID().toString().substring(0, 8);
+                String sessionId = "agent-demo-" + UUID.randomUUID().toString().substring(0, 8);
 
-                System.out.println("--- Ganglia Autonomous ReAct Demo ---");
+                System.out.println("--- Ganglia Autonomous Standard Demo ---");
                 System.out.println("Session ID: " + sessionId);
 
                 // 1. Setup initial state: Create a file for the agent to find

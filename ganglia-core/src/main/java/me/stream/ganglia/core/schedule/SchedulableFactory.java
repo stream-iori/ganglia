@@ -7,17 +7,17 @@ import me.stream.ganglia.tools.model.ToolDefinition;
 import java.util.List;
 
 /**
- * Factory for creating Scheduleable tasks from ToolCalls and aggregating capabilities.
+ * Factory for creating Schedulable tasks from ToolCalls and aggregating capabilities.
  */
-public interface ScheduleableFactory {
+public interface SchedulableFactory {
     
     /**
-     * Creates a Scheduleable task based on the provided ToolCall.
+     * Creates a Schedulable task based on the provided ToolCall.
      * @param call The tool call requested by the LLM.
      * @param context The current session context.
-     * @return A Scheduleable task ready for execution.
+     * @return A Schedulable task ready for execution.
      */
-    Scheduleable create(ToolCall call, SessionContext context);
+    Schedulable create(ToolCall call, SessionContext context);
 
     /**
      * Returns a consolidated list of all tool definitions available for scheduling.

@@ -19,7 +19,7 @@ public interface PromptEngine {
      * pruning history, and resolving model options and tools.
      *
      * @param context The current session context.
-     * @param iteration The current iteration in the ReAct loop.
+     * @param iteration The current iteration in the Standard loop.
      * @return A Future containing the fully prepared LlmRequest.
      */
     Future<LLMRequest> prepareRequest(SessionContext context, int iteration);

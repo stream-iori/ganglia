@@ -3,12 +3,12 @@ package me.stream.ganglia.swebench;
 import io.vertx.core.Vertx;
 import me.stream.ganglia.core.config.model.ModelConfig;
 import me.stream.ganglia.core.llm.OpenAIModelGateway;
-import me.stream.ganglia.core.loop.ReActAgentLoop;
+import me.stream.ganglia.core.loop.StandardAgentLoop;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.model.ModelOptions;
 import me.stream.ganglia.core.session.DefaultSessionManager;
-import me.stream.ganglia.core.schedule.DefaultScheduleableFactory;
-import me.stream.ganglia.core.schedule.ScheduleableFactory;
+import me.stream.ganglia.core.schedule.DefaultSchedulableFactory;
+import me.stream.ganglia.core.schedule.SchedulableFactory;
 import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.swebench.config.MinimalConfigManager;
 import me.stream.ganglia.swebench.prompt.MinimalPromptEngine;
@@ -68,13 +68,13 @@ public class SWEBenchEvaluator {
             ContextCompressor compressor = new ContextCompressor(model, config);
             DefaultSessionManager sessionManager = new DefaultSessionManager(new InMemoryStateEngine(), new InMemoryLogManager(), config);
 
-            // Create a minimal ScheduleableFactory without sub-agents or skills
-            ScheduleableFactory scheduleableFactory = new DefaultScheduleableFactory(
+            // Create a minimal SchedulableFactory without sub-agents or skills
+            SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(
                 vertx, model, sessionManager, promptEngine, config, compressor,
                 toolExecutor, null, null, null
             );
 
-            ReActAgentLoop loop = new ReActAgentLoop(vertx, model, scheduleableFactory, sessionManager, promptEngine, config, compressor);
+            StandardAgentLoop loop = new StandardAgentLoop(vertx, model, scheduleableFactory, sessionManager, promptEngine, config, compressor);
 
             // 2. Run Agent
             Map<String, Object> metadata = new HashMap<>();

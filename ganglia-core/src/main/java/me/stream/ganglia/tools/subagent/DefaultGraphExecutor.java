@@ -4,11 +4,11 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import me.stream.ganglia.core.config.ConfigManager;
 import me.stream.ganglia.core.llm.ModelGateway;
-import me.stream.ganglia.core.loop.ReActAgentLoop;
+import me.stream.ganglia.core.loop.StandardAgentLoop;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.session.SessionManager;
-import me.stream.ganglia.core.schedule.ScheduleableFactory;
+import me.stream.ganglia.core.schedule.SchedulableFactory;
 import me.stream.ganglia.memory.ContextCompressor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,9 +26,9 @@ public class DefaultGraphExecutor implements GraphExecutor {
     private final PromptEngine promptEngine;
     private final ConfigManager configManager;
     private final ContextCompressor compressor;
-    private ScheduleableFactory scheduleableFactory;
+    private SchedulableFactory scheduleableFactory;
 
-    public DefaultGraphExecutor(Vertx vertx, ModelGateway modelGateway, SessionManager sessionManager, 
+    public DefaultGraphExecutor(Vertx vertx, ModelGateway modelGateway, SessionManager sessionManager,
                                 PromptEngine promptEngine, ConfigManager configManager, ContextCompressor compressor) {
         this.vertx = vertx;
         this.modelGateway = modelGateway;
@@ -38,18 +38,18 @@ public class DefaultGraphExecutor implements GraphExecutor {
         this.compressor = compressor;
     }
 
-    public void setScheduleableFactory(ScheduleableFactory scheduleableFactory) {
+    public void setSchedulableFactory(SchedulableFactory scheduleableFactory) {
         this.scheduleableFactory = scheduleableFactory;
     }
 
     @Override
     public Future<String> execute(TaskGraph graph, SessionContext parentContext) {
         logger.info("Executing TaskGraph with {} nodes.", graph.nodes().size());
-        
+
         if (scheduleableFactory == null) {
-            return Future.failedFuture("ScheduleableFactory not configured for GraphExecutor");
+            return Future.failedFuture("SchedulableFactory not configured for GraphExecutor");
         }
-        
+
         Map<String, Future<String>> results = new ConcurrentHashMap<>();
         Map<String, TaskNode> nodeMap = graph.nodes().stream()
             .collect(Collectors.toMap(TaskNode::id, node -> node));
@@ -119,7 +119,7 @@ public class DefaultGraphExecutor implements GraphExecutor {
 
         SessionContext childContext = ContextScoper.scope(childSessionId, parentContext, childMetadata);
 
-        ReActAgentLoop childLoop = new ReActAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, compressor);
+        StandardAgentLoop childLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, compressor);
 
         StringBuilder promptBuilder = new StringBuilder("TASK: ").append(node.task()).append("\\n\\n");
         if (!dependencyResults.isEmpty()) {

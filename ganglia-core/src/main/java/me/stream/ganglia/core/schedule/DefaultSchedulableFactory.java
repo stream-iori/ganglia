@@ -21,7 +21,7 @@ import me.stream.ganglia.tools.subagent.GraphExecutor;
 import java.util.ArrayList;
 import java.util.List;
 
-public class DefaultScheduleableFactory implements ScheduleableFactory {
+public class DefaultSchedulableFactory implements SchedulableFactory {
 
     private final Vertx vertx;
     private final ModelGateway modelGateway;
@@ -34,7 +34,7 @@ public class DefaultScheduleableFactory implements ScheduleableFactory {
     private final SkillService skillService;   // Nullable
     private final SkillRuntime skillRuntime;   // Nullable
 
-    public DefaultScheduleableFactory(Vertx vertx, ModelGateway modelGateway, SessionManager sessionManager,
+    public DefaultSchedulableFactory(Vertx vertx, ModelGateway modelGateway, SessionManager sessionManager,
                                       PromptEngine promptEngine, ConfigManager configManager, ContextCompressor compressor,
                                       ToolExecutor standardToolExecutor, GraphExecutor graphExecutor,
                                       SkillService skillService, SkillRuntime skillRuntime) {
@@ -51,7 +51,7 @@ public class DefaultScheduleableFactory implements ScheduleableFactory {
     }
 
     @Override
-    public Scheduleable create(ToolCall call, SessionContext context) {
+    public Schedulable create(ToolCall call, SessionContext context) {
         String toolName = call.toolName();
 
         if ("call_sub_agent".equals(toolName)) {

@@ -26,7 +26,7 @@ To provide a project-wide, cross-session "Daily Journal" that captures key accom
 The system uses an asynchronous, decoupled approach to generate summaries.
 
 ### 3.1 Triggering
-When a `Turn` is completed, the `ReActAgentLoop` publishes a message to the Vert.x EventBus at `ganglia.memory.reflect`.
+When a `Turn` is completed, the `StandardAgentLoop` publishes a message to the Vert.x EventBus at `ganglia.memory.reflect`.
 
 ### 3.2 `MemoryService` (The Listener)
 The `MemoryService` listens for reflection events and:

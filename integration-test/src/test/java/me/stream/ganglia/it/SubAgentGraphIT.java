@@ -83,15 +83,15 @@ public class SubAgentGraphIT {
                     SessionContext nextContext = ganglia.sessionManager().getSession(context.sessionId()).result();
                     // We need to add 'approved: true' to the tool arguments in history
                     // But wait, the loop resume logic expects the OUTPUT of the tool call.
-                    // SubAgentTools logic: if !approved -> interrupt. resume with "y" (user output).
+                    // TaskGraphTask logic: if !approved -> interrupt. resume with "y" (user output).
                     // BUT our ToolInvokeResult for interrupt doesn't automatically update arguments.
                     // The user interaction should provide the "approved: true" value if they confirm.
-                    // Actually, the ReAct loop resume logic takes the tool output. 
-                    // SubAgentTools.proposeTaskGraph doesn't use the 'toolOutput' to update its internal 'approved' state yet.
+                    // Actually, the Standard loop resume logic takes the tool output. 
+                    // TaskGraphTask.proposeTaskGraph doesn't use the 'toolOutput' to update its internal 'approved' state yet.
                     
                     // Wait, I designed it so that the user provides feedback which is fed back to the model.
                     // But for Sub-Agents, we want the TOOL itself to proceed once approved.
-                    // In current implementation of SubAgentTools:
+                    // In current implementation of TaskGraphTask:
                     // if (!approved) return interrupt;
                     // If the user says 'y', the model should call 'propose_task_graph' AGAIN with 'approved: true'.
                     

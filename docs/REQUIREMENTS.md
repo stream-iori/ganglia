@@ -11,7 +11,7 @@
 *   **Reasoning (Thought):** The agent shall generate a "Thought" explaining its reasoning before taking action.
 *   **Tool Selection:** The agent shall select the appropriate tool from the available toolset based on the user's request.
 *   **Execution:** The system shall execute the selected tool and capture its output (Observation).
-*   **Iteration:** The ReAct loop shall continue (Thought -> Tool -> Observation) until a final answer is derived or a termination condition is met.
+*   **Iteration:** The Reasoning Loop shall continue (Thought -> Tool -> Observation) until a final answer is derived or a termination condition is met.
 *   **Response:** The system shall provide a final natural language response to the user.
 
 #### 1.1.2 Exception Handling
@@ -48,7 +48,7 @@
 *   **Runtime Interrupts:**
     *   **Sensitive Actions:** Execution of `@Sensitive` tools (e.g., `delete`, `deploy`) must trigger a blocking user confirmation prompt.
     *   **User Interaction:** The agent shall use `ask_selection` to present a list of options or request free-form text input and await response.
-    *   **Pause/Resume:** The system shall support pausing the ReAct loop to await user input.
+    *   **Pause/Resume:** The system shall support pausing the Reasoning Loop to await user input.
 
 ### 1.5 Skill System ("The Expertise")
 *   **Definition:** A Skill shall be a packageable unit containing:

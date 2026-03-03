@@ -4,7 +4,7 @@
 > **Related:** [Architecture](ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md), [Memory Architecture](MEMORY_ARCHITECTURE.md)
 
 ## 1. Objective
-Decouple non-core logic (Memory Reflection, Daily Records, Token Usage Tracking) from the primary `ReActAgentLoop` to ensure a cleaner, more focused control loop and to allow these tasks to run fully asynchronously without affecting the agent's main execution flow.
+Decouple non-core logic (Memory Reflection, Daily Records, Token Usage Tracking) from the primary `StandardAgentLoop` to ensure a cleaner, more focused control loop and to allow these tasks to run fully asynchronously without affecting the agent's main execution flow.
 
 ## 2. Event-Driven Architecture
 
@@ -35,7 +35,7 @@ The system will transition to an event-driven model for auxiliary tasks using th
     2. Aggregates usage (e.g., in-memory map or persistent store).
     3. (Optional) Emits a "usage summary" event when thresholds are reached.
 
-## 4. `ReActAgentLoop` Refactoring
+## 4. `StandardAgentLoop` Refactoring
 
 - **Simplified Constructor:** Remove dependencies on `ContextCompressor` and `DailyRecordManager`.
 - **Passive Notification:**
@@ -46,7 +46,7 @@ The system will transition to an event-driven model for auxiliary tasks using th
 
 ```mermaid
 sequenceDiagram
-    participant Loop as ReActAgentLoop
+    participant Loop as StandardAgentLoop
     participant EB as EventBus
     participant Mem as MemoryService
     participant Usage as TokenUsageManager
@@ -69,6 +69,6 @@ sequenceDiagram
 ```
 
 ## 6. Benefits
-- **Separation of Concerns:** `ReActAgentLoop` only cares about the reasoning loop.
+- **Separation of Concerns:** `StandardAgentLoop` only cares about the reasoning loop.
 - **Asynchronous Execution:** Memory reflection (which involves another LLM call) runs in the background.
 - **Extensibility:** New listeners can be added to the EventBus without modifying the core loop (e.g., a billing service, a dashboard).
