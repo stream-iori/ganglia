@@ -54,6 +54,14 @@ public class FileEditToolsTest {
                     String updated = vertx.fileSystem().readFileBlocking(testFilePath).toString();
                     assertTrue(updated.contains("updated block"));
                     assertTrue(!updated.contains("target block"));
+                    
+                    // Verify diff
+                    String diff = result.diff();
+                    assertTrue(diff != null && !diff.isEmpty(), "Diff should not be empty");
+                    assertTrue(diff.contains("-target block"), "Diff should contain removal");
+                    assertTrue(diff.contains("+updated block"), "Diff should contain addition");
+                    assertTrue(diff.contains(testFilePath), "Diff should contain filename");
+                    
                     testContext.completeNow();
                 });
             }));

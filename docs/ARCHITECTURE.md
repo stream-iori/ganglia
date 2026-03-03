@@ -1,7 +1,7 @@
 # Ganglia Architecture Documentation
 
 > **Status:** Implemented
-> **Version:** 1.0.0
+> **Version:** 1.1.0
 
 ## 1. System Overview
 
@@ -43,6 +43,7 @@ graph TD
 
     subgraph Core ["2. Core Orchestration"]
         Loop["ReActAgentLoop (Control Flow)"]
+        Sched["Scheduling Layer (Scheduleable & Factory)"]
         Session["SessionManager (State Tracking)"]
     end
 
@@ -54,8 +55,8 @@ graph TD
     end
 
     subgraph Action ["4. Actuation Layer"]
-        Executor["DefaultToolExecutor"]
-        Tools["ToolSets (Bash, FS, Web, SubAgent)"]
+        Tasks["Scheduleable Tasks (Tool, SubAgent, Skill, Graph)"]
+        Executor["DefaultToolExecutor (Standard Tools)"]
     end
 
     subgraph Gateway ["5. Model Provider Layer"]
@@ -71,9 +72,11 @@ graph TD
     end
 
     UI --> Loop
+    Loop --> Sched
+    Sched --> Tasks
+    Tasks --> Executor
     Loop --> Session
     Loop --> Intel
-    Loop --> Action
     Intel --> Data
     Action --> Data
     Loop --> Gateway
@@ -90,12 +93,14 @@ graph TD
 - **Robustness:** `FallbackModelGateway` provides automatic downgrade to utility models if the primary model fails.
 - **Testing:** `StubModelGateway` and `E2ETestHarness` allow for deterministic E2E simulation without real LLM calls.
 
-### 3.2 Tooling & Actuation ("The Hands")
-- **Definition:** Tools are Java classes implementing `ToolSet`.
-- **Hybrid Toolset:**
-  - **Bash/FS:** Native commands and non-blocking Java FileSystem tools.
-  - **Contextual:** ToDo management, KnowledgeBase interaction.
-  - **Interaction:** `ask_selection` for human-in-the-loop.
+### 3.2 Scheduling & Actuation ("The Hands")
+- **Core Abstraction:** The `Scheduleable` interface decouples the reasoning loop from execution details. The loop doesn't know if it's scheduling a bash command or a child agent.
+- **Factory Pattern:** `ScheduleableFactory` transforms LLM `ToolCall` intents into concrete executable tasks.
+- **Task Types:**
+  - **StandardToolTask:** Wraps primitive operations (Bash, FileSystem, Interact) via `DefaultToolExecutor`.
+  - **SubAgentTask:** Spawns a new independent ReAct loop for scoped delegation.
+  - **SkillTask:** Manages dynamic skill activation and executes tools from active skills.
+  - **TaskGraphTask:** Orchestrates Directed Acyclic Graphs (DAGs) of tasks with user approval interrupts.
 - **Safety:**
   - **Output Limits:** 64KB per tool call.
   - **Pagination:** `read_file` supports `offset` and `limit`.
@@ -138,9 +143,9 @@ Before executing complex requests, the system enters a **Planning Phase**:
 2.  **Review:** The plan is presented to the user for approval or modification.
 3.  **Execution:** Only approved steps are fed into the ReAct Executor's To-Do list.
 
-### 4.2 Runtime Interrupts (Tool-Based)
+### 4.2 Runtime Interrupts (Task-Based)
 
-- **Sensitive Tools:** Tools marked as `@Sensitive` (e.g., `delete_file`, `deploy`) automatically trigger a **User Confirmation** interrupt.
+- **Approval Interrupts:** Tasks like `TaskGraphTask` or `SkillTask` (activation) can trigger a **User Confirmation** interrupt.
 - **`ask_selection` Tool:** The agent can explicitly invoke this tool to resolve ambiguities or request input (supports `text` and `choice` modes).
 - **Execution Pause:** The ReAct loop suspends state and awaits user input before resuming.
 
@@ -148,35 +153,25 @@ Before executing complex requests, the system enters a **Planning Phase**:
 
 ```mermaid
 graph TD
-    User["User Input"] -->|Triggers| Engine["ContextEngine"]
-    Files["Project Files (GANGLIA.md, MEMORY.md)"] -->|Resolved by| Engine
-    Env["Env State"] -->|Captured by| Engine
+    User["User Input"] -->|Triggers| PE["PromptEngine"]
+    Files["Project Files (GANGLIA.md, MEMORY.md)"] -->|Resolved by| PE
+    Env["Env State"] -->|Captured by| PE
 
-    Engine -->|Builds Prompt| Planner["Planner LLM"]
+    PE -->|Builds Request| Model["Model Gateway"]
 
-    Planner -->|Generates| Plan["Proposed Plan"]
-    Plan -->|Review| UserApprove{"User Approval?"}
-
-    UserApprove -->|No| User
-    UserApprove -->|Yes| Executor["Executor Agent (ReAct)"]
-
-    Executor -->|Context Refresh| Engine
-    Executor -->|Thought & Call| Router{"Action Router"}
-
-    Router -->|Tool Call| ToolExecutor["Tool Executor"]
-    Router -->|Final Answer| UserOutput["User Display"]
-
-    ToolExecutor -->|Execute| FS["File System / Bash"]
-    ToolExecutor -->|Execute| Web["Web / API"]
-
-    FS -->|Result| Obs["Observation"]
-    Web -->|Result| Obs
-
-    Obs -->|Append to History| Executor
-
-    subgraph SG["Safeguards"]
-        ToolExecutor -.->|Check @Sensitive| Interrupt["User Interrupt"]
-    end
+    Model -->|Decision: Act| Loop["ReActAgentLoop"]
+    
+    Loop -->|ToolCall| Sched["ScheduleableFactory"]
+    Sched -->|Creates| Task["Scheduleable Task"]
+    
+    Task -->|Execute| Executor["DefaultToolExecutor (Optional)"]
+    Executor -->|Run| RealWorld["Bash / FS / Web"]
+    
+    RealWorld -->|Result| Obs["Observation"]
+    Task -->|Result| Obs
+    
+    Obs -->|Append to History| Loop
+    Loop -->|Next Iteration| PE
 ```
 
 ## 7. Technology Stack

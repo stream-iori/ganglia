@@ -9,6 +9,8 @@ import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.llm.ModelGatewayFactory;
 import me.stream.ganglia.core.loop.ReActAgentLoop;
 import me.stream.ganglia.core.prompt.StandardPromptEngine;
+import me.stream.ganglia.core.schedule.DefaultScheduleableFactory;
+import me.stream.ganglia.core.schedule.ScheduleableFactory;
 import me.stream.ganglia.core.session.DefaultSessionManager;
 import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.core.state.FileLogManager;
@@ -25,6 +27,8 @@ import me.stream.ganglia.core.state.TokenUsageManager;
 import me.stream.ganglia.skills.*;
 import me.stream.ganglia.tools.DefaultToolExecutor;
 import me.stream.ganglia.tools.ToolsFactory;
+import me.stream.ganglia.tools.subagent.DefaultGraphExecutor;
+import me.stream.ganglia.tools.subagent.GraphExecutor;
 import me.stream.ganglia.core.prompt.context.DailyContextSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -133,19 +137,22 @@ public class Main {
                 SessionManager sessionManager = new DefaultSessionManager(stateEngine, logManager, configManager);
 
                 // Initialize ToolExecutor
-                DefaultToolExecutor toolExecutor = new DefaultToolExecutor(
-                    toolsFactory, 
-                    skillService,
-                    skillRuntime,
-                    modelGateway, 
-                    sessionManager, 
-                    promptEngine, 
-                    configManager,
-                    compressor
+                DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory);
+
+                // Initialize GraphExecutor
+                GraphExecutor graphExecutor = new DefaultGraphExecutor(vertx, modelGateway, sessionManager, promptEngine, configManager, compressor);
+
+                // Initialize ScheduleableFactory
+                ScheduleableFactory scheduleableFactory = new DefaultScheduleableFactory(
+                    vertx, modelGateway, sessionManager, promptEngine, configManager, compressor,
+                    toolExecutor, graphExecutor, skillService, skillRuntime
                 );
 
-                // Now wire back the toolExecutor to the promptEngine
-                promptEngine.setToolExecutor(toolExecutor);
+                // Wire ScheduleableFactory back into PromptEngine and GraphExecutor
+                promptEngine.setScheduleableFactory(scheduleableFactory);
+                if (graphExecutor instanceof DefaultGraphExecutor) {
+                    ((DefaultGraphExecutor) graphExecutor).setScheduleableFactory(scheduleableFactory);
+                }
                 
                 // Add Daily Source
                 promptEngine.addContextSource(new DailyContextSource(vertx, ".ganglia/memory"));
@@ -155,7 +162,7 @@ public class Main {
                 new TokenUsageManager(vertx, tokenCounter);
                 new MemoryService(vertx, compressor, dailyRecordManager);
 
-                ReActAgentLoop agentLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, 
+                ReActAgentLoop agentLoop = new ReActAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, 
                     promptEngine, configManager, compressor);
 
                 return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop, configManager);

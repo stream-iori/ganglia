@@ -9,13 +9,14 @@ import me.stream.ganglia.core.llm.LLMException;
 import me.stream.ganglia.core.llm.ModelGateway;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.prompt.PromptEngine;
+import me.stream.ganglia.core.schedule.ScheduleResult;
+import me.stream.ganglia.core.schedule.Scheduleable;
+import me.stream.ganglia.core.schedule.ScheduleableFactory;
 import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.memory.ReflectEvent;
 import me.stream.ganglia.memory.TokenCounter;
-import me.stream.ganglia.tools.ToolExecutor;
 import me.stream.ganglia.tools.model.ToolCall;
-import me.stream.ganglia.tools.model.ToolInvokeResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +26,7 @@ public class ReActAgentLoop implements AgentLoop {
     private static final Logger logger = LoggerFactory.getLogger(ReActAgentLoop.class);
 
     private final ModelGateway model;
-    private final ToolExecutor toolExecutor;
+    private final ScheduleableFactory scheduleableFactory;
     private final SessionManager sessionManager;
     private final PromptEngine promptEngine;
     private final ConfigManager configManager;
@@ -33,11 +34,11 @@ public class ReActAgentLoop implements AgentLoop {
     private final ContextCompressor compressor;
     private final TokenCounter tokenCounter = new TokenCounter();
 
-    public ReActAgentLoop(Vertx vertx, ModelGateway model, ToolExecutor toolExecutor, SessionManager sessionManager,
+    public ReActAgentLoop(Vertx vertx, ModelGateway model, ScheduleableFactory scheduleableFactory, SessionManager sessionManager,
                           PromptEngine promptEngine, ConfigManager configManager, ContextCompressor compressor) {
         this.vertx = vertx;
         this.model = model;
-        this.toolExecutor = toolExecutor;
+        this.scheduleableFactory = scheduleableFactory;
         this.sessionManager = sessionManager;
         this.promptEngine = promptEngine;
         this.configManager = configManager;
@@ -136,6 +137,7 @@ public class ReActAgentLoop implements AgentLoop {
         int maxIterations = configManager.getMaxIterations();
         if (iteration >= maxIterations) {
             logger.warn("Iteration limit reached ({}) for session: {}", maxIterations, currentContext.sessionId());
+            publishObservation(currentContext.sessionId(), ObservationType.ERROR, "Iteration limit reached (" + maxIterations + "). Safety abort.");
             return Future.succeededFuture("Max iterations reached without final answer.");
         }
 
@@ -206,6 +208,8 @@ public class ReActAgentLoop implements AgentLoop {
             .compose(request -> {
                 logger.debug("Calling model: {} with history size: {} (Attempt: {})",
                     request.options().modelName(), request.messages().size(), attempt + 1);
+                // Convert ToolDefinitions using ScheduleableFactory inside the PromptEngine?
+                // Wait, PromptEngine already handles ToolDefinitions. I should verify it later.
                 return model.chatStream(request.messages(), request.tools(), request.options(), context.sessionId());
             })
             .recover(err -> {
@@ -288,46 +292,53 @@ public class ReActAgentLoop implements AgentLoop {
     }
 
     private Future<SessionContext> act(List<ToolCall> toolCalls, SessionContext context) {
-        // 3. Act: Execute ALL tool calls sequentially to accumulate context
-        return executeToolsSequentially(toolCalls, 0, context);
+        // Transform ToolCalls to Scheduleables
+        List<Scheduleable> scheduleables = toolCalls.stream()
+            .map(call -> scheduleableFactory.create(call, context))
+            .toList();
+
+        return executeScheduleablesSequentially(scheduleables, 0, context);
     }
 
-    private Future<SessionContext> executeToolsSequentially(List<ToolCall> toolCalls, int index, SessionContext currentContext) {
-        if (index >= toolCalls.size()) {
+    private Future<SessionContext> executeScheduleablesSequentially(List<Scheduleable> scheduleables, int index, SessionContext currentContext) {
+        if (index >= scheduleables.size()) {
             return Future.succeededFuture(currentContext);
         }
 
-        ToolCall call = toolCalls.get(index);
-        logger.debug("Executing tool call [{} of {}]: {} ({})", index + 1, toolCalls.size(), call.toolName(), call.id());
-        publishObservation(currentContext.sessionId(), ObservationType.TOOL_STARTED, call.toolName(), call.arguments());
+        Scheduleable task = scheduleables.get(index);
+        logger.debug("Executing task [{} of {}]: {} ({})", index + 1, scheduleables.size(), task.name(), task.id());
+        // Find original ToolCall arguments to publish Observation
+        // This is slightly tricky since Scheduleable might not expose arguments directly.
+        // We can publish it as toolName for now.
+        publishObservation(currentContext.sessionId(), ObservationType.TOOL_STARTED, task.name());
 
-        return toolExecutor.execute(call, currentContext)
-            .compose(invokeResult -> {
-                switch (invokeResult.status()) {
+        return task.execute(currentContext)
+            .compose(scheduleResult -> {
+                switch (scheduleResult.status()) {
                     case INTERRUPT -> {
-                        logger.debug("Tool {} requested interrupt.", call.toolName());
-                        publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, "Interrupted: " + invokeResult.output());
-                        return Future.failedFuture(new AgentInterruptException(invokeResult.output()));
+                        logger.debug("Task {} requested interrupt.", task.name());
+                        publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, "Interrupted: " + scheduleResult.output());
+                        return Future.failedFuture(new AgentInterruptException(scheduleResult.output()));
                     }
                     case ERROR, EXCEPTION -> {
-                        logger.warn("Tool {} failed with status {}: {}", call.toolName(), invokeResult.status(), invokeResult.output());
-                        publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, "Error: " + invokeResult.output());
+                        logger.warn("Task {} failed with status {}: {}", task.name(), scheduleResult.status(), scheduleResult.output());
+                        publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, "Error: " + scheduleResult.output());
                     }
                     case SUCCESS -> {
-                        logger.debug("Tool {} executed successfully.", call.toolName());
-                        publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, invokeResult.output());
+                        logger.debug("Task {} executed successfully.", task.name());
+                        publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, scheduleResult.output());
                     }
                 }
 
-                Message toolMsg = Message.tool(call.id(), call.toolName(), invokeResult.output());
-                SessionContext contextToUse = invokeResult.modifiedContext() != null ? invokeResult.modifiedContext() : currentContext;
+                Message toolMsg = Message.tool(task.id(), task.name(), scheduleResult.output());
+                SessionContext contextToUse = scheduleResult.modifiedContext() != null ? scheduleResult.modifiedContext() : currentContext;
                 
                 // --- Robustness: Consecutive Failure Tracking ---
-                if (invokeResult.status() == ToolInvokeResult.Status.ERROR || invokeResult.status() == ToolInvokeResult.Status.EXCEPTION) {
+                if (scheduleResult.status() == ScheduleResult.Status.ERROR || scheduleResult.status() == ScheduleResult.Status.EXCEPTION) {
                     int fails = (int) contextToUse.metadata().getOrDefault("consecutive_tool_failures", 0);
                     if (fails >= 3) {
-                        logger.warn("Tool {} failed {} times consecutively. Aborting loop to prevent runaway usage.", call.toolName(), fails + 1);
-                        return Future.failedFuture("Aborting due to repetitive tool failures: " + invokeResult.output());
+                        logger.warn("Task {} failed {} times consecutively. Aborting loop to prevent runaway usage.", task.name(), fails + 1);
+                        return Future.failedFuture("Aborting due to repetitive task failures: " + scheduleResult.output());
                     }
                     Map<String, Object> newMetadata = new HashMap<>(contextToUse.metadata());
                     newMetadata.put("consecutive_tool_failures", fails + 1);
@@ -345,6 +356,6 @@ public class ReActAgentLoop implements AgentLoop {
                 return Future.succeededFuture(sessionManager.addStep(contextToUse, toolMsg));
             })
             .compose(nextContext -> sessionManager.persist(nextContext).map(v -> nextContext))
-            .compose(nextContext -> executeToolsSequentially(toolCalls, index + 1, nextContext));
+            .compose(nextContext -> executeScheduleablesSequentially(scheduleables, index + 1, nextContext));
     }
 }

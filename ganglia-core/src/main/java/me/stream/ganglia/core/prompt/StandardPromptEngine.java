@@ -7,8 +7,8 @@ import me.stream.ganglia.memory.TokenCounter;
 import me.stream.ganglia.core.model.*;
 import me.stream.ganglia.core.prompt.context.*;
 import me.stream.ganglia.core.prompt.context.SubAgentContextSource;
+import me.stream.ganglia.core.schedule.ScheduleableFactory;
 import me.stream.ganglia.skills.SkillRuntime;
-import me.stream.ganglia.tools.ToolExecutor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,37 +20,37 @@ public class StandardPromptEngine implements PromptEngine {
     private final List<ContextSource> sources = new ArrayList<>();
     private final ContextComposer composer;
     private final TokenCounter tokenCounter;
-    private ToolExecutor toolExecutor;
+    private ScheduleableFactory scheduleableFactory;
 
     public StandardPromptEngine(Vertx vertx,
                                 KnowledgeBase knowledgeBase,
                                 SkillRuntime skillRuntime,
-                                ToolExecutor toolExecutor,
+                                ScheduleableFactory scheduleableFactory,
                                 TokenCounter tokenCounter) {
         MarkdownContextResolver resolver = new MarkdownContextResolver(vertx);
         this.tokenCounter = tokenCounter;
         this.composer = new ContextComposer(this.tokenCounter);
-        this.toolExecutor = toolExecutor;
+        this.scheduleableFactory = scheduleableFactory;
 
         // Initialize default sources
         sources.add(new PersonaContextSource());
         sources.add(new FileContextSource(vertx, resolver, "GANGLIA.md"));
         sources.add(new EnvironmentSource(vertx));
         sources.add(new SkillContextSource(skillRuntime));
-        if (this.toolExecutor != null) {
-            sources.add(new ToolContextSource(this.toolExecutor));
+        if (this.scheduleableFactory != null) {
+            sources.add(new ToolContextSource(this.scheduleableFactory));
         }
         sources.add(new ToDoContextSource());
         sources.add(new MemoryContextSource());
         sources.add(new SubAgentContextSource());
     }
 
-    public void setToolExecutor(ToolExecutor toolExecutor) {
-        this.toolExecutor = toolExecutor;
+    public void setScheduleableFactory(ScheduleableFactory scheduleableFactory) {
+        this.scheduleableFactory = scheduleableFactory;
         // Re-add ToolContextSource if it wasn't added during construction
         boolean hasToolSource = sources.stream().anyMatch(s -> s instanceof ToolContextSource);
-        if (!hasToolSource && toolExecutor != null) {
-            sources.add(new ToolContextSource(toolExecutor));
+        if (!hasToolSource && scheduleableFactory != null) {
+            sources.add(new ToolContextSource(scheduleableFactory));
         }
     }
 
@@ -92,7 +92,7 @@ public class StandardPromptEngine implements PromptEngine {
             }
 
             // 4. Resolve Tools (with sub-agent filtering)
-            var tools = toolExecutor.getAvailableTools(context);
+            var tools = scheduleableFactory.getAvailableDefinitions(context);
             
             boolean isSub = (boolean) context.metadata().getOrDefault("is_sub_agent", false);
             if (isSub) {

@@ -4,6 +4,8 @@ import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import me.stream.ganglia.core.model.*;
+import me.stream.ganglia.core.schedule.DefaultScheduleableFactory;
+import me.stream.ganglia.core.schedule.ScheduleableFactory;
 import me.stream.ganglia.core.session.DefaultSessionManager;
 import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.stubs.*;
@@ -33,6 +35,7 @@ class ReActAgentLoopTest {
     StubConfigManager configManager;
     SessionManager sessionManager;
     me.stream.ganglia.memory.ContextCompressor compressor;
+    ScheduleableFactory scheduleableFactory;
     ReActAgentLoop loop;
 
     @BeforeEach
@@ -46,7 +49,8 @@ class ReActAgentLoopTest {
         configManager = new StubConfigManager(vertx);
         sessionManager = new DefaultSessionManager(state, logManager, configManager);
         compressor = new me.stream.ganglia.memory.ContextCompressor(model, configManager);
-        loop = new ReActAgentLoop(vertx, model, tools, sessionManager, prompt, configManager, compressor);
+        scheduleableFactory = new DefaultScheduleableFactory(vertx, model, sessionManager, prompt, configManager, compressor, tools, null, null, null);
+        loop = new ReActAgentLoop(vertx, model, scheduleableFactory, sessionManager, prompt, configManager, compressor);
     }
 
     @Test
@@ -126,6 +130,33 @@ class ReActAgentLoopTest {
         loop.run("Hello", context).onComplete(testContext.succeeding(result -> {
             testContext.verify(() -> {
                 assertEquals("Final Answer", result);
+                testContext.completeNow();
+            });
+        }));
+    }
+
+    @Test
+    void testIterationLimitReached(VertxTestContext testContext) {
+        // 1. Setup Config with maxIterations = 2
+        configManager.setConfig(new io.vertx.core.json.JsonObject()
+                .put("agent", new io.vertx.core.json.JsonObject().put("maxIterations", 2)));
+
+        ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
+        SessionContext context = new SessionContext("test-iter-limit", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
+
+        // 2. Setup LLM to keep returning a tool call (infinite loop)
+        ToolCall toolCall = new ToolCall("call-inf", "test-tool", Map.of("arg", "1"));
+        ModelResponse toolResponse = new ModelResponse("Still working...", List.of(toolCall), new TokenUsage(10, 10));
+        
+        // Add 3 responses (one more than limit) to see if it stops
+        model.addResponses(toolResponse, toolResponse, toolResponse);
+
+        tools.registerHandler("test-tool", call -> ToolInvokeResult.success("Progress"));
+
+        // 3. Run - Should return success with limit message
+        loop.run("Start", context).onComplete(testContext.succeeding(result -> {
+            testContext.verify(() -> {
+                assertEquals("Max iterations reached without final answer.", result);
                 testContext.completeNow();
             });
         }));

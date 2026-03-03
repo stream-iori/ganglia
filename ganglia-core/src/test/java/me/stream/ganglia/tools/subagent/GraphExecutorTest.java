@@ -41,7 +41,12 @@ public class GraphExecutorTest {
         this.sessionManager = new DefaultSessionManager(new InMemoryStateEngine(), new InMemoryLogManager(), configManager);
         this.promptEngine = new StubPromptEngine();
         me.stream.ganglia.memory.ContextCompressor compressor = new me.stream.ganglia.memory.ContextCompressor(modelGateway, configManager);
-        this.graphExecutor = new DefaultGraphExecutor(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, configManager, compressor);
+        this.graphExecutor = new DefaultGraphExecutor(vertx, modelGateway, sessionManager, promptEngine, configManager, compressor);
+        
+        me.stream.ganglia.core.schedule.ScheduleableFactory scheduleableFactory = new me.stream.ganglia.core.schedule.DefaultScheduleableFactory(
+            vertx, modelGateway, sessionManager, promptEngine, configManager, compressor, toolExecutor, graphExecutor, null, null
+        );
+        this.graphExecutor.setScheduleableFactory(scheduleableFactory);
     }
 
     @Test

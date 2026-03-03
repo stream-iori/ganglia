@@ -1,0 +1,26 @@
+package me.stream.ganglia.core.schedule;
+
+import io.vertx.core.Future;
+import me.stream.ganglia.core.model.SessionContext;
+
+/**
+ * Represents an executable task that can be scheduled by the ReActAgentLoop.
+ */
+public interface Scheduleable {
+    /**
+     * @return The unique identifier of this scheduleable task.
+     */
+    String id();
+
+    /**
+     * @return The name of the task/tool being scheduled.
+     */
+    String name();
+
+    /**
+     * Executes the task.
+     * @param context The current session context.
+     * @return A future containing the result of the execution.
+     */
+    Future<ScheduleResult> execute(SessionContext context);
+}

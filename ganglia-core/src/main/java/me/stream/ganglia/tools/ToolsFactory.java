@@ -1,15 +1,9 @@
 package me.stream.ganglia.tools;
 
 import io.vertx.core.Vertx;
-import me.stream.ganglia.core.config.ConfigManager;
-import me.stream.ganglia.core.llm.ModelGateway;
-import me.stream.ganglia.core.prompt.PromptEngine;
-import me.stream.ganglia.core.session.SessionManager;
 import me.stream.ganglia.core.util.PathSanitizer;
 import me.stream.ganglia.memory.ContextCompressor;
 import me.stream.ganglia.memory.KnowledgeBase;
-import me.stream.ganglia.tools.subagent.DefaultGraphExecutor;
-import me.stream.ganglia.tools.subagent.GraphExecutor;
 
 /**
  * Factory for creating and managing built-in tool sets.
@@ -65,10 +59,5 @@ public class ToolsFactory {
 
     public FileEditTools getFileEditTools() {
         return fileEditTools;
-    }
-
-    public SubAgentTools createSubAgentTools(ModelGateway model, SessionManager sessionManager, PromptEngine promptEngine, ConfigManager config, ToolExecutor executor, ContextCompressor compressor) {
-        GraphExecutor graphExecutor = new DefaultGraphExecutor(vertx, model, executor, sessionManager, promptEngine, config, compressor);
-        return new SubAgentTools(vertx, model, sessionManager, promptEngine, config, executor, graphExecutor, compressor);
     }
 }

@@ -1,9 +1,9 @@
 # Ganglia Project Context
 
-**Status:** Core Implemented (v1.0.0)
+**Status:** Core Implemented (v1.1.0)
 
 ## 1. Project Overview
-Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designed for high-performance, non-blocking agentic workflows. It follows a "Simple & Robust" philosophy inspired by Claude Code, using a single **ReAct control loop**, a decoupled **Terminal UI**, and a transparent **file-based memory system**.
+Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designed for high-performance, non-blocking agentic workflows. It follows a "Simple & Robust" philosophy, using a decoupled **Scheduling Abstraction** layer, a single **ReAct control loop**, a decoupled **Terminal UI**, and a transparent **file-based memory system**.
 
 ## 2. Technology Stack
 - **Runtime:** Java 17-zulu (SDKMAN! managed)
@@ -17,13 +17,15 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designe
 ## 3. Core Capabilities (Implemented)
 
 ### 3.1 Reasoning & Orchestration
-- **ReAct Loop:** `ReActAgentLoop` handles iterative reasoning, tool calling, and observation feedback.
+- **ReAct Loop:** `ReActAgentLoop` handles iterative reasoning and sequential task execution.
+- **Scheduling Layer:** `ScheduleableFactory` maps LLM tool calls to executable `Scheduleable` tasks (Standard Tools, Sub-Agents, Skills, DAGs).
 - **Hierarchical Context:** `StandardPromptEngine` with `ContextComposer` stacks Persona, Mandates, Env, Skills, and Memory.
-- **Sub-Agents:** `SubAgentTools` for transient delegation and `GraphExecutor` for DAG-based task execution.
+- **Sub-Agents:** `SubAgentTask` for transient delegation and `GraphExecutor` for DAG-based task execution.
 
 ### 3.2 Implemented Toolsets
 - **FileSystem:** `BashFileSystemTools` (ls, cat, grep, find).
-- **Bash:** `BashTools` for generic shell command execution with safety timeouts.
+- **Bash:** `BashTools` for generic shell command execution.
+- **FileEdit:** `FileEditTools` for precise line-based search and replace.
 - **Interaction:** `InteractionTools` (`ask_selection`) for human-in-the-loop flows.
 - **Workflow:** `ToDoTools` for managing agent-led plans and task status.
 - **Memory:** `KnowledgeBaseTools` for reading/updating `MEMORY.md`.
@@ -36,7 +38,7 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designe
 
 ### 3.4 Skill System
 - **Dynamic Loading:** `FileSystemSkillLoader` and `JarSkillLoader` for script/JAR skills.
-- **Expertise Injection:** Skills inject domain-specific prompts and tools into the active context.
+- **Expertise Injection:** Skills inject domain-specific prompts and tools into the active context via `SkillTask`.
 
 ### 3.5 Testing & Verification
 - **E2E Simulation:** `E2ETestHarness` allows for declarative scenario testing without real LLM costs.
@@ -44,15 +46,16 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x Core 5.0.6**, designe
 
 ## 4. Directory Structure
 - `pom.xml`: Parent POM.
-- `ganglia-core/`: Core reasoning, model gateways, memory, and tools.
+- `ganglia-core/`: Core reasoning, scheduling, model gateways, memory, and tools.
 - `ganglia-terminal/`: Decoupled UI layer using JLine 3 and Markdown rendering.
+- `ganglia-swe-bench/`: SWE-bench evaluation module with Docker sandboxing.
 - `integration-test/`: Automated IT and E2E simulation scenarios.
 - `ganglia-example/`: Usage examples including the `InteractiveChatDemo` CLI.
-- `docs/`: Technical designs and v1.0.0 documentation.
+- `docs/`: Technical designs and v1.1.0 documentation.
 
 ## 5. Development Guidelines
 - Always use **Vert.x Future** for asynchronous operations.
-- Maintain **Sequential Tool Execution** within the loop to ensure reasoning between steps.
+- Maintain **Sequential Task Execution** within the loop via the `Scheduleable` interface.
 - Use **JDK 17 Text Blocks** for JSON schemas and large strings.
 - Strictly adhere to the **3-tier memory model** defined in `docs/MEMORY_ARCHITECTURE.md`.
 - Run all tests using `source "$HOME/.sdkman/bin/sdkman-init.sh" && sdk env && mvn verify`.

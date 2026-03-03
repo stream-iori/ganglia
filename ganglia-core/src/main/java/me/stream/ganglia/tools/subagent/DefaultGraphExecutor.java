@@ -8,8 +8,8 @@ import me.stream.ganglia.core.loop.ReActAgentLoop;
 import me.stream.ganglia.core.model.SessionContext;
 import me.stream.ganglia.core.prompt.PromptEngine;
 import me.stream.ganglia.core.session.SessionManager;
+import me.stream.ganglia.core.schedule.ScheduleableFactory;
 import me.stream.ganglia.memory.ContextCompressor;
-import me.stream.ganglia.tools.ToolExecutor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,27 +22,33 @@ public class DefaultGraphExecutor implements GraphExecutor {
 
     private final Vertx vertx;
     private final ModelGateway modelGateway;
-    private final ToolExecutor toolExecutor;
     private final SessionManager sessionManager;
     private final PromptEngine promptEngine;
     private final ConfigManager configManager;
     private final ContextCompressor compressor;
+    private ScheduleableFactory scheduleableFactory;
 
-    public DefaultGraphExecutor(Vertx vertx, ModelGateway modelGateway, ToolExecutor toolExecutor,
-                                SessionManager sessionManager, PromptEngine promptEngine, ConfigManager configManager,
-                                ContextCompressor compressor) {
+    public DefaultGraphExecutor(Vertx vertx, ModelGateway modelGateway, SessionManager sessionManager, 
+                                PromptEngine promptEngine, ConfigManager configManager, ContextCompressor compressor) {
         this.vertx = vertx;
         this.modelGateway = modelGateway;
-        this.toolExecutor = toolExecutor;
         this.sessionManager = sessionManager;
         this.promptEngine = promptEngine;
         this.configManager = configManager;
         this.compressor = compressor;
     }
 
+    public void setScheduleableFactory(ScheduleableFactory scheduleableFactory) {
+        this.scheduleableFactory = scheduleableFactory;
+    }
+
     @Override
     public Future<String> execute(TaskGraph graph, SessionContext parentContext) {
         logger.info("Executing TaskGraph with {} nodes.", graph.nodes().size());
+        
+        if (scheduleableFactory == null) {
+            return Future.failedFuture("ScheduleableFactory not configured for GraphExecutor");
+        }
         
         Map<String, Future<String>> results = new ConcurrentHashMap<>();
         Map<String, TaskNode> nodeMap = graph.nodes().stream()
@@ -55,13 +61,13 @@ public class DefaultGraphExecutor implements GraphExecutor {
 
         return Future.all(allFutures)
             .map(cf -> {
-                StringBuilder sb = new StringBuilder("--- TASK GRAPH EXECUTION REPORT ---\n\n");
+                StringBuilder sb = new StringBuilder("--- TASK GRAPH EXECUTION REPORT ---\\n\\n");
                 for (TaskNode node : graph.nodes()) {
-                    sb.append("NODE ID: ").append(node.id()).append("\n");
-                    sb.append("TASK: ").append(node.task()).append("\n");
-                    sb.append("STATUS: SUCCESS\n");
-                    sb.append("REPORT:\n").append(results.get(node.id()).result()).append("\n\n");
-                    sb.append("-----------------------------------\n");
+                    sb.append("NODE ID: ").append(node.id()).append("\\n");
+                    sb.append("TASK: ").append(node.task()).append("\\n");
+                    sb.append("STATUS: SUCCESS\\n");
+                    sb.append("REPORT:\\n").append(results.get(node.id()).result()).append("\\n\\n");
+                    sb.append("-----------------------------------\\n");
                 }
                 sb.append("--- END OF GRAPH REPORT ---");
                 return sb.toString();
@@ -113,14 +119,14 @@ public class DefaultGraphExecutor implements GraphExecutor {
 
         SessionContext childContext = ContextScoper.scope(childSessionId, parentContext, childMetadata);
 
-        ReActAgentLoop childLoop = new ReActAgentLoop(vertx, modelGateway, toolExecutor, sessionManager, promptEngine, configManager, compressor);
+        ReActAgentLoop childLoop = new ReActAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, compressor);
 
-        StringBuilder promptBuilder = new StringBuilder("TASK: ").append(node.task()).append("\n\n");
+        StringBuilder promptBuilder = new StringBuilder("TASK: ").append(node.task()).append("\\n\\n");
         if (!dependencyResults.isEmpty()) {
-            promptBuilder.append("PREVIOUS TASK RESULTS:\n");
+            promptBuilder.append("PREVIOUS TASK RESULTS:\\n");
             dependencyResults.forEach((depId, report) -> {
-                promptBuilder.append("ID: ").append(depId).append("\n");
-                promptBuilder.append("RESULT:\n").append(report).append("\n");
+                promptBuilder.append("ID: ").append(depId).append("\\n");
+                promptBuilder.append("RESULT:\\n").append(report).append("\\n");
             });
         }
 

@@ -12,6 +12,7 @@
         <module>ganglia-terminal</module>
         <module>integration-test</module>
         <module>ganglia-example</module>
+        <module>ganglia-swe-bench</module>
     </modules>
 
     <properties>

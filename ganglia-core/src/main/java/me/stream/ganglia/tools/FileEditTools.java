@@ -131,17 +131,59 @@ public class FileEditTools implements ToolSet {
                         // 2. Perform replacement
                         String updatedContent = content.replace(oldString, newString);
 
-                        // 3. Atomic write (temporary file pattern)
-                        String tempPath = filePath + ".tmp." + System.nanoTime();
+                        // 3. Generate Diff (using a temporary file)
+                        String tempOldPath = filePath + ".old." + System.nanoTime();
                         
-                        return fs.writeFile(tempPath, io.vertx.core.buffer.Buffer.buffer(updatedContent))
-                            .compose(v -> fs.move(tempPath, filePath, new CopyOptions().setReplaceExisting(true)))
-                            .map(v -> ToolInvokeResult.success("SUCCESS: Replaced " + actualCount + " occurrence(s) in " + filePath))
-                            .recover(err -> {
-                                logger.error("Failed to write updated file: {}", filePath, err);
-                                return Future.succeededFuture(ToolInvokeResult.error("FS_ERROR: Failed to save changes: " + err.getMessage()));
+                        return fs.writeFile(tempOldPath, buffer) // Save current content to temp
+                            .compose(v -> generateDiff(tempOldPath, updatedContent, filePath))
+                            .compose(diff -> {
+                                // 4. Atomic write (temporary file pattern)
+                                String tempPath = filePath + ".tmp." + System.nanoTime();
+                                
+                                return fs.writeFile(tempPath, io.vertx.core.buffer.Buffer.buffer(updatedContent))
+                                    .compose(v -> fs.move(tempPath, filePath, new CopyOptions().setReplaceExisting(true)))
+                                    .compose(v -> fs.delete(tempOldPath)) // Clean up temp old file
+                                    .map(v -> ToolInvokeResult.success("SUCCESS: Replaced " + actualCount + " occurrence(s) in " + filePath, diff))
+                                    .recover(err -> {
+                                        logger.error("Failed to write updated file: {}", filePath, err);
+                                        return fs.delete(tempOldPath)
+                                            .compose(v2 -> Future.succeededFuture(ToolInvokeResult.error("FS_ERROR: Failed to save changes: " + err.getMessage())));
+                                    });
                             });
                     });
+            });
+    }
+
+    private Future<String> generateDiff(String oldFilePath, String newContent, String label) {
+        String tempNewPath = oldFilePath + ".new";
+        return fs.writeFile(tempNewPath, io.vertx.core.buffer.Buffer.buffer(newContent))
+            .compose(v -> {
+                // Use native diff command for simplicity and reliability on Unix/MacOS
+                String command = String.format("diff -u %s %s", oldFilePath, tempNewPath);
+                return vertx.executeBlocking(() -> {
+                    try {
+                        Process process = new ProcessBuilder("bash", "-c", command).start();
+                        String output = new String(process.getInputStream().readAllBytes());
+                        process.waitFor();
+                        // diff returns 1 if differences are found, which is what we expect
+                        
+                        // Clean up temp new file
+                        fs.deleteBlocking(tempNewPath);
+                        
+                        // Basic cleanup of the diff header to use the actual filename
+                        if (output.startsWith("---")) {
+                            String[] lines = output.split("\\n", 3);
+                            if (lines.length >= 2) {
+                                return "--- " + label + "\n" + "+++ " + label + "\n" + (lines.length > 2 ? lines[2] : "");
+                            }
+                        }
+                        return output;
+                    } catch (Exception e) {
+                        logger.warn("Failed to generate diff: {}", e.getMessage());
+                        fs.deleteBlocking(tempNewPath);
+                        return "Diff generation failed: " + e.getMessage();
+                    }
+                });
             });
     }
 
