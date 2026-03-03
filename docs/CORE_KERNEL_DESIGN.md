@@ -14,7 +14,7 @@ This diagram illustrates the relationships between the main entities: `AgentLoop
 classDiagram
     class AgentLoop {
         <<Interface>>
-        +run(userInput: String, context: SessionContext) Future~String~
+        +run(userInput: String, context: SessionContext, signal: AgentSignal) Future~String~
     }
     
     class ReActAgentLoop {
@@ -79,8 +79,14 @@ classDiagram
         +toDoList: ToDoList
     }
 
+    class SessionManager {
+        <<Interface>>
+        +addSteeringMessage(sessionId: String, msg: String)
+        +pollSteeringMessages(sessionId: String) List~String~
+    }
+
     ReActAgentLoop --> ModelGateway : uses
-    ReActAgentLoop --> SessionManager : persists state
+    ReActAgentLoop --> SessionManager : persists state & polls messages
     ReActAgentLoop --> PromptEngine : prepares LLM inputs
 ```
 
@@ -99,11 +105,16 @@ sequenceDiagram
     participant Task as ScheduleableTask
     participant SM as SessionManager
 
-    User->>AgentLoop: run(userInput, context)
+    User->>AgentLoop: run(userInput, context, signal)
     AgentLoop->>SM: startTurn & save
     
     loop ReAct Cycle (Max N times)
         Note over AgentLoop, Model: 1. Reasoning Phase
+        AgentLoop->>SM: pollSteeringMessages()
+        opt Has Steering Messages
+            AgentLoop->>AgentLoop: Inject to Context
+        end
+
         AgentLoop->>PromptEngine: prepareRequest(Context)
         PromptEngine-->>AgentLoop: LlmRequest (Layered Prompts + Tools)
         
@@ -116,6 +127,11 @@ sequenceDiagram
             Factory-->>AgentLoop: ScheduleableTask
             
             Note over AgentLoop, Task: 3. Execution Phase (Sequential)
+            AgentLoop->>SM: pollSteeringMessages()
+            opt Has Steering Messages
+                AgentLoop->>AgentLoop: Inject to Context & Abort pending Tasks
+            end
+
             AgentLoop->>Task: execute(Context)
             Task-->>AgentLoop: ScheduleResult (Observation)
             

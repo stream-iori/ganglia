@@ -59,17 +59,17 @@ public class ReActAgentLoop implements AgentLoop {
     }
 
     @Override
-    public Future<String> run(String userInput, SessionContext initialContext) {
+    public Future<String> run(String userInput, SessionContext initialContext, AgentSignal signal) {
         logger.debug("Starting new turn for session: {}. Input: {}", initialContext.sessionId(), userInput);
         publishObservation(initialContext.sessionId(), ObservationType.TURN_STARTED, userInput);
         // 1. Initialization
         Message userMessage = Message.user(userInput);
         SessionContext context = sessionManager.startTurn(initialContext, userMessage);
-        return sessionManager.persist(context).compose(v -> runLoop(context));
+        return sessionManager.persist(context).compose(v -> runLoop(context, signal));
     }
 
     @Override
-    public Future<String> resume(String toolOutput, SessionContext initialContext) {
+    public Future<String> resume(String toolOutput, SessionContext initialContext, AgentSignal signal) {
         logger.debug("Resuming session: {}. Tool output received.", initialContext.sessionId());
         // Find the last pending tool call from context
         ToolCall pendingCall = findPendingToolCall(initialContext);
@@ -87,22 +87,22 @@ public class ReActAgentLoop implements AgentLoop {
             .compose(v -> {
                 // Check if there are MORE pending tool calls in the same set that need execution
                 // before we go back to reasoning.
-                return continueActingOrReason(context);
+                return continueActingOrReason(context, signal);
             });
     }
 
-    private Future<String> continueActingOrReason(SessionContext context) {
+    private Future<String> continueActingOrReason(SessionContext context, AgentSignal signal) {
         Turn current = context.currentTurn();
         if (current != null) {
             List<ToolCall> pending = current.getPendingToolCalls();
 
             if (!pending.isEmpty()) {
                 logger.debug("Continuing execution of {} pending tool calls.", pending.size());
-                return act(pending, context)
+                return act(pending, context, signal)
                     .compose(contextAfterTools ->
                         sessionManager
                             .persist(contextAfterTools)
-                            .compose(v -> runLoop(contextAfterTools))
+                            .compose(v -> runLoop(contextAfterTools, signal))
                     )
                     .recover(err -> {
                         if (err instanceof AgentInterruptException) {
@@ -112,7 +112,7 @@ public class ReActAgentLoop implements AgentLoop {
                     });
             }
         }
-        return runLoop(context);
+        return runLoop(context, signal);
     }
 
     /**
@@ -132,7 +132,20 @@ public class ReActAgentLoop implements AgentLoop {
             .orElse(null);
     }
 
-    private Future<String> runLoop(SessionContext currentContext) {
+    private Future<String> runLoop(SessionContext currentContext, AgentSignal signal) {
+        if (signal.isAborted()) {
+            return Future.failedFuture(new AgentAbortedException());
+        }
+
+        // --- 1. Process Steering Messages (Outer Loop Check) ---
+        List<String> steeringMsgs = sessionManager.pollSteeringMessages(currentContext.sessionId());
+        if (!steeringMsgs.isEmpty()) {
+            logger.info("Injecting {} steering message(s) before reasoning.", steeringMsgs.size());
+            for (String msg : steeringMsgs) {
+                currentContext = sessionManager.addStep(currentContext, Message.user("System Interruption/Correction: " + msg));
+            }
+        }
+
         int iteration = currentContext.getIterationCount();
         int maxIterations = configManager.getMaxIterations();
         if (iteration >= maxIterations) {
@@ -164,20 +177,24 @@ public class ReActAgentLoop implements AgentLoop {
                     .compose(compressedContext -> {
                         logger.info("Compression complete. New token count: {}", 
                             compressedContext.history().stream().mapToInt(m -> m.countTokens(tokenCounter)).sum());
-                        return runLoop(compressedContext); // Restart this iteration with compressed context
+                        return runLoop(compressedContext, signal); // Restart this iteration with compressed context
                     });
         }
 
         logger.debug("Loop iteration: {} for session: {}", iteration, currentContext.sessionId());
-        return reason(currentContext)
-            .compose(response -> handleDecision(response, currentContext))
+        
+        // Pass context cleanly to reason block, capture effectively final references correctly
+        final SessionContext contextForReasoning = currentContext;
+        
+        return reason(contextForReasoning, signal)
+            .compose(response -> handleDecision(response, contextForReasoning, signal))
             .recover(err -> {
                 if (err instanceof AgentInterruptException) {
-                    logger.info("Agent loop interrupted for session: {}. Waiting for user interaction.", currentContext.sessionId());
+                    logger.info("Agent loop interrupted for session: {}. Waiting for user interaction.", contextForReasoning.sessionId());
                     return Future.succeededFuture(((AgentInterruptException) err).getPrompt());
                 }
 
-                logger.error("Error in agent loop for session: {}", currentContext.sessionId(), err);
+                logger.error("Error in agent loop for session: {}", contextForReasoning.sessionId(), err);
 
                 Map<String, Object> errorData = new HashMap<>();
                 if (err instanceof LLMException) {
@@ -187,18 +204,22 @@ public class ReActAgentLoop implements AgentLoop {
                     llmErr.requestId().ifPresent(id -> errorData.put("requestId", id));
                 }
 
-                publishObservation(currentContext.sessionId(), ObservationType.ERROR, err.getMessage(), errorData);
+                publishObservation(contextForReasoning.sessionId(), ObservationType.ERROR, err.getMessage(), errorData);
                 return Future.failedFuture(err);
             });
     }
 
     // --- Core Logic Steps ---
 
-    private Future<ModelResponse> reason(SessionContext context) {
-        return retryReason(context, 0);
+    private Future<ModelResponse> reason(SessionContext context, AgentSignal signal) {
+        return retryReason(context, 0, signal);
     }
 
-    private Future<ModelResponse> retryReason(SessionContext context, int attempt) {
+    private Future<ModelResponse> retryReason(SessionContext context, int attempt, AgentSignal signal) {
+        if (signal.isAborted()) {
+            return Future.failedFuture(new AgentAbortedException());
+        }
+
         int iteration = context.getIterationCount();
         if (attempt == 0) {
             publishObservation(context.sessionId(), ObservationType.REASONING_STARTED, null);
@@ -206,10 +227,11 @@ public class ReActAgentLoop implements AgentLoop {
 
         return promptEngine.prepareRequest(context, iteration)
             .compose(request -> {
+                if (signal.isAborted()) {
+                    return Future.failedFuture(new AgentAbortedException());
+                }
                 logger.debug("Calling model: {} with history size: {} (Attempt: {})",
                     request.options().modelName(), request.messages().size(), attempt + 1);
-                // Convert ToolDefinitions using ScheduleableFactory inside the PromptEngine?
-                // Wait, PromptEngine already handles ToolDefinitions. I should verify it later.
                 return model.chatStream(request.messages(), request.tools(), request.options(), context.sessionId());
             })
             .recover(err -> {
@@ -220,7 +242,7 @@ public class ReActAgentLoop implements AgentLoop {
                     
                     Promise<ModelResponse> promise = Promise.promise();
                     vertx.setTimer(delay, id -> {
-                        retryReason(context, attempt + 1).onComplete(promise);
+                        retryReason(context, attempt + 1, signal).onComplete(promise);
                     });
                     return promise.future();
                 }
@@ -244,7 +266,11 @@ public class ReActAgentLoop implements AgentLoop {
         return delay + jitter;
     }
 
-    private Future<String> handleDecision(ModelResponse response, SessionContext currentContext) {
+    private Future<String> handleDecision(ModelResponse response, SessionContext currentContext, AgentSignal signal) {
+        if (signal.isAborted()) {
+            return Future.failedFuture(new AgentAbortedException());
+        }
+
         String content = response.content();
         List<ToolCall> toolCalls = response.toolCalls();
 
@@ -266,11 +292,11 @@ public class ReActAgentLoop implements AgentLoop {
             SessionContext nextContext = sessionManager.addStep(currentContext, assistantMessage);
 
             return sessionManager.persist(nextContext)
-                .compose(v -> act(toolCalls, nextContext))
+                .compose(v -> act(toolCalls, nextContext, signal))
                 .compose(contextAfterTools ->
                     // Loop: Recurse
                     sessionManager.persist(contextAfterTools)
-                        .compose(v -> runLoop(contextAfterTools))
+                        .compose(v -> runLoop(contextAfterTools, signal))
                 );
         } else {
             logger.debug("No tool calls. Turn complete.");
@@ -291,47 +317,62 @@ public class ReActAgentLoop implements AgentLoop {
         }
     }
 
-    private Future<SessionContext> act(List<ToolCall> toolCalls, SessionContext context) {
+    private Future<SessionContext> act(List<ToolCall> toolCalls, SessionContext context, AgentSignal signal) {
         // Transform ToolCalls to Scheduleables
         List<Scheduleable> scheduleables = toolCalls.stream()
             .map(call -> scheduleableFactory.create(call, context))
             .toList();
 
-        return executeScheduleablesSequentially(scheduleables, 0, context);
+        return executeScheduleablesSequentially(scheduleables, 0, context, signal);
     }
 
-    private Future<SessionContext> executeScheduleablesSequentially(List<Scheduleable> scheduleables, int index, SessionContext currentContext) {
+    private Future<SessionContext> executeScheduleablesSequentially(List<Scheduleable> scheduleables, int index, SessionContext currentContext, AgentSignal signal) {
+        if (signal.isAborted()) {
+            return Future.failedFuture(new AgentAbortedException());
+        }
+
+        // --- 2. Process Steering Messages (Inner Loop Check) ---
+        List<String> steeringMsgs = sessionManager.pollSteeringMessages(currentContext.sessionId());
+        if (!steeringMsgs.isEmpty()) {
+            logger.info("Steering message received during tool execution. Aborting remaining {} tasks.", scheduleables.size() - index);
+            SessionContext updatedContext = currentContext;
+            for (String msg : steeringMsgs) {
+                updatedContext = sessionManager.addStep(updatedContext, Message.user("System Interruption/Correction: " + msg));
+            }
+            // Return early with the updated context containing the steering messages
+            return Future.succeededFuture(updatedContext);
+        }
+
         if (index >= scheduleables.size()) {
             return Future.succeededFuture(currentContext);
         }
 
         Scheduleable task = scheduleables.get(index);
         logger.debug("Executing task [{} of {}]: {} ({})", index + 1, scheduleables.size(), task.name(), task.id());
-        // Find original ToolCall arguments to publish Observation
-        // This is slightly tricky since Scheduleable might not expose arguments directly.
-        // We can publish it as toolName for now.
         publishObservation(currentContext.sessionId(), ObservationType.TOOL_STARTED, task.name());
 
-        return task.execute(currentContext)
+        final SessionContext originalContextForTask = currentContext;
+
+        return task.execute(originalContextForTask)
             .compose(scheduleResult -> {
                 switch (scheduleResult.status()) {
                     case INTERRUPT -> {
                         logger.debug("Task {} requested interrupt.", task.name());
-                        publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, "Interrupted: " + scheduleResult.output());
+                        publishObservation(originalContextForTask.sessionId(), ObservationType.TOOL_FINISHED, "Interrupted: " + scheduleResult.output());
                         return Future.failedFuture(new AgentInterruptException(scheduleResult.output()));
                     }
                     case ERROR, EXCEPTION -> {
                         logger.warn("Task {} failed with status {}: {}", task.name(), scheduleResult.status(), scheduleResult.output());
-                        publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, "Error: " + scheduleResult.output());
+                        publishObservation(originalContextForTask.sessionId(), ObservationType.TOOL_FINISHED, "Error: " + scheduleResult.output());
                     }
                     case SUCCESS -> {
                         logger.debug("Task {} executed successfully.", task.name());
-                        publishObservation(currentContext.sessionId(), ObservationType.TOOL_FINISHED, scheduleResult.output());
+                        publishObservation(originalContextForTask.sessionId(), ObservationType.TOOL_FINISHED, scheduleResult.output());
                     }
                 }
 
                 Message toolMsg = Message.tool(task.id(), task.name(), scheduleResult.output());
-                SessionContext contextToUse = scheduleResult.modifiedContext() != null ? scheduleResult.modifiedContext() : currentContext;
+                SessionContext contextToUse = scheduleResult.modifiedContext() != null ? scheduleResult.modifiedContext() : originalContextForTask;
                 
                 // --- Robustness: Consecutive Failure Tracking ---
                 if (scheduleResult.status() == ScheduleResult.Status.ERROR || scheduleResult.status() == ScheduleResult.Status.EXCEPTION) {
@@ -356,6 +397,6 @@ public class ReActAgentLoop implements AgentLoop {
                 return Future.succeededFuture(sessionManager.addStep(contextToUse, toolMsg));
             })
             .compose(nextContext -> sessionManager.persist(nextContext).map(v -> nextContext))
-            .compose(nextContext -> executeScheduleablesSequentially(scheduleables, index + 1, nextContext));
+            .compose(nextContext -> executeScheduleablesSequentially(scheduleables, index + 1, nextContext, signal));
     }
 }

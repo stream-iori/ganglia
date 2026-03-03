@@ -11,16 +11,20 @@ import me.stream.ganglia.tools.model.ToDoList;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class DefaultSessionManager implements SessionManager {
     private final StateEngine stateEngine;
     private final LogManager logManager;
     private final ConfigManager configManager;
+    private final ConcurrentHashMap<String, ConcurrentLinkedQueue<String>> steeringQueues;
 
     public DefaultSessionManager(StateEngine stateEngine, LogManager logManager, ConfigManager configManager) {
         this.stateEngine = stateEngine;
         this.logManager = logManager;
         this.configManager = configManager;
+        this.steeringQueues = new ConcurrentHashMap<>();
     }
 
     @Override
@@ -114,5 +118,25 @@ public class DefaultSessionManager implements SessionManager {
                 
                 return context.withPreviousTurns(newPrevious);
             });
+    }
+
+    @Override
+    public void addSteeringMessage(String sessionId, String message) {
+        steeringQueues.computeIfAbsent(sessionId, k -> new ConcurrentLinkedQueue<>()).add(message);
+    }
+
+    @Override
+    public List<String> pollSteeringMessages(String sessionId) {
+        ConcurrentLinkedQueue<String> queue = steeringQueues.get(sessionId);
+        if (queue == null || queue.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        List<String> messages = new ArrayList<>();
+        String msg;
+        while ((msg = queue.poll()) != null) {
+            messages.add(msg);
+        }
+        return messages;
     }
 }

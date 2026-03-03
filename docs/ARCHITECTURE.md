@@ -133,9 +133,9 @@ graph TD
 
 ## 5. Human-in-the-Loop & Interaction
 
-Ganglia employs a **"Plan First, Act Later"** philosophy to ensure user control over complex tasks, alongside runtime safeguards.
+Ganglia employs a **"Plan First, Act Later"** philosophy to ensure user control over complex tasks, alongside advanced runtime safeguards and steering capabilities.
 
-### 4.1 The "Plan First" Pattern (Architectural)
+### 5.1 The "Plan First" Pattern (Architectural)
 
 Before executing complex requests, the system enters a **Planning Phase**:
 
@@ -143,11 +143,19 @@ Before executing complex requests, the system enters a **Planning Phase**:
 2.  **Review:** The plan is presented to the user for approval or modification.
 3.  **Execution:** Only approved steps are fed into the ReAct Executor's To-Do list.
 
-### 4.2 Runtime Interrupts (Task-Based)
+### 5.2 Two-Layer Interrupts (Steering & Abort)
 
-- **Approval Interrupts:** Tasks like `TaskGraphTask` or `SkillTask` (activation) can trigger a **User Confirmation** interrupt.
-- **`ask_selection` Tool:** The agent can explicitly invoke this tool to resolve ambiguities or request input (supports `text` and `choice` modes).
-- **Execution Pause:** The ReAct loop suspends state and awaits user input before resuming.
+Ganglia supports an asynchronous, PI-inspired (pi-mono) **"Steering & Abort"** mechanism, allowing users to interact with the agent while it is running:
+
+1.  **Soft Steering (Course Correction):**
+    - Users can inject new instructions (Steering Messages) into the `SessionManager`'s concurrent queue at any time.
+    - The `ReActAgentLoop` checks this queue at the start of every reasoning cycle and *between* every tool execution.
+    - If a message is found, pending tools are aborted, the message is appended to the context, and the agent re-evaluates its plan.
+2.  **Hard Abort (Cancellation):**
+    - An `AgentSignal` acts as a cancellation token.
+    - Pressing `Ctrl+C` allows the user to trigger a hard stop, which immediately throws an `AgentAbortedException` and halts network calls and subsequent tool executions.
+3.  **Tool-Based Interrupts:**
+    - Tasks like `TaskGraphTask` or `SkillTask` (activation) can return a `ScheduleResult.INTERRUPT` to pause the loop and await explicit user confirmation.
 
 ## 6. Data Flow (ReAct Loop)
 

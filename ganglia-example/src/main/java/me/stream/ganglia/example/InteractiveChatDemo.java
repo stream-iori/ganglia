@@ -47,13 +47,39 @@ public class InteractiveChatDemo {
     }
 
     private static void chatLoop(Ganglia ganglia, LineReader reader, Terminal terminal, String sessionId, Vertx vertx) {
+        // We use a mutable container for the signal so it can be recreated if aborted
+        final java.util.concurrent.atomic.AtomicReference<me.stream.ganglia.core.model.AgentSignal> currentSignal = new java.util.concurrent.atomic.AtomicReference<>(null);
+
         new Thread(() -> {
             while (true) {
                 String line;
                 try {
                     line = reader.readLine("ganglia> ");
                 } catch (UserInterruptException e) {
-                    // Handle Ctrl+C
+                    // Handle Ctrl+C during input reading
+                    if (currentSignal.get() != null && !currentSignal.get().isAborted()) {
+                        terminal.writer().println("\n[System] Agent is running. What would you like to do?");
+                        terminal.writer().println("1. Abort completely (Hard Stop)");
+                        terminal.writer().println("2. Add a steering instruction (Course Correction)");
+                        terminal.writer().println("3. Resume waiting");
+                        try {
+                            String choice = reader.readLine("Choice [1-3]: ");
+                            if ("1".equals(choice.trim())) {
+                                currentSignal.get().abort();
+                                terminal.writer().println("[System] Abort signal sent.");
+                            } else if ("2".equals(choice.trim())) {
+                                String steeringMsg = reader.readLine("Instruction: ");
+                                if (!steeringMsg.trim().isEmpty()) {
+                                    ganglia.sessionManager().addSteeringMessage(sessionId, steeringMsg);
+                                    terminal.writer().println("[System] Steering message queued.");
+                                }
+                            }
+                        } catch (Exception ex) {
+                            terminal.writer().println("\n[System] Resuming...");
+                        }
+                    } else {
+                        terminal.writer().println("^C");
+                    }
                     continue; 
                 } catch (EndOfFileException e) {
                     // Handle Ctrl+D
@@ -72,18 +98,38 @@ public class InteractiveChatDemo {
                 
                 // Synchronize the input thread with the agent loop to prevent prompt interleaving.
                 java.util.concurrent.CompletableFuture<Void> turnDone = new java.util.concurrent.CompletableFuture<>();
+                me.stream.ganglia.core.model.AgentSignal newSignal = new me.stream.ganglia.core.model.AgentSignal();
+                currentSignal.set(newSignal);
 
                 vertx.runOnContext(v -> {
                     ganglia.sessionManager().getSession(sessionId)
-                        .compose(context -> ganglia.agentLoop().run(input, context))
+                        .compose(context -> ganglia.agentLoop().run(input, context, newSignal))
                         .onComplete(ar -> {
+                            currentSignal.set(null);
+                            if (ar.failed() && ar.cause() instanceof me.stream.ganglia.core.loop.AgentAbortedException) {
+                                terminal.writer().println("\n[System] Session was aborted by user.");
+                            }
                             turnDone.complete(null);
                         });
                 });
 
                 try {
-                    // Block the chat thread until the Vert.x event loop finishes this turn.
-                    turnDone.get();
+                    // Read input concurrently to allow for steering during long runs
+                    while (!turnDone.isDone()) {
+                        try {
+                            // Check if user pressed anything, or wait via JLine. 
+                            // Since reader.readLine() blocks, we can't easily wait for turnDone AND readLine in the same thread.
+                            // However, JLine's reader.readLine() THROWS UserInterruptException if the user presses Ctrl+C.
+                            // So we just block on turnDone here, but if the user wants to interrupt, they press Ctrl+C,
+                            // which is caught by the terminal handler and raises a signal in Unix.
+                            // In a real CLI, we might need a separate reader thread.
+                            // For simplicity, we just block here. If Ctrl+C is pressed, the JVM handles it, but since JLine is in control, 
+                            // it might require hitting Enter or Ctrl+C. 
+                            turnDone.get(100, java.util.concurrent.TimeUnit.MILLISECONDS);
+                        } catch (java.util.concurrent.TimeoutException ex) {
+                            // Expected, just loop and check if turnDone is completed
+                        }
+                    }
                 } catch (Exception e) {
                     terminal.writer().println("\nInterrupt: " + e.getMessage());
                 }

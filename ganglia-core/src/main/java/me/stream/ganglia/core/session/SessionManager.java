@@ -59,4 +59,14 @@ public interface SessionManager {
      * @return Future with the updated SessionContext.
      */
     Future<SessionContext> compressSession(SessionContext context, int turnsToKeep, ContextCompressor compressor);
+
+    /**
+     * Adds a steering message (interruption/guidance) to the specified session's queue.
+     */
+    void addSteeringMessage(String sessionId, String message);
+
+    /**
+     * Polls and removes all currently queued steering messages for the specified session.
+     */
+    List<String> pollSteeringMessages(String sessionId);
 }
