@@ -1,9 +1,11 @@
 package work.ganglia.infrastructure.external.tool;
 
+import work.ganglia.kernel.todo.ToDoTools;
 import io.vertx.core.Vertx;
 import work.ganglia.util.PathSanitizer;
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
-import work.ganglia.infrastructure.internal.memory.KnowledgeBase;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
+import work.ganglia.port.internal.memory.KnowledgeBase;
 
 /**
  * Factory for creating and managing built-in tool sets.

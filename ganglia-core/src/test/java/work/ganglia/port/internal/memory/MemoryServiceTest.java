@@ -18,8 +18,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
-import work.ganglia.infrastructure.internal.memory.DailyRecordManager;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
+import work.ganglia.port.internal.memory.DailyRecordManager;
 import work.ganglia.infrastructure.internal.memory.FileSystemDailyRecordManager;
 import work.ganglia.infrastructure.internal.memory.DailyJournalModule;
 
@@ -37,7 +38,7 @@ class MemoryServiceTest {
     void setUp(Vertx vertx, VertxTestContext testContext) {
         this.modelGateway = new StubModelGateway();
         this.configManager = new StubConfigManager(vertx);
-        this.compressor = new ContextCompressor(modelGateway, configManager);
+        this.compressor = new DefaultContextCompressor(modelGateway, configManager);
         this.dailyRecordManager = new FileSystemDailyRecordManager(vertx, TEST_MEMORY_PATH);
         this.memoryService = new MemoryService(vertx);
         this.memoryService.registerModule(new DailyJournalModule(compressor, dailyRecordManager));

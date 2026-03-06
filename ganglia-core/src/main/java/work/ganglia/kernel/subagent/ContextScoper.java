@@ -1,7 +1,7 @@
-package work.ganglia.infrastructure.external.tool.subagent;
+package work.ganglia.kernel.subagent;
 
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.infrastructure.external.tool.model.ToDoList;
+import work.ganglia.kernel.todo.ToDoList;
 
 import java.util.*;
 

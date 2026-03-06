@@ -3,7 +3,8 @@ package work.ganglia.port.internal.state;
 import io.vertx.core.Future;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
 
 import java.util.List;
 

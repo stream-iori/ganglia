@@ -1,5 +1,6 @@
 package work.ganglia.infrastructure.internal.prompt.context;
 
+import work.ganglia.port.internal.prompt.ContextFragment;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;

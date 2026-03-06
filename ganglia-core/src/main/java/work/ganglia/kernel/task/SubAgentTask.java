@@ -9,15 +9,12 @@ import work.ganglia.kernel.loop.EventBusObservationPublisher;
 import work.ganglia.kernel.loop.StandardAgentLoop;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.prompt.PromptEngine;
-import work.ganglia.kernel.task.SchedulableResult;
-import work.ganglia.kernel.task.Schedulable;
-import work.ganglia.kernel.task.SchedulableFactory;
 import work.ganglia.port.internal.state.SessionManager;
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
+import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import work.ganglia.port.external.tool.ToolCall;
-import work.ganglia.infrastructure.external.tool.subagent.ContextScoper;
+import work.ganglia.kernel.subagent.ContextScoper;
 
 import java.util.HashMap;
 import java.util.Map;

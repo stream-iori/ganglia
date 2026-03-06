@@ -5,7 +5,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import work.ganglia.infrastructure.internal.memory.MemoryModule;
+import work.ganglia.port.internal.memory.MemoryModule;
 import work.ganglia.util.Constants;
 
 import java.util.ArrayList;

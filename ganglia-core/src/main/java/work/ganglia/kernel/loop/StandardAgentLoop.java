@@ -15,7 +15,7 @@ import work.ganglia.kernel.task.SchedulableResult;
 import work.ganglia.kernel.task.Schedulable;
 import work.ganglia.kernel.task.SchedulableFactory;
 import work.ganglia.port.internal.state.SessionManager;
-import work.ganglia.infrastructure.internal.state.ContextOptimizer;
+import work.ganglia.port.internal.state.ContextOptimizer;
 import work.ganglia.port.internal.memory.MemoryEvent;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.util.Constants;

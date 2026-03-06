@@ -1,4 +1,4 @@
-package work.ganglia.infrastructure.internal.skill;
+package work.ganglia.port.internal.skill;
 
 import io.vertx.core.Future;
 import java.util.List;

@@ -1,5 +1,6 @@
 package work.ganglia.infrastructure.internal.prompt.context;
 
+import work.ganglia.port.internal.prompt.ContextFragment;
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.kernel.task.SchedulableFactory;

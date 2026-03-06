@@ -1,5 +1,7 @@
 package work.ganglia.infrastructure.internal.prompt;
 
+import work.ganglia.port.internal.prompt.ContextFragment;
+import work.ganglia.kernel.todo.ToDoContextSource;
 import work.ganglia.util.Constants;
 
 import io.vertx.core.Future;
@@ -9,6 +11,7 @@ import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.infrastructure.internal.prompt.context.*;
+import work.ganglia.kernel.subagent.SubAgentContextSource;
 import work.ganglia.port.internal.memory.MemoryService;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.port.chat.*;
@@ -16,8 +19,9 @@ import work.ganglia.port.external.llm.*;
 import work.ganglia.port.external.tool.*;
 import work.ganglia.port.internal.state.*;;
 import work.ganglia.infrastructure.internal.prompt.context.*;
+import work.ganglia.kernel.subagent.SubAgentContextSource;
 import work.ganglia.kernel.task.SchedulableFactory;
-import work.ganglia.infrastructure.internal.skill.SkillRuntime;
+import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.prompt.PromptEngine;
 import work.ganglia.port.internal.prompt.ContextSource;
 

@@ -2,7 +2,7 @@ package work.ganglia.infrastructure.external.tool;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import work.ganglia.infrastructure.internal.memory.KnowledgeBase;
+import work.ganglia.port.internal.memory.KnowledgeBase;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;

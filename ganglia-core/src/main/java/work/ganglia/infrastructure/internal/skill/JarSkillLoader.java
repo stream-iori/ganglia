@@ -1,5 +1,6 @@
 package work.ganglia.infrastructure.internal.skill;
 
+import work.ganglia.port.internal.skill.SkillLoader;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;

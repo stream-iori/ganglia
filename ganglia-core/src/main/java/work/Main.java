@@ -22,19 +22,21 @@ import work.ganglia.port.internal.state.SessionManager;
 import work.ganglia.infrastructure.internal.state.FileLogManager;
 import work.ganglia.infrastructure.internal.state.FileStateEngine;
 import work.ganglia.infrastructure.internal.state.TraceManager;
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
-import work.ganglia.infrastructure.internal.memory.DailyRecordManager;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
+import work.ganglia.port.internal.memory.DailyRecordManager;
 import work.ganglia.infrastructure.internal.memory.FileSystemDailyRecordManager;
 import work.ganglia.infrastructure.internal.memory.FileSystemKnowledgeBase;
-import work.ganglia.infrastructure.internal.memory.KnowledgeBase;
+import work.ganglia.port.internal.memory.KnowledgeBase;
 import work.ganglia.port.internal.memory.MemoryService;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.infrastructure.internal.state.TokenUsageManager;
 import work.ganglia.infrastructure.internal.skill.*;
+import work.ganglia.port.internal.skill.*;
 import work.ganglia.infrastructure.external.tool.DefaultToolExecutor;
 import work.ganglia.infrastructure.external.tool.ToolsFactory;
-import work.ganglia.infrastructure.external.tool.subagent.DefaultGraphExecutor;
-import work.ganglia.infrastructure.external.tool.subagent.GraphExecutor;
+import work.ganglia.kernel.subagent.DefaultGraphExecutor;
+import work.ganglia.kernel.subagent.GraphExecutor;
 import work.ganglia.infrastructure.internal.prompt.context.DailyContextSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,7 +142,7 @@ public class Main {
                 // 2. Setup Kernel & Memory
                 TokenCounter tokenCounter = new TokenCounter();
                 KnowledgeBase knowledgeBase = new FileSystemKnowledgeBase(vertx);
-                ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
+                ContextCompressor compressor = new DefaultContextCompressor(modelGateway, configManager);
                 DailyRecordManager dailyRecordManager = new FileSystemDailyRecordManager(vertx, Constants.DIR_MEMORY);
 
                 MemoryService memoryService = new MemoryService(vertx);

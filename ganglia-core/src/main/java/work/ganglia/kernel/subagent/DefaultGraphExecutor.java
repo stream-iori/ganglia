@@ -1,5 +1,8 @@
-package work.ganglia.infrastructure.external.tool.subagent;
+package work.ganglia.kernel.subagent;
 
+import work.ganglia.kernel.subagent.GraphExecutor;
+import work.ganglia.kernel.subagent.TaskGraph;
+import work.ganglia.kernel.subagent.TaskNode;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import work.ganglia.config.ConfigManager;
@@ -11,7 +14,8 @@ import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.prompt.PromptEngine;
 import work.ganglia.port.internal.state.SessionManager;
 import work.ganglia.kernel.task.SchedulableFactory;
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import org.slf4j.Logger;

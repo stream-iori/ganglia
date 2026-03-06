@@ -1,8 +1,9 @@
 package work.ganglia.infrastructure.internal.prompt.context;
 
+import work.ganglia.port.internal.prompt.ContextFragment;
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.infrastructure.internal.memory.MemoryModule;
+import work.ganglia.port.internal.memory.MemoryModule;
 import work.ganglia.port.internal.memory.MemoryService;
 import work.ganglia.port.internal.prompt.ContextSource;
 

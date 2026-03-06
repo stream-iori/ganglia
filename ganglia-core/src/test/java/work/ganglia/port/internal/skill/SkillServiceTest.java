@@ -10,7 +10,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 import java.util.List;
 
-import work.ganglia.infrastructure.internal.skill.SkillLoader;
+import work.ganglia.port.internal.skill.SkillLoader;
 import work.ganglia.infrastructure.internal.skill.FileSystemSkillLoader;
 import work.ganglia.infrastructure.internal.skill.DefaultSkillService;
 

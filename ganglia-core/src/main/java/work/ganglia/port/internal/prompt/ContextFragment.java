@@ -1,4 +1,4 @@
-package work.ganglia.infrastructure.internal.prompt.context;
+package work.ganglia.port.internal.prompt;
 
 /**
  * A piece of context with a specific priority and mandatory flag.

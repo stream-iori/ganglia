@@ -11,11 +11,11 @@ import work.ganglia.port.chat.Turn;
 import java.util.Collections;
 import java.util.List;
 
-public class ContextCompressor {
+public class DefaultContextCompressor implements work.ganglia.port.internal.memory.ContextCompressor {
     private final ModelGateway model;
     private final ConfigManager configManager;
 
-    public ContextCompressor(ModelGateway model, ConfigManager configManager) {
+    public DefaultContextCompressor(ModelGateway model, ConfigManager configManager) {
         this.model = model;
         this.configManager = configManager;
     }

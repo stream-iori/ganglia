@@ -1,5 +1,6 @@
 package work.ganglia.infrastructure.internal.state;
 
+import work.ganglia.port.internal.state.ContextOptimizer;
 import io.vertx.core.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -7,7 +8,8 @@ import work.ganglia.config.ConfigManager;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.chat.Turn;
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
 
 import java.util.ArrayList;

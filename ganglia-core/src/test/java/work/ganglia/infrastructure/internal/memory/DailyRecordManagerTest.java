@@ -1,5 +1,6 @@
 package work.ganglia.infrastructure.internal.memory;
 
+import work.ganglia.port.internal.memory.DailyRecordManager;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;

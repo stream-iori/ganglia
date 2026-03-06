@@ -8,7 +8,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.CopyOptions;
 import io.vertx.core.json.Json;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.infrastructure.external.tool.model.ToDoList;
+import work.ganglia.kernel.todo.ToDoList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.port.internal.state.StateEngine;

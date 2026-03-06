@@ -4,7 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.infrastructure.external.tool.model.ToDoList;
+import work.ganglia.kernel.todo.ToDoList;
 import work.ganglia.infrastructure.external.tool.model.ToolErrorResult;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import org.junit.jupiter.api.BeforeEach;

@@ -1,4 +1,4 @@
-package work.ganglia.infrastructure.external.tool.model;
+package work.ganglia.kernel.todo;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.ArrayList;

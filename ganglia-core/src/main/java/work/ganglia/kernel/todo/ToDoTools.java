@@ -1,10 +1,11 @@
-package work.ganglia.infrastructure.external.tool;
+package work.ganglia.kernel.todo;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.chat.Turn;
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
 import work.ganglia.infrastructure.external.tool.model.*;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.external.tool.ToolDefinition;

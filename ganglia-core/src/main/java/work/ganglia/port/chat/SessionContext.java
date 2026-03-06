@@ -2,7 +2,7 @@ package work.ganglia.port.chat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
-import work.ganglia.infrastructure.external.tool.model.ToDoList;
+import work.ganglia.kernel.todo.ToDoList;
 import work.ganglia.port.external.llm.ModelOptions;
 
 import java.util.stream.Collectors;

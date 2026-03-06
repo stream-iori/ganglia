@@ -1,5 +1,6 @@
 package work.ganglia.infrastructure.internal.skill;
 
+import work.ganglia.port.internal.skill.SkillLoader;
 import io.vertx.core.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

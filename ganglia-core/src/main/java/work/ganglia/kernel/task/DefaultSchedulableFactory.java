@@ -10,13 +10,14 @@ import work.ganglia.kernel.task.StandardToolTask;
 import work.ganglia.kernel.task.SubAgentTask;
 import work.ganglia.kernel.task.TaskGraphTask;
 import work.ganglia.port.internal.state.SessionManager;
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
-import work.ganglia.infrastructure.internal.skill.SkillRuntime;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
+import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.skill.SkillService;
 import work.ganglia.port.external.tool.ToolExecutor;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.external.tool.ToolDefinition;
-import work.ganglia.infrastructure.external.tool.subagent.GraphExecutor;
+import work.ganglia.kernel.subagent.GraphExecutor;
 
 import java.util.ArrayList;
 import java.util.List;

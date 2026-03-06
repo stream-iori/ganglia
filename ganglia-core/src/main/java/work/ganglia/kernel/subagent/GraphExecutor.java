@@ -1,4 +1,4 @@
-package work.ganglia.infrastructure.external.tool.subagent;
+package work.ganglia.kernel.subagent;
 
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;

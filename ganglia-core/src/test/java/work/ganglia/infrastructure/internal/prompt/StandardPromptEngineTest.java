@@ -11,7 +11,7 @@ import work.ganglia.kernel.task.DefaultSchedulableFactory;
 import work.ganglia.kernel.task.SchedulableFactory;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.stubs.StubToolExecutor;
-import work.ganglia.infrastructure.external.tool.model.ToDoList;
+import work.ganglia.kernel.todo.ToDoList;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 

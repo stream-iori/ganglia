@@ -1,4 +1,4 @@
-package work.ganglia.infrastructure.external.tool.subagent;
+package work.ganglia.kernel.subagent;
 
 import java.util.List;
 import java.util.Map;

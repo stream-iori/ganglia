@@ -38,7 +38,7 @@ class ConfigManagerTest {
         ConfigManager configManager = new ConfigManager(vertx, TEST_CONFIG_FILE);
         configManager.init().onComplete(testContext.succeeding(v -> {
             testContext.verify(() -> {
-                assertEquals("gpt-4o", configManager.getModel());
+                assertEquals("kimi-k2-0905-preview", configManager.getModel());
                 assertEquals(0.0, configManager.getTemperature());
                 testContext.completeNow();
             });
@@ -67,7 +67,7 @@ class ConfigManagerTest {
                 assertEquals("custom-model", configManager.getModel());
                 assertEquals(0.7, configManager.getTemperature());
                 assertEquals("http://test.url", configManager.getBaseUrl());
-                assertEquals("gpt-4o-mini", configManager.getUtilityModel()); // Should have default
+                assertEquals("moonshot-v1-8k", configManager.getUtilityModel()); // Should have default
                 testContext.completeNow();
             });
         }));
@@ -97,7 +97,7 @@ class ConfigManagerTest {
         ConfigManager configManager = new ConfigManager(vertx, TEST_CONFIG_FILE);
         configManager.init().onComplete(testContext.succeeding(v -> {
             testContext.verify(() -> {
-                assertEquals("gpt-4o", configManager.getModel());
+                assertEquals("kimi-k2-0905-preview", configManager.getModel());
 
                 // Register listener for change
                 configManager.listen(newConfig -> {

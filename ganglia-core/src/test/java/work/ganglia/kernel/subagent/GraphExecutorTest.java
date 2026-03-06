@@ -1,5 +1,9 @@
-package work.ganglia.infrastructure.external.tool.subagent;
+package work.ganglia.kernel.subagent;
 
+import work.ganglia.kernel.subagent.DefaultGraphExecutor;
+import work.ganglia.kernel.subagent.TaskNode;
+import work.ganglia.kernel.subagent.TaskGraph;
+import work.ganglia.kernel.subagent.GraphExecutor;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -13,7 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import work.ganglia.kernel.task.DefaultSchedulableFactory;
 import work.ganglia.kernel.task.SchedulableFactory;
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
 import work.ganglia.stubs.*;
 
 import java.util.Collections;
@@ -41,7 +46,7 @@ public class GraphExecutorTest {
         this.configManager = new StubConfigManager(vertx);
         this.sessionManager = new DefaultSessionManager(new InMemoryStateEngine(), new InMemoryLogManager(), configManager);
         this.promptEngine = new StubPromptEngine();
-        ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
+        ContextCompressor compressor = new DefaultContextCompressor(modelGateway, configManager);
         this.graphExecutor = new DefaultGraphExecutor(vertx, modelGateway, sessionManager, promptEngine, configManager, compressor);
 
         SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(

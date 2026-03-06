@@ -1,8 +1,9 @@
-package work.ganglia.infrastructure.internal.prompt.context;
+package work.ganglia.kernel.todo;
 
+import work.ganglia.port.internal.prompt.ContextFragment;
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.infrastructure.external.tool.model.ToDoList;
+import work.ganglia.kernel.todo.ToDoList;
 import work.ganglia.port.internal.prompt.ContextSource;
 
 import java.util.List;

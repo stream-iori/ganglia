@@ -12,6 +12,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 import work.ganglia.port.internal.skill.SkillService;
+import work.ganglia.port.internal.skill.SkillLoader;
+import work.ganglia.port.internal.skill.SkillRuntime;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -39,7 +41,7 @@ public class SkillIntegrationTest {
         service.init().compose(v -> {
             SessionContext context = new SessionContext("s1", null, null, null, List.of("test-skill"), null, null);
             return runtime.getActiveSkillsPrompt(context);
-        }).onComplete(testContext.succeeding(prompt -> {
+        }).onComplete(testContext.succeeding((String prompt) -> {
             testContext.verify(() -> {
                 assertTrue(prompt.contains("ACTIVE SKILLS"));
                 assertTrue(prompt.contains("test-skill"));

@@ -1,4 +1,4 @@
-package work.ganglia.infrastructure.internal.memory;
+package work.ganglia.port.internal.memory;
 
 import io.vertx.core.Future;
 

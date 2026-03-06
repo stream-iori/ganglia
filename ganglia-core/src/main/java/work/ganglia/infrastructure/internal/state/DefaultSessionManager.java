@@ -12,8 +12,9 @@ import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.chat.Turn;
 import work.ganglia.port.internal.state.LogManager;
 import work.ganglia.port.internal.state.StateEngine;
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
-import work.ganglia.infrastructure.external.tool.model.ToDoList;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
+import work.ganglia.kernel.todo.ToDoList;
 
 import java.util.ArrayList;
 import java.util.Collections;

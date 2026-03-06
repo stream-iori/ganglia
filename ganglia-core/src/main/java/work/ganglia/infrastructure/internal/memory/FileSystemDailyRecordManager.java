@@ -1,5 +1,6 @@
 package work.ganglia.infrastructure.internal.memory;
 
+import work.ganglia.port.internal.memory.DailyRecordManager;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;

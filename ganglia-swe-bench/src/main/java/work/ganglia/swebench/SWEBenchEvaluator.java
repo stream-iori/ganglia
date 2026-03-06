@@ -12,7 +12,8 @@ import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.infrastructure.internal.state.DefaultSessionManager;
 import work.ganglia.kernel.task.DefaultSchedulableFactory;
 import work.ganglia.kernel.task.SchedulableFactory;
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
 import work.ganglia.swebench.config.MinimalConfigManager;
 import work.ganglia.swebench.prompt.MinimalPromptEngine;
 import work.ganglia.swebench.state.InMemoryStateEngine;
@@ -21,7 +22,7 @@ import work.ganglia.swebench.tools.DockerBashTools;
 import work.ganglia.swebench.tools.DockerFileSystemTools;
 import work.ganglia.swebench.tools.DockerFileEditTools;
 import work.ganglia.swebench.tools.SWEBenchToolExecutor;
-import work.ganglia.infrastructure.external.tool.model.ToDoList;
+import work.ganglia.kernel.todo.ToDoList;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import org.slf4j.Logger;
@@ -30,7 +31,6 @@ import org.slf4j.LoggerFactory;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class SWEBenchEvaluator {
@@ -70,7 +70,7 @@ public class SWEBenchEvaluator {
             toolExecutor.addToolSet(new DockerFileEditTools(vertx, sandbox));
 
             MinimalPromptEngine promptEngine = new MinimalPromptEngine(toolExecutor);
-            ContextCompressor compressor = new ContextCompressor(model, config);
+            ContextCompressor compressor = new DefaultContextCompressor(model, config);
             DefaultSessionManager sessionManager = new DefaultSessionManager(new InMemoryStateEngine(), new InMemoryLogManager(), config);
 
             // Create a minimal SchedulableFactory without sub-agents or skills
@@ -125,7 +125,8 @@ public class SWEBenchEvaluator {
 
             boolean allPassed = true;
             for (String test : failToPassTests) {
-                String testResult = sandbox.execInDir("/workspace/repo", "pytest", test);
+                //without pytenst cache
+                String testResult = sandbox.execInDir("/workspace/repo", "pytest", "-p", "no:cacheprovider", test);
                 if (testResult.contains("FAILED") || testResult.contains("failed") || testResult.contains("ERROR")) {
                     log.info("Fail-to-Pass test {} FAILED", test);
                     allPassed = false;

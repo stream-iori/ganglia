@@ -1,8 +1,10 @@
 package work.ganglia.infrastructure.internal.memory;
 
+import work.ganglia.port.internal.memory.KnowledgeBase;
+import work.ganglia.port.internal.memory.MemoryModule;
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.infrastructure.internal.prompt.context.ContextFragment;
+import work.ganglia.port.internal.prompt.ContextFragment;
 import work.ganglia.port.internal.memory.MemoryEvent;
 
 import java.util.List;

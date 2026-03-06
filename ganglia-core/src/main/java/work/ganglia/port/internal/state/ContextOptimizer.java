@@ -1,4 +1,4 @@
-package work.ganglia.infrastructure.internal.state;
+package work.ganglia.port.internal.state;
 
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;

@@ -2,14 +2,11 @@ package work.ganglia.kernel.task;
 
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.kernel.task.SchedulableResult;
-import work.ganglia.kernel.task.Schedulable;
 import work.ganglia.port.internal.skill.SkillManifest;
-import work.ganglia.infrastructure.internal.skill.SkillRuntime;
+import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.skill.SkillService;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.external.tool.ToolCall;
-import work.ganglia.port.internal.skill.SkillManifest;
 
 import java.util.List;
 import java.util.Map;

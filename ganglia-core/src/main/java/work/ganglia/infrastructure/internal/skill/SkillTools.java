@@ -1,5 +1,6 @@
 package work.ganglia.infrastructure.internal.skill;
 
+import work.ganglia.port.internal.skill.SkillRuntime;
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolSet;

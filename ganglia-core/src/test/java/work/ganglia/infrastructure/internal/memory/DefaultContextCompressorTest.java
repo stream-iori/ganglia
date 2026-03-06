@@ -24,8 +24,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
+import work.ganglia.port.internal.memory.ContextCompressor;
+
 @ExtendWith({VertxExtension.class, MockitoExtension.class})
-class ContextCompressorTest {
+class DefaultContextCompressorTest {
 
     @Mock
     ModelGateway model;
@@ -38,7 +40,7 @@ class ContextCompressorTest {
         when(configManager.getTemperature()).thenReturn(0.0);
         when(configManager.getMaxTokens()).thenReturn(100);
 
-        ContextCompressor compressor = new ContextCompressor(model, configManager);
+        ContextCompressor compressor = new DefaultContextCompressor(model, configManager);
         ModelOptions options = new ModelOptions(0.0, 100, "test-model", true);
         ModelOptions summaryOptions = new ModelOptions(0.0, 100, "test-utility-model", false);
 
@@ -66,7 +68,7 @@ class ContextCompressorTest {
         when(configManager.getTemperature()).thenReturn(0.0);
         when(configManager.getMaxTokens()).thenReturn(100);
 
-        ContextCompressor compressor = new ContextCompressor(model, configManager);
+        ContextCompressor compressor = new DefaultContextCompressor(model, configManager);
 
         Message msg1 = Message.user("Add a feature");
         Message msg2 = Message.assistant("Added feature", null);
@@ -91,7 +93,7 @@ class ContextCompressorTest {
         when(configManager.getTemperature()).thenReturn(0.0);
         when(configManager.getMaxTokens()).thenReturn(100);
 
-        ContextCompressor compressor = new ContextCompressor(model, configManager);
+        ContextCompressor compressor = new DefaultContextCompressor(model, configManager);
 
         Turn t1 = Turn.newTurn("t1", Message.user("Task 1"));
         Turn t2 = Turn.newTurn("t2", Message.user("Task 2"));

@@ -1,12 +1,13 @@
-package work.ganglia.infrastructure.external.tool;
+package work.ganglia.kernel.todo;
 
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import work.ganglia.infrastructure.internal.memory.ContextCompressor;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.infrastructure.external.tool.model.TaskStatus;
-import work.ganglia.infrastructure.external.tool.model.ToDoList;
+import work.ganglia.kernel.todo.TaskStatus;
+import work.ganglia.kernel.todo.ToDoList;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

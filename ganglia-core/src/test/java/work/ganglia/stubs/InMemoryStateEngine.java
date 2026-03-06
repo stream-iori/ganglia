@@ -3,7 +3,7 @@ package work.ganglia.stubs;
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.state.StateEngine;
-import work.ganglia.infrastructure.external.tool.model.ToDoList;
+import work.ganglia.kernel.todo.ToDoList;
 
 import java.util.Collections;
 import java.util.Map;

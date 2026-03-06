@@ -26,7 +26,7 @@ docker build -t astropy-base -f ganglia-swe-bench/docker/Dockerfile.astropy-base
 # 建议在虚拟环境中安装依赖
 python3 -m venv venv
 source venv/bin/activate
-pip install datasets
+uv pip install datasets
 python3 ganglia-swe-bench/download_dataset.py
 ```
 这将在 `ganglia-swe-bench/target/` 下生成 `swe_bench_lite_subset.jsonl` 文件。
@@ -39,7 +39,7 @@ python3 ganglia-swe-bench/download_dataset.py
 使用 Maven 执行评估器主类：
 
 ```bash
-mvn exec:java -Dexec.mainClass="me.stream.ganglia.swebench.SWEBenchEvaluator" -pl ganglia-swe-bench
+mvn exec:java -Dexec.mainClass="work.ganglia.swebench.SWEBenchEvaluator" -pl ganglia-swe-bench
 ```
 
 ### 运行参数说明：

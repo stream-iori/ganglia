@@ -2,12 +2,10 @@ package work.ganglia.kernel.task;
 
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.kernel.task.SchedulableResult;
-import work.ganglia.kernel.task.Schedulable;
 import work.ganglia.port.external.tool.ToolCall;
-import work.ganglia.infrastructure.external.tool.subagent.GraphExecutor;
-import work.ganglia.infrastructure.external.tool.subagent.TaskGraph;
-import work.ganglia.infrastructure.external.tool.subagent.TaskNode;
+import work.ganglia.kernel.subagent.GraphExecutor;
+import work.ganglia.kernel.subagent.TaskGraph;
+import work.ganglia.kernel.subagent.TaskNode;
 
 import java.util.ArrayList;
 import java.util.Collections;
