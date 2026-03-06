@@ -43,7 +43,8 @@ public class DefaultSessionManager implements SessionManager {
             ModelOptions options = new ModelOptions(
                 configManager.getTemperature(),
                 configManager.getMaxTokens(),
-                configManager.getModel()
+                configManager.getModel(),
+                configManager.isStream()
             );
             return context.withModelOptions(options);
         }
@@ -62,7 +63,8 @@ public class DefaultSessionManager implements SessionManager {
         ModelOptions options = new ModelOptions(
             configManager.getTemperature(),
             configManager.getMaxTokens(),
-            configManager.getModel()
+            configManager.getModel(),
+            configManager.isStream()
         );
         return new SessionContext(
             sessionId,
@@ -98,30 +100,6 @@ public class DefaultSessionManager implements SessionManager {
     @Override
     public Future<Void> deleteSession(String sessionId) {
         return Future.succeededFuture();
-    }
-
-    @Override
-    public Future<SessionContext> compressSession(SessionContext context, int turnsToKeep, ContextCompressor compressor) {
-        List<Turn> allPrevious = context.previousTurns();
-        if (allPrevious.size() <= turnsToKeep) {
-            return Future.succeededFuture(context);
-        }
-
-        int compressCount = allPrevious.size() - turnsToKeep;
-        List<Turn> toCompress = allPrevious.subList(0, compressCount);
-        List<Turn> toKeep = new ArrayList<>(allPrevious.subList(compressCount, allPrevious.size()));
-
-        return compressor.compress(toCompress)
-            .map(summary -> {
-                Message summaryMsg = Message.system("SUMMARY OF PREVIOUS INTERACTIONS:\n" + summary);
-                Turn summaryTurn = Turn.newTurn("summary-" + System.currentTimeMillis(), summaryMsg);
-
-                List<Turn> newPrevious = new ArrayList<>();
-                newPrevious.add(summaryTurn);
-                newPrevious.addAll(toKeep);
-
-                return context.withPreviousTurns(newPrevious);
-            });
     }
 
     @Override

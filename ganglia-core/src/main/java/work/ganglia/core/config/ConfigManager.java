@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 import work.ganglia.core.config.model.GangliaConfig;
 import work.ganglia.core.config.model.ModelConfig;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,12 +36,12 @@ public class ConfigManager {
 
     public ConfigManager(Vertx vertx, String configPath) {
         this.vertx = vertx;
-        this.configPath = configPath;
+        this.configPath = resolveConfigPath(vertx, configPath);
 
         ConfigStoreOptions fileStore = new ConfigStoreOptions()
                 .setType("file")
                 .setOptional(true)
-                .setConfig(new JsonObject().put("path", configPath));
+                .setConfig(new JsonObject().put("path", this.configPath));
 
         ConfigRetrieverOptions options = new ConfigRetrieverOptions()
                 .addStore(fileStore)
@@ -52,15 +54,34 @@ public class ConfigManager {
 
         // Load initial file if exists
         try {
-            if (vertx.fileSystem().existsBlocking(configPath)) {
-                JsonObject fileConfig = vertx.fileSystem().readFileBlocking(configPath).toJsonObject();
+            if (vertx.fileSystem().existsBlocking(this.configPath)) {
+                JsonObject fileConfig = vertx.fileSystem().readFileBlocking(this.configPath).toJsonObject();
                 this.currentJson.mergeIn(fileConfig, true);
-                logger.debug("Initial configuration loaded from {}", configPath);
+                logger.debug("Initial configuration loaded from {}", this.configPath);
             }
         } catch (Exception e) {
-            logger.warn("No initial configuration file found or failed to load at {}. Using defaults.", configPath);
+            logger.warn("No initial configuration file found or failed to load at {}. Using defaults.", this.configPath);
         }
         this.currentConfig = this.currentJson.mapTo(GangliaConfig.class);
+    }
+
+    private String resolveConfigPath(Vertx vertx, String path) {
+        if (vertx.fileSystem().existsBlocking(path)) {
+            return path;
+        }
+
+        // Search upwards for .ganglia/config.json or the specified path
+        Path current = Paths.get("").toAbsolutePath();
+        while (current != null) {
+            Path candidate = current.resolve(path);
+            if (vertx.fileSystem().existsBlocking(candidate.toString())) {
+                logger.debug("Found config file at: {}", candidate);
+                return candidate.toString();
+            }
+            current = current.getParent();
+        }
+
+        return path; // Fallback to original
     }
 
     public Future<Void> init() {
@@ -158,6 +179,16 @@ public class ConfigManager {
     public int getContextLimit() {
         ModelConfig mc = currentConfig.getModel("primary");
         return mc != null ? mc.contextLimit() : 128000;
+    }
+
+    public boolean isStream() {
+        ModelConfig mc = currentConfig.getModel("primary");
+        return mc != null && mc.stream() != null ? mc.stream() : true;
+    }
+
+    public boolean isUtilityStream() {
+        ModelConfig mc = currentConfig.getModel("utility");
+        return mc != null && mc.stream() != null ? mc.stream() : false;
     }
 
     public double getCompressionThreshold() {

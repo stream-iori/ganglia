@@ -57,7 +57,7 @@ class AnthropicModelGatewayTest {
     @Test
     void testChatMapping(VertxTestContext testContext) {
         List<Message> history = List.of(Message.user("Hello"));
-        ModelOptions options = new ModelOptions(0.0, 1024, "claude-3-5-sonnet-20241022");
+        ModelOptions options = new ModelOptions(0.0, 1024, "claude-3-5-sonnet-20241022", true);
 
         com.anthropic.models.messages.Message anthropicMessage = mock(com.anthropic.models.messages.Message.class);
         when(anthropicMessage.content()).thenReturn(List.of(
@@ -86,7 +86,7 @@ class AnthropicModelGatewayTest {
     @Test
     void testChatStreamMapping(VertxTestContext testContext) {
         List<Message> history = List.of(Message.user("Stream this"));
-        ModelOptions options = new ModelOptions(0.0, 1024, "claude-3-5-sonnet-20241022");
+        ModelOptions options = new ModelOptions(0.0, 1024, "claude-3-5-sonnet-20241022", true);
         String sessionId = "test-session";
 
         when(vertx.eventBus()).thenReturn(eventBus);

@@ -36,7 +36,8 @@ public class FallbackModelGateway implements ModelGateway {
                     ModelOptions fallbackOptions = new ModelOptions(
                         options.temperature(),
                         options.maxTokens(),
-                        utilityModelName
+                        utilityModelName,
+                        options.stream()
                     );
                     return utility.chat(history, availableTools, fallbackOptions);
                 }
@@ -54,7 +55,8 @@ public class FallbackModelGateway implements ModelGateway {
                     ModelOptions fallbackOptions = new ModelOptions(
                         options.temperature(),
                         options.maxTokens(),
-                        utilityModelName
+                        utilityModelName,
+                        options.stream()
                     );
                     return utility.chatStream(history, availableTools, fallbackOptions, sessionId);
                 }

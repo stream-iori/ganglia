@@ -20,6 +20,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import work.ganglia.memory.TokenCounter;
+import work.ganglia.core.session.DefaultContextOptimizer;
+import work.ganglia.core.loop.ConsecutiveFailurePolicy;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -53,13 +57,14 @@ class StandardAgentLoopTest {
         configManager = new StubConfigManager(vertx);
         sessionManager = new DefaultSessionManager(state, logManager, configManager);
         compressor = new ContextCompressor(model, configManager);
+        DefaultContextOptimizer optimizer = new DefaultContextOptimizer(configManager, compressor, new TokenCounter());
         scheduleableFactory = new DefaultSchedulableFactory(vertx, model, sessionManager, prompt, configManager, compressor, tools, null, null, null);
-        loop = new StandardAgentLoop(vertx, model, scheduleableFactory, sessionManager, prompt, configManager, compressor);
+        loop = new StandardAgentLoop(vertx, model, scheduleableFactory, sessionManager, prompt, configManager, optimizer, new ConsecutiveFailurePolicy(), Collections.emptyList());
     }
 
     @Test
     void testHappyPathMultipleTools(VertxTestContext testContext) {
-        ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
+        ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4", true);
         SessionContext context = new SessionContext("test-session", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
         // Setup Responses
@@ -89,7 +94,7 @@ class StandardAgentLoopTest {
 
     @Test
     void testInterruptAndResume(VertxTestContext testContext) {
-        ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
+        ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4", true);
         SessionContext context = new SessionContext("test-session-interrupt", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
         // 1. Initial Run -> Interrupt
@@ -123,7 +128,7 @@ class StandardAgentLoopTest {
 
     @Test
     void testStreamingFeedback(VertxTestContext testContext) {
-        ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
+        ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4", true);
         String sessionId = "stream-session";
         SessionContext context = new SessionContext(sessionId, Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
@@ -145,7 +150,7 @@ class StandardAgentLoopTest {
         configManager.setConfig(new io.vertx.core.json.JsonObject()
                 .put("agent", new io.vertx.core.json.JsonObject().put("maxIterations", 2)));
 
-        ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4");
+        ModelOptions options = new ModelOptions(0.7, 1000, "gpt-4", true);
         SessionContext context = new SessionContext("test-iter-limit", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
         // 2. Setup LLM to keep returning a tool call (infinite loop)

@@ -4,12 +4,16 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import work.ganglia.core.config.ConfigManager;
 import work.ganglia.core.llm.ModelGateway;
+import work.ganglia.core.loop.ConsecutiveFailurePolicy;
+import work.ganglia.core.loop.EventBusObservationPublisher;
 import work.ganglia.core.loop.StandardAgentLoop;
 import work.ganglia.core.model.SessionContext;
 import work.ganglia.core.prompt.PromptEngine;
 import work.ganglia.core.session.SessionManager;
 import work.ganglia.core.schedule.SchedulableFactory;
 import work.ganglia.memory.ContextCompressor;
+import work.ganglia.memory.TokenCounter;
+import work.ganglia.core.session.DefaultContextOptimizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -119,7 +123,7 @@ public class DefaultGraphExecutor implements GraphExecutor {
 
         SessionContext childContext = ContextScoper.scope(childSessionId, parentContext, childMetadata);
 
-        StandardAgentLoop childLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, compressor);
+        StandardAgentLoop childLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, new DefaultContextOptimizer(configManager, compressor, new TokenCounter()), new ConsecutiveFailurePolicy(), List.of(new EventBusObservationPublisher(vertx)));
 
         StringBuilder promptBuilder = new StringBuilder("TASK: ").append(node.task()).append("\\n\\n");
         if (!dependencyResults.isEmpty()) {

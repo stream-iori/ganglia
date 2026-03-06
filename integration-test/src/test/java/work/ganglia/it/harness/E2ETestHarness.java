@@ -30,7 +30,9 @@ public class E2ETestHarness {
     }
 
     public Future<Void> setup() {
-        return setup(new JsonObject().put("agent", new JsonObject().put("projectRoot", ".")));
+        return setup(new JsonObject()
+            .put("agent", new JsonObject().put("projectRoot", "."))
+            .put("webui", new JsonObject().put("enabled", false)));
     }
 
     public Future<Void> setup(JsonObject configOverride) {

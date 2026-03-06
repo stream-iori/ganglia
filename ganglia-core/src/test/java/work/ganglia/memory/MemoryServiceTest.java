@@ -4,7 +4,6 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-.ganglia.core.model.*;
 import work.ganglia.core.model.Message;
 import work.ganglia.core.model.ModelResponse;
 import work.ganglia.core.model.TokenUsage;
@@ -35,7 +34,8 @@ class MemoryServiceTest {
         this.configManager = new StubConfigManager(vertx);
         this.compressor = new ContextCompressor(modelGateway, configManager);
         this.dailyRecordManager = new FileSystemDailyRecordManager(vertx, TEST_MEMORY_PATH);
-        this.memoryService = new MemoryService(vertx, compressor, dailyRecordManager);
+        this.memoryService = new MemoryService(vertx);
+        this.memoryService.registerModule(new DailyJournalModule(compressor, dailyRecordManager));
 
         // Ensure clean directory
         vertx.fileSystem().deleteRecursive(TEST_MEMORY_PATH)
@@ -65,9 +65,9 @@ class MemoryServiceTest {
         modelGateway.addResponse(reflectionResponse);
 
         // Publish event to EventBus
-        ReflectEvent event = new ReflectEvent(sessionId, goal, turn);
+        MemoryEvent event = new MemoryEvent(MemoryEvent.EventType.TURN_COMPLETED, sessionId, goal, turn);
 
-        vertx.eventBus().publish(MemoryService.ADDRESS_REFLECT, JsonObject.mapFrom(event));
+        vertx.eventBus().publish(MemoryService.ADDRESS_EVENT, JsonObject.mapFrom(event));
 
         // Verify by checking file system eventually
         testContext.verify(() -> {

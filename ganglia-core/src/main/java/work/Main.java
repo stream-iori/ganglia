@@ -7,10 +7,15 @@ import work.ganglia.core.Ganglia;
 import work.ganglia.core.config.ConfigManager;
 import work.ganglia.core.llm.ModelGateway;
 import work.ganglia.core.llm.ModelGatewayFactory;
+import work.ganglia.core.llm.RetryingModelGateway;
+import work.ganglia.core.loop.ConsecutiveFailurePolicy;
+import work.ganglia.core.loop.EventBusObservationPublisher;
 import work.ganglia.core.loop.StandardAgentLoop;
+import java.util.List;
 import work.ganglia.core.prompt.StandardPromptEngine;
 import work.ganglia.core.schedule.DefaultSchedulableFactory;
 import work.ganglia.core.schedule.SchedulableFactory;
+import work.ganglia.core.session.DefaultContextOptimizer;
 import work.ganglia.core.session.DefaultSessionManager;
 import work.ganglia.core.session.SessionManager;
 import work.ganglia.core.state.FileLogManager;
@@ -37,6 +42,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+
+import work.ganglia.core.config.model.GangliaConfig;
+import work.ganglia.core.webui.WebUIEventPublisher;
+import work.ganglia.core.webui.WebUIVerticle;
 
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
@@ -91,7 +100,8 @@ public class Main {
         }
 
         return configManager.init().compose(v -> {
-            ModelGateway modelGateway = modelGatewayOverride != null ? modelGatewayOverride : ModelGatewayFactory.create(vertx, configManager);
+            ModelGateway rawGateway = modelGatewayOverride != null ? modelGatewayOverride : ModelGatewayFactory.create(vertx, configManager);
+            ModelGateway modelGateway = new RetryingModelGateway(rawGateway, vertx);
 
             // 1. Setup Skill System
             List<Path> skillPaths = new ArrayList<>();
@@ -126,10 +136,14 @@ public class Main {
                 ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
                 DailyRecordManager dailyRecordManager = new FileSystemDailyRecordManager(vertx, ".ganglia/memory");
 
+                MemoryService memoryService = new MemoryService(vertx);
+                memoryService.registerModule(new work.ganglia.memory.DailyJournalModule(compressor, dailyRecordManager));
+                memoryService.registerModule(new work.ganglia.memory.LongTermKnowledgeModule(knowledgeBase));
+
                 ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase, configManager.getProjectRoot());
 
                 // Initialize PromptEngine
-                StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, knowledgeBase, skillRuntime, null, tokenCounter);
+                StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, memoryService, skillRuntime, null, tokenCounter);
 
                 // Initialize SessionManager
                 FileStateEngine stateEngine = new FileStateEngine(vertx);
@@ -160,10 +174,21 @@ public class Main {
                 // 3. Setup Observability & Usage
                 new TraceManager(vertx, configManager);
                 new TokenUsageManager(vertx, tokenCounter);
-                new MemoryService(vertx, compressor, dailyRecordManager);
 
                 StandardAgentLoop agentLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager,
-                    promptEngine, configManager, compressor);
+                    promptEngine, configManager, new DefaultContextOptimizer(configManager, compressor, tokenCounter),
+                    new ConsecutiveFailurePolicy(), List.of(
+                        new EventBusObservationPublisher(vertx),
+                        new WebUIEventPublisher(vertx)
+                    ));
+
+                // 4. Start WebUI Verticle if enabled
+                GangliaConfig.WebUIConfig webUIConfig = configManager.getGangliaConfig().webui();
+                if (webUIConfig == null || webUIConfig.enabled()) {
+                    int port = webUIConfig != null ? webUIConfig.port() : 8080;
+                    String webroot = webUIConfig != null ? webUIConfig.webroot() : "webroot";
+                    vertx.deployVerticle(new WebUIVerticle(port, webroot, agentLoop, sessionManager));
+                }
 
                 return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop, configManager);
             });

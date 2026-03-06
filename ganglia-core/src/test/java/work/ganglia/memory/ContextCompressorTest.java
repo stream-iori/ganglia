@@ -4,7 +4,6 @@ import io.vertx.core.Future;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import work.ganglia.core.llm.ModelGateway;
-.ganglia.core.model.*;
 import work.ganglia.core.model.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,8 +36,8 @@ class ContextCompressorTest {
         when(configManager.getMaxTokens()).thenReturn(100);
 
         ContextCompressor compressor = new ContextCompressor(model, configManager);
-        ModelOptions options = new ModelOptions(0.0, 100, "test-model");
-        ModelOptions summaryOptions = new ModelOptions(0.0, 100, "test-utility-model");
+        ModelOptions options = new ModelOptions(0.0, 100, "test-model", true);
+        ModelOptions summaryOptions = new ModelOptions(0.0, 100, "test-utility-model", false);
 
         // Mock turns
         Message msg1 = Message.user("Do task");

@@ -42,7 +42,8 @@ public class ContextCompressor {
             summaryOptions = new ModelOptions(
                     configManager.getTemperature(),
                     configManager.getMaxTokens(),
-                    configManager.getUtilityModel()
+                    configManager.getUtilityModel(),
+                    configManager.isUtilityStream()
             );
         }
 
@@ -73,7 +74,8 @@ public class ContextCompressor {
         ModelOptions summaryOptions = new ModelOptions(
                 configManager.getTemperature(),
                 configManager.getMaxTokens(),
-                configManager.getUtilityModel()
+                configManager.getUtilityModel(),
+                configManager.isUtilityStream()
         );
 
         Future<ModelResponse> future = model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions);
@@ -123,7 +125,8 @@ public class ContextCompressor {
         ModelOptions summaryOptions = new ModelOptions(
                 configManager.getTemperature(),
                 configManager.getMaxTokens(),
-                configManager.getUtilityModel()
+                configManager.getUtilityModel(),
+                configManager.isUtilityStream()
         );
 
         return model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions)

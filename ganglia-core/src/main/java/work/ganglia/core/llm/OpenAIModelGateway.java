@@ -181,9 +181,13 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                 );
             case ASSISTANT:
                 ChatCompletionAssistantMessageParam.Builder builder = ChatCompletionAssistantMessageParam.builder();
+                // Some providers (like Moonshot) require content to be an empty string if tool calls are present
                 if (msg.content() != null && !msg.content().isEmpty()) {
                     builder.content(ChatCompletionAssistantMessageParam.Content.ofText(msg.content()));
+                } else if (msg.toolCalls() != null && !msg.toolCalls().isEmpty()) {
+                    builder.content(ChatCompletionAssistantMessageParam.Content.ofText(""));
                 }
+                
                 if (msg.toolCalls() != null && !msg.toolCalls().isEmpty()) {
                     List<ChatCompletionMessageToolCall> toolCalls = msg.toolCalls().stream()
                         .map(tc -> ChatCompletionMessageToolCall.ofFunction(
@@ -203,7 +207,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                 return ChatCompletionMessageParam.ofTool(
                     ChatCompletionToolMessageParam.builder()
                         .toolCallId(msg.toolObservation().toolCallId())
-                        .content(msg.content())
+                        .content(msg.content() != null ? msg.content() : "")
                         .build()
                 );
             default:
@@ -238,8 +242,12 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                 .filter(ChatCompletionMessageToolCall::isFunction)
                 .map(tc -> {
                     ChatCompletionMessageFunctionToolCall ftc = tc.asFunction();
+                    String id = ftc.id();
+                    if (id == null || id.isEmpty()) {
+                        id = "call_" + java.util.UUID.randomUUID().toString().substring(0, 8);
+                    }
                     return new ToolCall(
-                        ftc.id(),
+                        id,
                         ftc.function().name(),
                         parseJson(ftc.function().arguments())
                     );

@@ -35,7 +35,8 @@ public class MinimalConfigManager extends ConfigManager {
             128000,
             primaryJson.getString("type"),
             primaryJson.getString("apiKey"),
-            primaryJson.getString("baseUrl")
+            primaryJson.getString("baseUrl"),
+            primaryJson.getBoolean("stream", true)
         );
 
         ModelConfig utility = new ModelConfig(
@@ -45,7 +46,8 @@ public class MinimalConfigManager extends ConfigManager {
             128000,
             utilityJson.getString("type"),
             utilityJson.getString("apiKey"),
-            utilityJson.getString("baseUrl")
+            utilityJson.getString("baseUrl"),
+            utilityJson.getBoolean("stream", false)
         );
 
         AgentConfig agent = new AgentConfig(
@@ -57,7 +59,7 @@ public class MinimalConfigManager extends ConfigManager {
 
         ObservabilityConfig obs = new ObservabilityConfig(false, ".ganglia/trace");
 
-        return new GangliaConfig(agent, Map.of("primary", primary, "utility", utility), obs);
+        return new GangliaConfig(agent, Map.of("primary", primary, "utility", utility), obs, new GangliaConfig.WebUIConfig(8080, false, "webroot"));
     }
 
     @Override

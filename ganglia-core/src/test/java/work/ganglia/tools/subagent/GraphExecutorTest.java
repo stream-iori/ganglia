@@ -8,7 +8,6 @@ import work.ganglia.core.model.ModelResponse;
 import work.ganglia.core.model.SessionContext;
 import work.ganglia.core.session.DefaultSessionManager;
 import work.ganglia.core.session.SessionManager;
-.ganglia.stubs.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -65,7 +64,7 @@ public class GraphExecutorTest {
         modelGateway.addResponse(new ModelResponse("Report from Task 2", Collections.emptyList(), null));
         modelGateway.addResponse(new ModelResponse("Final Aggregated Report", Collections.emptyList(), null));
 
-        ModelOptions options = new ModelOptions(0.0, 1024, "test-model");
+        ModelOptions options = new ModelOptions(0.0, 1024, "test-model", true);
         SessionContext parentContext = new SessionContext("parent-session", null, null, Map.of("sub_agent_level", 0), null, options, null);
 
         graphExecutor.execute(graph, parentContext)

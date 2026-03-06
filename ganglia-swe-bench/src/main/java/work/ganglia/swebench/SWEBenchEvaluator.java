@@ -3,7 +3,10 @@ package work.ganglia.swebench;
 import io.vertx.core.Vertx;
 import work.ganglia.core.config.model.ModelConfig;
 import work.ganglia.core.llm.OpenAIModelGateway;
+import work.ganglia.core.loop.ConsecutiveFailurePolicy;
+import work.ganglia.core.loop.EventBusObservationPublisher;
 import work.ganglia.core.loop.StandardAgentLoop;
+import java.util.List;
 import work.ganglia.core.model.SessionContext;
 import work.ganglia.core.model.ModelOptions;
 import work.ganglia.core.session.DefaultSessionManager;
@@ -19,6 +22,8 @@ import work.ganglia.swebench.tools.DockerFileSystemTools;
 import work.ganglia.swebench.tools.DockerFileEditTools;
 import work.ganglia.swebench.tools.SWEBenchToolExecutor;
 import work.ganglia.tools.model.ToDoList;
+import work.ganglia.memory.TokenCounter;
+import work.ganglia.core.session.DefaultContextOptimizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,14 +79,14 @@ public class SWEBenchEvaluator {
                 toolExecutor, null, null, null
             );
 
-            StandardAgentLoop loop = new StandardAgentLoop(vertx, model, scheduleableFactory, sessionManager, promptEngine, config, compressor);
+            StandardAgentLoop loop = new StandardAgentLoop(vertx, model, scheduleableFactory, sessionManager, promptEngine, config, new DefaultContextOptimizer(config, compressor, new TokenCounter()), new ConsecutiveFailurePolicy(), List.of(new EventBusObservationPublisher(vertx)));
 
             // 2. Run Agent
             Map<String, Object> metadata = new HashMap<>();
             metadata.put("problem_statement", task.getProblemStatement());
             metadata.put("instance_id", task.getInstanceId());
 
-            ModelOptions options = new ModelOptions(config.getTemperature(), config.getMaxTokens(), config.getModel());
+            ModelOptions options = new ModelOptions(config.getTemperature(), config.getMaxTokens(), config.getModel(), config.isStream());
             SessionContext initialContext = new SessionContext(
                 task.getInstanceId(),
                 Collections.emptyList(),

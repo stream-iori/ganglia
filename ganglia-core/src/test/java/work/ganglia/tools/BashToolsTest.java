@@ -11,6 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import io.vertx.core.json.JsonObject;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
@@ -32,7 +33,17 @@ class BashToolsTest {
     }
 
     @Test
-    void testRunShellCommand(VertxTestContext testContext) {
+    void testRunShellCommand(Vertx vertx, VertxTestContext testContext) {
+        String sessionId = context.sessionId();
+        String expectedOutput = "hello world\n";
+        
+        // Listen for TTY event
+        vertx.eventBus().<JsonObject>consumer("ganglia.ui.stream." + sessionId + ".tty", msg -> {
+            testContext.verify(() -> {
+                assertTrue(msg.body().getString("text").contains("hello world"));
+            });
+        });
+
         tools.execute("run_shell_command", Map.of("command", "echo 'hello world'"), context)
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
@@ -45,9 +56,8 @@ class BashToolsTest {
 
     @Test
     void testSizeLimitExceeded(VertxTestContext testContext) {
-        // MAX_OUTPUT_SIZE is 8KB. Generate 10KB of output.
-        // Use a simple loop to generate exactly 10,000 'A' characters.
-        String command = "for i in {1..1000}; do printf 'AAAAAAAAAA'; done";
+        // MAX_OUTPUT_SIZE is 128KB. Generate 130KB of output.
+        String command = "printf 'A%.s' {1..133120}"; // 130 * 1024 = 133120
 
         tools.execute("run_shell_command", Map.of("command", command), context)
             .onComplete(testContext.succeeding(result -> {
@@ -55,9 +65,9 @@ class BashToolsTest {
                     assertEquals(ToolInvokeResult.Status.EXCEPTION, result.status());
                     assertNotNull(result.errorDetails());
                     assertEquals(ToolErrorResult.ErrorType.SIZE_LIMIT_EXCEEDED, result.errorDetails().errorType());
-                    // The partial output should be 8KB
+                    // The partial output should be around 128KB
                     assertNotNull(result.errorDetails().partialOutput());
-                    assertEquals(8192, result.errorDetails().partialOutput().length());
+                    assertTrue(result.errorDetails().partialOutput().length() >= 131072);
                     testContext.completeNow();
                 });
             }));

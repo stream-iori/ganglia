@@ -8,9 +8,20 @@ import java.util.Map;
 public record GangliaConfig(
     AgentConfig agent,
     Map<String, ModelConfig> models,
-    ObservabilityConfig observability
+    ObservabilityConfig observability,
+    WebUIConfig webui
 ) {
     public ModelConfig getModel(String key) {
         return models != null ? models.get(key) : null;
+    }
+
+    public record WebUIConfig(
+        int port,
+        boolean enabled,
+        String webroot
+    ) {
+        public WebUIConfig {
+            if (port == 0) port = 8080;
+        }
     }
 }

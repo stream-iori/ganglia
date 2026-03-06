@@ -1,57 +1,79 @@
 package work.ganglia.memory;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.RejectedExecutionException;
 
 /**
- * Background service that handles memory-related tasks like reflection and daily recording.
- * Listens for events on the EventBus to stay decoupled from the main agent loop.
+ * Background service that acts as a registry and event dispatcher for memory modules.
+ * Listens for memory events on the EventBus and delegates to registered modules.
  */
 public class MemoryService {
     private static final Logger logger = LoggerFactory.getLogger(MemoryService.class);
-    public static final String ADDRESS_REFLECT = "ganglia.memory.reflect";
+    public static final String ADDRESS_EVENT = "ganglia.memory.event";
 
     private final Vertx vertx;
-    private final ContextCompressor compressor;
-    private final DailyRecordManager dailyRecordManager;
+    private final List<MemoryModule> modules = new ArrayList<>();
 
-    public MemoryService(Vertx vertx, ContextCompressor compressor, DailyRecordManager dailyRecordManager) {
+    public MemoryService(Vertx vertx) {
         this.vertx = vertx;
-        this.compressor = compressor;
-        this.dailyRecordManager = dailyRecordManager;
         register();
     }
 
-    private void register() {
-        vertx.eventBus().<JsonObject>consumer(ADDRESS_REFLECT, message -> {
-            try {
-                ReflectEvent event = message.body().mapTo(ReflectEvent.class);
-                handleReflect(event);
-            } catch (Exception e) {
-                logger.error("Failed to parse ReflectEvent from message: {}", message.body(), e);
-            }
-        });
-        logger.info("MemoryService registered on address: {}", ADDRESS_REFLECT);
+    public void registerModule(MemoryModule module) {
+        modules.add(module);
+        logger.debug("Registered MemoryModule: {}", module.id());
     }
 
-    private void handleReflect(ReflectEvent event) {
-        logger.debug("Starting background reflection for session: {}", event.sessionId());
+    public List<MemoryModule> getModules() {
+        return new ArrayList<>(modules);
+    }
 
-        compressor.reflect(event.turn())
-            .compose(summary -> dailyRecordManager.record(event.sessionId(), event.goal(), summary))
-            .onSuccess(v -> logger.debug("Background reflection and recording completed for session: {}", event.sessionId()))
-            .onFailure(err -> {
-                if (isShutdownError(err)) {
-                    logger.debug("Background task for session {} was aborted due to shutdown.", event.sessionId());
-                } else {
-                    logger.error("Background reflection failed for session: {}", event.sessionId(), err);
+    private void register() {
+        vertx.eventBus().<JsonObject>consumer(ADDRESS_EVENT, message -> {
+            try {
+                MemoryEvent event = message.body().mapTo(MemoryEvent.class);
+                handleEvent(event);
+            } catch (Exception e) {
+                // For backward compatibility during migration, try ReflectEvent
+                try {
+                    ReflectEvent oldEvent = message.body().mapTo(ReflectEvent.class);
+                    MemoryEvent event = new MemoryEvent(MemoryEvent.EventType.TURN_COMPLETED, oldEvent.sessionId(), oldEvent.goal(), oldEvent.turn());
+                    handleEvent(event);
+                } catch (Exception ex) {
+                    logger.error("Failed to parse MemoryEvent from message: {}", message.body(), e);
                 }
-            });
+            }
+        });
+        logger.info("MemoryService registered on address: {}", ADDRESS_EVENT);
+    }
+
+    private void handleEvent(MemoryEvent event) {
+        logger.debug("Dispatching memory event {} for session: {}", event.type(), event.sessionId());
+
+        List<Future<Void>> futures = modules.stream()
+                .map(module -> module.onEvent(event).recover(err -> {
+                    if (!isShutdownError(err)) {
+                        logger.error("Module {} failed to handle event {}", module.id(), event.type(), err);
+                    }
+                    return Future.succeededFuture(); // Don't fail the whole batch
+                }))
+                .toList();
+
+        Future.all(futures).onComplete(ar -> {
+            if (ar.succeeded()) {
+                logger.debug("Memory event {} completed for session: {}", event.type(), event.sessionId());
+            } else {
+                logger.error("Memory event dispatch failed for session: {}", event.sessionId(), ar.cause());
+            }
+        });
     }
 
     private boolean isShutdownError(Throwable err) {

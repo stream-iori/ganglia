@@ -83,6 +83,7 @@ public record Turn(
         // 2. Identify answered tool call IDs
         Set<String> answeredIds = intermediateSteps.stream()
             .filter(m -> m.role() == Role.TOOL && m.toolObservation() != null)
+            .filter(m -> m.content() != null && !m.content().startsWith("INTERRUPTED:")) // Exclude placeholders
             .map(m -> m.toolObservation().toolCallId())
             .collect(Collectors.toSet());
 

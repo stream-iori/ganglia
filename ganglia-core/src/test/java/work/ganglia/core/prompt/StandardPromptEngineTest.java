@@ -10,7 +10,6 @@ import work.ganglia.core.model.SessionContext;
 import work.ganglia.core.schedule.DefaultSchedulableFactory;
 import work.ganglia.core.schedule.SchedulableFactory;
 import work.ganglia.memory.TokenCounter;
-.ganglia.core.model.*;
 import work.ganglia.stubs.StubToolExecutor;
 import work.ganglia.tools.model.ToDoList;
 import org.junit.jupiter.api.Test;
@@ -70,12 +69,14 @@ class StandardPromptEngineTest {
         Message m2 = Message.assistant("Msg 2");
         Message m3 = Message.user("Msg 3");
 
+        // These steps are added to the CURRENT turn
         context = context.addStep(m1).addStep(m2).addStep(m3);
 
-        // Prune to 1 token (should keep ONLY the last message)
+        // Prune to 1 token (current turn is ALWAYS kept entirely)
         List<Message> pruned = context.getPrunedHistory(1, counter);
-        assertEquals(1, pruned.size());
-        assertEquals("Msg 3", pruned.get(0).content());
+        assertEquals(3, pruned.size());
+        assertEquals("Msg 1", pruned.get(0).content());
+        assertEquals("Msg 3", pruned.get(2).content());
     }
 
     @Test
@@ -85,7 +86,7 @@ class StandardPromptEngineTest {
         SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(vertx, null, null, null, null, null, toolExecutor, null, null, null);
         StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, scheduleableFactory, counter);
 
-        ModelOptions options = new ModelOptions(0.0, 100, "test-model");
+        ModelOptions options = new ModelOptions(0.0, 100, "test-model", true);
         SessionContext context = new SessionContext("sid", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
 
         engine.prepareRequest(context, 0).onComplete(testContext.succeeding(request -> {

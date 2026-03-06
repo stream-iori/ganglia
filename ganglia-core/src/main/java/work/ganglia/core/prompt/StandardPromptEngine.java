@@ -7,7 +7,7 @@ import work.ganglia.core.model.Message;
 import work.ganglia.core.model.ModelOptions;
 import work.ganglia.core.model.SessionContext;
 import work.ganglia.core.prompt.context.*;
-import work.ganglia.memory.KnowledgeBase;
+import work.ganglia.memory.MemoryService;
 import work.ganglia.memory.TokenCounter;
 import work.ganglia.core.model.*;
 import work.ganglia.core.prompt.context.*;
@@ -27,7 +27,7 @@ public class StandardPromptEngine implements PromptEngine {
     private SchedulableFactory scheduleableFactory;
 
     public StandardPromptEngine(Vertx vertx,
-                                KnowledgeBase knowledgeBase,
+                                MemoryService memoryService,
                                 SkillRuntime skillRuntime,
                                 SchedulableFactory scheduleableFactory,
                                 TokenCounter tokenCounter) {
@@ -45,7 +45,7 @@ public class StandardPromptEngine implements PromptEngine {
             sources.add(new ToolContextSource(this.scheduleableFactory));
         }
         sources.add(new ToDoContextSource());
-        sources.add(new MemoryContextSource());
+        sources.add(new MemoryContextSource(memoryService));
         sources.add(new SubAgentContextSource());
     }
 
@@ -92,7 +92,7 @@ public class StandardPromptEngine implements PromptEngine {
             ModelOptions currentOptions = context.modelOptions();
             if (currentOptions == null) {
                 // TODO: Hardcoded fallback, should ideally come from ConfigManager via constructor if needed
-                currentOptions = new ModelOptions(0.0, 4096, "gpt-4o");
+                currentOptions = new ModelOptions(0.0, 4096, "gpt-4o", true);
             }
 
             // 4. Resolve Tools (with sub-agent filtering)

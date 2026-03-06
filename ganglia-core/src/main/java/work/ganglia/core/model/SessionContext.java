@@ -89,21 +89,42 @@ public record SessionContext(
      */
     @JsonIgnore
     public List<Message> getPrunedHistory(int maxTokens, TokenCounter counter) {
-        List<Message> fullHistory = history();
-        if (fullHistory.isEmpty()) return Collections.emptyList();
-
-        List<Message> pruned = new ArrayList<>();
+        List<Message> fullPruned = new ArrayList<>();
         int currentTokens = 0;
 
-        // Iterate backwards from the most recent messages
-        for (int i = fullHistory.size() - 1; i >= 0; i--) {
-            Message msg = fullHistory.get(i);
-            int msgTokens = msg.countTokens(counter);
-            if (currentTokens + msgTokens > maxTokens && !pruned.isEmpty()) break;
-            pruned.add(0, msg);
-            currentTokens += msgTokens;
+        // 1. Always include the current turn (it's the most important)
+        if (currentTurn != null) {
+            List<Message> currentMessages = currentTurn.flatten();
+            for (int i = currentMessages.size() - 1; i >= 0; i--) {
+                Message m = currentMessages.get(i);
+                currentTokens += m.countTokens(counter);
+                fullPruned.add(0, m);
+            }
         }
-        return pruned;
+
+        // 2. Add previous turns as atomic units, moving backwards
+        for (int i = previousTurns.size() - 1; i >= 0; i--) {
+            Turn turn = previousTurns.get(i);
+            List<Message> turnMessages = turn.flatten();
+            
+            // Calculate tokens for the entire turn
+            int turnTokens = 0;
+            for (Message m : turnMessages) {
+                turnTokens += m.countTokens(counter);
+            }
+
+            if (currentTokens + turnTokens > maxTokens && !fullPruned.isEmpty()) {
+                break; // Stop if adding this turn exceeds limit
+            }
+
+            // Add all messages from this turn to the beginning
+            for (int j = turnMessages.size() - 1; j >= 0; j--) {
+                fullPruned.add(0, turnMessages.get(j));
+            }
+            currentTokens += turnTokens;
+        }
+
+        return fullPruned;
     }
 
     public SessionContext withModelOptions(ModelOptions newOptions) {

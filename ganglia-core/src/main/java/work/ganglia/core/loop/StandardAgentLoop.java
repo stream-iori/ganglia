@@ -1,7 +1,6 @@
 package work.ganglia.core.loop;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import work.ganglia.core.config.ConfigManager;
@@ -13,9 +12,8 @@ import work.ganglia.core.schedule.SchedulableResult;
 import work.ganglia.core.schedule.Schedulable;
 import work.ganglia.core.schedule.SchedulableFactory;
 import work.ganglia.core.session.SessionManager;
-import work.ganglia.memory.ContextCompressor;
-import work.ganglia.memory.ReflectEvent;
-import work.ganglia.memory.TokenCounter;
+import work.ganglia.core.session.ContextOptimizer;
+import work.ganglia.memory.MemoryEvent;
 import work.ganglia.tools.model.ToolCall;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,18 +29,23 @@ public class StandardAgentLoop implements AgentLoop {
     private final PromptEngine promptEngine;
     private final ConfigManager configManager;
     private final Vertx vertx;
-    private final ContextCompressor compressor;
-    private final TokenCounter tokenCounter = new TokenCounter();
+    private final ContextOptimizer contextOptimizer;
+    private final FaultTolerancePolicy faultTolerancePolicy;
+    private final List<AgentLoopObserver> observers;
+    private final Map<String, AgentSignal> sessionSignals = new java.util.concurrent.ConcurrentHashMap<>();
 
     public StandardAgentLoop(Vertx vertx, ModelGateway model, SchedulableFactory scheduleableFactory, SessionManager sessionManager,
-                             PromptEngine promptEngine, ConfigManager configManager, ContextCompressor compressor) {
+                             PromptEngine promptEngine, ConfigManager configManager, ContextOptimizer contextOptimizer,
+                             FaultTolerancePolicy faultTolerancePolicy, List<AgentLoopObserver> observers) {
         this.vertx = vertx;
         this.model = model;
         this.scheduleableFactory = scheduleableFactory;
         this.sessionManager = sessionManager;
         this.promptEngine = promptEngine;
         this.configManager = configManager;
-        this.compressor = compressor;
+        this.contextOptimizer = contextOptimizer;
+        this.faultTolerancePolicy = faultTolerancePolicy;
+        this.observers = observers == null ? Collections.emptyList() : new ArrayList<>(observers);
     }
 
     private void publishObservation(String sessionId, ObservationType type, String content) {
@@ -50,18 +53,36 @@ public class StandardAgentLoop implements AgentLoop {
     }
 
     private void publishObservation(String sessionId, ObservationType type, String content, Map<String, Object> data) {
-        ObservationEvent event = ObservationEvent.of(sessionId, type, content, data);
-        vertx.eventBus().publish("ganglia.observations." + sessionId, JsonObject.mapFrom(event));
+        logger.debug("Publishing observation: {} for session: {}", type, sessionId);
+        observers.forEach(o -> o.onObservation(sessionId, type, content, data));
     }
 
     @Override
     public Future<String> run(String userInput, SessionContext initialContext, AgentSignal signal) {
         logger.debug("Starting new turn for session: {}. Input: {}", initialContext.sessionId(), userInput);
+        sessionSignals.put(initialContext.sessionId(), signal);
         publishObservation(initialContext.sessionId(), ObservationType.TURN_STARTED, userInput);
         // 1. Initialization
         Message userMessage = Message.user(userInput);
         SessionContext context = sessionManager.startTurn(initialContext, userMessage);
-        return sessionManager.persist(context).compose(v -> runLoop(context, signal));
+        return sessionManager.persist(context)
+            .compose(v -> runLoop(context, signal))
+            .onComplete(v -> sessionSignals.remove(initialContext.sessionId()))
+            .recover(err -> {
+                // Ensure top-level errors are also published
+                if (!(err instanceof AgentInterruptException)) {
+                    publishObservation(initialContext.sessionId(), ObservationType.ERROR, err.getMessage());
+                }
+                return Future.failedFuture(err);
+            });
+    }
+
+    public void stop(String sessionId) {
+        AgentSignal signal = sessionSignals.get(sessionId);
+        if (signal != null) {
+            logger.info("Aborting session via stop request: {}", sessionId);
+            signal.abort();
+        }
     }
 
     @Override
@@ -151,115 +172,60 @@ public class StandardAgentLoop implements AgentLoop {
         }
 
         // --- Proactive Context Compression Check ---
-        int totalTokens = currentContext.history().stream()
-                .mapToInt(m -> m.countTokens(tokenCounter))
-                .sum();
+        return contextOptimizer.optimizeIfNeeded(currentContext)
+            .compose(optimizedContext -> {
+                logger.debug("Loop iteration: {} for session: {}", iteration, optimizedContext.sessionId());
 
-        int limit = configManager.getContextLimit();
-        double threshold = configManager.getCompressionThreshold();
+                // Pass context cleanly to reason block, capture effectively final references correctly
+                final SessionContext contextForReasoning = optimizedContext;
 
-        // --- Robustness: Financial Guardrail ---
-        if (totalTokens > 500000) { // Hard limit of 500k tokens per session
-            logger.error("Session token limit exceeded ({}). Aborting loop.", totalTokens);
-            publishObservation(currentContext.sessionId(), ObservationType.ERROR, "Session token limit exceeded. Safety abort.");
-            return Future.failedFuture("Session reached maximum safety token limit (500,000).");
-        }
+                return reason(contextForReasoning, signal)
+                    .compose(response -> handleDecision(response, contextForReasoning, signal))
+                    .recover(err -> {
+                        if (err instanceof AgentInterruptException) {
+                            logger.info("Agent loop interrupted for session: {}. Waiting for user interaction.", contextForReasoning.sessionId());
+                            return Future.succeededFuture(((AgentInterruptException) err).getPrompt());
+                        }
 
-        if (totalTokens > limit * threshold && currentContext.previousTurns().size() > 1) {
-            logger.info("Context threshold reached ({} > {}). Triggering compression...", totalTokens, (int)(limit * threshold));
-            publishObservation(currentContext.sessionId(), ObservationType.SYSTEM_EVENT, "Auto-compressing context...");
+                        logger.error("Error in agent loop for session: {}", contextForReasoning.sessionId(), err);
 
-            return sessionManager.compressSession(currentContext, 1, compressor)
-                    .compose(compressedContext -> {
-                        logger.info("Compression complete. New token count: {}",
-                            compressedContext.history().stream().mapToInt(m -> m.countTokens(tokenCounter)).sum());
-                        return runLoop(compressedContext, signal); // Restart this iteration with compressed context
+                        Map<String, Object> errorData = new HashMap<>();
+                        if (err instanceof LLMException) {
+                            LLMException llmErr = (LLMException) err;
+                            llmErr.errorCode().ifPresent(code -> errorData.put("errorCode", code));
+                            llmErr.httpStatusCode().ifPresent(status -> errorData.put("httpStatusCode", status));
+                            llmErr.requestId().ifPresent(id -> errorData.put("requestId", id));
+                        }
+
+                        publishObservation(contextForReasoning.sessionId(), ObservationType.ERROR, err.getMessage(), errorData);
+                        return Future.failedFuture(err);
                     });
-        }
-
-        logger.debug("Loop iteration: {} for session: {}", iteration, currentContext.sessionId());
-
-        // Pass context cleanly to reason block, capture effectively final references correctly
-        final SessionContext contextForReasoning = currentContext;
-
-        return reason(contextForReasoning, signal)
-            .compose(response -> handleDecision(response, contextForReasoning, signal))
-            .recover(err -> {
-                if (err instanceof AgentInterruptException) {
-                    logger.info("Agent loop interrupted for session: {}. Waiting for user interaction.", contextForReasoning.sessionId());
-                    return Future.succeededFuture(((AgentInterruptException) err).getPrompt());
-                }
-
-                logger.error("Error in agent loop for session: {}", contextForReasoning.sessionId(), err);
-
-                Map<String, Object> errorData = new HashMap<>();
-                if (err instanceof LLMException) {
-                    LLMException llmErr = (LLMException) err;
-                    llmErr.errorCode().ifPresent(code -> errorData.put("errorCode", code));
-                    llmErr.httpStatusCode().ifPresent(status -> errorData.put("httpStatusCode", status));
-                    llmErr.requestId().ifPresent(id -> errorData.put("requestId", id));
-                }
-
-                publishObservation(contextForReasoning.sessionId(), ObservationType.ERROR, err.getMessage(), errorData);
-                return Future.failedFuture(err);
             });
     }
 
     // --- Core Logic Steps ---
 
     private Future<ModelResponse> reason(SessionContext context, AgentSignal signal) {
-        return retryReason(context, 0, signal);
-    }
-
-    private Future<ModelResponse> retryReason(SessionContext context, int attempt, AgentSignal signal) {
         if (signal.isAborted()) {
             return Future.failedFuture(new AgentAbortedException());
         }
 
         int iteration = context.getIterationCount();
-        if (attempt == 0) {
-            publishObservation(context.sessionId(), ObservationType.REASONING_STARTED, null);
-        }
+        publishObservation(context.sessionId(), ObservationType.REASONING_STARTED, null);
 
         return promptEngine.prepareRequest(context, iteration)
             .compose(request -> {
                 if (signal.isAborted()) {
                     return Future.failedFuture(new AgentAbortedException());
                 }
-                logger.debug("Calling model: {} with history size: {} (Attempt: {})",
-                    request.options().modelName(), request.messages().size(), attempt + 1);
-                return model.chatStream(request.messages(), request.tools(), request.options(), context.sessionId());
-            })
-            .recover(err -> {
-                if (shouldRetry(err) && attempt < 3) { // Max 3 retries
-                    long delay = calculateDelay(attempt);
-                    logger.warn("Transient LLM error for session {}. Retrying in {}ms... Error: {}",
-                        context.sessionId(), delay, err.getMessage());
-
-                    Promise<ModelResponse> promise = Promise.promise();
-                    vertx.setTimer(delay, id -> {
-                        retryReason(context, attempt + 1, signal).onComplete(promise);
-                    });
-                    return promise.future();
+                logger.debug("Calling model: {} with history size: {}, stream: {}",
+                    request.options().modelName(), request.messages().size(), request.options().stream());
+                if (request.options().stream()) {
+                    return model.chatStream(request.messages(), request.tools(), request.options(), context.sessionId());
+                } else {
+                    return model.chat(request.messages(), request.tools(), request.options());
                 }
-                return Future.failedFuture(err);
             });
-    }
-
-    private boolean shouldRetry(Throwable err) {
-        if (err instanceof LLMException) {
-            LLMException le = (LLMException) err;
-            int status = le.httpStatusCode().orElse(0);
-            return status == 429 || (status >= 500 && status < 600);
-        }
-        return false;
-    }
-
-    private long calculateDelay(int attempt) {
-        long base = 1000; // 1s
-        long delay = (long) (base * Math.pow(2, attempt));
-        long jitter = (long) (Math.random() * 500); // 0-500ms jitter
-        return delay + jitter;
     }
 
     private Future<String> handleDecision(ModelResponse response, SessionContext currentContext, AgentSignal signal) {
@@ -272,16 +238,18 @@ public class StandardAgentLoop implements AgentLoop {
 
         logger.debug("Model response content: {}", content);
         logger.debug("Model requested {} tool call(s).", toolCalls.size());
-        publishObservation(currentContext.sessionId(), ObservationType.REASONING_FINISHED, content);
 
         // Record usage asynchronously
         if (response.usage() != null) {
-            vertx.eventBus().publish("ganglia.usage.record", new io.vertx.core.json.JsonObject()
-                .put("sessionId", currentContext.sessionId())
-                .put("usage", io.vertx.core.json.JsonObject.mapFrom(response.usage())));
+            observers.forEach(o -> o.onUsageRecorded(currentContext.sessionId(), response.usage()));
         }
 
         if (!toolCalls.isEmpty()) {
+            // Content with tool calls is reasoning/thought
+            if (content != null && !content.isBlank()) {
+                publishObservation(currentContext.sessionId(), ObservationType.REASONING_FINISHED, content);
+            }
+
             // Decision: Act (Execute ALL Tools)
             // Persist the Assistant's intent (Tool Calls) BEFORE executing, so we can resume if interrupted.
             Message assistantMessage = Message.assistant(content, toolCalls);
@@ -296,15 +264,18 @@ public class StandardAgentLoop implements AgentLoop {
                 );
         } else {
             logger.debug("No tool calls. Turn complete.");
+            // Content without tool calls is the final answer
+            // In non-streaming mode, we directly go to TURN_FINISHED
             publishObservation(currentContext.sessionId(), ObservationType.TURN_FINISHED, content);
+            
             // Decision: Finish
             SessionContext finalContext = sessionManager.completeTurn(currentContext, Message.assistant(content));
 
             // Async background reflection for Daily Journal via EventBus
             if (finalContext.currentTurn() != null) {
                 String goal = finalContext.currentTurn().userMessage().content();
-                ReflectEvent event = new ReflectEvent(finalContext.sessionId(), goal, finalContext.currentTurn());
-                vertx.eventBus().publish("ganglia.memory.reflect", JsonObject.mapFrom(event));
+                MemoryEvent event = new MemoryEvent(MemoryEvent.EventType.TURN_COMPLETED, finalContext.sessionId(), goal, finalContext.currentTurn());
+                vertx.eventBus().send("ganglia.memory.event", JsonObject.mapFrom(event));
             }
 
             return sessionManager
@@ -345,54 +316,73 @@ public class StandardAgentLoop implements AgentLoop {
 
         Schedulable task = scheduleables.get(index);
         logger.debug("Executing task [{} of {}]: {} ({})", index + 1, scheduleables.size(), task.name(), task.id());
-        publishObservation(currentContext.sessionId(), ObservationType.TOOL_STARTED, task.name());
+        
+        Map<String, Object> startData = new java.util.HashMap<>();
+        startData.put("toolCallId", task.id());
+        publishObservation(currentContext.sessionId(), ObservationType.TOOL_STARTED, task.name(), startData);
 
         final SessionContext originalContextForTask = currentContext;
 
         return task.execute(originalContextForTask)
+            .recover(err -> {
+                logger.error("Task {} threw an unhandled exception: {}", task.name(), err.getMessage());
+                return Future.succeededFuture(new SchedulableResult(SchedulableResult.Status.EXCEPTION, "Execution error: " + err.getMessage(), null));
+            })
             .compose(scheduleResult -> {
+                Map<String, Object> resultData = new java.util.HashMap<>();
+                resultData.put("toolCallId", task.id());
+                
                 switch (scheduleResult.status()) {
                     case INTERRUPT -> {
                         logger.debug("Task {} requested interrupt.", task.name());
-                        publishObservation(originalContextForTask.sessionId(), ObservationType.TOOL_FINISHED, "Interrupted: " + scheduleResult.output());
-                        return Future.failedFuture(new AgentInterruptException(scheduleResult.output()));
+                        publishObservation(originalContextForTask.sessionId(), ObservationType.TOOL_FINISHED, "Interrupted: " + scheduleResult.output(), resultData);
+                        
+                        // IMPORTANT: Even if interrupted, we MUST provide a response for THIS tool call
+                        // so that the conversation history remains valid for the next turn.
+                        Message interruptMsg = Message.tool(task.id(), task.name(), "INTERRUPTED: " + scheduleResult.output());
+                        SessionContext interruptedContext = sessionManager.addStep(originalContextForTask, interruptMsg);
+
+                        // Also satisfy OpenAI by responding to ALL REMAINING tool calls.
+                        return cancelRemainingTasks(scheduleables, index + 1, interruptedContext)
+                            .compose(finalContext -> sessionManager.persist(finalContext))
+                            .compose(v -> Future.failedFuture(new AgentInterruptException(scheduleResult.output())));
                     }
                     case ERROR, EXCEPTION -> {
                         logger.warn("Task {} failed with status {}: {}", task.name(), scheduleResult.status(), scheduleResult.output());
-                        publishObservation(originalContextForTask.sessionId(), ObservationType.TOOL_FINISHED, "Error: " + scheduleResult.output());
+                        publishObservation(originalContextForTask.sessionId(), ObservationType.TOOL_FINISHED, "Error: " + scheduleResult.output(), resultData);
                     }
                     case SUCCESS -> {
                         logger.debug("Task {} executed successfully.", task.name());
-                        publishObservation(originalContextForTask.sessionId(), ObservationType.TOOL_FINISHED, scheduleResult.output());
+                        publishObservation(originalContextForTask.sessionId(), ObservationType.TOOL_FINISHED, scheduleResult.output(), resultData);
                     }
                 }
 
                 Message toolMsg = Message.tool(task.id(), task.name(), scheduleResult.output());
                 SessionContext contextToUse = scheduleResult.modifiedContext() != null ? scheduleResult.modifiedContext() : originalContextForTask;
 
-                // --- Robustness: Consecutive Failure Tracking ---
-                if (scheduleResult.status() == SchedulableResult.Status.ERROR || scheduleResult.status() == SchedulableResult.Status.EXCEPTION) {
-                    int fails = (int) contextToUse.metadata().getOrDefault("consecutive_tool_failures", 0);
-                    if (fails >= 3) {
-                        logger.warn("Task {} failed {} times consecutively. Aborting loop to prevent runaway usage.", task.name(), fails + 1);
-                        return Future.failedFuture("Aborting due to repetitive task failures: " + scheduleResult.output());
-                    }
-                    Map<String, Object> newMetadata = new HashMap<>(contextToUse.metadata());
-                    newMetadata.put("consecutive_tool_failures", fails + 1);
-                    contextToUse = new SessionContext(contextToUse.sessionId(), contextToUse.previousTurns(), contextToUse.currentTurn(),
-                        newMetadata, contextToUse.activeSkillIds(), contextToUse.modelOptions(), contextToUse.toDoList());
-                } else {
-                    if (contextToUse.metadata().containsKey("consecutive_tool_failures")) {
-                        Map<String, Object> newMetadata = new HashMap<>(contextToUse.metadata());
-                        newMetadata.remove("consecutive_tool_failures");
-                        contextToUse = new SessionContext(contextToUse.sessionId(), contextToUse.previousTurns(), contextToUse.currentTurn(),
-                            newMetadata, contextToUse.activeSkillIds(), contextToUse.modelOptions(), contextToUse.toDoList());
-                    }
-                }
+                // --- Robustness: Fault Tolerance Strategy ---
+                return faultTolerancePolicy.handleFailure(contextToUse, task, scheduleResult)
+                    .map(handledContext -> {
+                        if (scheduleResult.status() == SchedulableResult.Status.SUCCESS) {
+                            return faultTolerancePolicy.onSuccess(handledContext, task);
+                        }
+                        return handledContext;
+                    })
+                    .compose(finalContextToUse -> {
+                        SessionContext nextContext = sessionManager.addStep(finalContextToUse, toolMsg);
+                        return sessionManager.persist(nextContext).map(v -> nextContext);
+                    })
+                    .compose(nextContext -> executeSchedulablesSequentially(scheduleables, index + 1, nextContext, signal));
+            });
+    }
 
-                return Future.succeededFuture(sessionManager.addStep(contextToUse, toolMsg));
-            })
-            .compose(nextContext -> sessionManager.persist(nextContext).map(v -> nextContext))
-            .compose(nextContext -> executeSchedulablesSequentially(scheduleables, index + 1, nextContext, signal));
+    private Future<SessionContext> cancelRemainingTasks(List<Schedulable> scheduleables, int index, SessionContext currentContext) {
+        if (index >= scheduleables.size()) {
+            return Future.succeededFuture(currentContext);
+        }
+        Schedulable task = scheduleables.get(index);
+        Message cancelMsg = Message.tool(task.id(), task.name(), "CANCELLED: Previous task interrupted the flow.");
+        SessionContext nextContext = currentContext.addStep(cancelMsg);
+        return cancelRemainingTasks(scheduleables, index + 1, nextContext);
     }
 }

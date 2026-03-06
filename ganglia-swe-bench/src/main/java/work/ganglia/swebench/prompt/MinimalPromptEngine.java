@@ -47,7 +47,7 @@ public class MinimalPromptEngine implements PromptEngine {
 
             ModelOptions options = context.modelOptions();
             if (options == null) {
-                options = new ModelOptions(0.0, 4096, "gpt-4o");
+                options = new ModelOptions(0.0, 4096, "gpt-4o", true);
             }
             return new LLMRequest(messages, toolExecutor.getAvailableTools(context), options);
         });
