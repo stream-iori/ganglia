@@ -5,10 +5,10 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import work.Main;
-import work.ganglia.core.Ganglia;
-import work.ganglia.core.model.SessionContext;
+import work.ganglia.Ganglia;
+import work.ganglia.port.chat.SessionContext;
 import work.ganglia.ui.TerminalUI;
-import work.ganglia.core.model.Role;
+import work.ganglia.port.chat.Role;
 
 import java.util.Scanner;
 import java.util.UUID;

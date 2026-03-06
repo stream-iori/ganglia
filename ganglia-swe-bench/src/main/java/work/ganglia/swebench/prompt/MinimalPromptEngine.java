@@ -1,12 +1,12 @@
 package work.ganglia.swebench.prompt;
 
 import io.vertx.core.Future;
-import work.ganglia.core.model.LLMRequest;
-import work.ganglia.core.model.Message;
-import work.ganglia.core.model.ModelOptions;
-import work.ganglia.core.model.SessionContext;
-import work.ganglia.core.prompt.PromptEngine;
-import work.ganglia.tools.ToolExecutor;
+import work.ganglia.port.external.llm.LLMRequest;
+import work.ganglia.port.chat.Message;
+import work.ganglia.port.external.llm.ModelOptions;
+import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.internal.prompt.PromptEngine;
+import work.ganglia.port.external.tool.ToolExecutor;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -10,7 +10,7 @@ const stopAgent = () => {
 </script>
 
 <template>
-  <div 
+  <div
     v-if="systemStore.status !== 'CONNECTED'"
     class="bg-amber-500/10 border-b border-amber-500/20 px-4 py-1.5 flex items-center justify-center gap-2 animate-pulse"
   >
@@ -19,7 +19,7 @@ const stopAgent = () => {
       {{ systemStore.status === 'RECONNECTING' ? 'Reconnecting to Ganglia Core...' : 'Disconnected' }}
     </span>
   </div>
-  
+
   <div class="h-12 border-b border-slate-900 bg-slate-950/50 backdrop-blur flex items-center justify-between px-6 sticky top-0 z-10">
     <div class="flex items-center gap-4">
       <div class="flex items-center gap-2">
@@ -27,8 +27,8 @@ const stopAgent = () => {
         <span class="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Core Status</span>
       </div>
     </div>
-    
-    <button 
+
+    <button
       @click="stopAgent"
       class="flex items-center gap-2 px-3 py-1 rounded border border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 text-rose-500 transition-all active:scale-95 group"
     >

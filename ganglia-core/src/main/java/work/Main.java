@@ -3,49 +3,52 @@ package work;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import work.ganglia.core.Ganglia;
-import work.ganglia.core.config.ConfigManager;
-import work.ganglia.core.llm.ModelGateway;
-import work.ganglia.core.llm.ModelGatewayFactory;
-import work.ganglia.core.llm.RetryingModelGateway;
-import work.ganglia.core.loop.ConsecutiveFailurePolicy;
-import work.ganglia.core.loop.EventBusObservationPublisher;
-import work.ganglia.core.loop.StandardAgentLoop;
+import work.ganglia.Ganglia;
+import work.ganglia.config.ConfigManager;
+import work.ganglia.port.external.llm.ModelGateway;
+import work.ganglia.port.internal.skill.SkillService;
+import work.ganglia.infrastructure.external.llm.ModelGatewayFactory;
+import work.ganglia.infrastructure.external.llm.RetryingModelGateway;
+import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
+import work.ganglia.kernel.loop.EventBusObservationPublisher;
+import work.ganglia.kernel.loop.StandardAgentLoop;
 import java.util.List;
-import work.ganglia.core.prompt.StandardPromptEngine;
-import work.ganglia.core.schedule.DefaultSchedulableFactory;
-import work.ganglia.core.schedule.SchedulableFactory;
-import work.ganglia.core.session.DefaultContextOptimizer;
-import work.ganglia.core.session.DefaultSessionManager;
-import work.ganglia.core.session.SessionManager;
-import work.ganglia.core.state.FileLogManager;
-import work.ganglia.core.state.FileStateEngine;
-import work.ganglia.core.state.TraceManager;
-import work.ganglia.memory.ContextCompressor;
-import work.ganglia.memory.DailyRecordManager;
-import work.ganglia.memory.FileSystemDailyRecordManager;
-import work.ganglia.memory.FileSystemKnowledgeBase;
-import work.ganglia.memory.KnowledgeBase;
-import work.ganglia.memory.MemoryService;
-import work.ganglia.memory.TokenCounter;
-import work.ganglia.core.state.TokenUsageManager;
-import work.ganglia.skills.*;
-import work.ganglia.tools.DefaultToolExecutor;
-import work.ganglia.tools.ToolsFactory;
-import work.ganglia.tools.subagent.DefaultGraphExecutor;
-import work.ganglia.tools.subagent.GraphExecutor;
-import work.ganglia.core.prompt.context.DailyContextSource;
+import work.ganglia.infrastructure.internal.prompt.StandardPromptEngine;
+import work.ganglia.kernel.task.DefaultSchedulableFactory;
+import work.ganglia.kernel.task.SchedulableFactory;
+import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
+import work.ganglia.infrastructure.internal.state.DefaultSessionManager;
+import work.ganglia.port.internal.state.SessionManager;
+import work.ganglia.infrastructure.internal.state.FileLogManager;
+import work.ganglia.infrastructure.internal.state.FileStateEngine;
+import work.ganglia.infrastructure.internal.state.TraceManager;
+import work.ganglia.infrastructure.internal.memory.ContextCompressor;
+import work.ganglia.infrastructure.internal.memory.DailyRecordManager;
+import work.ganglia.infrastructure.internal.memory.FileSystemDailyRecordManager;
+import work.ganglia.infrastructure.internal.memory.FileSystemKnowledgeBase;
+import work.ganglia.infrastructure.internal.memory.KnowledgeBase;
+import work.ganglia.port.internal.memory.MemoryService;
+import work.ganglia.infrastructure.internal.memory.TokenCounter;
+import work.ganglia.infrastructure.internal.state.TokenUsageManager;
+import work.ganglia.infrastructure.internal.skill.*;
+import work.ganglia.infrastructure.external.tool.DefaultToolExecutor;
+import work.ganglia.infrastructure.external.tool.ToolsFactory;
+import work.ganglia.infrastructure.external.tool.subagent.DefaultGraphExecutor;
+import work.ganglia.infrastructure.external.tool.subagent.GraphExecutor;
+import work.ganglia.infrastructure.internal.prompt.context.DailyContextSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import work.ganglia.infrastructure.external.llm.ModelGatewayFactory;
 
+import work.ganglia.util.Constants;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-import work.ganglia.core.config.model.GangliaConfig;
-import work.ganglia.core.webui.WebUIEventPublisher;
-import work.ganglia.core.webui.WebUIVerticle;
+import work.ganglia.config.model.GangliaConfig;
+import work.ganglia.api.webui.WebUIEventPublisher;
+import work.ganglia.api.webui.WebUIVerticle;
 
 public class Main {
     private static final Logger logger = LoggerFactory.getLogger(Main.class);
@@ -97,6 +100,10 @@ public class Main {
 
         if (overrideConfig != null) {
             configManager.updateConfig(overrideConfig);
+        } else if (configPath != null) {
+            // If we are calling it with a specific config path but no overrides (common in IT tests),
+            // disable WebUI by default to avoid port conflicts during parallel test execution.
+            configManager.updateConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
         }
 
         return configManager.init().compose(v -> {
@@ -105,7 +112,7 @@ public class Main {
 
             // 1. Setup Skill System
             List<Path> skillPaths = new ArrayList<>();
-            skillPaths.add(Paths.get(".ganglia/skills"));
+            skillPaths.add(Paths.get(Constants.DIR_SKILLS));
             String userHome = System.getProperty("user.home");
             if (userHome != null) {
                 skillPaths.add(Paths.get(userHome, ".ganglia/skills"));
@@ -134,11 +141,11 @@ public class Main {
                 TokenCounter tokenCounter = new TokenCounter();
                 KnowledgeBase knowledgeBase = new FileSystemKnowledgeBase(vertx);
                 ContextCompressor compressor = new ContextCompressor(modelGateway, configManager);
-                DailyRecordManager dailyRecordManager = new FileSystemDailyRecordManager(vertx, ".ganglia/memory");
+                DailyRecordManager dailyRecordManager = new FileSystemDailyRecordManager(vertx, Constants.DIR_MEMORY);
 
                 MemoryService memoryService = new MemoryService(vertx);
-                memoryService.registerModule(new work.ganglia.memory.DailyJournalModule(compressor, dailyRecordManager));
-                memoryService.registerModule(new work.ganglia.memory.LongTermKnowledgeModule(knowledgeBase));
+                memoryService.registerModule(new work.ganglia.infrastructure.internal.memory.DailyJournalModule(compressor, dailyRecordManager));
+                memoryService.registerModule(new work.ganglia.infrastructure.internal.memory.LongTermKnowledgeModule(knowledgeBase));
 
                 ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase, configManager.getProjectRoot());
 
@@ -169,7 +176,7 @@ public class Main {
                 }
 
                 // Add Daily Source
-                promptEngine.addContextSource(new DailyContextSource(vertx, ".ganglia/memory"));
+                promptEngine.addContextSource(new DailyContextSource(vertx, Constants.DIR_MEMORY));
 
                 // 3. Setup Observability & Usage
                 new TraceManager(vertx, configManager);
@@ -184,9 +191,9 @@ public class Main {
 
                 // 4. Start WebUI Verticle if enabled
                 GangliaConfig.WebUIConfig webUIConfig = configManager.getGangliaConfig().webui();
-                if (webUIConfig == null || webUIConfig.enabled()) {
-                    int port = webUIConfig != null ? webUIConfig.port() : 8080;
-                    String webroot = webUIConfig != null ? webUIConfig.webroot() : "webroot";
+                if (webUIConfig != null && webUIConfig.enabled()) {
+                    int port = webUIConfig.port();
+                    String webroot = webUIConfig.webroot();
                     vertx.deployVerticle(new WebUIVerticle(port, webroot, agentLoop, sessionManager));
                 }
 

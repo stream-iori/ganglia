@@ -22,9 +22,21 @@ setup:
 backend:
     cd {{example_dir}} && mvn exec:java -Dexec.mainClass="work.ganglia.example.WebUIDemo"
 
-# Start the Frontend Dev Server (Vite on 5173)
+# Start the Frontend Dev Server (Vite on 5173) with HMR
 frontend:
     cd {{frontend_dir}} && npm run dev
+
+# Build the frontend in watch mode (continuously updates dist/)
+# This allows WebUIDemo to serve the latest changes immediately.
+ui-watch:
+    cd {{frontend_dir}} && npm run build-watch
+
+# Helper to start both for linked debugging
+dev-all:
+    @echo "To start linked development:"
+    @echo "1. Run 'just ui-watch' in one terminal (keeps {{frontend_dir}}/dist updated)"
+    @echo "2. Run 'just backend' in another terminal (serves assets from dist)"
+    @echo "Alternatively, run 'just frontend' for Vite HMR on port 5173."
 
 # --- Testing ---
 

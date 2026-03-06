@@ -1,11 +1,11 @@
 package work.ganglia.stubs;
 
 import io.vertx.core.Future;
-import work.ganglia.core.llm.ModelGateway;
-import work.ganglia.core.model.Message;
-import work.ganglia.core.model.ModelOptions;
-import work.ganglia.core.model.ModelResponse;
-import work.ganglia.tools.model.ToolDefinition;
+import work.ganglia.port.external.llm.ModelGateway;
+import work.ganglia.port.chat.Message;
+import work.ganglia.port.external.llm.ModelOptions;
+import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.external.tool.ToolDefinition;
 
 import java.util.LinkedList;
 import java.util.List;

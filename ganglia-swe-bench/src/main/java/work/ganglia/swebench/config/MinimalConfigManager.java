@@ -2,11 +2,11 @@ package work.ganglia.swebench.config;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import work.ganglia.core.config.ConfigManager;
-import work.ganglia.core.config.model.AgentConfig;
-import work.ganglia.core.config.model.GangliaConfig;
-import work.ganglia.core.config.model.ModelConfig;
-import work.ganglia.core.config.model.ObservabilityConfig;
+import work.ganglia.config.ConfigManager;
+import work.ganglia.config.model.AgentConfig;
+import work.ganglia.config.model.GangliaConfig;
+import work.ganglia.config.model.ModelConfig;
+import work.ganglia.config.model.ObservabilityConfig;
 
 import java.util.Map;
 

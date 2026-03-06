@@ -1,0 +1,18 @@
+package work.ganglia;
+
+import work.ganglia.config.ConfigManager;
+import work.ganglia.port.external.llm.ModelGateway;
+import work.ganglia.kernel.loop.StandardAgentLoop;
+import work.ganglia.port.internal.state.SessionManager;
+import work.ganglia.port.external.tool.ToolExecutor;
+
+/**
+ * A container for the bootstrapped Ganglia core components.
+ */
+public record Ganglia(
+    ModelGateway modelGateway,
+    ToolExecutor toolExecutor,
+    SessionManager sessionManager,
+    StandardAgentLoop agentLoop,
+    ConfigManager configManager
+) {}

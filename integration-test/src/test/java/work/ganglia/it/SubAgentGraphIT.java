@@ -2,15 +2,16 @@ package work.ganglia.it;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import work.Main;
-import work.ganglia.core.Ganglia;
-import work.ganglia.core.llm.ModelGateway;
-import work.ganglia.core.model.ModelResponse;
-import work.ganglia.core.model.SessionContext;
-import work.ganglia.core.model.TokenUsage;
-import work.ganglia.tools.model.ToolCall;
+import work.ganglia.Ganglia;
+import work.ganglia.port.external.llm.ModelGateway;
+import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.internal.state.TokenUsage;
+import work.ganglia.port.external.tool.ToolCall;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,8 +37,8 @@ public class SubAgentGraphIT {
         // Default behavior for background reflection
         when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled"));
 
-        Main.bootstrap(vertx, ".ganglia/config.json", null, mockModel)
-            .onComplete(testContext.succeeding(g -> {
+        Main.bootstrap(vertx, ".ganglia/config.json", new JsonObject().put("webui", new JsonObject().put("enabled", false)), mockModel)
+            .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
                 testContext.completeNow();
             }));

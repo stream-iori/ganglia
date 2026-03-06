@@ -6,11 +6,11 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import work.Main;
-import work.ganglia.core.model.Message;
-import work.ganglia.core.model.ModelResponse;
-import work.ganglia.core.model.SessionContext;
+import work.ganglia.port.chat.Message;
+import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.chat.SessionContext;
 import work.ganglia.stubs.StubModelGateway;
-import work.ganglia.tools.model.ToolCall;
+import work.ganglia.port.external.tool.ToolCall;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -45,7 +45,7 @@ public class SteeringE2EIT {
 
     @Test
     void testSteeringMessageInterruptsToolExecution(VertxTestContext testContext) {
-        Main.bootstrap(vertx, ".ganglia/config.json", null, stubModel).onComplete(testContext.succeeding(ganglia -> {
+        Main.bootstrap(vertx, ".ganglia/config.json", new JsonObject().put("webui", new JsonObject().put("enabled", false)), stubModel).onComplete(testContext.succeeding(ganglia -> {
 
             // 1. First interaction: User asks to list and read two files.
             // Model responds with two tool calls.

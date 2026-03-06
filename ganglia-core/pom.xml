@@ -46,18 +46,6 @@
         </dependency>
 
         <dependency>
-            <groupId>com.openai</groupId>
-            <artifactId>openai-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.anthropic</groupId>
-            <artifactId>anthropic-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.google.genai</groupId>
-            <artifactId>google-genai</artifactId>
-        </dependency>
-        <dependency>
             <groupId>com.knuddels</groupId>
             <artifactId>jtokkit</artifactId>
         </dependency>

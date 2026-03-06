@@ -2,9 +2,9 @@ package work.ganglia.example;
 
 import io.vertx.core.Vertx;
 import work.Main;
-import work.ganglia.core.Ganglia;
-import work.ganglia.core.loop.AgentAbortedException;
-import work.ganglia.core.model.AgentSignal;
+import work.ganglia.Ganglia;
+import work.ganglia.kernel.loop.AgentAbortedException;
+import work.ganglia.port.internal.state.AgentSignal;
 import work.ganglia.ui.TerminalUI;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;

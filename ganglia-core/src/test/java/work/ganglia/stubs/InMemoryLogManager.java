@@ -1,8 +1,8 @@
 package work.ganglia.stubs;
 
 import io.vertx.core.Future;
-import work.ganglia.core.model.SessionContext;
-import work.ganglia.core.state.LogManager;
+import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.internal.state.LogManager;
 
 import java.util.ArrayList;
 import java.util.Collections;

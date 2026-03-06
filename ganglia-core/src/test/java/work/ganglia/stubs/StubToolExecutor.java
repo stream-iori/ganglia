@@ -1,11 +1,11 @@
 package work.ganglia.stubs;
 
 import io.vertx.core.Future;
-import work.ganglia.core.model.SessionContext;
-import work.ganglia.tools.ToolExecutor;
-import work.ganglia.tools.model.ToolCall;
-import work.ganglia.tools.model.ToolDefinition;
-import work.ganglia.tools.model.ToolInvokeResult;
+import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.external.tool.ToolExecutor;
+import work.ganglia.port.external.tool.ToolCall;
+import work.ganglia.port.external.tool.ToolDefinition;
+import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 
 import java.util.Collections;
 import java.util.List;

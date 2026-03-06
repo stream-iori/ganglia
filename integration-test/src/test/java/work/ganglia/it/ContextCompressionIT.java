@@ -2,15 +2,19 @@ package work.ganglia.it;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import work.Main;
-import work.ganglia.core.Ganglia;
-import work.ganglia.core.llm.ModelGateway;
+import work.ganglia.Ganglia;
+import work.ganglia.port.external.llm.ModelGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import work.ganglia.core.model.*;
+import work.ganglia.port.chat.*;
+import work.ganglia.port.external.llm.*;
+import work.ganglia.port.external.tool.*;
+import work.ganglia.port.internal.state.*;;
 
 import java.util.Collections;
 import java.util.List;
@@ -39,8 +43,8 @@ public class ContextCompressionIT {
                 .put("primary", new io.vertx.core.json.JsonObject()
                     .put("contextLimit", 100))); // 100 tokens limit
 
-        Main.bootstrap(vertx, ".ganglia/config.json", configOverride, mockModel)
-            .onComplete(testContext.succeeding(g -> {
+        Main.bootstrap(vertx, ".ganglia/config.json", configOverride.put("webui", new JsonObject().put("enabled", false)), mockModel)
+            .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
                 this.baseContext = ganglia.sessionManager().createSession(UUID.randomUUID().toString());
                 testContext.completeNow();

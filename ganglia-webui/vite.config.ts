@@ -8,6 +8,22 @@ export default defineConfig({
     vue(),
     tailwindcss(),
   ],
+  define: {
+    global: 'window',
+  },
+  server: {
+    port: 5173,
+    host: 'localhost', // Use localhost explicitly
+    strictPort: true,
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 5173,
+    },
+    watch: {
+      usePolling: true,
+    },
+  },
   test: {
     environment: 'jsdom',
   },

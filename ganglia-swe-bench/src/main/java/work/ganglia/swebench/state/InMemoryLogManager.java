@@ -1,8 +1,8 @@
 package work.ganglia.swebench.state;
 
 import io.vertx.core.Future;
-import work.ganglia.core.model.SessionContext;
-import work.ganglia.core.state.LogManager;
+import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.internal.state.LogManager;
 
 public class InMemoryLogManager implements LogManager {
     @Override

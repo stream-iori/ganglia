@@ -1,6 +1,6 @@
 package work.ganglia.it.harness;
 
-import work.ganglia.core.model.ModelResponse;
+import work.ganglia.port.external.llm.ModelResponse;
 import java.util.List;
 
 /**

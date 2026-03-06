@@ -1,18 +1,18 @@
 package work.ganglia.swebench;
 
 import io.vertx.core.Vertx;
-import work.ganglia.core.config.model.ModelConfig;
-import work.ganglia.core.llm.OpenAIModelGateway;
-import work.ganglia.core.loop.ConsecutiveFailurePolicy;
-import work.ganglia.core.loop.EventBusObservationPublisher;
-import work.ganglia.core.loop.StandardAgentLoop;
+import work.ganglia.config.model.ModelConfig;
+import work.ganglia.infrastructure.external.llm.OpenAIModelGateway;
+import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
+import work.ganglia.kernel.loop.EventBusObservationPublisher;
+import work.ganglia.kernel.loop.StandardAgentLoop;
 import java.util.List;
-import work.ganglia.core.model.SessionContext;
-import work.ganglia.core.model.ModelOptions;
-import work.ganglia.core.session.DefaultSessionManager;
-import work.ganglia.core.schedule.DefaultSchedulableFactory;
-import work.ganglia.core.schedule.SchedulableFactory;
-import work.ganglia.memory.ContextCompressor;
+import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.external.llm.ModelOptions;
+import work.ganglia.infrastructure.internal.state.DefaultSessionManager;
+import work.ganglia.kernel.task.DefaultSchedulableFactory;
+import work.ganglia.kernel.task.SchedulableFactory;
+import work.ganglia.infrastructure.internal.memory.ContextCompressor;
 import work.ganglia.swebench.config.MinimalConfigManager;
 import work.ganglia.swebench.prompt.MinimalPromptEngine;
 import work.ganglia.swebench.state.InMemoryStateEngine;
@@ -21,9 +21,9 @@ import work.ganglia.swebench.tools.DockerBashTools;
 import work.ganglia.swebench.tools.DockerFileSystemTools;
 import work.ganglia.swebench.tools.DockerFileEditTools;
 import work.ganglia.swebench.tools.SWEBenchToolExecutor;
-import work.ganglia.tools.model.ToDoList;
-import work.ganglia.memory.TokenCounter;
-import work.ganglia.core.session.DefaultContextOptimizer;
+import work.ganglia.infrastructure.external.tool.model.ToDoList;
+import work.ganglia.infrastructure.internal.memory.TokenCounter;
+import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +62,7 @@ public class SWEBenchEvaluator {
             MinimalConfigManager config = new MinimalConfigManager(vertx);
             ModelConfig primaryModel = config.getGangliaConfig().getModel("primary");
 
-            OpenAIModelGateway model = new OpenAIModelGateway(vertx, primaryModel.apiKey(), primaryModel.baseUrl());
+            OpenAIModelGateway model = new OpenAIModelGateway(vertx, io.vertx.ext.web.client.WebClient.create(vertx), primaryModel.apiKey(), primaryModel.baseUrl());
 
             SWEBenchToolExecutor toolExecutor = new SWEBenchToolExecutor(trajectoryLogger);
             toolExecutor.addToolSet(new DockerBashTools(vertx, sandbox));

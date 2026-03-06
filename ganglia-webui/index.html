@@ -8,6 +8,13 @@
   </head>
   <body>
     <div id="app"></div>
+    <script>
+      console.log("Page loaded. URL:", window.location.href);
+      if (window.location.port === "8080") {
+        console.warn("⚠️ You are accessing the BACKEND port (8080). HMR will NOT work here.");
+        console.warn("👉 Please use http://localhost:5173 for development with HMR.");
+      }
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

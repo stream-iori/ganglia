@@ -3,7 +3,7 @@ package work.ganglia.ui;
 import io.vertx.core.Vertx;
 import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonObject;
-import work.ganglia.core.model.ObservationEvent;
+import work.ganglia.port.external.tool.ObservationEvent;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedStringBuilder;

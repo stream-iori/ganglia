@@ -36,12 +36,12 @@ onUpdated(() => {
 <template>
   <main class="flex-1 flex flex-col bg-slate-950 h-full relative overflow-hidden">
     <StatusBar />
-    
+
     <!-- Message Stream -->
     <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-800 relative">
       <!-- Blocking Overlay -->
-      <div 
-        v-if="isBlocked" 
+      <div
+        v-if="isBlocked"
         class="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px] z-10 transition-all duration-500"
       ></div>
 
@@ -55,7 +55,7 @@ onUpdated(() => {
 
         <!-- Dynamic Event Stream -->
         <template v-for="event in logStore.events" :key="event.eventId">
-          
+
           <div v-if="event.type === 'USER_MESSAGE'" class="flex justify-end">
             <div class="bg-slate-800 text-slate-100 px-4 py-2 rounded-2xl rounded-tr-none max-w-[80%] shadow-md border border-slate-700/50">
               {{ event.data.content }}
@@ -63,17 +63,17 @@ onUpdated(() => {
           </div>
 
           <ThoughtCard v-if="event.type === 'THOUGHT'" :content="event.data.content" />
-          
+
           <ToolCard v-if="event.type === 'TOOL_START'" :event="event" :all-events="logStore.events" />
-          
+
           <AgentMessage v-if="event.type === 'AGENT_MESSAGE'" :content="event.data.content" />
-          
+
           <AskUserForm v-if="event.type === 'ASK_USER'" :event="event" />
-          
+
           <div v-if="event.type === 'SYSTEM_ERROR'" class="bg-rose-950/20 border border-rose-500/50 p-4 rounded-lg text-rose-200 text-xs shadow-lg">
             <div class="font-bold mb-1 uppercase tracking-tight flex items-center justify-between">
               <span>System Error: {{ event.data.code }}</span>
-              <button 
+              <button
                 v-if="event.data.canRetry"
                 @click="retry"
                 class="bg-rose-500 hover:bg-rose-400 text-white px-2 py-0.5 rounded text-[10px] transition-colors"
@@ -94,25 +94,25 @@ onUpdated(() => {
           </div>
           <AgentMessage :content="logStore.streamingMessage" />
         </div>
-        
+
         <div ref="streamEnd" class="h-1"></div>
       </div>
     </div>
-    
+
     <!-- Input Area -->
     <div class="p-6 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent border-t border-slate-900/50">
       <div class="max-w-3xl mx-auto relative group">
-        <textarea 
+        <textarea
           v-model="prompt"
           :disabled="isBlocked"
           @keydown.enter.exact.prevent="sendMessage"
           :placeholder="isBlocked ? 'Decision required above...' : 'Type a command or ask a question...'"
           class="w-full bg-slate-900/80 border border-slate-800 rounded-xl pl-4 pr-24 py-4 text-slate-200 focus:outline-none focus:border-emerald-500/50 focus:bg-slate-900 transition-all resize-none h-20 shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed"
         ></textarea>
-        
+
         <div class="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-2">
           <kbd v-if="!isBlocked" class="text-[10px] text-slate-600 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 font-mono text-xs">Enter</kbd>
-          <button 
+          <button
             @click="sendMessage"
             :disabled="isBlocked"
             class="bg-emerald-600 hover:bg-emerald-500 text-white p-2 rounded-lg transition-all active:scale-95 shadow-lg disabled:bg-slate-800 disabled:text-slate-600"

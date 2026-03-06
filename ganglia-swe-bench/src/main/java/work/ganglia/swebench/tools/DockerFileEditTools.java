@@ -2,11 +2,11 @@ package work.ganglia.swebench.tools;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import work.ganglia.core.model.SessionContext;
+import work.ganglia.port.chat.SessionContext;
 import work.ganglia.swebench.SandboxManager;
-import work.ganglia.tools.ToolSet;
-import work.ganglia.tools.model.ToolDefinition;
-import work.ganglia.tools.model.ToolInvokeResult;
+import work.ganglia.port.external.tool.ToolSet;
+import work.ganglia.port.external.tool.ToolDefinition;
+import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.testcontainers.images.builder.Transferable;

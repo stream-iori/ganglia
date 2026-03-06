@@ -3,10 +3,10 @@ package work.ganglia.example;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import work.Main;
-import work.ganglia.core.Ganglia;
-import work.ganglia.core.model.SessionContext;
+import work.ganglia.Ganglia;
+import work.ganglia.port.chat.SessionContext;
 import work.ganglia.ui.TerminalUI;
-import work.ganglia.core.model.Role;
+import work.ganglia.port.chat.Role;
 
 import java.util.UUID;
 
