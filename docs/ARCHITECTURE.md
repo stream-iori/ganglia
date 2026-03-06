@@ -1,13 +1,13 @@
 # Ganglia Architecture Documentation
 
 > **Status:** Implemented
-> **Version:** 1.1.0
+> **Version:** 1.2.0
 
 ## 1. System Overview
 
 **Ganglia** is a Java-based Agent framework designed for integration into third-party applications. It prioritizes **simplicity, robustness, and transparency** over complex, opaque multi-agent graphs.
 
-The core design philosophy is inspired by **Claude Code**: a single, powerful control loop that utilizes a hybrid toolset and a transparent, file-based memory system.
+The core design philosophy follows a **Hexagonal (Ports & Adapters)** architecture, ensuring that the central reasoning loop is decoupled from specific model providers and technical implementations.
 
 ## 2. Core Design Principles
 
@@ -16,177 +16,95 @@ The core design philosophy is inspired by **Claude Code**: a single, powerful co
     - Use a flat message history processed by a single main loop.
     - Flow: `Input -> [Thought -> Tool -> Observation] * N -> Answer`.
 
-2.  **Tool-First Navigation:**
-    - The agent explores codebases using tools (`grep`, `glob`, `read`) rather than relying purely on pre-computed embeddings.
-    - "Agentic Search" allows the model to form its own queries and refine them based on feedback.
+2.  **Hexagonal Decoupling:**
+    - The **Kernel** (Reasoning) is isolated from **Infrastructure** (LLM, Storage).
+    - All dependencies flow inward towards the Kernel and the Domain Port layer.
 
-3.  **Memory as Code:**
-    - Memory is stored in **Markdown files** (`MEMORY.md`, Daily Records) within the project.
+3.  **Tool-First Navigation:**
+    - The agent explores codebases using tools (`grep`, `glob`, `read`) rather than relying purely on pre-computed embeddings.
+
+4.  **Memory as Code:**
+    - Memory is stored in **Markdown files** (`MEMORY.md`, Daily Records).
     - It is transparent, editable, and version-controlled.
 
-4.  **Steerability via Prompting:**
-    - Behavior is controlled by extensive, structured prompts (XML, ContextSources) rather than hard-coded logic.
-    - Core mandates are managed via [Core Guidelines](CORE_GUIDELINES_DESIGN.md) (`GANGLIA.md`).
+## 3. Logical Architecture (Hexagonal)
 
-## 3. Logical Architecture
+### 3.0 Architectural Layers
 
-### 3.0 Layered Architecture
-
-The system is organized into distinct layers to ensure modularity.
+The system is organized into four primary hexagonal layers.
 
 ```mermaid
 graph TD
-    subgraph UI ["1. Interface Layer"]
-        TUI["TerminalUI (JLine 3 & Markdown)"]
-        App["Third-party Apps / Demos"]
+    subgraph API ["1. API / Adapter Layer"]
+        WebUI["WebUIVerticle (SockJS Bridge)"]
+        TUI["TerminalUI (Standalone Module)"]
+        Demos["Example Applications"]
     end
 
-    subgraph Core ["2. Core Orchestration"]
-        Loop["StandardAgentLoop (Control Flow)"]
-        Sched["Scheduling Layer (Schedulable & Factory)"]
-        Session["SessionManager (State Tracking)"]
+    subgraph Kernel ["2. Kernel Layer (The Heart)"]
+        Loop["StandardAgentLoop (Reasoning)"]
+        Task["Schedulable Tasks (Execution)"]
+        SchedFactory["SchedulableFactory (Orchestration)"]
     end
 
-    subgraph Intel ["3. Intelligence & Context"]
-        Prompt["StandardPromptEngine (LlmRequest Preparation)"]
-        Context["ContextComposer (Source Aggregation)"]
-        Skills["SkillService (Domain Expertise)"]
-        Mem["ContextCompressor (Memory Optimization)"]
+    subgraph Port ["3. Port Layer (Contracts & Domain)"]
+        Chat["Chat Domain (Message, Turn, Context)"]
+        IntPorts["Internal Ports (MemoryService, PromptEngine, State)"]
+        ExtPorts["External Ports (ModelGateway, ToolExecutor)"]
     end
 
-    subgraph Action ["4. Actuation Layer"]
-        Tasks["Schedulable Tasks (Tool, SubAgent, Skill, Graph)"]
-        Executor["DefaultToolExecutor (Standard Tools)"]
+    subgraph Infra ["4. Infrastructure Layer (Implementation)"]
+        Gateways["Native LLM Gateways (OpenAI, Anthropic Protocols)"]
+        Tools["Standard Tool Implementations (Bash, FS)"]
+        Storage["File-based State & Daily Logs"]
+        Vertx["Vert.x Core (EventBus, WebClient)"]
     end
 
-    subgraph Gateway ["5. Model Provider Layer"]
-        Factory["ModelGatewayFactory"]
-        Providers["OpenAI / Anthropic / Gemini / Fallback Gateways"]
-    end
-
-    subgraph Data ["6. Persistence & Infra"]
-        State["FileStateEngine (.ganglia/state)"]
-        KB["KnowledgeBase (MEMORY.md)"]
-        Trace["TraceManager (Observability)"]
-        Vertx["Vert.x (Non-blocking Runtime)"]
-    end
-
-    UI --> Loop
-    Loop --> Sched
-    Sched --> Tasks
-    Tasks --> Executor
-    Loop --> Session
-    Loop --> Intel
-    Intel --> Data
-    Action --> Data
-    Loop --> Gateway
-    Gateway --> Data
-    Session --> State
+    API --> Kernel
+    Kernel --> Port
+    Infra -- implements --> Port
+    Kernel -.-> Port
 ```
 
-### 3.1 The Model Layer ("The Brain")
+### 3.1 The Kernel Layer ("The Brain")
 
-- **Unified Interface:** `ModelGateway` abstracts providers (OpenAI, Anthropic, Gemini).
-- **Low-Latency Streaming:** 
-  - Uses `chatStream` to provide real-time feedback via the Vert.x EventBus.
-  - Thoughts and content are streamed while tool calls are accumulated.
-- **Robustness:** `FallbackModelGateway` provides automatic downgrade to utility models if the primary model fails.
-- **Testing:** `StubModelGateway` and `E2ETestHarness` allow for deterministic E2E simulation without real LLM calls.
+- **Reasoning Loop:** `StandardAgentLoop` manages the iterative cycle of Thought, Action, and Observation.
+- **Task System:** All actions (Tools, Sub-Agents, Skills) are encapsulated as `Schedulable` tasks, ensuring uniform execution and sequential safety.
+- **Robustness:** Includes failure policies (`ConsecutiveFailurePolicy`) and retry mechanisms.
 
-### 3.2 Scheduling & Actuation ("The Hands")
-- **Core Abstraction:** The `Schedulable` interface decouples the reasoning loop from execution details. The loop doesn't know if it's scheduling a bash command or a child agent.
-- **Factory Pattern:** `SchedulableFactory` transforms LLM `ToolCall` intents into concrete executable tasks.
-- **Task Types:**
-  - **StandardToolTask:** Wraps primitive operations (Bash, FileSystem, Interact) via `DefaultToolExecutor`.
-  - **SubAgentTask:** Spawns a new independent Reasoning Loop for scoped delegation.
-  - **SkillTask:** Manages dynamic skill activation and executes tools from active skills.
-  - **TaskGraphTask:** Orchestrates Directed Acyclic Graphs (DAGs) of tasks with user approval interrupts.
-- **Safety:**
-  - **Output Limits:** 64KB per tool call.
-  - **Pagination:** `read_file` supports `offset` and `limit`.
-  - **Sanitization:** `PathSanitizer` prevents directory traversal.
+### 3.2 The Port Layer ("The Contracts")
 
-### 3.3 The Memory System
+- **Internal Ports:** Define how the Kernel interacts with its internal cognitive systems (Memory, Prompt, State).
+- **External Ports:** Define how the Kernel interacts with the environment (LLMs via `ModelGateway`, Tools via `ToolExecutor`).
+- **Domain Models:** All core data structures like `Message`, `SessionContext`, and `ToolCall` are defined here, ensuring high cohesion.
+
+### 3.3 The Infrastructure Layer ("The Hands")
+
+- **Native LLM Gateways:** Re-implemented OpenAI and Anthropic protocols using Vert.x `WebClient` and SSE parsing, eliminating heavy SDK dependencies.
+- **Tool Implementations:** Concrete logic for file system manipulation, shell execution, and web fetching.
+- **Persistence:** Implementation of file-based session state and daily journaling.
+
+## 4. The Memory System
 
 - **Three-Tier Architecture:**
     - **Short-Term (Turn):** Raw interaction details.
-    - **Medium-Term (Session):** Managed via `ContextCompressor`.
+    - **Medium-Term (Session):** Managed via rolling compression.
     - **Daily Journal:** Cross-session summaries in `.ganglia/memory/daily-*.md`.
     - **Long-Term (Project):** `MEMORY.md`.
 
-### 3.4 Skill System ("The Expertise")
+## 5. Human-in-the-Loop & Steering
 
-- **Hybrid Loading:** Supports script-based skills (folder) and JAR-based skills (dynamically loaded).
-- **Isolation:** JAR skills use dedicated ClassLoaders to prevent dependency conflicts.
+Ganglia supports an asynchronous **"Steering & Abort"** mechanism:
 
-### 3.5 Context Management Engine
+1.  **Soft Steering:** Users can inject new instructions into a session queue at any time. The Kernel checks this between reasoning steps.
+2.  **Hard Abort:** An `AgentSignal` allows for immediate cancellation of network calls and tool executions (e.g., via `Ctrl+C`).
+3.  **Interrupts:** Sensitive tools (like `ask_selection`) can pause the loop to await explicit user input.
 
-- **Source-based Composition:** `ContextComposer` aggregates `ContextSource` implementations (Persona, Environment, Tools, Skills, etc.).
-- **Prioritized Stacking:** Fragments are merged based on priority (1-10).
-- **Token Pruning:** `StandardPromptEngine` handles history pruning and context window management.
-
-## 4. Interface & Interaction
-
-- **Rich Terminal UI:** Powered by **JLine 3**, providing multiline input, syntax highlighting, and a sticky status bar.
-- **Markdown Rendering:** Integrated **flexmark** for ANSI-rendered Markdown output (bold, italics, code blocks, lists).
-- **E2E Simulation:** A declarative `TestScenario` framework for verifying complex agent behaviors via the `E2ETestHarness`.
-
-## 5. Human-in-the-Loop & Interaction
-
-Ganglia employs a **"Plan First, Act Later"** philosophy to ensure user control over complex tasks, alongside advanced runtime safeguards and steering capabilities.
-
-### 5.1 The "Plan First" Pattern (Architectural)
-
-Before executing complex requests, the system enters a **Planning Phase**:
-
-1.  **Decomposition:** A specialized "Planner" LLM instance analyzes the request and generates a structured JSON plan (`List<Step>`).
-2.  **Review:** The plan is presented to the user for approval or modification.
-3.  **Execution:** Only approved steps are fed into the ReAct Executor's To-Do list.
-
-### 5.2 Two-Layer Interrupts (Steering & Abort)
-
-Ganglia supports an asynchronous, PI-inspired (pi-mono) **"Steering & Abort"** mechanism, allowing users to interact with the agent while it is running:
-
-1.  **Soft Steering (Course Correction):**
-    - Users can inject new instructions (Steering Messages) into the `SessionManager`'s concurrent queue at any time.
-    - The `StandardAgentLoop` checks this queue at the start of every reasoning cycle and *between* every tool execution.
-    - If a message is found, pending tools are aborted, the message is appended to the context, and the agent re-evaluates its plan.
-2.  **Hard Abort (Cancellation):**
-    - An `AgentSignal` acts as a cancellation token.
-    - Pressing `Ctrl+C` allows the user to trigger a hard stop, which immediately throws an `AgentAbortedException` and halts network calls and subsequent tool executions.
-3.  **Tool-Based Interrupts:**
-    - Tasks like `TaskGraphTask` or `SkillTask` (activation) can return a `SchedulableResult.INTERRUPT` to pause the loop and await explicit user confirmation.
-
-## 6. Data Flow (ReAct Loop)
-
-```mermaid
-graph TD
-    User["User Input"] -->|Triggers| PE["PromptEngine"]
-    Files["Project Files (GANGLIA.md, MEMORY.md)"] -->|Resolved by| PE
-    Env["Env State"] -->|Captured by| PE
-
-    PE -->|Builds Request| Model["Model Gateway"]
-
-    Model -->|Decision: Act| Loop["StandardAgentLoop"]
-    
-    Loop -->|ToolCall| Sched["SchedulableFactory"]
-    Sched -->|Creates| Task["Schedulable Task"]
-    
-    Task -->|Execute| Executor["DefaultToolExecutor (Optional)"]
-    Executor -->|Run| RealWorld["Bash / FS / Web"]
-    
-    RealWorld -->|Result| Obs["Observation"]
-    Task -->|Result| Obs
-    
-    Obs -->|Append to History| Loop
-    Loop -->|Next Iteration| PE
-```
-
-## 7. Technology Stack
+## 6. Technology Stack
 
 - **Language:** Java 17+
 - **Core Framework:** Vert.x (Reactive, Non-blocking I/O)
-- **UI & Rendering:** JLine 3, Flexmark
-- **LLM Client:** OpenAI-Java (Official) 
-- **Observability:** OpenTelemetry
-- **Testing:** JUnit 5, E2E Simulation Harness
+- **Networking:** Vert.x WebClient (Native protocol implementation)
+- **UI:** JLine 3, Flexmark, Vue 3
+- **Configuration:** Vert.x Config (supporting JSON and Env vars)
+- **Testing:** JUnit 5, Mockito, E2E Simulation Harness

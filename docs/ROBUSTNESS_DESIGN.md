@@ -16,10 +16,10 @@ The `ModelGateway` abstracts provider-specific errors into a unified `LLMExcepti
 - `AuthenticationException`: Critical failure, alerts the user.
 
 ### 2.2 Retry with Backoff
-Core Reasoning Loops use Vert.x timers to implement jittered exponential backoff for transient errors (500, 502, 503, 504, 429).
+The `RetryingModelGateway` (Infrastructure) implements jittered exponential backoff for transient errors (500, 502, 503, 504, 429). It ensures that individual LLM calls are resilient to temporary network or provider issues before failing the reasoning step.
 
 ### 2.3 Model Fallback
-If the `primary` model fails consistently or hits quota limits, the system can automatically downgrade to the `utility` model defined in `ConfigManager` to attempt completion of simpler tasks.
+If the `primary` model fails consistently or hits quota limits, the `FallbackModelGateway` can automatically downgrade to the `utility` model defined in `ConfigManager`.
 
 ## 3. Tool Execution Robustness
 

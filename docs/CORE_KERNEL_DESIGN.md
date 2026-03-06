@@ -1,20 +1,21 @@
 # Ganglia Core Kernel Architecture (Implemented)
 
 > **Module:** `ganglia-core`
-> **Status:** Implemented (v1.1.0)
-> **Package:** `me.stream.ganglia.core`
+> **Status:** Implemented (v1.2.0)
+> **Package:** `work.ganglia.kernel`
 
-This document outlines the detailed design for the Core Kernel module using UML and Sequence diagrams.
+This document outlines the detailed design for the Core Kernel module, emphasizing its isolation within the Hexagonal architecture.
 
-## 1. Class Diagram: Core Components
+## 1. Class Diagram: Kernel vs. Port
 
-This diagram illustrates the relationships between the main entities: `AgentLoop`, `ModelGateway`, `SchedulableFactory`, and the `Schedulable` tasks.
+The Kernel represents the pure logic of the reasoning loop, interacting with the environment only through stable interfaces (Ports).
 
 ```mermaid
 classDiagram
     class AgentLoop {
         <<Interface>>
         +run(userInput: String, context: SessionContext, signal: AgentSignal) Future~String~
+        +stop(sessionId: String)
     }
     
     class StandardAgentLoop {
@@ -22,170 +23,98 @@ classDiagram
         -scheduleableFactory: SchedulableFactory
         -sessionManager: SessionManager
         -promptEngine: PromptEngine
-        -tokenCounter: TokenCounter
         +run(...)
-        +resume(toolOutput: String, ...)
-        -executeSchedulablesSequentially(...)
+        +resume(...)
+        -runLoop(...)
     }
     
     AgentLoop <|.. StandardAgentLoop
     
-    class SchedulableFactory {
-        <<Interface>>
-        +create(call: ToolCall, context: SessionContext) Schedulable
-        +getAvailableDefinitions(context: SessionContext) List~ToolDefinition~
-    }
-
     class Schedulable {
         <<Interface>>
         +id() String
-        +name() String
         +execute(context: SessionContext) Future~SchedulableResult~
     }
 
-    class StandardToolTask {
-        -toolExecutor: ToolExecutor
-    }
-    class SubAgentTask {
-        -vertx: Vertx
-    }
-    class SkillTask {
-        -skillRuntime: SkillRuntime
-    }
-    class TaskGraphTask {
-        -graphExecutor: GraphExecutor
-    }
+    subgraph Tasks [Kernel Tasks]
+        class ToolTask
+        class SubAgentTask
+        class SkillTask
+        class TaskGraphTask
+    end
 
-    Schedulable <|.. StandardToolTask
+    Schedulable <|.. ToolTask
     Schedulable <|.. SubAgentTask
     Schedulable <|.. SkillTask
     Schedulable <|.. TaskGraphTask
 
-    StandardAgentLoop --> SchedulableFactory : uses to create tasks
-    SchedulableFactory ..> Schedulable : produces
-    
-    class ModelGateway {
-        <<Interface>>
-        +chat(...) Future~ModelResponse~
-        +chatStream(...) Future~Void~
-    }
-    
-    class SessionContext {
-        <<Record>>
-        +sessionId: String
-        +previousTurns: List~Turn~
-        +currentTurn: Turn
-        +metadata: Map~String, Object~
-        +toDoList: ToDoList
-    }
-
-    class SessionManager {
-        <<Interface>>
-        +addSteeringMessage(sessionId: String, msg: String)
-        +pollSteeringMessages(sessionId: String) List~String~
-    }
+    subgraph Port [Port Layer - work.ganglia.port]
+        class ModelGateway { <<Interface>> }
+        class SessionManager { <<Interface>> }
+        class ToolExecutor { <<Interface>> }
+        class PromptEngine { <<Interface>> }
+    end
 
     StandardAgentLoop --> ModelGateway : uses
-    StandardAgentLoop --> SessionManager : persists state & polls messages
-    StandardAgentLoop --> PromptEngine : prepares LLM inputs
+    StandardAgentLoop --> SessionManager : uses
+    StandardAgentLoop --> PromptEngine : uses
+    ToolTask --> ToolExecutor : uses
 ```
 
 ## 2. Sequence Diagram: The ReAct Loop
 
-This diagram details the flow of the `AgentLoop.run()` method, demonstrating the orchestration of `Schedulable` tasks.
+The Kernel coordinates the flow between Prompt preparation, Model interaction, and Task execution.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant User
-    participant AgentLoop
-    participant PromptEngine
-    participant Model as ModelGateway
-    participant Factory as SchedulableFactory
+    participant Loop as StandardAgentLoop
+    participant Port as PortLayer (Prompt/Model/Session)
     participant Task as SchedulableTask
-    participant SM as SessionManager
 
-    User->>AgentLoop: run(userInput, context, signal)
-    AgentLoop->>SM: startTurn & save
+    User->>Loop: run(userInput, context, signal)
+    Loop->>Port: startTurn & persist
     
-    loop ReAct Cycle (Max N times)
-        Note over AgentLoop, Model: 1. Reasoning Phase
-        AgentLoop->>SM: pollSteeringMessages()
-        opt Has Steering Messages
-            AgentLoop->>AgentLoop: Inject to Context
-        end
-
-        AgentLoop->>PromptEngine: prepareRequest(Context)
-        PromptEngine-->>AgentLoop: LlmRequest (Layered Prompts + Tools)
+    loop ReAct Cycle (Max Iterations)
+        Note over Loop, Port: 1. Reasoning Phase
+        Loop->>Port: prepareRequest(Context)
+        Port-->>Loop: LlmRequest (Layered Prompts + Tools)
         
-        AgentLoop->>Model: chatStream(LlmRequest)
-        Model-->>AgentLoop: ModelResponse (Accumulated Content + ToolCalls)
+        Loop->>Port: chatStream(LlmRequest)
+        Port-->>Loop: ModelResponse (Accumulated Content + ToolCalls)
         
         alt Has Tool Calls?
-            Note over AgentLoop, Factory: 2. Scheduling Phase
-            AgentLoop->>Factory: create(ToolCall)
-            Factory-->>AgentLoop: SchedulableTask
+            Note over Loop, Task: 2. Execution Phase
+            Loop->>Loop: create tasks via Factory
             
-            Note over AgentLoop, Task: 3. Execution Phase (Sequential)
-            AgentLoop->>SM: pollSteeringMessages()
-            opt Has Steering Messages
-                AgentLoop->>AgentLoop: Inject to Context & Abort pending Tasks
-            end
-
-            AgentLoop->>Task: execute(Context)
-            Task-->>AgentLoop: SchedulableResult (Observation)
-            
-            alt Any Task Interrupted (e.g. ask_selection)?
-                AgentLoop-->>User: Return Prompt/Interrupt
-                User->>AgentLoop: resume(Feedback)
-                AgentLoop->>AgentLoop: Execute remaining Tasks
+            loop For each ToolCall
+                Loop->>Task: execute(Context)
+                Task-->>Loop: SchedulableResult (Observation)
+                Loop->>Port: publishObservation
             end
             
-            AgentLoop->>SM: addStep & save
-            Note right of AgentLoop: Continue Loop -> Feed Observations back to Model
+            Loop->>Port: persist(Context)
             
         else No Tool Calls (Final Answer)
-            AgentLoop->>SM: completeTurn & save
-            Note right of AgentLoop: Break Loop
+            Loop->>Port: completeTurn & persist
+            Note right of Loop: Break Loop
         end
     end
 
-    AgentLoop-->>User: Final Response String
+    Loop-->>User: Final Response String
 ```
 
-## 3. Class Diagram: Model Abstraction
+## 3. Data Integrity & Immutability
 
-(Remains unchanged from v1.0.0)
+The Kernel relies on immutable records from the `work.ganglia.port.chat` package:
+- **`Message`**: Represents a single interaction (User, Assistant, Tool).
+- **`Turn`**: A collection of Reasoning/Action steps.
+- **`SessionContext`**: The complete state of a session, evolved using functional updates (e.g., `context.withNewTurn(...)`).
 
-```mermaid
-classDiagram
-    class ModelGateway {
-        <<Interface>>
-        +chat(...)
-        +chatStream(...)
-    }
-    
-    class OpenAIModelGateway {
-        -client: OpenAIClient
-        -vertx: Vertx
-        +chat(...)
-        +chatStream(...)
-    }
-    
-    class AnthropicModelGateway {
-        -client: AnthropicClient
-        +chat(...)
-    }
-    
-    ModelGateway <|.. OpenAIModelGateway
-    ModelGateway <|.. AnthropicModelGateway
-    
-    class ModelOptions {
-        <<Record>>
-        +temperature: double
-        +maxTokens: int
-        +modelName: String
-    }
-    
-    ModelGateway ..> ModelOptions : uses
-```
+## 4. Decoupling Rationale
+
+By separating the **Kernel** from **Infrastructure** via **Ports**:
+1. **Model Agnostic**: Changing from OpenAI to Anthropic requires no changes to the reasoning loop logic.
+2. **Persistence Agnostic**: The Kernel doesn't know if state is saved to a JSON file or a database.
+3. **Testability**: The Kernel can be fully unit tested by mocking the Port interfaces.

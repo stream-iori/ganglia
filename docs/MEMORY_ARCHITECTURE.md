@@ -1,5 +1,5 @@
-# Ganglia Memory Architecture (Implemented)
-
+> **Status:** Implemented (v1.2.0)
+> **Package:** `work.ganglia.port.internal.memory` / `work.ganglia.infrastructure.internal.memory`
 > **Philosophy:** "Memory as Code". Transparent, user-controlled, file-based, and tiered.
 
 ## 1. Overview

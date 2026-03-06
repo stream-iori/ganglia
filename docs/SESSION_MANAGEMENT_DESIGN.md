@@ -1,7 +1,8 @@
 # Ganglia Session Management (Implemented)
 
-> **Status:** Implemented (v1.0.0)
-> **Related:** [Architecture](ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md), [Memory Architecture](MEMORY_ARCHITECTURE.md)
+> **Status:** Implemented (v1.2.0)
+> **Package:** `work.ganglia.port.internal.state` (Contract) / `work.ganglia.infrastructure.internal.state` (Impl)
+> **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 
 ## 1. Introduction
 The `SessionManager` provides a high-level API for managing the lifecycle of agent sessions. It abstracts the complexities of state persistence, turn tracking, and context initialization, allowing clients to interact with the agent through stable session identifiers.

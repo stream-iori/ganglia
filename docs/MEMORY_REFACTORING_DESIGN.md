@@ -1,74 +1,49 @@
 # Memory & Usage Decoupling (Implemented)
 
-> **Status:** Implemented (v1.0.0)
-> **Related:** [Architecture](ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md), [Memory Architecture](MEMORY_ARCHITECTURE.md)
+> **Status:** Implemented (v1.2.0)
+> **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 
 ## 1. Objective
-Decouple non-core logic (Memory Reflection, Daily Records, Token Usage Tracking) from the primary `StandardAgentLoop` to ensure a cleaner, more focused control loop and to allow these tasks to run fully asynchronously without affecting the agent's main execution flow.
+Decouple cognitive background tasks (Memory Reflection, Token Tracking) from the primary reasoning loop to ensure high responsiveness and modularity.
 
 ## 2. Event-Driven Architecture
 
-The system will transition to an event-driven model for auxiliary tasks using the Vert.x EventBus.
+The system uses the Vert.x EventBus for all non-critical, auxiliary tasks. Addresses are centralized in `work.ganglia.util.Constants`.
 
-### 2.1 EventBus Addresses
-| Address | Description | Payload |
+### 2.1 Core EventBus Addresses
+| Address | Constant | Description |
 | :--- | :--- | :--- |
-| `ganglia.memory.reflect` | Trigger reflection and daily recording. | `{ "sessionId": "...", "goal": "...", "turn": { Turn object } }` |
-| `ganglia.usage.record` | Record token usage for a session. | `{ "sessionId": "...", "usage": { TokenUsage object } }` |
+| `ganglia.memory.event` | `ADDRESS_MEMORY_EVENT` | Trigger summarization & journaling. |
+| `ganglia.usage.record` | `ADDRESS_USAGE_RECORD` | Persist actual token consumption. |
+| `ganglia.usage.estimate` | `ADDRESS_USAGE_ESTIMATE` | Real-time usage estimation for UI. |
 
-## 3. New Components
-
-### 3.1 `MemoryService`
-**Responsibility:** Aggregates memory-related background tasks.
-- **Listeners:** Listens on `ganglia.memory.reflect`.
-- **Logic:**
-    1. Extracts `Turn` and `goal` from the message.
-    2. Calls `ContextCompressor.reflect(turn)` to generate a summary.
-    3. Calls `DailyRecordManager.record(sessionId, goal, summary)` to persist the daily record.
-- **Resilience:** Errors during reflection or recording are logged but do not impact the caller.
-
-### 3.2 `TokenUsageManager`
-**Responsibility:** Tracks and persists token usage statistics.
-- **Listeners:** Listens on `ganglia.usage.record`.
-- **Logic:**
-    1. Extracts `TokenUsage` and `sessionId`.
-    2. Aggregates usage (e.g., in-memory map or persistent store).
-    3. (Optional) Emits a "usage summary" event when thresholds are reached.
-
-## 4. `StandardAgentLoop` Refactoring
-
-- **Simplified Constructor:** Remove dependencies on `ContextCompressor` and `DailyRecordManager`.
-- **Passive Notification:**
-    - At the end of a turn, publish a JSON message to `ganglia.memory.reflect`.
-    - Every time a `ModelResponse` is received, publish a JSON message to `ganglia.usage.record`.
-
-## 5. Interaction Flow
+## 3. Interaction Flow
 
 ```mermaid
 sequenceDiagram
-    participant Loop as StandardAgentLoop
+    participant Loop as StandardAgentLoop (Kernel)
     participant EB as EventBus
-    participant Mem as MemoryService
-    participant Usage as TokenUsageManager
-    participant Model as LLM
+    participant Mem as MemoryService (Port)
+    participant Usage as TokenUsageManager (Infra)
 
-    Loop->>Model: chatStream(...)
-    Model-->>Loop: ModelResponse(usage)
-    Loop->>EB: publish(ganglia.usage.record, usage)
-    EB->>Usage: handleRecord(usage)
+    Loop->>EB: publish(ADDRESS_USAGE_RECORD, usage)
+    EB->>Usage: persistUsage(usage)
 
-    Note over Loop: ... executes tools ...
+    Note over Loop: ... executes ReAct cycle ...
 
-    Loop->>EB: publish(ganglia.memory.reflect, turn)
-    EB->>Mem: handleReflect(turn)
-    Mem->>Model: reflect(turn)
-    Model-->>Mem: summary
-    Mem->>FS: record(summary)
-    
-    Loop-->>User: Final Answer
+    Loop->>EB: send(ADDRESS_MEMORY_EVENT, turnData)
+    EB->>Mem: handleReflect(turnData)
+    Mem->>LLM: reflect(turnData)
+    LLM-->>Mem: summary
+    Mem->>FS: appendToDailyLog(summary)
 ```
 
-## 6. Benefits
-- **Separation of Concerns:** `StandardAgentLoop` only cares about the reasoning loop.
-- **Asynchronous Execution:** Memory reflection (which involves another LLM call) runs in the background.
-- **Extensibility:** New listeners can be added to the EventBus without modifying the core loop (e.g., a billing service, a dashboard).
+## 4. Key Components
+
+- **`MemoryService` (Port)**: Acts as the registry for memory-related background listeners.
+- **`TokenUsageManager` (Infrastructure)**: An implementation that tracks costs and quota per session.
+- **`StandardAgentLoop` (Kernel)**: Only responsible for firing these "fire-and-forget" events at specific lifecycle hooks.
+
+## 5. Benefits
+- **Zero Latency Impact**: Memory reflection (which requires an LLM call) happens entirely in the background.
+- **Observability**: External services can subscribe to `ganglia.observations.*` to monitor the agent's internal state in real-time.

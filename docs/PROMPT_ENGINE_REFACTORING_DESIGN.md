@@ -1,21 +1,16 @@
 # Prompt Engine Architecture (Implemented)
 
-> **Status:** Implemented (v1.1.0)
-> **Related:** [Architecture](ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md), [Context Engine Design](CONTEXT_ENGINE_DESIGN.md)
+> **Status:** Implemented (v1.2.0)
+> **Package:** `work.ganglia.port.internal.prompt` (Contract) / `work.ganglia.infrastructure.internal.prompt` (Impl)
+> **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 
 ## 1. Objective
-Refactor the `PromptEngine` to be the primary authority for LLM interaction preparation. It will move away from just building a "System Prompt string" to building a full `LlmRequest` (or `PromptContext`) that includes:
-- Layered System Prompts (using existing `ContextEngine` logic).
-- Pruned/Compressed Conversation History.
-- Model Options (with fallback and dynamic selection).
-- Tool Definitions (consistent with current session/skill state).
-
-This refactoring reduces the complexity of `StandardAgentLoop` by centralizing prompt-related concerns.
+Refactor the `PromptEngine` to be the primary authority for LLM interaction preparation. It centralizes system prompt construction, history pruning, and tool definition resolution.
 
 ## 2. Core Models
 
 ### 2.1 `LlmRequest`
-A comprehensive DTO representing the input for a `ModelGateway` call.
+A comprehensive DTO defined in `work.ganglia.port.external.llm`.
 ```java
 public record LlmRequest(
     List<Message> messages,
@@ -24,81 +19,48 @@ public record LlmRequest(
 ) {}
 ```
 
-## 3. Revised Interface: `PromptEngine`
+## 3. Interfaces & Ports
 
+### 3.1 `PromptEngine` (Port)
+Defines the contract for preparing LLM inputs.
 ```java
 public interface PromptEngine {
     /**
      * Prepares the full request for the LLM.
-     * 1. Builds System Prompt via ContextEngine.
-     * 2. Prunes the session history to fit the token window.
-     * 3. Resolves ModelOptions (including fallbacks).
-     * 4. Fetches available tool definitions via SchedulableFactory.
+     * Includes layered system prompts, pruned history, and tool definitions.
      */
     Future<LlmRequest> prepareRequest(SessionContext context, int iteration);
-
-    /**
-     * Prunes a list of messages based on token limits.
-     */
-    List<Message> pruneHistory(List<Message> history, int maxTokens);
 }
 ```
 
-## 4. `StandardPromptEngine` Enhancements
+### 3.2 `ContextSource` (Port)
+Standardized provider for system prompt fragments (Persona, Mandates, Env, etc.).
 
-- **History Pruning Logic:** Move `pruneHistory` from `StandardAgentLoop` into `StandardPromptEngine`.
-- **Model Options Fallback:** Move the logic for choosing the right `ModelOptions` (and fallback values) here.
-- **Context Composition:** Combine the `System Prompt`, the `User Task`, and the `History` into a final message list.
-- **Factory Integration:** Uses `SchedulableFactory` to resolve the set of `ToolDefinition`s appropriate for the current context (e.g., filtering based on recursion depth or active skills).
-- **Configuration Integration:** Use `ConfigManager` to set default limits (e.g., history token window).
+## 4. `StandardPromptEngine` (Infrastructure)
 
-## 5. StandardAgentLoop Refactoring
+- **Context Composition:** Uses `ContextComposer` to aggregate fragments from various `ContextSource` implementations.
+- **History Pruning:** Intelligently prunes `Turn` history based on `contextLimit` from configuration.
+- **Factory Integration:** Collaborates with `SchedulableFactory` to fetch `ToolDefinition` objects relevant to the active context (e.g., skill-specific tools).
 
-The `reason` step in `StandardAgentLoop` becomes significantly simpler:
-
-```java
-private Future<ModelResponse> reason(SessionContext context, int iteration) {
-    return promptEngine.prepareRequest(context, iteration)
-        .compose(request -> {
-            return model.chatStream(
-                request.messages(), 
-                request.tools(), 
-                request.options(), 
-                context.sessionId()
-            );
-        });
-}
-```
-
-## 6. Token Budget Management (Multi-tier)
-The `PromptEngine` can now manage the total token budget more effectively:
-- **System Prompt Budget:** e.g., 2000 tokens (Managed by `ContextComposer`).
-- **History Budget:** e.g., 4000 tokens (Managed by `pruneHistory`).
-- **Total Input Limit:** Ensuring the sum doesn't exceed the model's `maxTokens` or hard limits.
-
-## 7. Interaction Flow
+## 5. Interaction Flow
 
 ```mermaid
 sequenceDiagram
     participant Loop as StandardAgentLoop
-    participant PE as PromptEngine
-    participant SF as SchedulableFactory
+    participant PE as StandardPromptEngine
     participant CC as ContextComposer
-    participant Model as LLM
+    participant SF as SchedulableFactory
 
     Loop->>PE: prepareRequest(SessionContext, iteration)
     PE->>CC: buildSystemPrompt(SessionContext)
-    CC-->>PE: systemPromptString
+    CC-->>PE: Aggregated Markdown
     PE->>SF: getAvailableDefinitions(context)
     SF-->>PE: List<ToolDefinition>
-    PE->>PE: pruneHistory(history, limit)
-    PE->>PE: resolveModelOptions(context)
-    PE-->>Loop: LlmRequest(messages, tools, options)
-    
-    Loop->>Model: chatStream(LlmRequest)
+    PE->>PE: pruneHistory(context)
+    PE-->>Loop: LlmRequest
 ```
 
-## 8. Benefits
-- **Separation of Concerns:** `StandardAgentLoop` focuses on state transitions, `PromptEngine` focuses on LLM input preparation.
-- **Testability:** `PromptEngine` can be tested in isolation to verify history pruning and prompt construction logic.
-- **Flexibility:** Easier to implement dynamic model selection without touching the agent loop.
+## 6. Implementation Detail: Constants
+The engine uses centralized constants from `work.ganglia.util.Constants`:
+- `FILE_GANGLIA_MD`: Root instructions.
+- `DEFAULT_GANGLIA_DIR`: Core data folder.

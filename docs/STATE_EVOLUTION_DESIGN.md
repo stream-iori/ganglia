@@ -1,8 +1,8 @@
 # 状态演进设计 (State Evolution & Immutability)
 
-> **状态:** 已归档
-> **版本:** 1.0.0
-> **相关:** [Architecture](ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
+> **Status:** Implemented (v1.2.0)
+> **Package:** `work.ganglia.port.chat` (Models)
+> **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 
 ## 1. 核心设计哲学：不可变性 (Immutability)
 

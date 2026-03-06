@@ -1,58 +1,57 @@
-# Ganglia Module Decomposition (Implemented)
+# Ganglia Module Decomposition
 
-> **Status:** Implemented (v1.1.0)
+> **Status:** Implemented (v1.2.0)
 > **Base:** Java 17, Vert.x 5.0.6
 
-This document describes the implemented module structure of the Ganglia system.
+This document describes the implemented module structure of the Ganglia system, following the Hexagonal architecture.
 
 ## 1. Core Framework (Module: `ganglia-core`)
 
-**Responsibility:** Orchestration of the main Reasoning Loop, model abstraction, scheduling, and state management.
+**Responsibility:** Orchestration of the Reasoning Loop, technical implementations, and domain port definitions.
 
-- **Components:**
-  - `StandardAgentLoop`: Core reasoning loop (Thought -> Task -> Observation).
-  - `SchedulableFactory`: Unified scheduling layer that maps LLM intents to executable tasks (Tools, Sub-Agents, Skills).
-  - `ModelGateway`: Abstraction for LLM providers (OpenAI, Anthropic, Gemini).
-  - `ContextEngine`: Layered system prompt construction via `ContextSource` and `ContextComposer`.
-  - `MemorySystem`: Turn-based history, Session compression, and Daily Logs (`DailyRecordManager`).
-  - `ToolExecutor`: Execution engine for standard, primitive tools (Bash, FileSystem).
-  - `SkillService`: Management of domain-specific expertise.
+### 1.1 Kernel (`work.ganglia.kernel`)
+- **Reasoning Loop**: `StandardAgentLoop` (Thought -> Task -> Observation).
+- **Task System**: `Schedulable` abstraction and concrete task types (`ToolTask`, `SubAgentTask`, `SkillTask`).
+- **Scheduling**: `SchedulableFactory` for mapping intents to execution.
+
+### 1.2 Port Layer (`work.ganglia.port`)
+- **Chat Domain**: `Message`, `Role`, `Turn`, `SessionContext`.
+- **Internal Contract**: `MemoryService`, `PromptEngine`, `SessionManager`, `StateEngine`, `SkillService`.
+- **External Contract**: `ModelGateway`, `ToolExecutor`.
+
+### 1.3 Infrastructure Layer (`work.ganglia.infrastructure`)
+- **LLM Integration**: Native OpenAI and Anthropic protocol implementations using Vert.x `WebClient`.
+- **Tooling**: `BashTools`, `FileEditTools`, `ToDoTools`.
+- **Cognitive Impl**: `StandardPromptEngine`, `ContextCompressor`.
+- **Persistence**: `FileStateEngine`, `FileSystemDailyRecordManager`.
 
 ## 2. Terminal UI (Module: `ganglia-terminal`)
 
 **Responsibility:** Rich interactive command-line interface.
+- **TerminalUI**: JLine 3 based controller with EventBus streaming support.
+- **MarkdownRenderer**: ANSI renderer for console output.
 
-- **Components:**
-  - `TerminalUI`: JLine 3 based terminal controller with EventBus streaming support.
-  - `MarkdownRenderer`: Flexmark-based ANSI renderer for Markdown content.
+## 3. Web UI (Module: `ganglia-webui`)
 
-## 3. Integration Testing (Module: `integration-test`)
+**Responsibility:** Modern browser-based control center.
+- **Frontend**: Vue 3 + Vite + Tailwind CSS.
+- **Backend API**: `WebUIVerticle` (in `ganglia-core`) providing a SockJS/EventBus bridge.
 
-**Responsibility:** Verification of complex scenarios and cross-module workflows.
+## 4. Integration Testing (Module: `integration-test`)
 
-- **Components:**
-  - `E2ETestHarness`: Declarative scenario testing using `StubModelGateway`.
-  - `IntegrationScenarios`: Automated IT cases covering sub-agents, DAGs, skills, and memory.
+**Responsibility:** Cross-module verification and complex scenario simulation.
+- **E2ETestHarness**: Declarative scenario testing using `StubModelGateway`.
+- **Scenarios**: Automated IT cases for memory, skills, and multi-agent cooperation.
 
-## 4. SWE-bench Module (Module: `ganglia-swe-bench`)
+## 5. SWE-bench Module (Module: `ganglia-swe-bench`)
 
-**Responsibility:** Automated evaluation of the agent on software engineering benchmarks.
-
-- **Components:**
-  - `SWEBenchEvaluator`: Benchmarking driver.
-  - `SandboxManager`: Docker-based isolated execution environments.
-
-## 5. Examples & Demos (Module: `ganglia-example`)
-
-**Responsibility:** Showcasing framework capabilities and providing starting points for users.
-
-- **Components:**
-  - `InteractiveChatDemo`: A full-featured interactive CLI.
-  - `AutonomousReActDemo`: Showcasing the agent's ability to solve tasks autonomously.
+**Responsibility:** Automated evaluation on software engineering benchmarks.
+- **SWEBenchEvaluator**: Driver for benchmark execution.
+- **Sandbox**: Docker-based execution environments.
 
 ## 6. Technology Stack Summary
 
-- **Core:** Vert.x (EventBus, Futures, FileSystem).
-- **LLM SDKs:** OpenAI Java, Anthropic Java, Google GenAI.
-- **UI:** JLine 3, Flexmark.
-- **Testing:** JUnit 5, Mockito, Vertx-JUnit5.
+- **Reactive Runtime**: Vert.x 5.0.6 (Event Loop, EventBus, Futures).
+- **LLM Protocols**: Native HTTP/SSE implementation (No SDKs).
+- **UI & Rendering**: JLine 3, Vue 3, Flexmark.
+- **Testing**: JUnit 5, Mockito, Vertx-JUnit5.

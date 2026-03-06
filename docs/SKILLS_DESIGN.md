@@ -1,54 +1,41 @@
 # Ganglia Skill Architecture (Implemented)
 
-> **Status:** Implemented (v1.0.0)
-> **Module:** `ganglia-skills`
-> **Related:** [Architecture](ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
+> **Status:** Implemented (v1.2.0)
+> **Package:** `work.ganglia.port.internal.skill` / `work.ganglia.infrastructure.internal.skill`
+> **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 
 ## 1. Objective
-Enable extensible agent expertise through both lightweight script-based tools and JAR-based Java extensions loaded dynamically.
+Enable extensible agent expertise through lightweight script-based tools and JAR-based Java extensions loaded dynamically.
 
-## 2. Skill Types & Loading
+## 2. Core Concepts
 
-### 2.1 Script-based Skills
-Standard Gemini CLI/Claude Code style skills.
-- **`FileSystemSkillLoader`**: Scans directories for `SKILL.md` and associated scripts.
-- **`ScriptSkillToolSet`**: Orchestrates external process execution (Node, Python, Bash) with variable substitution.
+### 2.1 Skill Ports (work.ganglia.port.internal.skill)
+- **`SkillService`**: Registry for available and active skills.
+- **`SkillManifest`**: Immutable record defining a skill's identity, guidelines, and tools.
+- **`SkillToolDefinition`**: Describes individual tools within a skill.
 
-### 2.2 JAR-based Skills
-Java extensions for high-performance or complex tool logic.
-- **`JarSkillLoader`**: Scans for `.jar` files in skill directories.
-- **`JavaSkillToolSet`**: Executes tool methods using reflection.
-- **ClassLoader Isolation**: `DefaultSkillRuntime` creates a unique `URLClassLoader` for each JAR skill, preventing dependency conflicts with the core runtime.
+### 2.2 Skill Infrastructure (work.ganglia.infrastructure.internal.skill)
+- **`DefaultSkillService`**: Orchestrates skill discovery and session-based activation.
+- **`FileSystemSkillLoader`**: Scans `.ganglia/skills` for directory-based skills.
+- **`JarSkillLoader`**: Handles dynamic loading of Java `.jar` skills with ClassLoader isolation.
 
-## 3. Tool Definition Matrix
+## 3. Execution & Task Architecture
 
-The `tools` array in `SKILL.md` frontmatter defines the execution mode:
+Skills are integrated into the Kernel through the `SkillTask` (in `work.ganglia.kernel.task`).
 
-- **`type: SCRIPT`**: Requires a `command` template.
-- **`type: JAVA`**: Requires a `className` implementing `ToolSet`.
+1. **Discovery**: `SkillService` finds all `SKILL.md` files.
+2. **Activation**: The agent calls `activate_skill` (provided via `SkillTools`).
+3. **Execution**: When a skill tool is called, `SkillTask` delegates to either:
+    - **`ScriptSkillToolSet`**: For CLI commands (Node, Python, etc.).
+    - **`JavaSkillToolSet`**: For reflection-based Java method calls.
 
-Example `SKILL.md` for Java:
-```markdown
----
-id: db-expert
-tools:
-  - name: query_database
-    type: JAVA
-    java:
-      className: "me.stream.ganglia.skills.db.DbToolSet"
-    schema: |
-      { "type": "object", ... }
----
-Instructions for DB expert...
-```
+## 4. Context Injection
 
-## 4. Lifecycle Management
+The `SkillContextSource` ensures that:
+- **Expert Guidelines**: The "System Prompt" fragments from `SKILL.md` are added to the Kernel's prompt.
+- **Tool Schemas**: Schemas for tools belonging to active skills are merged into the model request.
 
-- **`SkillService`**: Handles the activation and deactivation of skills per session.
-- **Context Injection**: `SkillContextSource` (part of `PromptEngine`) detects active skills and injects their persona guidelines and tool schemas into the system prompt.
-
-## 5. Security & Isolation
-
-- **Process-level isolation** for scripts.
-- **ClassLoader-level isolation** for Java tools.
-- **Schema Validation** via `ToolCallValidator` before tool execution.
+## 5. Directory Constants
+Paths are managed via `work.ganglia.util.Constants`:
+- `DIR_SKILLS`: Default location (`.ganglia/skills`).
+- `FILE_SKILL_MD`: Standard manifest filename (`SKILL.md`).
