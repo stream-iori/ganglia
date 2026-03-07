@@ -3,7 +3,7 @@
 **Ganglia** is a high-performance, non-blocking Java 17 Agent framework built on **Vert.x 5.0.6**. It follows a **Hexagonal (Ports & Adapters)** architecture, prioritizing simplicity, robustness, and transparency for building autonomous agents that can be integrated into any third-party application.
 
 ![Status](https://img.shields.io/badge/status-Implemented-success)
-![Version](https://img.shields.io/badge/version-1.2.0-blue)
+![Version](https://img.shields.io/badge/version-1.3.0-blue)
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![Vert.x](https://img.shields.io/badge/Vert.x-5.0.6-purple)
 
@@ -15,9 +15,10 @@
 - **Hexagonal Architecture:** Complete decoupling of core reasoning (Kernel) from model providers and technical implementations (Infrastructure).
 - **Native LLM Gateways:** Native support for OpenAI and Anthropic protocols via Vert.x WebClient. **No third-party SDK dependencies.**
 - **Memory as Code:** Transparent, file-based memory system using Markdown (`MEMORY.md` and Daily Journals).
-- **Dynamic Skill System:** Support for both script-based (Node, Python, Bash) and JAR-based Java skills with ClassLoader isolation.
+- **Standard-based Communication:** Standard **WebSockets** and **JSON-RPC 2.0** for all client-server interactions, supporting multi-platform clients.
+- **Real-time File Monitoring:** Integrated recursive file system monitoring using JDK `WatchService` with debounced UI synchronization.
 - **Asynchronous & Reactive:** Built entirely on Vert.x for high-concurrency, non-blocking operations.
-- **Modern WebUI:** A reactive dashboard built with Vue 3 and Tailwind CSS for real-time monitoring and interaction.
+- **Modern WebUI:** A reactive dashboard built with Vue 3 and Tailwind CSS for real-time monitoring, interaction, and high-fidelity code/diff review.
 
 ---
 
@@ -38,37 +39,17 @@ The project uses the `just` command runner for common development tasks.
 
 ## 🛠 Development Workflow
 
+### Mock Mode (No Backend Required)
+For rapid UI prototyping and protocol verification, you can run the frontend in **Mock Mode**:
+1. Start the dev server: `just frontend`
+2. Open **`http://localhost:5173/?mock`**
+3. See [MOCK-PROTOCOL.md](ganglia-webui/docs/MOCK-PROTOCOL.md) for verification steps.
+
 ### Linked Debugging (Recommended)
 To see frontend changes reflected in the backend-served UI immediately:
-
-1. **Terminal 1**: Start the frontend watch mode. This keeps `ganglia-webui/dist` up to date.
-   ```bash
-   just ui-watch
-   ```
-2. **Terminal 2**: Start the backend. It will serve assets from the `dist` folder.
-   ```bash
-   just backend
-   ```
-3. Open `http://localhost:8080` in your browser.
-
-### Hot Module Replacement (HMR)
-For the fastest feedback loop during Vue component development:
-1. Start the backend (`just backend`).
-2. Start the dev server (`just frontend`).
-3. Open **`http://localhost:5173`**.
-   - *Note*: The frontend connects to the backend at 8080 via CORS.
-
----
-
-## 🐞 Troubleshooting
-
-### CORS Rejected / Invalid Origin
-- Ensure you are accessing either `http://localhost:5173` or `http://localhost:8080`.
-- The `WebUIVerticle` is configured to allow local development origins.
-
-### HMR Not Working
-- Check `ganglia-webui/vite.config.ts`. It uses `usePolling: true` to ensure compatibility across various file systems.
-- Ensure you see `[vite] connected.` in the browser console.
+1. **Terminal 1**: `just ui-watch` (keeps `dist/` updated).
+2. **Terminal 2**: `just backend` (serves assets from `dist/`).
+3. Open `http://localhost:8080`.
 
 ---
 
@@ -76,22 +57,31 @@ For the fastest feedback loop during Vue component development:
 
 Ganglia is organized into four hexagonal layers:
 
-1.  **API / Adapter Layer**: Entry points like `WebUIVerticle` and `TerminalUI`.
-2.  **Kernel Layer**: The heart of the reasoning loop and task scheduling.
-3.  **Port Layer**: Domain models (`Message`, `Context`) and service interfaces.
-4.  **Infrastructure Layer**: Implementation details (Native LLM Gateways, File State, Tools).
+1.  **API / Adapter Layer**: Entry points like `WebUIVerticle` (WebSockets) and `TerminalUI` (Console).
+2.  **Kernel Layer**: The heart of the reasoning loop, task scheduling, and state evolution.
+3.  **Port Layer**: Domain models (`Message`, `Turn`, `Context`) and strict service interfaces.
+4.  **Infrastructure Layer**: Implementation details (LLM Gateways, File System, Persistence).
 
 For more details, see the [Architecture Documentation](docs/ARCHITECTURE.md).
 
 ---
 
-## 🔌 EventBus Protocol
+## 🔌 Communication Protocol
 
-Ganglia uses the Vert.x EventBus for internal and external communication. Constants are defined in `work.ganglia.util.Constants`.
+Ganglia uses **JSON-RPC 2.0** over **WebSockets** for all external client communication.
 
-- **`ganglia.ui.req`**: Inbound commands (START, STOP, REFRESH).
-- **`ganglia.ui.stream.{sessionId}`**: Outbound state updates, thoughts, and tokens.
-- **`ganglia.ui.stream.{sessionId}.tty`**: Real-time shell output bypass.
+### Client-to-Server Methods
+- **`SYNC`**: Request full session history and workspace configuration.
+- **`START`**: Begin a new reasoning turn with a natural language prompt.
+- **`LIST_FILES`**: Manually request a fresh workspace file tree snapshot.
+- **`READ_FILE`**: Retrieve the content of a specific file (with syntax highlighting metadata).
+- **`RESPOND_ASK`**: Provide user authorization or selection for an interactive tool.
+- **`CANCEL`**: Abort current agent execution and tool tasks.
+- **`RETRY`**: Re-trigger the last failed or interrupted turn.
+
+### Server-to-Client Notifications
+- **`server_event`**: Unified stream for thoughts, tool starts, results, and system errors.
+- **`tty_event`**: High-frequency streaming output for shell commands.
 
 ---
 
