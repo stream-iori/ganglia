@@ -13,9 +13,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.port.external.tool.ToolSet;
 
-import java.io.BufferedInputStream;
+import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
@@ -25,8 +27,6 @@ import java.util.concurrent.TimeUnit;
 import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.external.tool.ObservationEvent;
 import io.vertx.core.json.JsonObject;
-import java.io.InputStreamReader;
-import java.io.BufferedReader;
 
 public class BashTools implements ToolSet {
     private static final Logger log = LoggerFactory.getLogger(BashTools.class);
@@ -63,55 +63,79 @@ public class BashTools implements ToolSet {
         log.debug("[SHELL_EXEC] Executing: {} (Session: {})", command, sessionId);
         return vertx.<ToolInvokeResult>executeBlocking(() -> {
             Process process = null;
-            StringBuilder outputBuilder = new StringBuilder();
             try {
                 ProcessBuilder pb = new ProcessBuilder("bash", "-c", command);
                 pb.redirectErrorStream(true);
                 process = pb.start();
                 ProcessTracker.track(process);
 
-                try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                    String line;
-                    while ((line = reader.readLine()) != null) {
-                        outputBuilder.append(line).append("\n");
+                final Process p = process;
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                final boolean[] limitExceeded = {false};
 
-                        // Publish high-frequency TTY stream to generic observation address
-                        ObservationEvent ttyEvent = ObservationEvent.of(sessionId, ObservationType.TOOL_OUTPUT_STREAM, line, Map.of("toolCallId", toolCallId));
-                        vertx.eventBus().publish(Constants.ADDRESS_OBSERVATIONS_PREFIX + sessionId, JsonObject.mapFrom(ttyEvent));
+                Thread readerThread = new Thread(() -> {
+                    try (InputStream is = p.getInputStream()) {
+                        byte[] buffer = new byte[8192];
+                        int n;
+                        while ((n = is.read(buffer)) != -1) {
+                            if (baos.size() + n > MAX_OUTPUT_SIZE) {
+                                limitExceeded[0] = true;
+                                int remaining = (int) (MAX_OUTPUT_SIZE - baos.size());
+                                if (remaining > 0) {
+                                    baos.write(buffer, 0, remaining);
+                                }
+                                p.destroyForcibly();
+                                break;
+                            }
+                            baos.write(buffer, 0, n);
 
-                        if (outputBuilder.length() > MAX_OUTPUT_SIZE) {
-
-                            log.warn("[SHELL_LIMIT] Output size exceeded for: {}", command);
-                            process.destroyForcibly();
-                            return ToolInvokeResult.exception(new ToolErrorResult(
-                                "run_shell_command", ToolErrorResult.ErrorType.SIZE_LIMIT_EXCEEDED,
-                                "Output size exceeded limit", null, outputBuilder.toString()));
+                            // For TTY streaming, we still need lines or chunks. 
+                            // Using a simple chunk-based streaming for now.
+                            String chunk = new String(buffer, 0, n, StandardCharsets.UTF_8);
+                            ObservationEvent ttyEvent = ObservationEvent.of(sessionId, ObservationType.TOOL_OUTPUT_STREAM, chunk, Map.of("toolCallId", toolCallId));
+                            vertx.eventBus().publish(Constants.ADDRESS_OBSERVATIONS_PREFIX + sessionId, JsonObject.mapFrom(ttyEvent));
                         }
+                    } catch (IOException ignored) {
                     }
-                }
+                });
+                readerThread.setDaemon(true);
+                readerThread.start();
 
-                boolean finished = process.waitFor(DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                boolean finished = p.waitFor(DEFAULT_TIMEOUT_MS, TimeUnit.MILLISECONDS);
                 if (!finished) {
                     log.error("[SHELL_TIMEOUT] Command timed out: {}", command);
-                    process.destroyForcibly();
-                    return ToolInvokeResult.exception(new ToolErrorResult(
-                        "run_shell_command", ToolErrorResult.ErrorType.TIMEOUT,
-                        "Command timed out after " + DEFAULT_TIMEOUT_MS + "ms", null, outputBuilder.toString()));
+                    p.destroyForcibly();
                 }
 
-                int exitCode = process.exitValue();
+                // Wait for reader to catch up and exit
+                readerThread.join(1000);
+                String partialOutput = baos.toString(StandardCharsets.UTF_8);
+
+                if (limitExceeded[0]) {
+                    return ToolInvokeResult.exception(new ToolErrorResult(
+                        "run_shell_command", ToolErrorResult.ErrorType.SIZE_LIMIT_EXCEEDED,
+                        "Output size exceeded limit", null, partialOutput));
+                }
+
+                if (!finished) {
+                    return ToolInvokeResult.exception(new ToolErrorResult(
+                        "run_shell_command", ToolErrorResult.ErrorType.TIMEOUT,
+                        "Command timed out after " + DEFAULT_TIMEOUT_MS + "ms", null, partialOutput));
+                }
+
+                int exitCode = p.exitValue();
                 if (exitCode != 0) {
                     log.debug("[SHELL_FAIL] Exit code: {}, Command: {}", exitCode, command);
-                    return ToolInvokeResult.error("Command failed with exit code " + exitCode + ": " + outputBuilder.toString());
+                    return ToolInvokeResult.error("Command failed with exit code " + exitCode + ": " + partialOutput);
                 }
 
                 log.debug("[SHELL_SUCCESS] Command: {}", command);
-                return ToolInvokeResult.success(outputBuilder.toString());
+                return ToolInvokeResult.success(partialOutput);
             } catch (Exception e) {
                 log.error("[SHELL_ERROR] Exception for: {}", command, e);
                 return ToolInvokeResult.exception(new ToolErrorResult(
                     "run_shell_command", ToolErrorResult.ErrorType.UNKNOWN,
-                    "Execution error: " + e.getMessage(), null, outputBuilder.toString()));
+                    "Execution error: " + e.getMessage(), null, ""));
             } finally {
                 if (process != null && process.isAlive()) {
                     process.destroyForcibly();

@@ -13,6 +13,7 @@ import work.ganglia.infrastructure.external.llm.util.SseWriteStream;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.internal.state.AgentSignal;
 import work.ganglia.port.internal.state.TokenUsage;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.external.tool.ToolDefinition;
@@ -38,7 +39,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
+    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, AgentSignal signal) {
         JsonObject payload = buildPayload(history, availableTools, options, false);
         return withSemaphore(
             webClient.postAbs(endpoint)
@@ -48,6 +49,9 @@ public class AnthropicModelGateway extends AbstractModelGateway {
                 .as(BodyCodec.jsonObject())
                 .sendJsonObject(payload)
                 .compose(response -> {
+                    if (signal.isAborted()) {
+                        return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
+                    }
                     if (response.statusCode() >= 400) {
                         return Future.failedFuture(new LLMException(
                             "Anthropic Error: " + response.statusMessage(),
@@ -67,7 +71,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId) {
+    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, AgentSignal signal) {
         JsonObject payload = buildPayload(history, availableTools, options, true);
         Promise<ModelResponse> promise = Promise.promise();
 
@@ -76,6 +80,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
         int[] usage = new int[2]; // [input, output]
 
         SseParser parser = new SseParser(json -> {
+            if (signal.isAborted()) return; // Active cancellation check
             try {
                 String type = json.getString("type");
                 if (type == null) return;
@@ -134,6 +139,11 @@ public class AnthropicModelGateway extends AbstractModelGateway {
         SseWriteStream writeStream = new SseWriteStream(parser);
         writeStream.exceptionHandler(promise::fail);
 
+        // Active cancellation: fail the promise immediately when abort signal is received
+        signal.onAbort(() -> {
+            promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
+        });
+
         withSemaphore(
             webClient.postAbs(endpoint)
                 .putHeader("x-api-key", apiKey)
@@ -143,6 +153,10 @@ public class AnthropicModelGateway extends AbstractModelGateway {
                 .as(BodyCodec.pipe(writeStream, true))
                 .sendJsonObject(payload)
                 .onSuccess(response -> {
+                    if (signal.isAborted()) {
+                        promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
+                        return;
+                    }
                     if (response.statusCode() >= 400) {
                         promise.fail(new LLMException("Anthropic Error: " + response.statusCode(), null, response.statusCode(), null, null));
                     } else {
@@ -156,7 +170,13 @@ public class AnthropicModelGateway extends AbstractModelGateway {
                         }
                     }
                 })
-                .onFailure(promise::fail)
+                .onFailure(err -> {
+                    if (signal.isAborted()) {
+                        promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
+                    } else {
+                        promise.fail(err);
+                    }
+                })
         );
         return promise.future();
     }

@@ -6,6 +6,7 @@ import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.external.tool.ToolDefinition;
+import work.ganglia.port.internal.state.AgentSignal;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -16,7 +17,7 @@ public class StubModelGateway implements ModelGateway {
     private final Queue<ModelResponse> responses = new LinkedList<>();
 
     @Override
-    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
+    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, AgentSignal signal) {
         if (responses.isEmpty()) {
             return Future.failedFuture("No stub response available");
         }
@@ -24,7 +25,7 @@ public class StubModelGateway implements ModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId) {
+    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, AgentSignal signal) {
         // For testing, chatStream behaves like chat but we can simulate events if needed.
         if (responses.isEmpty()) {
             return Future.failedFuture("No stub response available");

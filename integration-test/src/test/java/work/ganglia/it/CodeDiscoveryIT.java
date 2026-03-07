@@ -38,7 +38,7 @@ public class CodeDiscoveryIT {
     @BeforeEach
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
-        when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
+        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
         Main.bootstrap(vertx, ".ganglia/config.json", new JsonObject().put("webui", new JsonObject().put("enabled", false)), mockModel)
             .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
@@ -58,7 +58,7 @@ public class CodeDiscoveryIT {
         // 2. Mock grep search
         ToolCall grepCall = new ToolCall("c2", "grep_search", Map.of("path", tempDir.toString(), "pattern", "SECRET_CODE_123"));
 
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Finding files...", List.of(globCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Searching code...", List.of(grepCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Found the secret code in discovery_test.java", Collections.emptyList(), new TokenUsage(1, 1))));

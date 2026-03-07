@@ -38,9 +38,9 @@ class BashToolsTest {
         String expectedOutput = "hello world\n";
         
         // Listen for TTY event
-        vertx.eventBus().<JsonObject>consumer("ganglia.ui.stream." + sessionId + ".tty", msg -> {
+        vertx.eventBus().<JsonObject>consumer(work.ganglia.util.Constants.ADDRESS_OBSERVATIONS_PREFIX + sessionId, msg -> {
             testContext.verify(() -> {
-                assertTrue(msg.body().getString("text").contains("hello world"));
+                assertTrue(msg.body().getString("content").contains("hello world"));
             });
         });
 
@@ -65,9 +65,9 @@ class BashToolsTest {
                     assertEquals(ToolInvokeResult.Status.EXCEPTION, result.status());
                     assertNotNull(result.errorDetails());
                     assertEquals(ToolErrorResult.ErrorType.SIZE_LIMIT_EXCEEDED, result.errorDetails().errorType());
-                    // The partial output should be around 128KB
+                    // The partial output should be exactly 128KB (131072 bytes)
                     assertNotNull(result.errorDetails().partialOutput());
-                    assertTrue(result.errorDetails().partialOutput().length() >= 131072);
+                    assertEquals(131072, result.errorDetails().partialOutput().length());
                     testContext.completeNow();
                 });
             }));

@@ -40,7 +40,7 @@ public class FullWorkflowIT {
     @BeforeEach
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
-        when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
+        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
         Main.bootstrap(vertx, ".ganglia/config.json", new JsonObject().put("webui", new JsonObject().put("enabled", false)), mockModel)
             .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
@@ -70,7 +70,7 @@ public class FullWorkflowIT {
 
                 ModelResponse res4 = new ModelResponse("All done.", Collections.emptyList(), new TokenUsage(1, 1));
 
-                when(mockModel.chatStream(anyList(), anyList(), any(), anyString()))
+                when(mockModel.chatStream(anyList(), anyList(), any(), anyString(), any()))
                     .thenReturn(Future.succeededFuture(res1))
                     .thenReturn(Future.succeededFuture(res2))
                     .thenReturn(Future.succeededFuture(res3))

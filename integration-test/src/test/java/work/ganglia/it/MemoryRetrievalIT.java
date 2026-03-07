@@ -38,7 +38,7 @@ public class MemoryRetrievalIT {
     @BeforeEach
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
-        when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
+        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
 
         io.vertx.core.json.JsonObject configOverride = new io.vertx.core.json.JsonObject()
             .put("agent", new io.vertx.core.json.JsonObject().put("projectRoot", "/"));
@@ -62,7 +62,7 @@ public class MemoryRetrievalIT {
             "pattern", "secret code"
         ));
 
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Searching memory...", List.of(grepCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("The code is 998877.", Collections.emptyList(), new TokenUsage(1, 1))));
 

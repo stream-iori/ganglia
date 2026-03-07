@@ -8,6 +8,7 @@ import org.slf4j.LoggerFactory;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.internal.state.AgentSignal;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.port.external.llm.ModelGateway;
 
@@ -34,29 +35,31 @@ public class RetryingModelGateway implements ModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
-        return retryChat(history, availableTools, options, 0);
+    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, AgentSignal signal) {
+        return retryChat(history, availableTools, options, signal, 0);
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId) {
-        return retryChatStream(history, availableTools, options, sessionId, 0);
+    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, AgentSignal signal) {
+        return retryChatStream(history, availableTools, options, sessionId, signal, 0);
     }
 
-    private Future<ModelResponse> retryChat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, int attempt) {
-        Future<ModelResponse> future = delegate.chat(history, availableTools, options);
+    private Future<ModelResponse> retryChat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, AgentSignal signal, int attempt) {
+        if (signal.isAborted()) return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
+        Future<ModelResponse> future = delegate.chat(history, availableTools, options, signal);
         if (future == null) {
             return Future.failedFuture("Delegate gateway returned null future for chat");
         }
-        return future.recover(err -> handleRetry(err, attempt, () -> retryChat(history, availableTools, options, attempt + 1)));
+        return future.recover(err -> handleRetry(err, attempt, () -> retryChat(history, availableTools, options, signal, attempt + 1)));
     }
 
-    private Future<ModelResponse> retryChatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, int attempt) {
-        Future<ModelResponse> future = delegate.chatStream(history, availableTools, options, sessionId);
+    private Future<ModelResponse> retryChatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, AgentSignal signal, int attempt) {
+        if (signal.isAborted()) return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
+        Future<ModelResponse> future = delegate.chatStream(history, availableTools, options, sessionId, signal);
         if (future == null) {
             return Future.failedFuture("Delegate gateway returned null future for chatStream");
         }
-        return future.recover(err -> handleRetry(err, attempt, () -> retryChatStream(history, availableTools, options, sessionId, attempt + 1)));
+        return future.recover(err -> handleRetry(err, attempt, () -> retryChatStream(history, availableTools, options, sessionId, signal, attempt + 1)));
     }
 
     private Future<ModelResponse> handleRetry(Throwable err, int attempt, java.util.function.Supplier<Future<ModelResponse>> nextAttempt) {

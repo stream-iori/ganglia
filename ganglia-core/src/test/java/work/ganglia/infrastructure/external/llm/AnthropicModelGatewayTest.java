@@ -10,6 +10,7 @@ import io.vertx.junit5.VertxTestContext;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.internal.state.AgentSignal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +27,7 @@ class AnthropicModelGatewayTest {
     private Vertx vertx;
     private HttpServer server;
     private AnthropicModelGateway gateway;
-    private int port = 8080;
+    private int port = 8082;
 
     @BeforeEach
     void setUp(VertxTestContext testContext) {
@@ -47,10 +48,15 @@ class AnthropicModelGatewayTest {
                         req.response().putHeader("Content-Type", "text/event-stream").setChunked(true);
                         req.response().write("data: {\"type\":\"message_start\",\"message\":{\"usage\":{\"input_tokens\":10}}}\n\n");
                         req.response().write("data: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"Hello \"}}\n\n");
-                        req.response().write("data: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"World!\"}}\n\n");
-                        req.response().write("data: {\"type\":\"message_delta\",\"usage\":{\"output_tokens\":15},\"delta\":{\"stop_reason\":\"end_turn\"}}\n\n");
-                        req.response().write("data: {\"type\":\"message_stop\"}\n\n");
-                        req.response().end();
+                        
+                        vertx.setTimer(100, id -> {
+                            if (!req.response().ended()) {
+                                req.response().write("data: {\"type\":\"content_block_delta\",\"index\":0,\"delta\":{\"type\":\"text_delta\",\"text\":\"World!\"}}\n\n");
+                                req.response().write("data: {\"type\":\"message_delta\",\"usage\":{\"output_tokens\":15},\"delta\":{\"stop_reason\":\"end_turn\"}}\n\n");
+                                req.response().write("data: {\"type\":\"message_stop\"}\n\n");
+                                req.response().end();
+                            }
+                        });
                     } else {
                         // Normal response
                         JsonObject response = new JsonObject()
@@ -75,7 +81,7 @@ class AnthropicModelGatewayTest {
         List<Message> history = List.of(Message.user("Hello"));
         ModelOptions options = new ModelOptions(0.0, 1024, "claude-3-5-sonnet", false);
 
-        gateway.chat(history, Collections.emptyList(), options).onComplete(testContext.succeeding(response -> {
+        gateway.chat(history, Collections.emptyList(), options, new AgentSignal()).onComplete(testContext.succeeding(response -> {
             testContext.verify(() -> {
                 assertEquals("Hello World!", response.content());
                 assertEquals(10, response.usage().promptTokens());
@@ -92,11 +98,35 @@ class AnthropicModelGatewayTest {
         ModelOptions options = new ModelOptions(0.0, 1024, "claude-3-5-sonnet", true);
         String sessionId = "test-session";
 
-        gateway.chatStream(history, Collections.emptyList(), options, sessionId).onComplete(testContext.succeeding(response -> {
+        gateway.chatStream(history, Collections.emptyList(), options, sessionId, new AgentSignal()).onComplete(testContext.succeeding(response -> {
             testContext.verify(() -> {
                 assertEquals("Hello World!", response.content());
                 assertEquals(10, response.usage().promptTokens());
                 assertEquals(15, response.usage().completionTokens());
+                testContext.completeNow();
+            });
+        }));
+    }
+
+    @Test
+    void testChatStreamCancellation(VertxTestContext testContext) {
+        List<Message> history = List.of(Message.user("Long stream"));
+        ModelOptions options = new ModelOptions(0.0, 1024, "claude-3-5-sonnet", true);
+        String sessionId = "cancel-session";
+        AgentSignal signal = new AgentSignal();
+
+        // Register a consumer to check if tokens are still being published after abort
+        java.util.concurrent.atomic.AtomicInteger tokenCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        vertx.eventBus().consumer("ganglia.observations." + sessionId, msg -> {
+            tokenCount.incrementAndGet();
+            // Abort after the first token
+            signal.abort();
+        });
+
+        gateway.chatStream(history, Collections.emptyList(), options, sessionId, signal).onComplete(testContext.failing(err -> {
+            testContext.verify(() -> {
+                assertTrue(err instanceof work.ganglia.kernel.loop.AgentAbortedException);
+                assertTrue(tokenCount.get() < 3); 
                 testContext.completeNow();
             });
         }));

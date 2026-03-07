@@ -35,7 +35,7 @@ public class ContextEngineIT {
     @BeforeEach
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
-        when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
+        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
         Main.bootstrap(vertx, ".ganglia/config.json", new JsonObject().put("webui", new JsonObject().put("enabled", false)), mockModel)
             .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
@@ -60,7 +60,7 @@ public class ContextEngineIT {
 
         vertx.fileSystem().writeFileBlocking(GANGLIA_FILE, Buffer.buffer(mandates));
 
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Understood WOOF", Collections.emptyList(), new TokenUsage(1, 1))));
 
         SessionContext context = ganglia.sessionManager().createSession(UUID.randomUUID().toString());

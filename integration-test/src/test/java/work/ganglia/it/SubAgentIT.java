@@ -37,7 +37,7 @@ public class SubAgentIT {
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
         // Default behavior for background reflection
-        when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled"));
+        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled"));
 
         Main.bootstrap(vertx, ".ganglia/config.json", new JsonObject().put("webui", new JsonObject().put("enabled", false)), mockModel)
             .onComplete(testContext.succeeding((Ganglia g) -> {
@@ -58,7 +58,7 @@ public class SubAgentIT {
         // First call: Parent wants a sub-agent
         // Second call (Sub-Agent loop): Returns final answer immediately
         // Third call: Parent receives report and gives final answer
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Delegating...", List.of(callSub), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("The directory contains many Java files.", Collections.emptyList(), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Investigation finished.", Collections.emptyList(), new TokenUsage(1, 1))));
@@ -70,7 +70,7 @@ public class SubAgentIT {
                 testContext.verify(() -> {
                     assertTrue(result.contains("finished"));
                     // Verify that the child loop was actually run by checking the captor or interactions
-                    verify(mockModel, times(3)).chatStream(any(), any(), any(), any());
+                    verify(mockModel, times(3)).chatStream(any(), any(), any(), any(), any());
                     testContext.completeNow();
                 });
             }));
@@ -87,7 +87,7 @@ public class SubAgentIT {
 
         ArgumentCaptor<List<ToolDefinition>> toolsCaptor = ArgumentCaptor.forClass(List.class);
 
-        when(mockModel.chatStream(any(), toolsCaptor.capture(), any(), any()))
+        when(mockModel.chatStream(any(), toolsCaptor.capture(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Delegating...", List.of(callSub), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("I can't write.", Collections.emptyList(), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Report: Investigator lacks write permissions.", Collections.emptyList(), new TokenUsage(1, 1))));
@@ -115,7 +115,7 @@ public class SubAgentIT {
         ToolCall callSub1 = new ToolCall("c1", "call_sub_agent", Map.of("task", "Level 1"));
         ToolCall callSub2 = new ToolCall("c2", "call_sub_agent", Map.of("task", "Level 2"));
 
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Go to L1", List.of(callSub1), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Try going to L2", List.of(callSub2), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Final answer", Collections.emptyList(), new TokenUsage(1, 1))));
@@ -132,7 +132,7 @@ public class SubAgentIT {
                     // We can check if the model was called with an observation containing RECURSION_LIMIT
                     verify(mockModel, atLeastOnce()).chatStream(argThat(msgs ->
                         msgs.stream().anyMatch(m -> m.content() != null && m.content().contains("RECURSION_LIMIT"))
-                    ), any(), any(), any());
+                    ), any(), any(), any(), any());
 
                     testContext.completeNow();
                 });

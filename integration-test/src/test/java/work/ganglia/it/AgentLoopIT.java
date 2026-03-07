@@ -39,7 +39,7 @@ public class AgentLoopIT {
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
         // Ensure background tasks like reflection don't crash with NPE
-        when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
+        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
 
         // Allow access to /private/var or other temp dirs by setting a broad project root for tests
         io.vertx.core.json.JsonObject configOverride = new io.vertx.core.json.JsonObject()
@@ -66,7 +66,7 @@ public class AgentLoopIT {
         ToolCall readACall = new ToolCall("c2", "read_file", Map.of("path", fileA));
         ToolCall readBCall = new ToolCall("c3", "read_file", Map.of("path", fileB));
 
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("I will list files.", List.of(lsCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("I see a.txt and b.txt. Reading a.txt.", List.of(readACall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Reading b.txt.", List.of(readBCall), new TokenUsage(1, 1))))

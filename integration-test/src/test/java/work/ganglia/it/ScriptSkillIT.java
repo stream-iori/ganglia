@@ -76,7 +76,7 @@ public class ScriptSkillIT {
         // 2. Use the script tool
         ToolCall echoCall = new ToolCall("c2", "script_echo", Map.of("message", "hello ganglia"));
 
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Activating...", List.of(activateCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Calling echo...", List.of(echoCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Done.", Collections.emptyList(), new TokenUsage(1, 1))));

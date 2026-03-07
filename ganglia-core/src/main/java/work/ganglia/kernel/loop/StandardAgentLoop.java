@@ -225,9 +225,9 @@ public class StandardAgentLoop implements AgentLoop {
                 logger.debug("Calling model: {} with history size: {}, stream: {}",
                     request.options().modelName(), request.messages().size(), request.options().stream());
                 if (request.options().stream()) {
-                    return model.chatStream(request.messages(), request.tools(), request.options(), context.sessionId());
+                    return model.chatStream(request.messages(), request.tools(), request.options(), context.sessionId(), signal);
                 } else {
-                    return model.chat(request.messages(), request.tools(), request.options());
+                    return model.chat(request.messages(), request.tools(), request.options(), signal);
                 }
             });
     }

@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.internal.state.AgentSignal;
 import work.ganglia.port.external.tool.ToolDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,8 +29,8 @@ public class FallbackModelGateway implements ModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
-        return primary.chat(history, availableTools, options)
+    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, AgentSignal signal) {
+        return primary.chat(history, availableTools, options, signal)
             .recover(err -> {
                 if (shouldFallback(err)) {
                     logger.warn("Primary model failed, falling back to utility model {}. Error: {}",
@@ -40,15 +41,15 @@ public class FallbackModelGateway implements ModelGateway {
                         utilityModelName,
                         options.stream()
                     );
-                    return utility.chat(history, availableTools, fallbackOptions);
+                    return utility.chat(history, availableTools, fallbackOptions, signal);
                 }
                 return Future.failedFuture(err);
             });
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId) {
-        return primary.chatStream(history, availableTools, options, sessionId)
+    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, AgentSignal signal) {
+        return primary.chatStream(history, availableTools, options, sessionId, signal)
             .recover(err -> {
                 if (shouldFallback(err)) {
                     logger.warn("Primary model stream failed, falling back to utility model {}. Error: {}",
@@ -59,7 +60,7 @@ public class FallbackModelGateway implements ModelGateway {
                         utilityModelName,
                         options.stream()
                     );
-                    return utility.chatStream(history, availableTools, fallbackOptions, sessionId);
+                    return utility.chatStream(history, availableTools, fallbackOptions, sessionId, signal);
                 }
                 return Future.failedFuture(err);
             });

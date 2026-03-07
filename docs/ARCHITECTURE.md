@@ -97,7 +97,7 @@ graph TD
 Ganglia supports an asynchronous **"Steering & Abort"** mechanism:
 
 1.  **Soft Steering:** Users can inject new instructions into a session queue at any time. The Kernel checks this between reasoning steps.
-2.  **Hard Abort:** An `AgentSignal` allows for immediate cancellation of network calls and tool executions (e.g., via `Ctrl+C` or the WebUI "Stop Agent" button).
+2.  **Hard Abort:** An `AgentSignal` provides **active cancellation**. It allows for immediate termination of network calls (HTTP stream reset), tool executions, and token publishing, ensuring the UI stops instantly.
 3.  **Interrupts:** Sensitive tools (like `ask_selection`) can pause the loop to await explicit user input via modal forms.
 
 ## 6. WebUI Observation & Control (The 3x3 Matrix)

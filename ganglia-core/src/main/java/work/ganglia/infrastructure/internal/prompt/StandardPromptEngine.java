@@ -18,6 +18,7 @@ import work.ganglia.port.chat.*;
 import work.ganglia.port.external.llm.*;
 import work.ganglia.port.external.tool.*;
 import work.ganglia.port.internal.state.*;;
+import java.util.Collections;
 import work.ganglia.infrastructure.internal.prompt.context.*;
 import work.ganglia.kernel.subagent.SubAgentContextSource;
 import work.ganglia.kernel.task.SchedulableFactory;
@@ -97,7 +98,7 @@ public class StandardPromptEngine implements PromptEngine {
 
             // 2. Prune and add session history
             List<Message> prunedHistory = context.getPrunedHistory(2000, tokenCounter); // Keep last 2000 tokens of history
-            modelHistory.addAll(prunedHistory);
+            modelHistory.addAll(sanitizeHistory(prunedHistory));
 
             // 3. Resolve Model Options
             ModelOptions currentOptions = context.modelOptions();
@@ -122,5 +123,36 @@ public class StandardPromptEngine implements PromptEngine {
 
             return new LLMRequest(modelHistory, tools, currentOptions);
         });
+    }
+
+    private List<Message> sanitizeHistory(List<Message> history) {
+        if (history == null || history.isEmpty()) return Collections.emptyList();
+        
+        List<Message> sanitized = new ArrayList<>();
+        for (int i = 0; i < history.size(); i++) {
+            Message current = history.get(i);
+            
+            // Rule 1: Collapse consecutive USER messages (keep only the LAST one)
+            if (current.role() == Role.USER) {
+                if (i + 1 < history.size() && history.get(i + 1).role() == Role.USER) {
+                    continue; // Skip current, wait for the next one
+                }
+            }
+            
+            // Rule 2: Strategy B - Remove orphaned Assistant messages with tool calls
+            if (current.role() == Role.ASSISTANT && current.toolCalls() != null && !current.toolCalls().isEmpty()) {
+                boolean hasToolResponse = false;
+                if (i + 1 < history.size() && history.get(i + 1).role() == Role.TOOL) {
+                    hasToolResponse = true;
+                }
+                
+                if (!hasToolResponse) {
+                    continue; // Skip this assistant message because it has tool_calls but no tool response follows
+                }
+            }
+            
+            sanitized.add(current);
+        }
+        return sanitized;
     }
 }

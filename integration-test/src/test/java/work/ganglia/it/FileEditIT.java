@@ -44,7 +44,7 @@ public class FileEditIT {
         vertx.fileSystem().writeFileBlocking(testFilePath, Buffer.buffer(initialContent));
 
         mockModel = mock(ModelGateway.class);
-        when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
+        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
 
         // 1. Mock first LLM call: Decide to use replace_in_file
         ToolCall replaceCall = new ToolCall("call_1", "replace_in_file", Map.of(
@@ -58,7 +58,7 @@ public class FileEditIT {
         // 2. Mock second LLM call: Final answer
         ModelResponse response2 = new ModelResponse("Updated successfully.", Collections.emptyList(), new TokenUsage(1, 1));
 
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(response1))
             .thenReturn(Future.succeededFuture(response2));
 

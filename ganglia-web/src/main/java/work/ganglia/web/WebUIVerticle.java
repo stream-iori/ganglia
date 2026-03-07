@@ -43,6 +43,7 @@ public class WebUIVerticle extends AbstractVerticle {
     private final Map<String, Set<ServerWebSocket>> sessionSockets = new ConcurrentHashMap<>();
 
     private WatchService watchService;
+    private volatile Thread watcherThread;
     private long lastNotifyTime = 0;
     private static final long DEBOUNCE_MS = 1000;
 
@@ -81,11 +82,21 @@ public class WebUIVerticle extends AbstractVerticle {
 
     @Override
     public void stop() {
+        if (watcherThread != null) {
+            watcherThread.interrupt();
+        }
         if (watchService != null) {
             try {
                 watchService.close();
             } catch (IOException e) {
                 logger.error("Failed to close watch service", e);
+            }
+        }
+        if (watcherThread != null) {
+            try {
+                watcherThread.join(2000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
         }
     }
@@ -96,10 +107,10 @@ public class WebUIVerticle extends AbstractVerticle {
             Path root = Path.of(".");
             registerRecursive(root);
 
-            vertx.executeBlocking(() -> {
+            watcherThread = new Thread(() -> {
                 try {
                     WatchKey key;
-                    while ((key = watchService.take()) != null) {
+                    while (!Thread.currentThread().isInterrupted() && (key = watchService.take()) != null) {
                         for (WatchEvent<?> event : key.pollEvents()) {
                             WatchEvent.Kind<?> kind = event.kind();
                             if (kind == StandardWatchEventKinds.OVERFLOW) continue;
@@ -109,7 +120,11 @@ public class WebUIVerticle extends AbstractVerticle {
                             Path fullPath = dir.resolve(context);
 
                             if (kind == StandardWatchEventKinds.ENTRY_CREATE && Files.isDirectory(fullPath)) {
-                                registerRecursive(fullPath);
+                                try {
+                                    registerRecursive(fullPath);
+                                } catch (IOException e) {
+                                    logger.error("Failed to register new directory {}", fullPath, e);
+                                }
                             }
 
                             // Debounce notification
@@ -126,10 +141,13 @@ public class WebUIVerticle extends AbstractVerticle {
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 } catch (Exception e) {
-                    logger.error("Error in file watcher", e);
+                    if (!Thread.currentThread().isInterrupted()) {
+                        logger.error("Error in file watcher", e);
+                    }
                 }
-                return null;
-            });
+            }, "ganglia-file-watcher");
+            watcherThread.setDaemon(true);
+            watcherThread.start();
         } catch (IOException e) {
             logger.error("Failed to initialize File Watcher", e);
         }

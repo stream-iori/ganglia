@@ -56,7 +56,7 @@ public class BatchFileSystemIT {
         ModelResponse response1 = new ModelResponse("Reading both files.", List.of(batchCall), new TokenUsage(10, 10));
         ModelResponse response2 = new ModelResponse("I have read both.", Collections.emptyList(), new TokenUsage(10, 10));
 
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(response1))
             .thenReturn(Future.succeededFuture(response2));
 

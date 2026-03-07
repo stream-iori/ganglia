@@ -36,7 +36,7 @@ public class SkillSystemIT {
     @BeforeEach
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
-        when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
+        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
         Main.bootstrap(vertx, ".ganglia/config.json", new JsonObject().put("webui", new JsonObject().put("enabled", false)), mockModel)
             .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
@@ -52,7 +52,7 @@ public class SkillSystemIT {
         // 2. Mock activation call
         ToolCall activateCall = new ToolCall("c1", "activate_skill", Map.of("skillId", "it-test-skill", "confirmed", true));
 
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Activating skill.", List.of(activateCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Skill activated.", Collections.emptyList(), new TokenUsage(1, 1))));
 

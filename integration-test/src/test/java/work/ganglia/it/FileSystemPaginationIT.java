@@ -59,7 +59,7 @@ public class FileSystemPaginationIT {
         ModelResponse response1 = new ModelResponse("Reading first part of the file.", List.of(readCall), new TokenUsage(10, 10));
         ModelResponse response2 = new ModelResponse("I have read the first 5 lines.", Collections.emptyList(), new TokenUsage(10, 10));
 
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(response1))
             .thenReturn(Future.succeededFuture(response2));
 

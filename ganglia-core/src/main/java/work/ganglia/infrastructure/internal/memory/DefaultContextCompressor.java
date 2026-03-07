@@ -7,6 +7,7 @@ import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.chat.Turn;
+import work.ganglia.port.internal.state.AgentSignal;
 
 import java.util.Collections;
 import java.util.List;
@@ -47,7 +48,7 @@ public class DefaultContextCompressor implements work.ganglia.port.internal.memo
             );
         }
 
-        var future = model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions);
+        var future = model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions, new AgentSignal());
         if (future == null) {
             return Future.failedFuture("Model gateway returned null for LLM call.");
         }
@@ -78,7 +79,7 @@ public class DefaultContextCompressor implements work.ganglia.port.internal.memo
                 configManager.isUtilityStream()
         );
 
-        Future<ModelResponse> future = model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions);
+        Future<ModelResponse> future = model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions, new AgentSignal());
         if (future == null) {
             return Future.failedFuture("Model gateway returned null for LLM call.");
         }
@@ -129,7 +130,7 @@ public class DefaultContextCompressor implements work.ganglia.port.internal.memo
                 configManager.isUtilityStream()
         );
 
-        return model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions)
+        return model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions, new AgentSignal())
                 .map(ModelResponse::content);
     }
 }

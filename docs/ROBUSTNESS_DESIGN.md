@@ -21,12 +21,19 @@ The `RetryingModelGateway` (Infrastructure) implements jittered exponential back
 ### 2.3 Model Fallback
 If the `primary` model fails consistently or hits quota limits, the `FallbackModelGateway` can automatically downgrade to the `utility` model defined in `ConfigManager`.
 
+### 2.4 Active Cancellation
+LLM requests are bound to the `AgentSignal`. When an abort is triggered:
+- Underlying HTTP streams are reset immediately.
+- SSE (Server-Sent Events) parsing is halted to stop token leakage to the UI.
+- All associated `Future` chains are failed with `AgentAbortedException`.
+
 ## 3. Tool Execution Robustness
 
 ### 3.1 Observation Feedback (Self-Correction)
 Instead of crashing on tool failure (e.g., `FileNotFound`, `PermissionDenied`), the `ToolExecutor` returns a structured error message. This message is fed back to the LLM as an **Observation**, allowing the agent to "reason" about the error and try a different approach.
 
 ### 3.2 Resource Guardrails
+- **Non-blocking Execution**: Long-lived tasks (like `WatchService`) run in dedicated threads to avoid exhausting the Vert.x worker pool. Subprocess output is read asynchronously to prevent pipe deadlocks and enforce timeouts.
 - **Execution Timeouts**: Every tool has a hard timeout (default 30s).
 - **Output Size Limits**: Tool results are capped at 64KB to prevent context window bloat. For larger files, the system uses **Line-based Pagination**.
 - **Strict Sandbox Enforcement**: All file-system tools use `PathSanitizer` to ensure operations are confined to the project root, preventing path traversal attacks.
@@ -48,6 +55,7 @@ Before executing any tool, the arguments are validated against the tool's JSON S
 
 ### 4.2 Context Window Management
 - **Token Budgeting**: The `PromptEngine` calculates the budget for System Prompt, History, and Response.
+- **Payload Sanitization**: Before sending to LLM, history is sanitized to collapse consecutive user messages and remove orphaned tool calls (Assistant messages without results), preventing protocol violations (400 errors).
 - **Proactive Compression**: Implementation of a 70% threshold monitor in `StandardAgentLoop`. When history consumes >70% of the window, the `ContextCompressor` is triggered to replace older turns with concise summaries, ensuring continuity without overflow.
 - **Financial Guardrail**: A hard session-level token limit (e.g., 500k tokens) is enforced to prevent runaway costs.
 - **Tool Failure Circuit Breaker**: If a tool fails consecutively (3 times), the loop is aborted to prevent token waste on repetitive errors.
@@ -65,8 +73,10 @@ To prevent local resource exhaustion or API rate-limiting, a global `Semaphore` 
 
 ## 6. Recovery & Continuity
 
-### 6.1 State Checkpointing
+### 6.1 State Checkpointing & Cleanup
 After every `Observation` is added to the context, the `SessionManager` persists the `SessionContext` to disk. 
+- **Start-Turn Cleanup**: When starting a new turn, any incomplete tool calls from the previous turn are automatically pruned from history to maintain validity.
+- **Config Hot-Sync**: Active sessions automatically synchronize with global `config.json` changes (e.g., model name, max tokens) on retrieval.
 - **Crash Recovery**: If the process terminates, the next run can load the session state and resume from the last successful step.
 
 ### 6.2 Graceful Shutdown

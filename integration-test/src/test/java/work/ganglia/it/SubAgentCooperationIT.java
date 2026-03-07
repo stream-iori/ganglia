@@ -37,7 +37,7 @@ public class SubAgentCooperationIT {
     @BeforeEach
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
-        when(mockModel.chat(any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled"));
+        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled"));
 
         io.vertx.core.json.JsonObject configOverride = new io.vertx.core.json.JsonObject()
             .put("agent", new io.vertx.core.json.JsonObject().put("projectRoot", "/"));
@@ -68,7 +68,7 @@ public class SubAgentCooperationIT {
         ToolCall read2 = new ToolCall("s3", "read_file", Map.of("path", tempDir.resolve("num2.txt").toString()));
         ToolCall read3 = new ToolCall("s4", "read_file", Map.of("path", tempDir.resolve("num3.txt").toString()));
 
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             // Parent: First Turn -> Delegates
             .thenReturn(Future.succeededFuture(new ModelResponse("I will delegate this to an investigator.", List.of(delegateCall), new TokenUsage(1, 1))))
             // Sub-Agent: Starts -> Calls Glob

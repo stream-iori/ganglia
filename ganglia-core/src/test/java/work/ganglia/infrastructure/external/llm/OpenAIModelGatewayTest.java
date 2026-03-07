@@ -9,6 +9,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ModelOptions;
+import work.ganglia.port.internal.state.AgentSignal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,10 +44,14 @@ class OpenAIModelGatewayTest {
                     if (requestPayload.getBoolean("stream", false)) {
                         req.response().putHeader("Content-Type", "text/event-stream").setChunked(true);
                         req.response().write("data: {\"choices\":[{\"delta\":{\"content\":\"Hello \"}}]}\n\n");
-                        req.response().write("data: {\"choices\":[{\"delta\":{\"content\":\"OpenAI!\"}}]}\n\n");
-                        req.response().write("data: {\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":10}}\n\n");
-                        req.response().write("data: [DONE]\n\n");
-                        req.response().end();
+                        vertx.setTimer(100, id -> {
+                            if (!req.response().ended()) {
+                                req.response().write("data: {\"choices\":[{\"delta\":{\"content\":\"OpenAI!\"}}]}\n\n");
+                                req.response().write("data: {\"usage\":{\"prompt_tokens\":5,\"completion_tokens\":10}}\n\n");
+                                req.response().write("data: [DONE]\n\n");
+                                req.response().end();
+                            }
+                        });
                     } else {
                         JsonObject response = new JsonObject()
                             .put("choices", new JsonArray().add(
@@ -72,7 +77,7 @@ class OpenAIModelGatewayTest {
         List<Message> history = List.of(Message.user("Hello"));
         ModelOptions options = new ModelOptions(0.0, 1024, "gpt-4", false);
 
-        gateway.chat(history, Collections.emptyList(), options).onComplete(testContext.succeeding(response -> {
+        gateway.chat(history, Collections.emptyList(), options, new AgentSignal()).onComplete(testContext.succeeding(response -> {
             testContext.verify(() -> {
                 assertEquals("Hello OpenAI!", response.content());
                 assertEquals(5, response.usage().promptTokens());
@@ -89,11 +94,37 @@ class OpenAIModelGatewayTest {
         ModelOptions options = new ModelOptions(0.0, 1024, "gpt-4", true);
         String sessionId = "test-session";
 
-        gateway.chatStream(history, Collections.emptyList(), options, sessionId).onComplete(testContext.succeeding(response -> {
+        gateway.chatStream(history, Collections.emptyList(), options, sessionId, new AgentSignal()).onComplete(testContext.succeeding(response -> {
             testContext.verify(() -> {
                 assertEquals("Hello OpenAI!", response.content());
                 assertEquals(5, response.usage().promptTokens());
                 assertEquals(10, response.usage().completionTokens());
+                testContext.completeNow();
+            });
+        }));
+    }
+
+    @Test
+    void testChatStreamCancellation(VertxTestContext testContext) {
+        List<Message> history = List.of(Message.user("Long stream"));
+        ModelOptions options = new ModelOptions(0.0, 1024, "gpt-4", true);
+        String sessionId = "cancel-session";
+        AgentSignal signal = new AgentSignal();
+
+        // Register a consumer to check if tokens are still being published after abort
+        java.util.concurrent.atomic.AtomicInteger tokenCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        vertx.eventBus().consumer("ganglia.observations." + sessionId, msg -> {
+            tokenCount.incrementAndGet();
+            // Abort after the first token
+            signal.abort();
+        });
+
+        gateway.chatStream(history, Collections.emptyList(), options, sessionId, signal).onComplete(testContext.failing(err -> {
+            testContext.verify(() -> {
+                assertTrue(err instanceof work.ganglia.kernel.loop.AgentAbortedException);
+                // We should have received exactly 1 token (the one that triggered the abort)
+                // or at least not ALL of them.
+                assertTrue(tokenCount.get() < 3); 
                 testContext.completeNow();
             });
         }));

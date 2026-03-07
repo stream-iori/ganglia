@@ -23,6 +23,10 @@
       <AppenderRef ref="Console" level="info"/>
       <AppenderRef ref="DebugFile"/>
     </Logger>
+    <Logger name="work.ganglia" level="debug" additivity="false">
+      <AppenderRef ref="Console" level="info"/>
+      <AppenderRef ref="DebugFile"/>
+    </Logger>
     <Logger name="me.stream" level="debug" additivity="false">
       <AppenderRef ref="Console" level="info"/>
       <AppenderRef ref="DebugFile"/>

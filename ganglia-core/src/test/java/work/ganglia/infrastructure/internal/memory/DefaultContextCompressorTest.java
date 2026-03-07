@@ -50,7 +50,7 @@ class DefaultContextCompressorTest {
         Turn turn = new Turn("t1", msg1, new ArrayList<>(), msg2);
 
         // Mock Model Response
-        when(model.chat(any(), any(), eq(summaryOptions)))
+        when(model.chat(any(), any(), eq(summaryOptions), any()))
                 .thenReturn(Future.succeededFuture(new ModelResponse("Task completed successfully.", Collections.emptyList(), new TokenUsage(10, 5))));
 
         compressor.summarize(List.of(turn), options)
@@ -74,7 +74,7 @@ class DefaultContextCompressorTest {
         Message msg2 = Message.assistant("Added feature", null);
         Turn turn = new Turn("t1", msg1, new ArrayList<>(), msg2);
 
-        when(model.chat(any(), any(), any()))
+        when(model.chat(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(new ModelResponse("- Added feature X\n- Updated docs", Collections.emptyList(), new TokenUsage(10, 5))));
 
         compressor.reflect(turn)
@@ -98,7 +98,7 @@ class DefaultContextCompressorTest {
         Turn t1 = Turn.newTurn("t1", Message.user("Task 1"));
         Turn t2 = Turn.newTurn("t2", Message.user("Task 2"));
 
-        when(model.chat(any(), any(), any()))
+        when(model.chat(any(), any(), any(), any()))
                 .thenReturn(Future.succeededFuture(new ModelResponse("DENSE SUMMARY", Collections.emptyList(), new TokenUsage(20, 10))));
 
         compressor.compress(List.of(t1, t2))

@@ -11,8 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.port.external.tool.ToolSet;
 
-import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -26,8 +26,8 @@ import java.util.stream.Collectors;
  */
 public class BashFileSystemTools implements ToolSet {
     private static final Logger log = LoggerFactory.getLogger(BashFileSystemTools.class);
-    private static final long MAX_OUTPUT_SIZE = 256 * 1024; // 256KB
-    private static final long DEFAULT_TIMEOUT_MS = 30000; // 30 seconds
+    private static final long MAX_OUTPUT_SIZE = 64 * 1024; // 64KB
+    private static final long DEFAULT_TIMEOUT_MS = 60000; // 60 seconds
 
     private final Vertx vertx;
     private final PathSanitizer sanitizer;
@@ -249,34 +249,63 @@ public class BashFileSystemTools implements ToolSet {
 
     private Future<ToolInvokeResult> execute(String toolName, List<String> commandWithArgs, long timeoutMs) {
         log.debug("[FS_EXEC] Tool: {}, Command: {}", toolName, commandWithArgs);
-        return vertx.<ToolInvokeResult>executeBlocking(() -> {
+        return vertx.executeBlocking(() -> {
             Process process = null;
-            String partialOutput = "";
             try {
                 ProcessBuilder pb = new ProcessBuilder(commandWithArgs);
                 pb.redirectErrorStream(true);
                 process = pb.start();
 
-                StreamResult streamResult = readStreamWithLimit(process.getInputStream(), MAX_OUTPUT_SIZE);
-                partialOutput = streamResult.content;
+                final Process p = process;
+                final ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                final boolean[] limitExceeded = {false};
 
-                if (streamResult.limitExceeded) {
+                Thread readerThread = new Thread(() -> {
+                    try (InputStream is = p.getInputStream()) {
+                        byte[] buffer = new byte[8192];
+                        int n;
+                        while ((n = is.read(buffer)) != -1) {
+                            if (baos.size() + n > MAX_OUTPUT_SIZE) {
+                                limitExceeded[0] = true;
+                                int remaining = (int) (MAX_OUTPUT_SIZE - baos.size());
+                                if (remaining > 0) {
+                                    baos.write(buffer, 0, remaining);
+                                }
+                                break;
+                            }
+                            baos.write(buffer, 0, n);
+                        }
+                    } catch (IOException ignored) {
+                    }
+                });
+                readerThread.setDaemon(true);
+                readerThread.start();
+
+                boolean finished = p.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
+                if (!finished) {
+                    log.error("[FS_TIMEOUT] Command timed out: {}", toolName);
+                    p.destroyForcibly();
+                }
+
+                // Wait for reader to catch up and exit
+                readerThread.join(1000);
+                String partialOutput = baos.toString(StandardCharsets.UTF_8);
+
+                if (limitExceeded[0]) {
                     log.warn("[FS_LIMIT] Output size exceeded for: {}", toolName);
+                    p.destroyForcibly();
                     return ToolInvokeResult.exception(new ToolErrorResult(
                         toolName, ToolErrorResult.ErrorType.SIZE_LIMIT_EXCEEDED,
                         "Output size exceeded limit of " + (MAX_OUTPUT_SIZE / 1024) + "KB", null, partialOutput));
                 }
 
-                boolean finished = process.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
                 if (!finished) {
-                    log.error("[FS_TIMEOUT] Command timed out: {}", toolName);
-                    process.destroyForcibly();
                     return ToolInvokeResult.exception(new ToolErrorResult(
                         toolName, ToolErrorResult.ErrorType.TIMEOUT,
                         "Command timed out after " + timeoutMs + "ms", null, partialOutput));
                 }
 
-                int exitCode = process.exitValue();
+                int exitCode = p.exitValue();
                 if (exitCode != 0) {
                     log.debug("[FS_FAIL] Exit code: {}, Tool: {}", exitCode, toolName);
                     return ToolInvokeResult.error("Command failed with exit code " + exitCode + ": " + partialOutput);
@@ -288,7 +317,7 @@ public class BashFileSystemTools implements ToolSet {
                 log.error("[FS_ERROR] Exception for tool: {}", toolName, e);
                 return ToolInvokeResult.exception(new ToolErrorResult(
                     toolName, ToolErrorResult.ErrorType.UNKNOWN,
-                    "Execution error: " + e.getMessage(), null, partialOutput));
+                    "Execution error: " + e.getMessage(), null, ""));
             } finally {
                 if (process != null && process.isAlive()) {
                     process.destroyForcibly();
@@ -296,29 +325,4 @@ public class BashFileSystemTools implements ToolSet {
             }
         });
     }
-
-    private StreamResult readStreamWithLimit(InputStream is, long limit) throws Exception {
-        try (BufferedInputStream bis = new BufferedInputStream(is);
-             ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            byte[] buffer = new byte[8192];
-            int bytesRead;
-            long totalRead = 0;
-            boolean limitExceeded = false;
-            while ((bytesRead = bis.read(buffer)) != -1) {
-                if (totalRead + bytesRead > limit) {
-                    limitExceeded = true;
-                    int remaining = (int) (limit - totalRead);
-                    if (remaining > 0) {
-                        baos.write(buffer, 0, remaining);
-                    }
-                    break;
-                }
-                totalRead += bytesRead;
-                baos.write(buffer, 0, bytesRead);
-            }
-            return new StreamResult(baos.toString(StandardCharsets.UTF_8), limitExceeded);
-        }
-    }
-
-    private record StreamResult(String content, boolean limitExceeded) {}
 }

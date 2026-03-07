@@ -13,6 +13,7 @@ import work.ganglia.infrastructure.external.llm.util.SseWriteStream;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.internal.state.AgentSignal;
 import work.ganglia.port.internal.state.TokenUsage;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.external.tool.ToolDefinition;
@@ -33,13 +34,16 @@ public class OpenAIModelGateway extends AbstractModelGateway {
         super(vertx);
         this.webClient = webClient;
         this.apiKey = apiKey;
-        this.endpoint = baseUrl.endsWith("/chat/completions") ? baseUrl : 
+        this.endpoint = baseUrl.endsWith("/chat/completions") ? baseUrl :
             (baseUrl.endsWith("/") ? baseUrl + "chat/completions" : baseUrl + "/chat/completions");
     }
 
     @Override
-    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options) {
+    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, AgentSignal signal) {
         JsonObject payload = buildPayload(history, availableTools, options, false);
+        if (logger.isDebugEnabled()) {
+            logger.debug("[LLM_REQ] Session: {}, Payload: {}", options.modelName(), payload.encode());
+        }
         return withSemaphore(
             webClient.postAbs(endpoint)
                 .putHeader("Authorization", "Bearer " + apiKey)
@@ -47,12 +51,17 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                 .as(BodyCodec.jsonObject())
                 .sendJsonObject(payload)
                 .compose(response -> {
+                    if (signal.isAborted()) {
+                        return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
+                    }
                     if (response.statusCode() >= 400) {
+                        String errorBody = response.bodyAsString();
+                        logger.error("[LLM_ERROR] Status: {}, Body: {}", response.statusCode(), errorBody);
                         return Future.failedFuture(new LLMException(
-                            "LLM Error: " + response.statusMessage(),
+                            "LLM Error: " + response.statusCode() + " " + response.statusMessage(),
                             null,
                             response.statusCode(),
-                            response.bodyAsJsonObject() != null ? response.bodyAsJsonObject().encode() : null,
+                            errorBody,
                             null
                         ));
                     }
@@ -66,15 +75,19 @@ public class OpenAIModelGateway extends AbstractModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId) {
+    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, AgentSignal signal) {
         JsonObject payload = buildPayload(history, availableTools, options, true);
+        if (logger.isDebugEnabled()) {
+            logger.debug("[LLM_REQ] Session: {}, Payload: {}", sessionId, payload.encode());
+        }
         Promise<ModelResponse> promise = Promise.promise();
-        
+
         StringBuilder fullContent = new StringBuilder();
         Map<Integer, ToolCallBuilder> toolCallBuilders = new HashMap<>();
         int[] usage = new int[2]; // [prompt, completion]
 
         SseParser parser = new SseParser(json -> {
+            if (signal.isAborted()) return; // Active cancellation check
             try {
                 JsonArray choices = json.getJsonArray("choices");
                 if (choices != null && !choices.isEmpty()) {
@@ -93,15 +106,15 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                                 JsonObject tcDelta = toolCalls.getJsonObject(i);
                                 int index = tcDelta.getInteger("index");
                                 ToolCallBuilder builder = toolCallBuilders.computeIfAbsent(index, k -> new ToolCallBuilder());
-                                
+
                                 String id = tcDelta.getString("id");
                                 if (id != null) builder.id = id;
-                                
+
                                 JsonObject function = tcDelta.getJsonObject("function");
                                 if (function != null) {
                                     String name = function.getString("name");
                                     if (name != null) builder.name = name;
-                                    
+
                                     String arguments = function.getString("arguments");
                                     if (arguments != null) builder.arguments.append(arguments);
                                 }
@@ -109,7 +122,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                         }
                     }
                 }
-                
+
                 JsonObject usageObj = json.getJsonObject("usage");
                 if (usageObj != null) {
                     usage[0] = usageObj.getInteger("prompt_tokens", usage[0]);
@@ -123,6 +136,11 @@ public class OpenAIModelGateway extends AbstractModelGateway {
         SseWriteStream writeStream = new SseWriteStream(parser);
         writeStream.exceptionHandler(promise::fail);
 
+        // Active cancellation: fail the promise immediately when abort signal is received
+        signal.onAbort(() -> {
+            promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
+        });
+
         withSemaphore(
             webClient.postAbs(endpoint)
                 .putHeader("Authorization", "Bearer " + apiKey)
@@ -131,8 +149,14 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                 .as(BodyCodec.pipe(writeStream, true))
                 .sendJsonObject(payload)
                 .onSuccess(response -> {
+                    if (signal.isAborted()) {
+                        promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
+                        return;
+                    }
                     if (response.statusCode() >= 400) {
-                        promise.fail(new LLMException("LLM Error: " + response.statusCode(), null, response.statusCode(), null, null));
+                        String errorBody = response.bodyAsString();
+                        logger.error("[LLM_ERROR] Status: {}, Body: {}", response.statusCode(), errorBody);
+                        promise.fail(new LLMException("LLM Error: " + response.statusCode() + " " + response.statusMessage(), null, response.statusCode(), errorBody, null));
                     } else {
                         try {
                             List<ToolCall> toolCalls = toolCallBuilders.values().stream()
@@ -144,7 +168,13 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                         }
                     }
                 })
-                .onFailure(promise::fail)
+                .onFailure(err -> {
+                    if (signal.isAborted()) {
+                        promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
+                    } else {
+                        promise.fail(err);
+                    }
+                })
         );
         return promise.future();
     }
@@ -153,10 +183,15 @@ public class OpenAIModelGateway extends AbstractModelGateway {
         JsonObject payload = new JsonObject();
         payload.put("model", options.modelName());
         payload.put("temperature", options.temperature());
-        payload.put("max_tokens", options.maxTokens());
+        if (options.maxTokens() > 0) {
+            payload.put("max_tokens", options.maxTokens());
+        }
         if (stream) {
             payload.put("stream", true);
-            payload.put("stream_options", new JsonObject().put("include_usage", true));
+            // Only include stream_options if it's likely an OpenAI model
+            if (options.modelName().toLowerCase().contains("gpt")) {
+                payload.put("stream_options", new JsonObject().put("include_usage", true));
+            }
         }
 
         JsonArray messages = new JsonArray();
@@ -181,17 +216,16 @@ public class OpenAIModelGateway extends AbstractModelGateway {
         switch (msg.role()) {
             case SYSTEM:
                 obj.put("role", "system");
-                obj.put("content", msg.content());
+                obj.put("content", msg.content() != null ? msg.content() : "");
                 break;
             case USER:
                 obj.put("role", "user");
-                obj.put("content", msg.content());
+                obj.put("content", msg.content() != null ? msg.content() : "");
                 break;
             case ASSISTANT:
                 obj.put("role", "assistant");
-                if (msg.content() != null && !msg.content().isEmpty()) {
-                    obj.put("content", msg.content());
-                }
+                // Assistant content can be null if there are tool calls, but some APIs prefer empty string
+                obj.put("content", msg.content() != null ? msg.content() : "");
                 if (msg.toolCalls() != null && !msg.toolCalls().isEmpty()) {
                     JsonArray toolCalls = new JsonArray();
                     for (ToolCall tc : msg.toolCalls()) {
@@ -239,7 +273,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
 
         JsonObject choice = choices.getJsonObject(0);
         JsonObject message = choice.getJsonObject("message");
-        
+
         String content = message.getString("content");
         if (content == null) content = "";
 
@@ -252,7 +286,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                     JsonObject function = tc.getJsonObject("function");
                     String id = tc.getString("id");
                     if (id == null) id = "call_" + UUID.randomUUID().toString().substring(0, 8);
-                    
+
                     Map<String, Object> args = parseJson(function.getString("arguments"));
                     toolCalls.add(new ToolCall(id, function.getString("name"), args));
                 }

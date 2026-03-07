@@ -43,14 +43,21 @@ public class DefaultSessionManager implements SessionManager {
     }
 
     private SessionContext ensureModelOptions(SessionContext context) {
-        if (context.modelOptions() == null) {
-            ModelOptions options = new ModelOptions(
-                configManager.getTemperature(),
-                configManager.getMaxTokens(),
-                configManager.getModel(),
-                configManager.isStream()
-            );
-            return context.withModelOptions(options);
+        ModelOptions currentOptions = context.modelOptions();
+        
+        // Stage 2: Always sync with global config if major settings differ
+        ModelOptions globalOptions = new ModelOptions(
+            configManager.getTemperature(),
+            configManager.getMaxTokens(),
+            configManager.getModel(),
+            configManager.isStream()
+        );
+
+        if (currentOptions == null || 
+            !currentOptions.modelName().equals(globalOptions.modelName()) ||
+            currentOptions.maxTokens() != globalOptions.maxTokens()) {
+            
+            return context.withModelOptions(globalOptions);
         }
         return context;
     }
@@ -83,7 +90,37 @@ public class DefaultSessionManager implements SessionManager {
 
     @Override
     public SessionContext startTurn(SessionContext context, Message userMessage) {
-        return context.startTurn(userMessage);
+        // Stage 3: Clean up current turn before starting a new one
+        SessionContext sanitized = sanitizeCurrentTurn(context);
+        return sanitized.startTurn(userMessage);
+    }
+
+    private SessionContext sanitizeCurrentTurn(SessionContext context) {
+        Turn current = context.currentTurn();
+        if (current == null) return context;
+        
+        // If the turn is incomplete (no final response) and ends with tool calls that have no response
+        List<Message> steps = current.intermediateSteps();
+        if (current.finalResponse() == null && !steps.isEmpty()) {
+            Message lastStep = steps.get(steps.size() - 1);
+            if (lastStep.role() == Role.ASSISTANT && lastStep.toolCalls() != null && !lastStep.toolCalls().isEmpty()) {
+                // It's an orphan! Remove it to keep history clean
+                List<Message> newSteps = new ArrayList<>(steps);
+                newSteps.remove(newSteps.size() - 1);
+                
+                Turn cleanedTurn = new Turn(current.id(), current.userMessage(), newSteps, null);
+                return new SessionContext(
+                    context.sessionId(),
+                    context.previousTurns(),
+                    cleanedTurn,
+                    context.metadata(),
+                    context.activeSkillIds(),
+                    context.modelOptions(),
+                    context.toDoList()
+                );
+            }
+        }
+        return context;
     }
 
     @Override

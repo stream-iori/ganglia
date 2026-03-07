@@ -62,10 +62,10 @@ public class ContextCompressionIT {
 
         // 2. Mock Model Responses
         // One for compression, one for final answer
-        when(mockModel.chat(any(), any(), any()))
+        when(mockModel.chat(any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Compressed Summary", Collections.emptyList(), new TokenUsage(10, 5))));
 
-        when(mockModel.chatStream(any(), any(), any(), any()))
+        when(mockModel.chatStream(any(), any(), any(), any(), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Final Answer", Collections.emptyList(), new TokenUsage(10, 10))));
 
         // 3. Run the loop
@@ -73,7 +73,7 @@ public class ContextCompressionIT {
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
                     // Check if compression was called (model.chat is used for utility/compression)
-                    verify(mockModel, atLeastOnce()).chat(any(), any(), any());
+                    verify(mockModel, atLeastOnce()).chat(any(), any(), any(), any());
                     testContext.completeNow();
                 });
             }));
