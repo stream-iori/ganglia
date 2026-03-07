@@ -4,42 +4,57 @@ import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.Main;
+import work.ganglia.BootstrapOptions;
+import work.ganglia.config.model.GangliaConfig;
+import work.ganglia.web.WebUIEventPublisher;
+import work.ganglia.web.WebUIVerticle;
+
+import java.util.List;
 
 /**
- * A dedicated entry point for running Ganglia with the WebUI.
- * This demo starts the backend services and EventBus bridge, then waits for connections.
+ * Example demonstrating how to bootstrap Ganglia with the WebUI.
+ * This demo uses the new 'ganglia-web' module for decoupling.
  */
 public class WebUIDemo {
     private static final Logger logger = LoggerFactory.getLogger(WebUIDemo.class);
 
     public static void main(String[] args) {
-        // Force log4j2 configuration if needed
-        System.setProperty("log4j.configurationFile", "log4j2.xml");
-        
         Vertx vertx = Vertx.vertx();
 
-        System.out.println("Starting Ganglia WebUI Backend...");
-        
-        // 1. Bootstrap core logic (search for config in project root)
-        Main.bootstrap(vertx, ".ganglia/config.json")
+        // 1. Setup Bootstrap Options with WebUI Observer
+        BootstrapOptions options = BootstrapOptions.defaultOptions()
+            .withObservers(List.of(new WebUIEventPublisher(vertx)));
+
+        // 2. Initializing Core Engine
+        Main.bootstrap(vertx, options)
+            .onSuccess(ganglia -> {
+                logger.info("Ganglia Core bootstrapped successfully.");
+
+                // 3. Extract WebUI config and deploy the Verticle from ganglia-web module
+                GangliaConfig.WebUIConfig webConfig = ganglia.configManager().getGangliaConfig().webui();
+                if (webConfig != null && webConfig.enabled()) {
+                    WebUIVerticle webUIVerticle = new WebUIVerticle(
+                        webConfig.port(),
+                        webConfig.webroot(),
+                        ganglia.agentLoop(),
+                        ganglia.sessionManager()
+                    );
+
+                    vertx.deployVerticle(webUIVerticle)
+                        .onSuccess(id -> {
+                            System.out.println("\n==================================================");
+                            System.out.println("🚀 Ganglia WebUI is running!");
+                            System.out.println("👉 URL: http://localhost:" + webConfig.port());
+                            System.out.println("==================================================\n");
+                        })
+                        .onFailure(err -> logger.error("Failed to deploy WebUI Verticle", err));
+                } else {
+                    logger.warn("WebUI is disabled in config. Ensure 'webui.enabled' is true.");
+                }
+            })
             .onFailure(err -> {
                 logger.error("Bootstrap failed", err);
-                System.err.println("CRITICAL: Bootstrap failed: " + err.getMessage());
-                vertx.close();
-            })
-            .onSuccess(ganglia -> {
-                System.out.println("==================================================");
-                System.out.println("🚀 Ganglia WebUI Backend is now RUNNING");
-                System.out.println("==================================================");
-                System.out.println("Core Port: 8080");
-                System.out.println("EventBus Endpoint: http://localhost:8080/eventbus");
-                System.out.println("Static Webroot: http://localhost:8080/index.html");
-                System.out.println("==================================================");
-                System.out.println("Press Ctrl+C to stop the server.");
-                
-                // The server is kept alive by the deployed WebUIVerticle
-                // No interactive CLI loop here to avoid cluttering the terminal 
-                // while the Agent is working via the WebUI.
+                System.exit(1);
             });
     }
 }
