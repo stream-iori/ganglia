@@ -44,6 +44,7 @@ export interface AskUserData {
   askId: string;
   question: string;
   options: AskOption[];
+  diffContext?: string; // Optional diff patch string
 }
 
 export interface AgentMessageData {

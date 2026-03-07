@@ -19,9 +19,11 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import work.ganglia.api.webui.model.TtyEvent;
+import work.ganglia.port.external.tool.ObservationType;
+import work.ganglia.port.external.tool.ObservationEvent;
 import io.vertx.core.json.JsonObject;
 import java.io.InputStreamReader;
 import java.io.BufferedReader;
@@ -49,12 +51,15 @@ public class BashTools implements ToolSet {
     public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
         if ("run_shell_command".equals(toolName)) {
             String command = (String) args.get("command");
-            return runShellCommand(command, context.sessionId(), context);
+            // ToolCall ID is usually available in the context of the loop, but for direct ToolExecutor calls
+            // we might need a fallback.
+            String toolCallId = UUID.randomUUID().toString();
+            return runShellCommand(command, context.sessionId(), toolCallId, context);
         }
         return Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
     }
 
-    private Future<ToolInvokeResult> runShellCommand(String command, String sessionId, SessionContext context) {
+    private Future<ToolInvokeResult> runShellCommand(String command, String sessionId, String toolCallId, SessionContext context) {
         log.debug("[SHELL_EXEC] Executing: {} (Session: {})", command, sessionId);
         return vertx.<ToolInvokeResult>executeBlocking(() -> {
             Process process = null;
@@ -68,15 +73,14 @@ public class BashTools implements ToolSet {
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
                     String line;
                     while ((line = reader.readLine()) != null) {
-                        // For future: add signal check back if we add it to SessionContext record
-                        
                         outputBuilder.append(line).append("\n");
-                        
-                        // Publish to EventBus bypass TTY topic
-                        TtyEvent ttyEvent = new TtyEvent("", line + "\n", false);
-                        vertx.eventBus().publish(Constants.ADDRESS_UI_STREAM_PREFIX + sessionId + Constants.SUFFIX_TTY, JsonObject.mapFrom(ttyEvent));
+
+                        // Publish high-frequency TTY stream to generic observation address
+                        ObservationEvent ttyEvent = ObservationEvent.of(sessionId, ObservationType.TOOL_OUTPUT_STREAM, line, Map.of("toolCallId", toolCallId));
+                        vertx.eventBus().publish(Constants.ADDRESS_OBSERVATIONS_PREFIX + sessionId, JsonObject.mapFrom(ttyEvent));
 
                         if (outputBuilder.length() > MAX_OUTPUT_SIZE) {
+
                             log.warn("[SHELL_LIMIT] Output size exceeded for: {}", command);
                             process.destroyForcibly();
                             return ToolInvokeResult.exception(new ToolErrorResult(

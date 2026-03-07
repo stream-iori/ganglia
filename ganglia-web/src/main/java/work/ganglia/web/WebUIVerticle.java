@@ -1,4 +1,4 @@
-package work.ganglia.api.webui;
+package work.ganglia.web;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
@@ -15,9 +15,9 @@ import work.ganglia.kernel.loop.AgentLoop;
 import work.ganglia.util.Constants;
 import work.ganglia.port.internal.state.SessionManager;
 import work.ganglia.port.internal.state.AgentSignal;
-import work.ganglia.api.webui.model.ClientRequest;
-import work.ganglia.api.webui.model.ServerEvent;
-import work.ganglia.api.webui.model.EventType;
+import work.ganglia.web.model.ClientRequest;
+import work.ganglia.web.model.ServerEvent;
+import work.ganglia.web.model.EventType;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,7 +68,7 @@ public class WebUIVerticle extends AbstractVerticle {
 
         // CORS configuration for development (allow any local origin on any port)
         router.route().handler(CorsHandler.create()
-            //FIXME: 不建议使用正则
+            //FIXME: 不建议使用正则,使用 addOrigins
             .addOriginWithRegex("^https?://(localhost|127\\.0\\.0\\.1|\\[::1\\]|0\\.0\\.0\\.0)(:\\d+)?$")
             .allowedMethod(HttpMethod.GET)
             .allowedMethod(HttpMethod.POST)
@@ -112,6 +112,16 @@ public class WebUIVerticle extends AbstractVerticle {
             switch (request.action()) {
                 case "SYNC" -> {
                     List<JsonObject> history = sessionHistories.getOrDefault(sessionId, java.util.Collections.emptyList());
+
+                    // Push Init Config first
+                    ServerEvent configEvent = new ServerEvent(
+                        UUID.randomUUID().toString(),
+                        System.currentTimeMillis(),
+                        EventType.INIT_CONFIG,
+                        new ServerEvent.InitConfigData(Path.of(".").toAbsolutePath().toString(), sessionId)
+                    );
+                    vertx.eventBus().publish(Constants.ADDRESS_UI_STREAM_PREFIX + sessionId, JsonObject.mapFrom(configEvent));
+
                     JsonObject response = new JsonObject().put("history", new io.vertx.core.json.JsonArray(history));
                     msg.reply(response);
                 }
@@ -183,6 +193,19 @@ public class WebUIVerticle extends AbstractVerticle {
 
                     vertx.executeBlocking(() -> {
                         try {
+                            if ("WORKSPACE_DIFF_VIRTUAL_PATH".equals(filePath)) {
+                                // Mock global diff for now, in a real system this would call Git or internal state
+                                String mockDiff = "--- a/README.md\n+++ b/README.md\n@@ -1,3 +1,4 @@\n # Ganglia\n+Modified by Agent via WebUI\n";
+                                ServerEvent event = new ServerEvent(
+                                    UUID.randomUUID().toString(),
+                                    System.currentTimeMillis(),
+                                    EventType.FILE_CONTENT,
+                                    new ServerEvent.FileContentData(filePath, mockDiff, "diff")
+                                );
+                                vertx.eventBus().publish(Constants.ADDRESS_UI_STREAM_PREFIX + sessionId, JsonObject.mapFrom(event));
+                                return null;
+                            }
+
                             Path path = Path.of(filePath);
                             if (Files.exists(path) && !Files.isDirectory(path)) {
                                 String content = Files.readString(path);

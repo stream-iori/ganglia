@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useSystemStore } from '../stores/system'
 import { useLogStore } from '../stores/log'
 import { eventBusService } from '../services/eventbus'
@@ -6,6 +7,7 @@ import FileTreeItem from './FileTreeItem.vue'
 
 const systemStore = useSystemStore()
 const logStore = useLogStore()
+const activeTab = ref<'FILES' | 'SESSIONS'>('FILES')
 
 const refreshFiles = () => {
   eventBusService.send('LIST_FILES', {})
@@ -13,8 +15,8 @@ const refreshFiles = () => {
 
 const newSession = () => {
   if (confirm('Start a new session? Current history will be hidden until you switch back.')) {
-    localStorage.removeItem('ganglia_session_id')
-    window.location.reload()
+    const newId = Math.random().toString(36).substring(2, 10)
+    systemStore.switchSession(newId)
   }
 }
 </script>
@@ -47,10 +49,28 @@ const newSession = () => {
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
       </button>
     </div>
+
+    <!-- Tabs -->
+    <div class="flex border-b border-slate-800 px-2 bg-slate-950/30">
+      <button 
+        @click="activeTab = 'FILES'"
+        class="flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors border-b-2"
+        :class="activeTab === 'FILES' ? 'border-emerald-500 text-emerald-500' : 'border-transparent text-slate-500 hover:text-slate-300'"
+      >
+        Files
+      </button>
+      <button 
+        @click="activeTab = 'SESSIONS'"
+        class="flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors border-b-2"
+        :class="activeTab === 'SESSIONS' ? 'border-emerald-500 text-emerald-500' : 'border-transparent text-slate-500 hover:text-slate-300'"
+      >
+        Sessions
+      </button>
+    </div>
     
     <!-- Navigation / Context -->
     <div class="flex-1 overflow-y-auto custom-scrollbar">
-      <div class="p-4">
+      <div v-if="activeTab === 'FILES'" class="p-4">
         <div class="mb-6">
           <div class="flex items-center justify-between mb-3">
             <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500">Workspace</h2>
@@ -70,12 +90,24 @@ const newSession = () => {
             Loading project structure...
           </div>
         </div>
-        
-        <div class="mb-6">
-          <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-3">Active Session</h2>
-          <div class="text-[10px] font-mono break-all bg-slate-950 p-2.5 rounded border border-slate-800 text-slate-400">
-            {{ systemStore.sessionId }}
-          </div>
+      </div>
+
+      <div v-else class="p-4">
+        <h2 class="text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-4">Recent Sessions</h2>
+        <div class="space-y-2">
+          <button 
+            v-for="id in systemStore.sessionHistory" 
+            :key="id"
+            @click="systemStore.switchSession(id)"
+            class="w-full text-left p-3 rounded border transition-all group flex flex-col gap-1"
+            :class="systemStore.sessionId === id ? 'bg-emerald-950/20 border-emerald-500/50 text-emerald-400' : 'bg-slate-950/50 border-slate-800 hover:border-slate-700 text-slate-400'"
+          >
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-mono">{{ id }}</span>
+              <span v-if="systemStore.sessionId === id" class="text-[8px] bg-emerald-500 text-black px-1 rounded font-bold">ACTIVE</span>
+            </div>
+            <span class="text-[9px] text-slate-600 group-hover:text-slate-500">History synced from backend</span>
+          </button>
         </div>
       </div>
     </div>

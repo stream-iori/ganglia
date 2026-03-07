@@ -1,4 +1,4 @@
-package work.ganglia.api.webui.model;
+package work.ganglia.web.model;
 
 /**
  * Generic request sent from client to server.

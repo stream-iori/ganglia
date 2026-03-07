@@ -1,4 +1,4 @@
-package work.ganglia.api.webui.model;
+package work.ganglia.web.model;
 
 /**
  * Enumeration of event types sent from server to client.
@@ -14,5 +14,6 @@ public enum EventType {
     FILE_CONTENT,
     FILE_TREE,
     TOKEN,
-    USER_MESSAGE
+    USER_MESSAGE,
+    INIT_CONFIG
 }

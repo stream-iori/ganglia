@@ -1,16 +1,56 @@
 <script setup lang="ts">
-import { ref, onUpdated, computed } from 'vue'
+import { ref, onUpdated, computed, watch } from 'vue'
 import { eventBusService } from '../services/eventbus'
 import { useLogStore } from '../stores/log'
+import { useSystemStore } from '../stores/system'
 import ThoughtCard from './ThoughtCard.vue'
 import ToolCard from './ToolCard.vue'
 import AgentMessage from './AgentMessage.vue'
 import AskUserForm from './AskUserForm.vue'
+import TaskReviewCard from './TaskReviewCard.vue'
 import StatusBar from './StatusBar.vue'
 
 const logStore = useLogStore()
+const systemStore = useSystemStore()
 const prompt = ref('')
 const streamEnd = ref<HTMLElement | null>(null)
+const streamContainer = ref<HTMLElement | null>(null)
+
+let isScrolledToBottom = true
+const hasNewContent = ref(false)
+
+const handleScroll = (e: Event) => {
+  const target = e.target as HTMLElement
+  // Check if we are within 50px of the bottom
+  isScrolledToBottom = Math.abs(target.scrollHeight - target.clientHeight - target.scrollTop) < 50
+  if (isScrolledToBottom) {
+    hasNewContent.value = false
+  }
+}
+
+const scrollToBottom = () => {
+  isScrolledToBottom = true
+  hasNewContent.value = false
+  streamEnd.value?.scrollIntoView({ behavior: 'smooth' })
+}
+
+// Watch for new content when scrolled up
+watch([() => logStore.events.length, () => logStore.streamingMessage], () => {
+  if (!isScrolledToBottom) {
+    hasNewContent.value = true
+  }
+})
+
+// Context Injection Logic
+watch(() => systemStore.pendingContextPath, (path) => {
+  if (path) {
+    const mention = `@${path} `
+    if (!prompt.value.includes(mention)) {
+      prompt.value = (prompt.value.trim() ? prompt.value.trim() + ' ' : '') + mention
+    }
+    systemStore.clearPendingContext()
+  }
+})
 
 const isBlocked = computed(() => {
   if (logStore.events.length === 0) return false
@@ -18,10 +58,25 @@ const isBlocked = computed(() => {
   return lastEvent?.type === 'ASK_USER'
 })
 
+const typingStatus = computed(() => {
+  // If we are streaming, try to infer the context based on the last tool used,
+  // or default to thinking.
+  const lastEvent = logStore.events[logStore.events.length - 1]
+  if (lastEvent?.type === 'TOOL_START' && !logStore.events.find(e => e.type === 'TOOL_RESULT' && e.data.toolCallId === lastEvent.data.toolCallId)) {
+     const name = lastEvent.data.toolName
+     if (['read_file', 'glob', 'list_directory'].includes(name)) return 'Agent is reading files...'
+     if (name === 'run_shell_command') return 'Agent is executing a command...'
+     if (['write_file', 'replace'].includes(name)) return 'Agent is writing code...'
+     return `Agent is using ${name}...`
+  }
+  return 'Agent is thinking...'
+})
+
 const sendMessage = () => {
   if (!prompt.value.trim() || isBlocked.value) return
   eventBusService.send('START', { prompt: prompt.value })
   prompt.value = ''
+  isScrolledToBottom = true // Force scroll to bottom when sending a message
 }
 
 const retry = () => {
@@ -29,7 +84,9 @@ const retry = () => {
 }
 
 onUpdated(() => {
-  streamEnd.value?.scrollIntoView({ behavior: 'smooth' })
+  if (isScrolledToBottom) {
+    streamEnd.value?.scrollIntoView({ behavior: 'smooth' })
+  }
 })
 </script>
 
@@ -38,8 +95,13 @@ onUpdated(() => {
     <StatusBar />
 
     <!-- Message Stream -->
-    <div class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-800 relative">
+    <div 
+      class="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-800 relative"
+      ref="streamContainer"
+      @scroll="handleScroll"
+    >
       <!-- Blocking Overlay -->
+
       <div
         v-if="isBlocked"
         class="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px] z-10 transition-all duration-500"
@@ -68,7 +130,10 @@ onUpdated(() => {
 
           <AgentMessage v-if="event.type === 'AGENT_MESSAGE'" :content="event.data.content" />
 
-          <AskUserForm v-if="event.type === 'ASK_USER'" :event="event" />
+          <!-- Render TaskReviewCard right after the final completion message -->
+          <TaskReviewCard v-if="event.type === 'AGENT_MESSAGE' && event.data.content.includes('Task completed')" />
+
+          <AskUserForm v-if="event.type === 'ASK_USER'" :event="event" :is-active="event.eventId === logStore.events[logStore.events.length - 1]?.eventId" />
 
           <div v-if="event.type === 'SYSTEM_ERROR'" class="bg-rose-950/20 border border-rose-500/50 p-4 rounded-lg text-rose-200 text-xs shadow-lg">
             <div class="font-bold mb-1 uppercase tracking-tight flex items-center justify-between">
@@ -90,7 +155,7 @@ onUpdated(() => {
         <div v-if="logStore.streamingMessage" class="animate-in fade-in duration-300">
           <div class="flex items-center gap-2 mb-2 text-slate-500">
             <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-            <span class="text-[10px] font-bold uppercase tracking-widest">Agent is typing...</span>
+            <span class="text-[10px] font-bold uppercase tracking-widest">{{ typingStatus }}</span>
           </div>
           <AgentMessage :content="logStore.streamingMessage" />
         </div>
@@ -100,7 +165,27 @@ onUpdated(() => {
     </div>
 
     <!-- Input Area -->
-    <div class="p-6 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent border-t border-slate-900/50">
+    <div class="p-6 bg-gradient-to-t from-slate-950 via-slate-950/95 to-transparent border-t border-slate-900/50 relative">
+      <!-- Scroll to bottom FAB -->
+      <transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="transform translate-y-4 opacity-0"
+        enter-to-class="transform translate-y-0 opacity-100"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="transform translate-y-0 opacity-100"
+        leave-to-class="transform translate-y-4 opacity-0"
+      >
+        <button 
+          v-if="hasNewContent"
+          @click="scrollToBottom"
+          class="absolute -top-12 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-full shadow-2xl shadow-emerald-900/20 text-xs font-bold transition-all z-30"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+          New Messages
+          <span class="w-2 h-2 bg-white rounded-full animate-ping"></span>
+        </button>
+      </transition>
+
       <div class="max-w-3xl mx-auto relative group">
         <textarea
           v-model="prompt"

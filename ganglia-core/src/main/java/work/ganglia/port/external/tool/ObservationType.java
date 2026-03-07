@@ -30,6 +30,11 @@ public enum ObservationType {
     TOOL_STARTED,
 
     /**
+     * Intermediate output stream from a tool (e.g. TTY line).
+     */
+    TOOL_OUTPUT_STREAM,
+
+    /**
      * A tool execution has finished.
      */
     TOOL_FINISHED,

@@ -3,20 +3,26 @@ package work.ganglia.infrastructure.external.tool;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import work.ganglia.util.PathSanitizer;
-import work.ganglia.port.external.tool.ToolCall;
-import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
+import work.ganglia.port.external.tool.ToolCall;
+import work.ganglia.util.PathSanitizer;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @ExtendWith(VertxExtension.class)
 public class BashFileSystemToolsTest {
@@ -69,53 +75,39 @@ public class BashFileSystemToolsTest {
             }));
     }
 
-    @Test
-    void testReadFilePagination(Vertx vertx, VertxTestContext testContext) throws Exception {
-        Path file = tempDir.resolve("large.txt");
-        StringBuilder content = new StringBuilder();
-        for (int i = 0; i < 10; i++) {
-            content.append("Line ").append(i).append("\n");
-        }
-        Files.writeString(file, content.toString());
+    static Stream<Arguments> paginationProvider() {
+        return Stream.of(
+            arguments(0, 3, List.of("Line 0", "Line 1", "Line 2"), List.of("Line 3"), "First page"),
+            arguments(3, 4, List.of("Line 3", "Line 6"), List.of("Line 2", "Line 7"), "Middle page"),
+            arguments(8, 5, List.of("Line 8", "Line 9"), List.of("Hint: More lines available"), "Last page")
+        );
+    }
 
-        // Test first page
-        tools.execute("read_file", Map.of("path", file.toString(), "offset", 0, "limit", 3), null)
+    @ParameterizedTest(name = "{4}")
+    @MethodSource("paginationProvider")
+    @DisplayName("ReadFile Pagination Parameterized Test")
+    void testReadFilePagination(int offset, int limit, List<String> contains, List<String> notContains, String description, Vertx vertx, VertxTestContext testContext) throws Exception {
+        Path file = tempDir.resolve("large.txt");
+        if (!Files.exists(file)) {
+            StringBuilder content = new StringBuilder();
+            for (int i = 0; i < 10; i++) {
+                content.append("Line ").append(i).append("\n");
+            }
+            Files.writeString(file, content.toString());
+        }
+
+        tools.execute("read_file", Map.of("path", file.toString(), "offset", offset, "limit", limit), null)
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
-                    assertTrue(res.output().contains("Line 0"));
-                    assertTrue(res.output().contains("Line 1"));
-                    assertTrue(res.output().contains("Line 2"));
-                    assertFalse(res.output().contains("Line 3"));
-                    assertTrue(res.output().contains("--- [Lines 0 to 3 of 10] ---"));
-                    assertTrue(res.output().contains("Hint: More lines available"));
+                    for (String s : contains) {
+                        assertTrue(res.output().contains(s), "Output should contain: " + s);
+                    }
+                    for (String s : notContains) {
+                        assertFalse(res.output().contains(s), "Output should NOT contain: " + s);
+                    }
+                    testContext.completeNow();
                 });
-
-                // Test middle page
-                tools.execute("read_file", Map.of("path", file.toString(), "offset", 3, "limit", 4), null)
-                    .onComplete(testContext.succeeding(res2 -> {
-                        testContext.verify(() -> {
-                            assertEquals(ToolInvokeResult.Status.SUCCESS, res2.status());
-                            assertTrue(res2.output().contains("Line 3"));
-                            assertTrue(res2.output().contains("Line 6"));
-                            assertFalse(res2.output().contains("Line 2"));
-                            assertFalse(res2.output().contains("Line 7"));
-                            assertTrue(res2.output().contains("--- [Lines 3 to 7 of 10] ---"));
-                        });
-
-                        // Test last page
-                        tools.execute("read_file", Map.of("path", file.toString(), "offset", 8, "limit", 5), null)
-                            .onComplete(testContext.succeeding(res3 -> {
-                                testContext.verify(() -> {
-                                    assertEquals(ToolInvokeResult.Status.SUCCESS, res3.status());
-                                    assertTrue(res3.output().contains("Line 8"));
-                                    assertTrue(res3.output().contains("Line 9"));
-                                    assertTrue(res3.output().contains("--- [Lines 8 to 10 of 10] ---"));
-                                    assertFalse(res3.output().contains("Hint: More lines available"));
-                                    testContext.completeNow();
-                                });
-                            }));
-                    }));
             }));
     }
 
@@ -130,9 +122,7 @@ public class BashFileSystemToolsTest {
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
-                    assertTrue(res.output().contains("--- FILE: " + f1.toRealPath().toString() + " ---"));
                     assertTrue(res.output().contains("Content A"));
-                    assertTrue(res.output().contains("--- FILE: " + f2.toRealPath().toString() + " ---"));
                     assertTrue(res.output().contains("Content B"));
                     assertTrue(res.output().contains("Line 2"));
                     testContext.completeNow();

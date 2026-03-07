@@ -1,4 +1,4 @@
-package work.ganglia.api.webui;
+package work.ganglia.web;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -6,8 +6,9 @@ import work.ganglia.kernel.loop.AgentLoopObserver;
 import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.internal.state.TokenUsage;
 import work.ganglia.util.Constants;
-import work.ganglia.api.webui.model.EventType;
-import work.ganglia.api.webui.model.ServerEvent;
+import work.ganglia.web.model.EventType;
+import work.ganglia.web.model.ServerEvent;
+import work.ganglia.web.model.TtyEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,20 +70,31 @@ public class WebUIEventPublisher implements AgentLoopObserver {
             }
             case TOOL_STARTED -> {
                 String toolCallId = data != null && data.containsKey("toolCallId") ? data.get("toolCallId").toString() : UUID.randomUUID().toString();
+                String command = data != null && data.containsKey("command") ? data.get("command").toString() : content;
                 publish(sessionId, EventType.TOOL_START, new ServerEvent.ToolStartData(
                     toolCallId,
-                    content,
-                    content
+                    content, // toolName
+                    command
                 ));
+            }
+            case TOOL_OUTPUT_STREAM -> {
+                String toolCallId = data != null && data.containsKey("toolCallId") ? data.get("toolCallId").toString() : "";
+                TtyEvent tty = new TtyEvent(toolCallId, content, false);
+                vertx.eventBus().publish(Constants.ADDRESS_UI_STREAM_PREFIX + sessionId + Constants.SUFFIX_TTY, JsonObject.mapFrom(tty));
             }
             case TOOL_FINISHED -> {
                 String toolCallId = data != null && data.containsKey("toolCallId") ? data.get("toolCallId").toString() : "";
+                int exitCode = data != null && data.containsKey("exitCode") ? (Integer) data.get("exitCode") : 0;
+                boolean isError = data != null && Boolean.TRUE.equals(data.get("isError"));
+                String summary = data != null && data.containsKey("summary") ? data.get("summary").toString() : "Executed: " + content;
+                String fullOutput = data != null && data.containsKey("fullOutput") ? data.get("fullOutput").toString() : content;
+                
                 publish(sessionId, EventType.TOOL_RESULT, new ServerEvent.ToolResultData(
                     toolCallId,
-                    0,  // exitCode
-                    "Executed: " + content,
-                    content,
-                    false,
+                    exitCode,
+                    summary,
+                    fullOutput,
+                    isError,
                     null
                 ));
             }

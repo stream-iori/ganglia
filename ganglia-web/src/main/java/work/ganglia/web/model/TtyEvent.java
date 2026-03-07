@@ -1,4 +1,4 @@
-package work.ganglia.api.webui.model;
+package work.ganglia.web.model;
 
 /**
  * Event for high-frequency terminal output stream, sent on a separate bypass topic.

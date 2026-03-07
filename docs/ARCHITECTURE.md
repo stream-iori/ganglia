@@ -1,7 +1,7 @@
 # Ganglia Architecture Documentation
 
 > **Status:** Implemented
-> **Version:** 1.2.0
+> **Version:** 1.3.0
 
 ## 1. System Overview
 
@@ -97,14 +97,21 @@ graph TD
 Ganglia supports an asynchronous **"Steering & Abort"** mechanism:
 
 1.  **Soft Steering:** Users can inject new instructions into a session queue at any time. The Kernel checks this between reasoning steps.
-2.  **Hard Abort:** An `AgentSignal` allows for immediate cancellation of network calls and tool executions (e.g., via `Ctrl+C`).
-3.  **Interrupts:** Sensitive tools (like `ask_selection`) can pause the loop to await explicit user input.
+2.  **Hard Abort:** An `AgentSignal` allows for immediate cancellation of network calls and tool executions (e.g., via `Ctrl+C` or the WebUI "Stop Agent" button).
+3.  **Interrupts:** Sensitive tools (like `ask_selection`) can pause the loop to await explicit user input via modal forms.
 
-## 6. Technology Stack
+## 6. WebUI Observation & Control (The 3x3 Matrix)
+
+Starting from v1.3.0, the WebUI implements a **System Interaction Matrix** to manage cognitive load:
+- **Glance (Low Load)**: Real-time Phase indicators (Planning, Executing, Waiting), Mini-mode ToolCards for high-frequency short commands, and live execution timers.
+- **Inspect (Medium Load)**: A side-drawer `Inspector` with TTY virtualization, regex-based log filtering, and high-fidelity Code/Diff viewers.
+- **Block (High Load)**: Modal `AskUserForm` with embedded Diff context for high-stakes authorization and decision making.
+
+## 7. Technology Stack
 
 - **Language:** Java 17+
 - **Core Framework:** Vert.x (Reactive, Non-blocking I/O)
 - **Networking:** Vert.x WebClient (Native protocol implementation)
-- **UI:** JLine 3, Flexmark, Vue 3
+- **UI:** JLine 3, Vue 3, Vite, Tailwind CSS
 - **Configuration:** Vert.x Config (supporting JSON and Env vars)
-- **Testing:** JUnit 5, Mockito, E2E Simulation Harness
+- **Testing:** JUnit 5, Mockito, JaCoCo, Vitest (WebUI)

@@ -3,7 +3,7 @@ package work.ganglia.it.harness;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import work.Main;
+import work.Main; 
 import work.ganglia.Ganglia;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.stubs.StubModelGateway;

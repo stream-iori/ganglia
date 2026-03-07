@@ -84,6 +84,13 @@ sequenceDiagram
     SM->>State: saveSession(updatedContext)
     Loop-->>Client: Final Response
 ```
+## 6. Client-side Session Tracking & History
 
-## 6. Integration with `Main`
+While the backend is the source of truth for session content, the WebUI manages session persistence and switching:
+1.  **LocalStorage Persistence**: Recent `sessionId`s are tracked in the browser's LocalStorage.
+2.  **Session Switcher**: A dedicated Sidebar tab allowing users to jump between different problem-solving contexts.
+3.  **Bootstrap Sync**: Upon switching or reloading, the UI sends a `SYNC` request to the backend to hydrate the message stream and retrieve the full execution history.
+
+## 7. Integration with `Main`
+...
 The `Main` class (or its equivalent in `example`) will use the `SessionManager` to manage the lifecycle of the user interaction, rather than manually instantiating `SessionContext`.

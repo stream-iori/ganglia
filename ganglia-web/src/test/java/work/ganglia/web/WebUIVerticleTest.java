@@ -1,4 +1,4 @@
-package work.ganglia.api.webui;
+package work.ganglia.web;
 
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;

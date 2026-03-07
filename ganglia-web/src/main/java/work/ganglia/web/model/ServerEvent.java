@@ -1,4 +1,4 @@
-package work.ganglia.api.webui.model;
+package work.ganglia.web.model;
 
 import java.util.List;
 
@@ -39,7 +39,8 @@ public record ServerEvent(
     public record AskUserData(
         String askId,
         String question,
-        List<AskOption> options
+        List<AskOption> options,
+        String diffContext
     ) {}
 
     public record AskOption(
@@ -67,5 +68,10 @@ public record ServerEvent(
 
     public record TokenData(
         String content
+    ) {}
+
+    public record InitConfigData(
+        String workspacePath,
+        String sessionId
     ) {}
 }
