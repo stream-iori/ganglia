@@ -1,72 +1,129 @@
 package work.ganglia.web;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.http.WebSocketClient;
+import io.vertx.core.http.WebSocketConnectOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import work.ganglia.web.model.EventType;
-import work.ganglia.web.model.ServerEvent;
 import work.ganglia.kernel.loop.AgentLoop;
 import work.ganglia.port.internal.state.SessionManager;
-import work.ganglia.util.Constants;
-
-import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(VertxExtension.class)
 public class WebUIProtocolTest {
 
-    static Stream<Arguments> protocolActionProvider() {
-        return Stream.of(
-            // Action, Payload, Expected Event Type, Validation Key
-            arguments("SYNC", new JsonObject(), EventType.INIT_CONFIG, "workspacePath"),
-            arguments("READ_FILE", new JsonObject().put("path", "WORKSPACE_DIFF_VIRTUAL_PATH"), EventType.FILE_CONTENT, "content")
-        );
-    }
-
-    @ParameterizedTest(name = "Should trigger {2} event when {0} is requested")
-    @MethodSource("protocolActionProvider")
-    @DisplayName("Parameterized Protocol Request Test")
-    void shouldHandleProtocolActions(
-            String action, 
-            JsonObject payload, 
-            EventType expectedEventType, 
-            String validationKey,
-            Vertx vertx, 
-            VertxTestContext testContext) {
-        
-        String sessionId = "proto-session-" + action;
-        WebUIVerticle verticle = new WebUIVerticle(0, mock(AgentLoop.class), mock(SessionManager.class));
+    @Test
+    @DisplayName("Should handle JSON-RPC SYNC request over WebSocket")
+    void shouldHandleSyncRpc(Vertx vertx, VertxTestContext testContext) {
+        int port = 8890; 
+        WebUIVerticle verticle = new WebUIVerticle(port, mock(AgentLoop.class), mock(SessionManager.class));
 
         vertx.deployVerticle(verticle).onComplete(res -> {
-            // Listen for the expected event
-            vertx.eventBus().<JsonObject>consumer(Constants.ADDRESS_UI_STREAM_PREFIX + sessionId, message -> {
-                testContext.verify(() -> {
-                    ServerEvent event = message.body().mapTo(ServerEvent.class);
-                    if (event.type() == expectedEventType) {
-                        JsonObject data = JsonObject.mapFrom(event.data());
-                        assertNotNull(data.getValue(validationKey), "Missing required data field: " + validationKey);
-                        testContext.completeNow();
+            if (res.failed()) {
+                testContext.failNow(res.cause());
+                return;
+            }
+
+            WebSocketClient client = vertx.createWebSocketClient();
+            WebSocketConnectOptions options = new WebSocketConnectOptions()
+                .setPort(port)
+                .setHost("127.0.0.1")
+                .setURI("/ws");
+
+            vertx.setTimer(500, t -> {
+                client.connect(options).onComplete(wsRes -> {
+                    if (wsRes.failed()) {
+                        testContext.failNow(wsRes.cause());
+                        return;
                     }
+
+                    io.vertx.core.http.WebSocket ws = wsRes.result();
+                    String sessionId = "test-session-rpc";
+                    int requestId = 123;
+
+                    JsonObject request = new JsonObject()
+                        .put("jsonrpc", "2.0")
+                        .put("method", "SYNC")
+                        .put("params", new JsonObject().put("sessionId", sessionId))
+                        .put("id", requestId);
+
+                    ws.textMessageHandler(text -> {
+                        JsonObject response = new JsonObject(text);
+                        if (response.containsKey("id") && response.getValue("id").equals(requestId)) {
+                            testContext.verify(() -> {
+                                assertEquals("2.0", response.getString("jsonrpc"));
+                                assertNotNull(response.getJsonObject("result"));
+                                client.close();
+                                testContext.completeNow();
+                            });
+                        }
+                    });
+
+                    ws.writeTextMessage(request.encode());
                 });
             });
+        });
+    }
 
-            // Send the request
-            JsonObject request = new JsonObject()
-                .put("action", action)
-                .put("sessionId", sessionId)
-                .put("payload", payload);
-            
-            vertx.eventBus().send(Constants.ADDRESS_UI_REQ, request);
+    @Test
+    @DisplayName("Should handle JSON-RPC LIST_FILES request over WebSocket")
+    void shouldHandleListFilesRpc(Vertx vertx, VertxTestContext testContext) {
+        int port = 8891; 
+        WebUIVerticle verticle = new WebUIVerticle(port, mock(AgentLoop.class), mock(SessionManager.class));
+
+        vertx.deployVerticle(verticle).onComplete(res -> {
+            if (res.failed()) {
+                testContext.failNow(res.cause());
+                return;
+            }
+
+            WebSocketClient client = vertx.createWebSocketClient();
+            WebSocketConnectOptions options = new WebSocketConnectOptions()
+                .setPort(port)
+                .setHost("127.0.0.1")
+                .setURI("/ws");
+
+            vertx.setTimer(500, t -> {
+                client.connect(options).onComplete(wsRes -> {
+                    if (wsRes.failed()) {
+                        testContext.failNow(wsRes.cause());
+                        return;
+                    }
+
+                    io.vertx.core.http.WebSocket ws = wsRes.result();
+                    String sessionId = "test-session-list-files";
+                    int requestId = 456;
+
+                    JsonObject request = new JsonObject()
+                        .put("jsonrpc", "2.0")
+                        .put("method", "LIST_FILES")
+                        .put("params", new JsonObject().put("sessionId", sessionId))
+                        .put("id", requestId);
+
+                    ws.textMessageHandler(text -> {
+                        JsonObject response = new JsonObject(text);
+                        
+                        // We might get notifications (server_event) before the response
+                        if (response.containsKey("id") && response.getValue("id").equals(requestId)) {
+                            testContext.verify(() -> {
+                                assertEquals("2.0", response.getString("jsonrpc"));
+                                assertEquals("ok", response.getJsonObject("result").getString("status"));
+                                client.close();
+                                testContext.completeNow();
+                            });
+                        }
+                    });
+
+                    ws.writeTextMessage(request.encode());
+                });
+            });
         });
     }
 }

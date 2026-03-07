@@ -14,7 +14,6 @@ const logStore = useLogStore()
 const systemStore = useSystemStore()
 const prompt = ref('')
 const streamEnd = ref<HTMLElement | null>(null)
-const streamContainer = ref<HTMLElement | null>(null)
 
 let isScrolledToBottom = true
 const hasNewContent = ref(false)

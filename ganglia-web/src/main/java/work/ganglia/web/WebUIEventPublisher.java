@@ -41,7 +41,8 @@ public class WebUIEventPublisher implements AgentLoopObserver {
             JsonObject json = JsonObject.mapFrom(event);
             String address = Constants.ADDRESS_UI_STREAM_PREFIX + sessionId;
             logger.debug("Publishing WebUI event: {} to address: {}", type, address);
-            vertx.eventBus().publish(address, json);
+            // Publish to old address for backward compatibility if needed, or just send to a central router
+            vertx.eventBus().publish("ganglia.ui.ws.events", json, new io.vertx.core.eventbus.DeliveryOptions().addHeader("sessionId", sessionId));
             
             if (shouldCache) {
                 // Also send to internal cache topic
@@ -80,7 +81,7 @@ public class WebUIEventPublisher implements AgentLoopObserver {
             case TOOL_OUTPUT_STREAM -> {
                 String toolCallId = data != null && data.containsKey("toolCallId") ? data.get("toolCallId").toString() : "";
                 TtyEvent tty = new TtyEvent(toolCallId, content, false);
-                vertx.eventBus().publish(Constants.ADDRESS_UI_STREAM_PREFIX + sessionId + Constants.SUFFIX_TTY, JsonObject.mapFrom(tty));
+                vertx.eventBus().publish("ganglia.ui.ws.tty", JsonObject.mapFrom(tty), new io.vertx.core.eventbus.DeliveryOptions().addHeader("sessionId", sessionId));
             }
             case TOOL_FINISHED -> {
                 String toolCallId = data != null && data.containsKey("toolCallId") ? data.get("toolCallId").toString() : "";

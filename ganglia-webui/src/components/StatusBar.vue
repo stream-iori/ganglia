@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue'
+import { computed, watch, ref } from 'vue'
 import { useSystemStore, type AgentPhase } from '../stores/system'
 import { useLogStore } from '../stores/log'
 import { eventBusService } from '../services/eventbus'
 
 const systemStore = useSystemStore()
 const logStore = useLogStore()
+
+const showFileSyncTip = ref(false)
+let syncTipTimer: any = null
 
 const isAgentBusy = computed(() => {
   if (logStore.streamingMessage) return true;
@@ -23,6 +26,11 @@ watch(() => logStore.events.length, () => {
   }
 
   const lastEvent = events[events.length - 1]
+  if (!lastEvent) {
+    systemStore.setPhase('IDLE')
+    return
+  }
+
   let newPhase: AgentPhase = 'IDLE'
 
   if (lastEvent.type === 'ASK_USER') {
@@ -31,13 +39,22 @@ watch(() => logStore.events.length, () => {
     newPhase = 'EXECUTING'
   } else if (lastEvent.type === 'THOUGHT') {
     newPhase = 'PLANNING'
-  } else if (lastEvent.type === 'AGENT_MESSAGE' && lastEvent.data.content.includes('Task completed')) {
+  } else if (lastEvent.type === 'AGENT_MESSAGE' && (lastEvent.data.content || '').includes('Task completed')) {
     newPhase = 'REVIEWING'
   }
 
   if (systemStore.currentPhase !== newPhase) {
     systemStore.setPhase(newPhase)
   }
+})
+
+// Watch for file tree synchronization
+watch(() => systemStore.fileTreeUpdatedAt, () => {
+  showFileSyncTip.value = true
+  if (syncTipTimer) clearTimeout(syncTipTimer)
+  syncTipTimer = setTimeout(() => {
+    showFileSyncTip.value = false
+  }, 5000)
 })
 
 const stopAgent = () => {
@@ -108,6 +125,21 @@ const formatPath = (path: string) => {
           {{ formatPath(systemStore.workspacePath) }}
         </span>
       </div>
+
+      <!-- File Sync Tip -->
+      <transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="transform -translate-x-4 opacity-0"
+        enter-to-class="transform translate-x-0 opacity-100"
+        leave-active-class="transition duration-500 ease-in"
+        leave-from-class="opacity-100"
+        leave-to-class="opacity-0"
+      >
+        <div v-if="showFileSyncTip" class="flex items-center gap-2 border-l border-slate-800 pl-6 py-1 animate-in fade-in slide-in-from-left-4">
+          <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>
+          <span class="text-[10px] font-bold text-emerald-500 uppercase tracking-widest">File tree synchronized</span>
+        </div>
+      </transition>
     </div>
 
     <button

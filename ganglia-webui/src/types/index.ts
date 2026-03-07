@@ -9,7 +9,13 @@ export type EventType =
   | 'FILE_CONTENT'
   | 'FILE_TREE'
   | 'TOKEN'
-  | 'USER_MESSAGE';
+  | 'USER_MESSAGE'
+  | 'INIT_CONFIG';
+
+export interface InitConfigData {
+  workspacePath: string;
+  sessionId: string;
+}
 
 export interface ThoughtData {
   content: string;
@@ -88,10 +94,36 @@ export interface ServerEvent<T = any> {
   data: T;
 }
 
-export type ClientAction = 'START' | 'RESPOND_ASK' | 'CANCEL' | 'RETRY' | 'READ_FILE' | 'SYNC' | 'LIST_FILES';
-
-export interface ClientRequest<T = any> {
-  action: ClientAction;
-  sessionId: string;
-  payload: T;
+export interface JsonRpcRequest<T = any> {
+  jsonrpc: '2.0';
+  method: string;
+  params: T & { sessionId: string };
+  id?: string | number;
 }
+
+export interface JsonRpcResponse {
+  jsonrpc: '2.0';
+  id: string | number;
+  result?: any;
+  error?: {
+    code: number;
+    message: string;
+    data?: any;
+  };
+}
+
+export interface JsonRpcNotification {
+  jsonrpc: '2.0';
+  method: string;
+  params: any;
+}
+
+export interface SyncParams {}
+export interface StartParams { prompt: string }
+export interface RespondAskParams { askId: string, selectedOption: string }
+export interface CancelParams {}
+export interface RetryParams {}
+export interface ReadFileParams { path: string }
+export interface ListFilesParams {}
+
+export type ClientAction = 'START' | 'RESPOND_ASK' | 'CANCEL' | 'RETRY' | 'READ_FILE' | 'SYNC' | 'LIST_FILES';

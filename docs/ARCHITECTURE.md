@@ -36,7 +36,7 @@ The system is organized into four primary hexagonal layers.
 ```mermaid
 graph TD
     subgraph API ["1. API / Adapter Layer"]
-        WebUI["WebUIVerticle (SockJS Bridge)"]
+        WebUI["WebUIVerticle (WebSocket / JSON-RPC 2.0)"]
         TUI["TerminalUI (Standalone Module)"]
         Demos["Example Applications"]
     end
@@ -103,15 +103,16 @@ Ganglia supports an asynchronous **"Steering & Abort"** mechanism:
 ## 6. WebUI Observation & Control (The 3x3 Matrix)
 
 Starting from v1.3.0, the WebUI implements a **System Interaction Matrix** to manage cognitive load:
-- **Glance (Low Load)**: Real-time Phase indicators (Planning, Executing, Waiting), Mini-mode ToolCards for high-frequency short commands, and live execution timers.
-- **Inspect (Medium Load)**: A side-drawer `Inspector` with TTY virtualization, regex-based log filtering, and high-fidelity Code/Diff viewers.
+- **Glance (Low Load)**: Real-time Phase indicators (Planning, Executing, Waiting), Mini-mode ToolCards, and **Reactive File Tree synchronization** with visual transient notifications.
+- **Inspect (Medium Load)**: A side-drawer `Inspector` with TTY virtualization (TanStack Virtual), regex-based log filtering, and high-fidelity Code/Diff viewers (Shiki).
 - **Block (High Load)**: Modal `AskUserForm` with embedded Diff context for high-stakes authorization and decision making.
 
 ## 7. Technology Stack
 
 - **Language:** Java 17+
-- **Core Framework:** Vert.x (Reactive, Non-blocking I/O)
-- **Networking:** Vert.x WebClient (Native protocol implementation)
-- **UI:** JLine 3, Vue 3, Vite, Tailwind CSS
-- **Configuration:** Vert.x Config (supporting JSON and Env vars)
+- **Core Framework:** Vert.x 5 (Reactive, Non-blocking I/O)
+- **Transport:** Native WebSockets (RFC 6455)
+- **Protocol:** JSON-RPC 2.0
+- **UI:** Vue 3, Vite, Tailwind CSS, Pinia
+- **Monitoring:** JDK WatchService (Recursive native hooks)
 - **Testing:** JUnit 5, Mockito, JaCoCo, Vitest (WebUI)

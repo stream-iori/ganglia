@@ -74,7 +74,7 @@ describe('Log Store', () => {
     
     store.addEvent(event)
     expect(store.events).toHaveLength(1)
-    expect(store.events[0].type).toBe('USER_MESSAGE')
+    expect(store.events[0]?.type).toBe('USER_MESSAGE')
   })
 
   it('should replace "..." placeholder when real thought arrives', () => {
@@ -98,7 +98,7 @@ describe('Log Store', () => {
     })
     
     expect(store.events).toHaveLength(1)
-    expect(store.events[0].data.content).toBe('I am thinking about it')
+    expect(store.events[0]?.data.content).toBe('I am thinking about it')
   })
 
   it('should deduplicate THOUGHT and AGENT_MESSAGE with same content', () => {
@@ -121,6 +121,6 @@ describe('Log Store', () => {
     })
     
     expect(store.events).toHaveLength(1)
-    expect(store.events[0].type).toBe('AGENT_MESSAGE')
+    expect(store.events[0]?.type).toBe('AGENT_MESSAGE')
   })
 })

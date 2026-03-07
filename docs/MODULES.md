@@ -36,7 +36,7 @@ This document describes the implemented module structure of the Ganglia system, 
 **Responsibility:** Modern browser-based control center.
 - **Frontend**: Vue 3 + Vite + Tailwind CSS. Implements the 3x3 Interaction Matrix.
 - **Advanced Features**: Multi-session history management, terminal log filtering, integrated Diff review, and reactive workspace file tree.
-- **Backend API**: `WebUIVerticle` (in `ganglia-core`) providing a SockJS/EventBus bridge with protocol-aligned server events.
+- **Backend API**: `WebUIVerticle` (in `ganglia-web`) providing a native WebSocket server with JSON-RPC 2.0 protocol support and recursive file system monitoring.
 
 ## 4. Integration Testing (Module: `integration-test`)
 

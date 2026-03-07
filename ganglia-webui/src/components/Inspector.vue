@@ -36,12 +36,14 @@ const ttyLines = computed(() => {
   }
 })
 
-const rowVirtualizer = useVirtualizer({
-  count: computed(() => ttyLines.value.length).value,
-  getScrollElement: () => parentRef.value,
-  estimateSize: () => 20,
-  overscan: 10,
-})
+const rowVirtualizer = useVirtualizer(
+  computed(() => ({
+    count: ttyLines.value.length,
+    getScrollElement: () => parentRef.value,
+    estimateSize: () => 20,
+    overscan: 10,
+  }))
+)
 
 // Auto-scroll when new lines arrive if we're near the bottom
 watch(() => ttyLines.value.length, (newCount) => {

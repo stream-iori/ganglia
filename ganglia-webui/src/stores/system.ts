@@ -29,10 +29,11 @@ export const useSystemStore = defineStore('system', {
       inspectorMode: 'TERMINAL' as InspectorMode,
       terminalSearchQuery: '',
       pendingContextPath: null as string | null,
+      fileTreeUpdatedAt: 0,
     }
   },
   getters: {
-    modifiedPaths: (state) => {
+    modifiedPaths: (_state) => {
       const logStore = useLogStore()
       const paths = new Set<string>()
       

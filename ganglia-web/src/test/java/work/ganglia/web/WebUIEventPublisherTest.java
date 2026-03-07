@@ -17,7 +17,6 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 @ExtendWith(VertxExtension.class)
@@ -48,8 +47,9 @@ public class WebUIEventPublisherTest {
         String sessionId = "test-session";
         WebUIEventPublisher publisher = new WebUIEventPublisher(vertx);
 
-        vertx.eventBus().<JsonObject>consumer("ganglia.ui.stream." + sessionId, message -> {
+        vertx.eventBus().<JsonObject>consumer("ganglia.ui.ws.events", message -> {
             testContext.verify(() -> {
+                assertEquals(sessionId, message.headers().get("sessionId"));
                 ServerEvent event = message.body().mapTo(ServerEvent.class);
                 assertEquals(expectedType, event.type());
                 
