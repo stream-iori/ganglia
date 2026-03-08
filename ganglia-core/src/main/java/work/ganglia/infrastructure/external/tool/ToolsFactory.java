@@ -26,13 +26,14 @@ public class ToolsFactory {
 
     public ToolsFactory(Vertx vertx, ContextCompressor compressor, KnowledgeBase knowledgeBase, String projectRoot) {
         this.vertx = vertx;
-        this.bashFileSystemTools = new BashFileSystemTools(vertx, new PathSanitizer(projectRoot));
+        PathSanitizer sanitizer = new PathSanitizer(projectRoot);
+        this.bashFileSystemTools = new BashFileSystemTools(vertx, sanitizer);
         this.toDoTools = new ToDoTools(vertx, compressor);
         this.knowledgeBaseTools = new KnowledgeBaseTools(vertx, knowledgeBase);
         this.interactionTools = new InteractionTools(vertx);
         this.webFetchTools = new WebFetchTools(vertx);
         this.bashTools = new BashTools(vertx);
-        this.fileEditTools = new FileEditTools(vertx);
+        this.fileEditTools = new FileEditTools(vertx, sanitizer);
     }
 
     public BashFileSystemTools getBashFileSystemTools() {
