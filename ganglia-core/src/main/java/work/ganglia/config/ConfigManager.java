@@ -87,7 +87,8 @@ public class ConfigManager {
     }
 
     public Future<Void> init() {
-        return retriever.getConfig()
+        return ensureConfigExists()
+                .compose(v -> retriever.getConfig())
                 .map(config -> {
                     updateConfig(config);
 
@@ -96,6 +97,29 @@ public class ConfigManager {
                         updateConfig(change.getNewConfiguration());
                     });
                     return null;
+                });
+    }
+
+    private Future<Void> ensureConfigExists() {
+        return vertx.fileSystem().exists(this.configPath)
+                .compose(exists -> {
+                    if (exists) {
+                        return Future.succeededFuture();
+                    }
+
+                    logger.info("No configuration file found at {}. Initializing new configuration with defaults.", this.configPath);
+
+                    Path path = Paths.get(this.configPath);
+                    Path parent = path.getParent();
+
+                    Future<Void> dirFuture = parent != null ? vertx.fileSystem().mkdirs(parent.toString()) : Future.succeededFuture();
+
+                    return dirFuture.compose(v -> {
+                        JsonObject defaultConfig = getDefaultConfig();
+                        return vertx.fileSystem().writeFile(this.configPath, defaultConfig.toBuffer());
+                    }).onFailure(err -> {
+                        logger.error("Critical error: Unable to create configuration file at {}. Reason: {}", this.configPath, err.getMessage());
+                    });
                 });
     }
 

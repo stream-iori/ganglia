@@ -123,4 +123,40 @@ class ConfigManagerTest {
             });
         }));
     }
+
+    @Test
+    void testAutoInitialization(Vertx vertx, VertxTestContext testContext) {
+        // Ensure clean state
+        try {
+            Files.deleteIfExists(Paths.get(TEST_CONFIG_FILE));
+        } catch (IOException e) {
+            testContext.failNow(e);
+            return;
+        }
+
+        ConfigManager configManager = new ConfigManager(vertx, TEST_CONFIG_FILE);
+        configManager.init().onComplete(testContext.succeeding(v -> {
+            testContext.verify(() -> {
+                assertEquals(true, Files.exists(Paths.get(TEST_CONFIG_FILE)));
+                JsonObject created = new JsonObject(new String(Files.readAllBytes(Paths.get(TEST_CONFIG_FILE))));
+                assertEquals("kimi-k2-0905-preview", created.getJsonObject("models").getJsonObject("primary").getString("name"));
+                testContext.completeNow();
+            });
+        }));
+    }
+
+    @Test
+    void testNoOverwrite(Vertx vertx, VertxTestContext testContext) throws IOException {
+        // Create custom config
+        JsonObject custom = new JsonObject().put("models", Map.of("primary", new JsonObject().put("name", "preserved-model").put("type", "openai")));
+        Files.write(Paths.get(TEST_CONFIG_FILE), custom.encodePrettily().getBytes());
+
+        ConfigManager configManager = new ConfigManager(vertx, TEST_CONFIG_FILE);
+        configManager.init().onComplete(testContext.succeeding(v -> {
+            testContext.verify(() -> {
+                assertEquals("preserved-model", configManager.getModel());
+                testContext.completeNow();
+            });
+        }));
+    }
 }
