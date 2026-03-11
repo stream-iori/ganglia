@@ -11,6 +11,7 @@ import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.internal.state.AgentSignal;
+import work.ganglia.stubs.StubExecutionContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -98,7 +99,7 @@ class AnthropicModelGatewayTest {
         ModelOptions options = new ModelOptions(0.0, 1024, "claude-3-5-sonnet", true);
         String sessionId = "test-session";
 
-        gateway.chatStream(history, Collections.emptyList(), options, sessionId, new AgentSignal()).onComplete(testContext.succeeding(response -> {
+        gateway.chatStream(history, Collections.emptyList(), options, new StubExecutionContext(sessionId), new AgentSignal()).onComplete(testContext.succeeding(response -> {
             testContext.verify(() -> {
                 assertEquals("Hello World!", response.content());
                 assertEquals(10, response.usage().promptTokens());
@@ -117,13 +118,12 @@ class AnthropicModelGatewayTest {
 
         // Register a consumer to check if tokens are still being published after abort
         java.util.concurrent.atomic.AtomicInteger tokenCount = new java.util.concurrent.atomic.AtomicInteger(0);
-        vertx.eventBus().consumer("ganglia.observations." + sessionId, msg -> {
+        StubExecutionContext execContext = new StubExecutionContext(sessionId, chunk -> {
             tokenCount.incrementAndGet();
-            // Abort after the first token
             signal.abort();
         });
 
-        gateway.chatStream(history, Collections.emptyList(), options, sessionId, signal).onComplete(testContext.failing(err -> {
+        gateway.chatStream(history, Collections.emptyList(), options, execContext, signal).onComplete(testContext.failing(err -> {
             testContext.verify(() -> {
                 assertTrue(err instanceof work.ganglia.kernel.loop.AgentAbortedException);
                 assertTrue(tokenCount.get() < 3); 

@@ -25,13 +25,13 @@ public abstract class AbstractModelGateway implements ModelGateway {
     }
 
     /**
-     * Publishes a token received event to the EventBus.
+     * Emits a token received event via the ExecutionContext.
      */
-    protected void publishToken(String sessionId, String token) {
+    protected void publishToken(work.ganglia.port.internal.state.ExecutionContext context, String token) {
         if (token == null || token.isEmpty()) return;
-        String address = Constants.ADDRESS_OBSERVATIONS_PREFIX + sessionId;
-        ObservationEvent obs = ObservationEvent.of(sessionId, ObservationType.TOKEN_RECEIVED, token);
-        vertx.eventBus().publish(address, JsonObject.mapFrom(obs));
+        if (context != null) {
+            context.emitStream(token);
+        }
     }
 
     /**

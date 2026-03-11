@@ -5,7 +5,7 @@ import io.vertx.core.Vertx;
 import work.ganglia.config.ConfigManager;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
-import work.ganglia.kernel.loop.EventBusObservationPublisher;
+import work.ganglia.kernel.loop.DefaultObservationDispatcher;
 import work.ganglia.kernel.loop.StandardAgentLoop;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.prompt.PromptEngine;
@@ -15,10 +15,10 @@ import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.kernel.subagent.ContextScoper;
+import work.ganglia.port.internal.state.ExecutionContext;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.List;
 import java.util.UUID;
 
 public class SubAgentTask implements Schedulable {
@@ -55,7 +55,7 @@ public class SubAgentTask implements Schedulable {
     }
 
     @Override
-    public Future<SchedulableResult> execute(SessionContext parentContext) {
+    public Future<SchedulableResult> execute(SessionContext parentContext, ExecutionContext executionContext) {
         String task = (String) call.arguments().get("task");
         String persona = (String) call.arguments().getOrDefault("persona", "GENERAL");
 
@@ -77,7 +77,7 @@ public class SubAgentTask implements Schedulable {
         SessionContext childContext = ContextScoper.scope(childSessionId, parentContext, childMetadata);
 
         // Note: StandardAgentLoop now requires SchedulableFactory instead of ToolExecutor
-        StandardAgentLoop childLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, new DefaultContextOptimizer(configManager, compressor, new TokenCounter()), new ConsecutiveFailurePolicy(), List.of(new EventBusObservationPublisher(vertx)));
+        StandardAgentLoop childLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, new DefaultContextOptimizer(configManager, compressor, new TokenCounter()), new ConsecutiveFailurePolicy(), new DefaultObservationDispatcher(vertx));
 
         return childLoop.run("TASK: " + task, childContext)
             .map(report -> SchedulableResult.success("--- SUB-AGENT REPORT ---\n" + report + "\n--- END REPORT ---"))

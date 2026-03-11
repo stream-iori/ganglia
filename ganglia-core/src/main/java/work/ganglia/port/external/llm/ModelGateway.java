@@ -27,19 +27,19 @@ public interface ModelGateway {
 
     /**
      * Streaming version of chat.
-     * Publishes observation events to the EventBus.
+     * Tokens are emitted via the provided execution context.
      * Returns the complete accumulated response when finished.
      * @param history The conversation history.
      * @param availableTools List of tools available to the model.
      * @param options Model parameters.
-     * @param sessionId The session ID for publishing tokens.
+     * @param context The execution context for emitting tokens.
      * @param signal The abort signal to monitor for cancellation.
      */
     Future<ModelResponse> chatStream(
         List<Message> history,
         List<ToolDefinition> availableTools,
         ModelOptions options,
-        String sessionId,
+        work.ganglia.port.internal.state.ExecutionContext context,
         AgentSignal signal
     );
 }

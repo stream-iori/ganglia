@@ -1,13 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { eventBusService } from '../services/eventbus'
+import { useSystemStore } from '../stores/system'
 import type { ServerEvent, AskUserData } from '../types'
 import VueMarkdown from 'vue-markdown-render'
 
 const props = defineProps<{
   event: ServerEvent<AskUserData>
-  isActive?: boolean
 }>()
+
+const systemStore = useSystemStore()
+
+const isActive = computed(() => systemStore.activeAskId === props.event.data.askId)
 
 const selectOption = (optionValue: string) => {
   eventBusService.send('RESPOND_ASK', {
@@ -56,7 +60,10 @@ const markdownOptions = {
           </div>
         </div>
         
-        <div class="grid grid-cols-1 gap-4 mt-auto">
+        <div 
+          class="grid gap-4 mt-auto"
+          :class="event.data.options.length > 3 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'"
+        >
           <button 
             v-for="option in event.data.options" 
             :key="option.value"
@@ -64,7 +71,7 @@ const markdownOptions = {
             class="flex flex-col items-start p-5 rounded-xl border border-slate-700 bg-slate-800/50 hover:border-emerald-500/50 hover:bg-slate-800 transition-all text-left group"
           >
             <span class="text-base font-semibold text-slate-200 group-hover:text-emerald-400">{{ option.label }}</span>
-            <span class="text-sm text-slate-400 mt-1">{{ option.description }}</span>
+            <span class="text-sm text-slate-400 mt-1 leading-relaxed">{{ option.description }}</span>
           </button>
         </div>
       </div>

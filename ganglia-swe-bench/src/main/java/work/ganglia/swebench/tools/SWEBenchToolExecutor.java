@@ -11,6 +11,8 @@ import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import work.ganglia.port.internal.state.ExecutionContext;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,10 +30,10 @@ public class SWEBenchToolExecutor implements ToolExecutor {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(ToolCall toolCall, SessionContext context) {
+    public Future<ToolInvokeResult> execute(ToolCall toolCall, SessionContext context, ExecutionContext executionContext) {
         for (ToolSet ts : toolSets) {
             if (ts.getDefinitions().stream().anyMatch(d -> d.name().equals(toolCall.toolName()))) {
-                return ts.execute(toolCall, context)
+                return ts.execute(toolCall, context, executionContext)
                     .onSuccess(res -> trajectoryLogger.logToolCall(toolCall.toolName(), toolCall.arguments(), res.output()))
                     .onFailure(err -> trajectoryLogger.logToolCall(toolCall.toolName(), toolCall.arguments(), "ERROR: " + err.getMessage()));
             }

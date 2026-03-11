@@ -37,7 +37,7 @@ public class KnowledgeBaseTools implements ToolSet {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         if ("remember".equals(toolName)) {
             return remember(args, context);
         }

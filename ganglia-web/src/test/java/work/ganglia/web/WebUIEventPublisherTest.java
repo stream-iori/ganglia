@@ -5,6 +5,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -12,6 +13,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import work.ganglia.web.model.EventType;
 import work.ganglia.web.model.ServerEvent;
 import work.ganglia.port.external.tool.ObservationType;
+import work.ganglia.port.external.tool.ObservationEvent;
 
 import java.util.Map;
 import java.util.stream.Stream;
@@ -32,10 +34,10 @@ public class WebUIEventPublisherTest {
         );
     }
 
-    @ParameterizedTest(name = "Should publish {3} event from {0} observation")
+    @ParameterizedTest(name = "Should publish {3} event from {0} observation via EventBus")
     @MethodSource("observationEventProvider")
-    @DisplayName("Parameterized Observation Publishing Test")
-    void shouldPublishCorrectEvent(
+    @DisplayName("Unified Stream EventBus Ingestion Test")
+    void shouldPublishCorrectEventViaBus(
             ObservationType obsType, 
             String content, 
             Map<String, Object> data, 
@@ -45,7 +47,8 @@ public class WebUIEventPublisherTest {
             VertxTestContext testContext) {
         
         String sessionId = "test-session";
-        WebUIEventPublisher publisher = new WebUIEventPublisher(vertx);
+        // Instantiate publisher - it will register its consumer
+        new WebUIEventPublisher(vertx);
 
         vertx.eventBus().<JsonObject>consumer("ganglia.ui.ws.events", message -> {
             testContext.verify(() -> {
@@ -62,6 +65,29 @@ public class WebUIEventPublisherTest {
             });
         });
 
-        publisher.onObservation(sessionId, obsType, content, data);
+        ObservationEvent obs = ObservationEvent.of(sessionId, obsType, content, data);
+        vertx.eventBus().publish(work.ganglia.util.Constants.ADDRESS_OBSERVATIONS_ALL, JsonObject.mapFrom(obs));
+    }
+
+    @Test
+    @DisplayName("Streaming Token Forwarding Test")
+    void shouldStreamTokensToWebUI(Vertx vertx, VertxTestContext testContext) {
+        String sessionId = "stream-session";
+        String token = "part of a word";
+        
+        new WebUIEventPublisher(vertx);
+
+        vertx.eventBus().<JsonObject>consumer("ganglia.ui.ws.events", message -> {
+            testContext.verify(() -> {
+                ServerEvent event = message.body().mapTo(ServerEvent.class);
+                if (event.type() == EventType.TOKEN) {
+                    assertEquals(token, ((Map)event.data()).get("content"));
+                    testContext.completeNow();
+                }
+            });
+        });
+
+        ObservationEvent tokenObs = ObservationEvent.of(sessionId, ObservationType.TOKEN_RECEIVED, token);
+        vertx.eventBus().publish(work.ganglia.util.Constants.ADDRESS_OBSERVATIONS_ALL, JsonObject.mapFrom(tokenObs));
     }
 }

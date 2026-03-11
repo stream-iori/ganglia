@@ -32,7 +32,7 @@ public class StubToolExecutor implements ToolExecutor {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(ToolCall toolCall, SessionContext context) {
+    public Future<ToolInvokeResult> execute(ToolCall toolCall, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         executedCalls.add(toolCall);
         Function<ToolCall, ToolInvokeResult> handler = toolHandlers.get(toolCall.toolName());
         if (handler != null) {

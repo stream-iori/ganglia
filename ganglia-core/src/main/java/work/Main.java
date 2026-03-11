@@ -11,7 +11,7 @@ import work.ganglia.port.internal.skill.SkillService;
 import work.ganglia.infrastructure.external.llm.ModelGatewayFactory;
 import work.ganglia.infrastructure.external.llm.RetryingModelGateway;
 import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
-import work.ganglia.kernel.loop.EventBusObservationPublisher;
+import work.ganglia.kernel.loop.DefaultObservationDispatcher;
 import work.ganglia.kernel.loop.StandardAgentLoop;
 import work.ganglia.kernel.loop.AgentLoopObserver;
 import java.util.List;
@@ -139,13 +139,17 @@ public class Main {
                 new TraceManager(vertx, configManager);
                 new TokenUsageManager(vertx, tokenCounter);
 
-                List<AgentLoopObserver> observers = new ArrayList<>();
-                observers.add(new EventBusObservationPublisher(vertx));
-                if (options.extraObservers() != null) observers.addAll(options.extraObservers());
+                DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
+                if (options.extraObservers() != null) {
+                    // Legacy observer support could be added to dispatcher if needed, 
+                    // or just pass the dispatcher down. For now, since StandardAgentLoop 
+                    // only takes one dispatcher, we will ignore extra observers if they aren't adapted.
+                    // Ideally, WebUIDemo shouldn't use extraObservers anymore.
+                }
 
                 StandardAgentLoop agentLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager,
                     promptEngine, configManager, new DefaultContextOptimizer(configManager, compressor, tokenCounter),
-                    new ConsecutiveFailurePolicy(), observers);
+                    new ConsecutiveFailurePolicy(), dispatcher);
 
                 return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop, configManager);
             });

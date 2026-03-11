@@ -7,6 +7,7 @@ import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.skill.SkillService;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.external.tool.ToolCall;
+import work.ganglia.port.internal.state.ExecutionContext;
 
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ public class SkillTask implements Schedulable {
     }
 
     @Override
-    public Future<SchedulableResult> execute(SessionContext context) {
+    public Future<SchedulableResult> execute(SessionContext context, ExecutionContext executionContext) {
         String toolName = call.toolName();
 
         if ("list_available_skills".equals(toolName)) {
@@ -48,7 +49,7 @@ public class SkillTask implements Schedulable {
         List<ToolSet> activeSkillTools = skillRuntime.getActiveSkillsTools(context);
         for (ToolSet ts : activeSkillTools) {
             if (ts.getDefinitions().stream().anyMatch(d -> d.name().equals(toolName))) {
-                return ts.execute(call, context).map(invokeResult -> {
+                return ts.execute(call, context, executionContext).map(invokeResult -> {
                     SchedulableResult.Status status = switch (invokeResult.status()) {
                         case SUCCESS -> SchedulableResult.Status.SUCCESS;
                         case ERROR -> SchedulableResult.Status.ERROR;

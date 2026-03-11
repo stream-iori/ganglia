@@ -48,18 +48,25 @@ public class BashTools implements ToolSet {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         if ("run_shell_command".equals(toolName)) {
             String command = (String) args.get("command");
             // ToolCall ID is usually available in the context of the loop, but for direct ToolExecutor calls
             // we might need a fallback.
             String toolCallId = UUID.randomUUID().toString();
-            return runShellCommand(command, context.sessionId(), toolCallId, context);
+
+            // Try to extract actual toolCallId if this is invoked via the standard flow
+            // This is a bit of a hack since ToolSet.execute doesn't naturally pass the ToolCall object,
+            // but the default interface method does. The implementation below assumes the String-based
+            // execute is the core one, but the caller (DefaultToolExecutor) uses the ToolCall-based one.
+            // Let's rely on the executionContext to provide the ID or we can just pass the execution context.
+
+            return runShellCommand(command, context.sessionId(), toolCallId, executionContext);
         }
         return Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
     }
 
-    private Future<ToolInvokeResult> runShellCommand(String command, String sessionId, String toolCallId, SessionContext context) {
+    private Future<ToolInvokeResult> runShellCommand(String command, String sessionId, String toolCallId, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         log.debug("[SHELL_EXEC] Executing: {} (Session: {})", command, sessionId);
         return vertx.<ToolInvokeResult>executeBlocking(() -> {
             Process process = null;
@@ -89,12 +96,14 @@ public class BashTools implements ToolSet {
                             }
                             baos.write(buffer, 0, n);
 
-                            // For TTY streaming, we still need lines or chunks. 
+                            // For TTY streaming, we still need lines or chunks.
                             // Using a simple chunk-based streaming for now.
                             String chunk = new String(buffer, 0, n, StandardCharsets.UTF_8);
-                            ObservationEvent ttyEvent = ObservationEvent.of(sessionId, ObservationType.TOOL_OUTPUT_STREAM, chunk, Map.of("toolCallId", toolCallId));
-                            vertx.eventBus().publish(Constants.ADDRESS_OBSERVATIONS_PREFIX + sessionId, JsonObject.mapFrom(ttyEvent));
-                        }
+                            if (executionContext != null) {
+                                executionContext.emitStream(chunk);
+                            }
+                            }
+
                     } catch (IOException ignored) {
                     }
                 });

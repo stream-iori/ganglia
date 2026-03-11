@@ -51,7 +51,7 @@ public class ScriptSkillToolSet implements ToolSet {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(ToolCall call, SessionContext context) {
+    public Future<ToolInvokeResult> execute(ToolCall call, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         return scriptTools.stream()
             .filter(st -> st.name().equals(call.toolName()))
             .findFirst()
@@ -60,8 +60,8 @@ public class ScriptSkillToolSet implements ToolSet {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
-        return execute(new ToolCall(UUID.randomUUID().toString(), toolName, args), context);
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
+        return execute(new ToolCall(UUID.randomUUID().toString(), toolName, args), context, executionContext);
     }
 
     private Future<ToolInvokeResult> executeScript(SkillToolDefinition def, Map<String, Object> args) {

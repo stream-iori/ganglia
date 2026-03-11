@@ -79,6 +79,7 @@ export interface FileTreeNode {
 
 export interface TokenData {
   content: string;
+  role?: 'thought' | 'answer';
 }
 
 export interface TtyData {

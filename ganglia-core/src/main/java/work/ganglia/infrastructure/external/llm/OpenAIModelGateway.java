@@ -75,10 +75,10 @@ public class OpenAIModelGateway extends AbstractModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, AgentSignal signal) {
+    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal) {
         JsonObject payload = buildPayload(history, availableTools, options, true);
         if (logger.isDebugEnabled()) {
-            logger.debug("[LLM_REQ] Session: {}, Payload: {}", sessionId, payload.encode());
+            logger.debug("[LLM_REQ] Session: {}, Payload: {}", context.sessionId(), payload.encode());
         }
         Promise<ModelResponse> promise = Promise.promise();
 
@@ -97,7 +97,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                         String content = delta.getString("content");
                         if (content != null && !content.isEmpty()) {
                             fullContent.append(content);
-                            publishToken(sessionId, content);
+                            publishToken(context, content);
                         }
 
                         JsonArray toolCalls = delta.getJsonArray("tool_calls");
@@ -188,10 +188,8 @@ public class OpenAIModelGateway extends AbstractModelGateway {
         }
         if (stream) {
             payload.put("stream", true);
-            // Only include stream_options if it's likely an OpenAI model
-            if (options.modelName().toLowerCase().contains("gpt")) {
-                payload.put("stream_options", new JsonObject().put("include_usage", true));
-            }
+            // Some models support stream_options for usage, but since Moonshot and others might fail with it,
+            // we will not include it by default to ensure maximum compatibility. Usage can be calculated manually if needed.
         }
 
         JsonArray messages = new JsonArray();

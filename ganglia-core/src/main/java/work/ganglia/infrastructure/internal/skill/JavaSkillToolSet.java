@@ -48,7 +48,7 @@ public class JavaSkillToolSet implements ToolSet {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(ToolCall call, SessionContext context) {
+    public Future<ToolInvokeResult> execute(ToolCall call, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         return javaTools.stream()
             .filter(t -> t.name().equals(call.toolName()))
             .findFirst()
@@ -57,14 +57,14 @@ public class JavaSkillToolSet implements ToolSet {
                 if (instance == null) {
                     return Future.<ToolInvokeResult>failedFuture("Failed to instantiate java tool class: " + def.java().className());
                 }
-                return instance.execute(call, context);
+                return instance.execute(call, context, executionContext);
             })
             .orElseGet(() -> Future.failedFuture("Tool not found in Java skill: " + call.toolName()));
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
-        return execute(new ToolCall(java.util.UUID.randomUUID().toString(), toolName, args), context);
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
+        return execute(new ToolCall(java.util.UUID.randomUUID().toString(), toolName, args), context, executionContext);
     }
 
     private ToolSet getOrInstantiate(SkillToolDefinition def) {

@@ -35,7 +35,7 @@ public class DefaultToolExecutor implements ToolExecutor {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(ToolCall toolCall, SessionContext context) {
+    public Future<ToolInvokeResult> execute(ToolCall toolCall, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         String toolName = toolCall.toolName();
         log.debug("[TOOL_INVOKE] Name: {}, ID: {}, Args: {}", toolName, toolCall.id(), toolCall.arguments());
 
@@ -53,7 +53,7 @@ public class DefaultToolExecutor implements ToolExecutor {
         for (ToolSet ts : builtInToolSets) {
             if (hasTool(ts, toolName)) {
                 log.debug("Found tool {} in built-in toolset: {}", toolName, ts.getClass().getSimpleName());
-                return ts.execute(toolCall, context)
+                return ts.execute(toolCall, context, executionContext)
                     .onSuccess(res -> log.debug("[TOOL_RESULT] Name: {}, ID: {}, Status: {}", toolName, toolCall.id(), res.status()))
                     .onFailure(err -> log.error("[TOOL_ERROR] Name: {}, ID: {}, Error: {}", toolName, toolCall.id(), err.getMessage()));
             }

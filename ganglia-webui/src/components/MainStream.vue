@@ -52,9 +52,7 @@ watch(() => systemStore.pendingContextPath, (path) => {
 })
 
 const isBlocked = computed(() => {
-  if (logStore.events.length === 0) return false
-  const lastEvent = logStore.events[logStore.events.length - 1]
-  return lastEvent?.type === 'ASK_USER'
+  return !!systemStore.activeAskId
 })
 
 const typingStatus = computed(() => {
@@ -68,6 +66,10 @@ const typingStatus = computed(() => {
      if (['write_file', 'replace'].includes(name)) return 'Agent is writing code...'
      return `Agent is using ${name}...`
   }
+  
+  if (logStore.streamingThought) return 'Agent is thinking...'
+  if (logStore.streamingMessage) return 'Agent is responding...'
+  
   return 'Agent is thinking...'
 })
 
@@ -123,7 +125,11 @@ onUpdated(() => {
             </div>
           </div>
 
-          <ThoughtCard v-if="event.type === 'THOUGHT'" :content="event.data.content" />
+          <ThoughtCard 
+            v-if="event.type === 'THOUGHT'" 
+            :content="event.data.content" 
+            v-show="event.data.content !== '...' || !logStore.streamingThought"
+          />
 
           <ToolCard v-if="event.type === 'TOOL_START'" :event="event" :all-events="logStore.events" />
 
@@ -132,7 +138,7 @@ onUpdated(() => {
           <!-- Render TaskReviewCard right after the final completion message -->
           <TaskReviewCard v-if="event.type === 'AGENT_MESSAGE' && event.data.content.includes('Task completed')" />
 
-          <AskUserForm v-if="event.type === 'ASK_USER'" :event="event" :is-active="event.eventId === logStore.events[logStore.events.length - 1]?.eventId" />
+          <AskUserForm v-if="event.type === 'ASK_USER'" :event="event" />
 
           <div v-if="event.type === 'SYSTEM_ERROR'" class="bg-rose-950/20 border border-rose-500/50 p-4 rounded-lg text-rose-200 text-xs shadow-lg">
             <div class="font-bold mb-1 uppercase tracking-tight flex items-center justify-between">
@@ -149,6 +155,15 @@ onUpdated(() => {
           </div>
 
         </template>
+
+        <!-- Live Streaming Thought -->
+        <div v-if="logStore.streamingThought" class="animate-in fade-in duration-300">
+          <div class="flex items-center gap-2 mb-2 text-slate-500">
+            <span class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+            <span class="text-[10px] font-bold uppercase tracking-widest">Agent is thinking...</span>
+          </div>
+          <ThoughtCard :content="logStore.streamingThought" :initially-expanded="true" />
+        </div>
 
         <!-- Live Streaming Message -->
         <div v-if="logStore.streamingMessage" class="animate-in fade-in duration-300">

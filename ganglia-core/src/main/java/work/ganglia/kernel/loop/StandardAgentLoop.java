@@ -35,12 +35,12 @@ public class StandardAgentLoop implements AgentLoop {
     private final Vertx vertx;
     private final ContextOptimizer contextOptimizer;
     private final FaultTolerancePolicy faultTolerancePolicy;
-    private final List<AgentLoopObserver> observers;
+    private final ObservationDispatcher dispatcher;
     private final Map<String, AgentSignal> sessionSignals = new java.util.concurrent.ConcurrentHashMap<>();
 
     public StandardAgentLoop(Vertx vertx, ModelGateway model, SchedulableFactory scheduleableFactory, SessionManager sessionManager,
                              PromptEngine promptEngine, ConfigManager configManager, ContextOptimizer contextOptimizer,
-                             FaultTolerancePolicy faultTolerancePolicy, List<AgentLoopObserver> observers) {
+                             FaultTolerancePolicy faultTolerancePolicy, ObservationDispatcher dispatcher) {
         this.vertx = vertx;
         this.model = model;
         this.scheduleableFactory = scheduleableFactory;
@@ -49,7 +49,7 @@ public class StandardAgentLoop implements AgentLoop {
         this.configManager = configManager;
         this.contextOptimizer = contextOptimizer;
         this.faultTolerancePolicy = faultTolerancePolicy;
-        this.observers = observers == null ? Collections.emptyList() : new ArrayList<>(observers);
+        this.dispatcher = dispatcher;
     }
 
     private void publishObservation(String sessionId, ObservationType type, String content) {
@@ -58,7 +58,9 @@ public class StandardAgentLoop implements AgentLoop {
 
     private void publishObservation(String sessionId, ObservationType type, String content, Map<String, Object> data) {
         logger.debug("Publishing observation: {} for session: {}", type, sessionId);
-        observers.forEach(o -> o.onObservation(sessionId, type, content, data));
+        if (dispatcher != null) {
+            dispatcher.dispatch(sessionId, type, content, data);
+        }
     }
 
     @Override
@@ -224,8 +226,25 @@ public class StandardAgentLoop implements AgentLoop {
                 }
                 logger.debug("Calling model: {} with history size: {}, stream: {}",
                     request.options().modelName(), request.messages().size(), request.options().stream());
+                final work.ganglia.port.internal.state.ExecutionContext contextForLlm = new work.ganglia.port.internal.state.ExecutionContext() {
+                    @Override
+                    public String sessionId() {
+                        return context.sessionId();
+                    }
+
+                    @Override
+                    public void emitStream(String chunk) {
+                        publishObservation(context.sessionId(), ObservationType.TOKEN_RECEIVED, chunk);
+                    }
+
+                    @Override
+                    public void emitError(Throwable error) {
+                        publishObservation(context.sessionId(), ObservationType.ERROR, error.getMessage());
+                    }
+                };
+
                 if (request.options().stream()) {
-                    return model.chatStream(request.messages(), request.tools(), request.options(), context.sessionId(), signal);
+                    return model.chatStream(request.messages(), request.tools(), request.options(), contextForLlm, signal);
                 } else {
                     return model.chat(request.messages(), request.tools(), request.options(), signal);
                 }
@@ -244,8 +263,8 @@ public class StandardAgentLoop implements AgentLoop {
         logger.debug("Model requested {} tool call(s).", toolCalls.size());
 
         // Record usage asynchronously
-        if (response.usage() != null) {
-            observers.forEach(o -> o.onUsageRecorded(currentContext.sessionId(), response.usage()));
+        if (response.usage() != null && dispatcher instanceof AgentLoopObserver) {
+            ((AgentLoopObserver) dispatcher).onUsageRecorded(currentContext.sessionId(), response.usage());
         }
 
         if (!toolCalls.isEmpty()) {
@@ -327,7 +346,26 @@ public class StandardAgentLoop implements AgentLoop {
 
         final SessionContext originalContextForTask = currentContext;
 
-        return task.execute(originalContextForTask)
+        return task.execute(originalContextForTask, new work.ganglia.port.internal.state.ExecutionContext() {
+            @Override
+            public String sessionId() {
+                return originalContextForTask.sessionId();
+            }
+
+            @Override
+            public void emitStream(String chunk) {
+                if (dispatcher != null) {
+                    dispatcher.dispatch(originalContextForTask.sessionId(), ObservationType.TOOL_OUTPUT_STREAM, chunk, Map.of("toolCallId", task.id()));
+                }
+            }
+
+            @Override
+            public void emitError(Throwable error) {
+                if (dispatcher != null) {
+                    dispatcher.dispatch(originalContextForTask.sessionId(), ObservationType.ERROR, error.getMessage(), Map.of("toolCallId", task.id()));
+                }
+            }
+        })
             .recover(err -> {
                 logger.error("Task {} threw an unhandled exception: {}", task.name(), err.getMessage());
                 return Future.succeededFuture(new SchedulableResult(SchedulableResult.Status.EXCEPTION, "Execution error: " + err.getMessage(), null));

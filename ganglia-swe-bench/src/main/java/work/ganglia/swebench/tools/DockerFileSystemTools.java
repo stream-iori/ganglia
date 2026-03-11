@@ -36,7 +36,7 @@ public class DockerFileSystemTools implements ToolSet {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         return vertx.executeBlocking(() -> {
             try {
                 String path = (String) args.getOrDefault("path", "/workspace");

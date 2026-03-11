@@ -43,7 +43,7 @@ public class SkillTools implements ToolSet {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         return switch (toolName) {
             case "list_available_skills" -> listSkills();
             case "activate_skill" -> activateSkill(args, context);

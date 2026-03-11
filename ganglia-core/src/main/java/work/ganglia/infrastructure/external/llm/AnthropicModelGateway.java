@@ -71,7 +71,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, AgentSignal signal) {
+    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal) {
         JsonObject payload = buildPayload(history, availableTools, options, true);
         Promise<ModelResponse> promise = Promise.promise();
 
@@ -109,7 +109,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
                                 String text = delta.getString("text");
                                 if (text != null && !text.isEmpty()) {
                                     fullContent.append(text);
-                                    publishToken(sessionId, text);
+                                    publishToken(context, text);
                                 }
                             } else if ("input_json_delta".equals(deltaType)) {
                                 int index = json.getInteger("index");

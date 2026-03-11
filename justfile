@@ -43,9 +43,17 @@ dev-all:
 # Run all tests (Backend & Frontend)
 test: test-backend test-frontend
 
-# Run Java backend tests
+# Run Java backend unit tests
 test-backend:
-    mvn test
+    mvn test -pl ganglia-core,ganglia-web,ganglia-terminal
+
+# Run Java integration tests
+test-it:
+    mvn verify -pl integration-test
+
+# Run a specific integration test class (e.g. just test-it-one AgentLoopIT)
+test-it-one test_name:
+    mvn verify -Dit.test={{test_name}} -pl integration-test
 
 # Run Vue frontend tests
 test-frontend:

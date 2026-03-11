@@ -81,11 +81,15 @@ class EventBusService {
             this.simulateToolExecution(prompt)
           } else if (prompt.includes('diff') || prompt.includes('ask')) {
             this.simulateAskWithDiff()
+          } else if (prompt.includes('select') || prompt.includes('choice')) {
+            this.simulateAskSelection()
           } else {
             this.simulateTypewriterResponse('I received your message: "' + prompt + '". How can I help you today?')
           }
         } else if (msg.method === 'CANCEL') {
           this.clearSimulations()
+          const systemStore = useSystemStore()
+          systemStore.activeAskId = null
           this.respond(msg.id!, { status: 'cancelled' })
           this.notify('server_event', {
             eventId: 'stop-1',
@@ -93,6 +97,8 @@ class EventBusService {
             data: { content: 'Execution cancelled by user.' }
           })
         } else if (msg.method === 'RESPOND_ASK') {
+          const systemStore = useSystemStore()
+          systemStore.activeAskId = null
           this.respond(msg.id!, { status: 'resumed' })
           this.simulateTypewriterResponse('Thank you for your decision. I will proceed now.')
         } else if (msg.method === 'LIST_FILES') {
@@ -243,6 +249,23 @@ class EventBusService {
             options: [
               { value: 'yes', label: 'Yes, apply it', description: 'Apply the changes to the file' },
               { value: 'no', label: 'No, cancel', description: 'Discard the changes' }
+            ]
+          }
+        })
+      }
+
+      private simulateAskSelection() {
+        this.notify('server_event', {
+          eventId: 'ask-2',
+          type: 'ASK_USER',
+          data: {
+            askId: 'ask-' + Date.now(),
+            question: 'I found multiple potential matches for your request. Please select the most relevant section from the documentation below or provide more details.',
+            options: [
+              { value: 'arch', label: 'Hexagonal Architecture', description: 'Deep dive into Ports and Adapters implementation in Ganglia.' },
+              { value: 'reactive', label: 'Reactive Patterns', description: 'How Vert.x event loop handles non-blocking I/O operations.' },
+              { value: 'memory', label: 'Memory System', description: 'Context compression and long-term knowledge storage strategies.' },
+              { value: 'custom', label: 'Custom Option', description: 'I want to provide my own specific instructions instead.' }
             ]
           }
         })
@@ -399,6 +422,10 @@ class EventBusService {
 
     if (event.type === 'FILE_TREE') {
       systemStore.fileTreeUpdatedAt = Date.now()
+    }
+
+    if (event.type === 'ASK_USER') {
+      systemStore.activeAskId = event.data.askId
     }
 
     logStore.addEvent(event)

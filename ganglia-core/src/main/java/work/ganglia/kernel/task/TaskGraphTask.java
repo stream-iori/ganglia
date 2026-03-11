@@ -6,6 +6,7 @@ import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.kernel.subagent.GraphExecutor;
 import work.ganglia.kernel.subagent.TaskGraph;
 import work.ganglia.kernel.subagent.TaskNode;
+import work.ganglia.port.internal.state.ExecutionContext;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -32,7 +33,7 @@ public class TaskGraphTask implements Schedulable {
     }
 
     @Override
-    public Future<SchedulableResult> execute(SessionContext context) {
+    public Future<SchedulableResult> execute(SessionContext context, ExecutionContext executionContext) {
         // Check recursion
         Object levelObj = context.metadata().getOrDefault("sub_agent_level", 0);
         int currentLevel = (levelObj instanceof Number) ? ((Number) levelObj).intValue() : Integer.parseInt(levelObj.toString());

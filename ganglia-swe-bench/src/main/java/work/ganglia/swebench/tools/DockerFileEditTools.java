@@ -47,7 +47,7 @@ public class DockerFileEditTools implements ToolSet {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         if ("replace_in_file".equals(toolName)) {
             return replaceInFile(args);
         }

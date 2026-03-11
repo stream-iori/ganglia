@@ -30,6 +30,7 @@ export const useSystemStore = defineStore('system', {
       terminalSearchQuery: '',
       pendingContextPath: null as string | null,
       fileTreeUpdatedAt: 0,
+      activeAskId: null as string | null,
     }
   },
   getters: {

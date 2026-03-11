@@ -41,7 +41,7 @@ class WebFetchToolsTest {
                 int port = s.actualPort();
                 String url = "http://localhost:" + port;
 
-                tools.execute(new ToolCall("id", "web_fetch", Map.of("url", url)), context)
+                tools.execute(new ToolCall("id", "web_fetch", Map.of("url", url)), context, null)
                     .onComplete(testContext.succeeding(result -> {
                         testContext.verify(() -> {
                             assertEquals(ToolInvokeResult.Status.SUCCESS, result.status());

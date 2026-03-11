@@ -105,12 +105,12 @@ public class FileEditTools implements ToolSet {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(ToolCall call, SessionContext context) {
-        return execute(call.toolName(), call.arguments(), context);
+    public Future<ToolInvokeResult> execute(ToolCall call, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
+        return execute(call.toolName(), call.arguments(), context, executionContext);
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         try {
             return switch (toolName) {
                 case "replace_in_file" -> replaceInFile(toolName, args);

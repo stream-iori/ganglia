@@ -4,6 +4,7 @@ import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolExecutor;
 import work.ganglia.port.external.tool.ToolCall;
+import work.ganglia.port.internal.state.ExecutionContext;
 
 /**
  * A scheduleable task that wraps a standard tool execution (e.g. Bash, FileSystem).
@@ -28,8 +29,8 @@ public class StandardToolTask implements Schedulable {
     }
 
     @Override
-    public Future<SchedulableResult> execute(SessionContext context) {
-        return toolExecutor.execute(toolCall, context)
+    public Future<SchedulableResult> execute(SessionContext context, ExecutionContext executionContext) {
+        return toolExecutor.execute(toolCall, context, executionContext)
             .map(invokeResult -> {
                 SchedulableResult.Status status = switch (invokeResult.status()) {
                     case SUCCESS -> SchedulableResult.Status.SUCCESS;

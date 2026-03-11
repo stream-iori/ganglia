@@ -40,8 +40,8 @@ public class RetryingModelGateway implements ModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, AgentSignal signal) {
-        return retryChatStream(history, availableTools, options, sessionId, signal, 0);
+    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal) {
+        return retryChatStream(history, availableTools, options, context, signal, 0);
     }
 
     private Future<ModelResponse> retryChat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, AgentSignal signal, int attempt) {
@@ -53,13 +53,13 @@ public class RetryingModelGateway implements ModelGateway {
         return future.recover(err -> handleRetry(err, attempt, () -> retryChat(history, availableTools, options, signal, attempt + 1)));
     }
 
-    private Future<ModelResponse> retryChatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, AgentSignal signal, int attempt) {
+    private Future<ModelResponse> retryChatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal, int attempt) {
         if (signal.isAborted()) return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
-        Future<ModelResponse> future = delegate.chatStream(history, availableTools, options, sessionId, signal);
+        Future<ModelResponse> future = delegate.chatStream(history, availableTools, options, context, signal);
         if (future == null) {
             return Future.failedFuture("Delegate gateway returned null future for chatStream");
         }
-        return future.recover(err -> handleRetry(err, attempt, () -> retryChatStream(history, availableTools, options, sessionId, signal, attempt + 1)));
+        return future.recover(err -> handleRetry(err, attempt, () -> retryChatStream(history, availableTools, options, context, signal, attempt + 1)));
     }
 
     private Future<ModelResponse> handleRetry(Throwable err, int attempt, java.util.function.Supplier<Future<ModelResponse>> nextAttempt) {

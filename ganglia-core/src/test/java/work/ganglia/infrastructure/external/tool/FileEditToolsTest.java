@@ -49,7 +49,7 @@ public class FileEditToolsTest {
         args.put("new_string", "updated block");
         args.put("expected_replacements", 1);
 
-        tools.execute(new ToolCall("id", "replace_in_file", args), null)
+        tools.execute(new ToolCall("id", "replace_in_file", args), null, null)
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, result.status());
@@ -78,7 +78,7 @@ public class FileEditToolsTest {
         args.put("file_path", newFileName);
         args.put("content", newContent);
 
-        tools.execute(new ToolCall("id", "write_file", args), null)
+        tools.execute(new ToolCall("id", "write_file", args), null, null)
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, result.status());
@@ -100,7 +100,7 @@ public class FileEditToolsTest {
         args.put("file_path", testFileName);
         args.put("content", newContent);
 
-        tools.execute(new ToolCall("id", "write_file", args), null)
+        tools.execute(new ToolCall("id", "write_file", args), null, null)
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, result.status());
@@ -134,7 +134,7 @@ public class FileEditToolsTest {
         args.put("file_path", testFileName);
         args.put("patch", patch);
 
-        tools.execute(new ToolCall("id", "apply_patch", args), null)
+        tools.execute(new ToolCall("id", "apply_patch", args), null, null)
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, result.status());
@@ -153,7 +153,7 @@ public class FileEditToolsTest {
         args.put("old_string", "non-existent block");
         args.put("new_string", "whatever");
 
-        tools.execute(new ToolCall("id", "replace_in_file", args), null)
+        tools.execute(new ToolCall("id", "replace_in_file", args), null, null)
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.ERROR, result.status());
@@ -175,7 +175,7 @@ public class FileEditToolsTest {
         args.put("new_string", "single");
         args.put("expected_replacements", 1);
 
-        tools.execute(new ToolCall("id", "replace_in_file", args), null)
+        tools.execute(new ToolCall("id", "replace_in_file", args), null, null)
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.ERROR, result.status());
@@ -196,7 +196,7 @@ public class FileEditToolsTest {
         args.put("new_string", "replaced");
         args.put("expected_replacements", 2);
 
-        tools.execute(new ToolCall("id", "replace_in_file", args), null)
+        tools.execute(new ToolCall("id", "replace_in_file", args), null, null)
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, result.status());
@@ -213,7 +213,7 @@ public class FileEditToolsTest {
         args.put("file_path", "../escaped.txt");
         args.put("content", "should fail");
 
-        tools.execute(new ToolCall("id", "write_file", args), null)
+        tools.execute(new ToolCall("id", "write_file", args), null, null)
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.ERROR, result.status());

@@ -45,7 +45,7 @@ public class BashFileSystemToolsTest {
         Path file = tempDir.resolve("test.txt");
         Files.writeString(file, "Hello World\nJava is fun");
 
-        tools.execute("grep_search", Map.of("path", tempDir.toString(), "pattern", "Java"), null)
+        tools.execute("grep_search", Map.of("path", tempDir.toString(), "pattern", "Java"), null, null)
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
@@ -63,7 +63,7 @@ public class BashFileSystemToolsTest {
         Files.writeString(tempDir.resolve("subdir/b.java"), "java");
         Files.writeString(tempDir.resolve("c.txt"), "text");
 
-        tools.execute(new ToolCall("id", "glob", Map.of("path", tempDir.toString(), "pattern", "**/*.java")), null)
+        tools.execute(new ToolCall("id", "glob", Map.of("path", tempDir.toString(), "pattern", "**/*.java")), null, null)
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
@@ -96,7 +96,7 @@ public class BashFileSystemToolsTest {
             Files.writeString(file, content.toString());
         }
 
-        tools.execute("read_file", Map.of("path", file.toString(), "offset", offset, "limit", limit), null)
+        tools.execute("read_file", Map.of("path", file.toString(), "offset", offset, "limit", limit), null, null)
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
@@ -118,7 +118,7 @@ public class BashFileSystemToolsTest {
         Path f2 = tempDir.resolve("b.txt");
         Files.writeString(f2, "Content B\nLine 2");
 
-        tools.execute("read_files", Map.of("paths", List.of(f1.toString(), f2.toString())), null)
+        tools.execute("read_files", Map.of("paths", List.of(f1.toString(), f2.toString())), null, null)
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
@@ -136,7 +136,7 @@ public class BashFileSystemToolsTest {
         Files.writeString(f1, "Valid Content");
         String invalidPath = tempDir.resolve("missing.txt").toString();
 
-        tools.execute("read_files", Map.of("paths", List.of(f1.toString(), invalidPath)), null)
+        tools.execute("read_files", Map.of("paths", List.of(f1.toString(), invalidPath)), null, null)
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());

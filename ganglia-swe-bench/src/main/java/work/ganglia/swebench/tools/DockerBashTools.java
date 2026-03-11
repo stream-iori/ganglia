@@ -44,7 +44,7 @@ public class DockerBashTools implements ToolSet {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         if ("run_shell_command".equals(toolName)) {
             String command = (String) args.get("command");
             return runShellCommand(command);

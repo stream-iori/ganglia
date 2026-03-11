@@ -14,6 +14,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import work.ganglia.stubs.StubExecutionContext;
+
 @ExtendWith(VertxExtension.class)
 public class InteractionToolsTest {
 
@@ -31,7 +33,7 @@ public class InteractionToolsTest {
             "type", "text"
         );
 
-        tools.execute(new ToolCall("id", "ask_selection", args), null)
+        tools.execute(new ToolCall("id", "ask_selection", args), null, new StubExecutionContext())
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.INTERRUPT, res.status());
@@ -49,7 +51,7 @@ public class InteractionToolsTest {
             "options", List.of("file1.txt", "file2.txt")
         );
 
-        tools.execute(new ToolCall("id", "ask_selection", args), null)
+        tools.execute(new ToolCall("id", "ask_selection", args), null, new StubExecutionContext())
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.INTERRUPT, res.status());

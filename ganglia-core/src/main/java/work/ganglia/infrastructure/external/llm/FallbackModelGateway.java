@@ -48,8 +48,8 @@ public class FallbackModelGateway implements ModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, AgentSignal signal) {
-        return primary.chatStream(history, availableTools, options, sessionId, signal)
+    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal) {
+        return primary.chatStream(history, availableTools, options, context, signal)
             .recover(err -> {
                 if (shouldFallback(err)) {
                     logger.warn("Primary model stream failed, falling back to utility model {}. Error: {}",
@@ -60,7 +60,7 @@ public class FallbackModelGateway implements ModelGateway {
                         utilityModelName,
                         options.stream()
                     );
-                    return utility.chatStream(history, availableTools, fallbackOptions, sessionId, signal);
+                    return utility.chatStream(history, availableTools, fallbackOptions, context, signal);
                 }
                 return Future.failedFuture(err);
             });

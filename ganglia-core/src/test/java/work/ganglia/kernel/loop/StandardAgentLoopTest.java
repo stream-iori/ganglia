@@ -60,7 +60,7 @@ class StandardAgentLoopTest {
         compressor = new DefaultContextCompressor(model, configManager);
         DefaultContextOptimizer optimizer = new DefaultContextOptimizer(configManager, compressor, new TokenCounter());
         scheduleableFactory = new DefaultSchedulableFactory(vertx, model, sessionManager, prompt, configManager, compressor, tools, null, null, null);
-        loop = new StandardAgentLoop(vertx, model, scheduleableFactory, sessionManager, prompt, configManager, optimizer, new ConsecutiveFailurePolicy(), Collections.emptyList());
+        loop = new StandardAgentLoop(vertx, model, scheduleableFactory, sessionManager, prompt, configManager, optimizer, new ConsecutiveFailurePolicy(), new DefaultObservationDispatcher(vertx));
     }
 
     @Test

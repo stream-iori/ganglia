@@ -53,7 +53,7 @@ public class ToDoTools implements ToolSet {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context) {
+    public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         return switch (toolName) {
             case "todo_add" -> add(args, context);
             case "todo_list" -> list(context);
@@ -63,8 +63,8 @@ public class ToDoTools implements ToolSet {
     }
 
     @Override
-    public Future<ToolInvokeResult> execute(ToolCall call, SessionContext context) {
-        return execute(call.toolName(), call.arguments(), context);
+    public Future<ToolInvokeResult> execute(ToolCall call, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
+        return execute(call.toolName(), call.arguments(), context, executionContext);
     }
 
     public Future<ToolInvokeResult> add(Map<String, Object> args, SessionContext context) {

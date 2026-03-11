@@ -25,7 +25,7 @@ public class StubModelGateway implements ModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, String sessionId, AgentSignal signal) {
+    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal) {
         // For testing, chatStream behaves like chat but we can simulate events if needed.
         if (responses.isEmpty()) {
             return Future.failedFuture("No stub response available");

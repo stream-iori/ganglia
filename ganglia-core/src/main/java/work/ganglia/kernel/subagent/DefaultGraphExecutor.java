@@ -8,7 +8,7 @@ import io.vertx.core.Vertx;
 import work.ganglia.config.ConfigManager;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
-import work.ganglia.kernel.loop.EventBusObservationPublisher;
+import work.ganglia.kernel.loop.DefaultObservationDispatcher;
 import work.ganglia.kernel.loop.StandardAgentLoop;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.prompt.PromptEngine;
@@ -127,7 +127,7 @@ public class DefaultGraphExecutor implements GraphExecutor {
 
         SessionContext childContext = ContextScoper.scope(childSessionId, parentContext, childMetadata);
 
-        StandardAgentLoop childLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, new DefaultContextOptimizer(configManager, compressor, new TokenCounter()), new ConsecutiveFailurePolicy(), List.of(new EventBusObservationPublisher(vertx)));
+        StandardAgentLoop childLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, new DefaultContextOptimizer(configManager, compressor, new TokenCounter()), new ConsecutiveFailurePolicy(), new DefaultObservationDispatcher(vertx));
 
         StringBuilder promptBuilder = new StringBuilder("TASK: ").append(node.task()).append("\\n\\n");
         if (!dependencyResults.isEmpty()) {

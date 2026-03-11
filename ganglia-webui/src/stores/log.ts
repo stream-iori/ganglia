@@ -11,43 +11,67 @@ export const useLogStore = defineStore('log', {
     // Project file tree
     fileTree: null as FileTreeNode | null,
     // Live streaming content
-    streamingMessage: ''
+    streamingMessage: '',
+    streamingThought: ''
   }),
   actions: {
     addEvent(event: ServerEvent) {
       if (event.type === 'TOKEN') {
         const data = event.data as TokenData
-        this.streamingMessage += data.content
+        
+        // Infer role if not provided
+        let role = data.role
+        if (!role) {
+          const lastEvent = this.events.length > 0 ? this.events[this.events.length - 1] : null
+          if (lastEvent && lastEvent.type === 'THOUGHT' && lastEvent.data.content === '...') {
+            role = 'thought'
+          } else {
+            role = 'answer'
+          }
+        }
+
+        if (role === 'thought') {
+          this.streamingThought += data.content
+        } else {
+          this.streamingMessage += data.content
+        }
         return // Do NOT push tokens to the events array
       }
 
-      // If we receive a non-TOKEN event, we should probably clear the streaming message
-      // as it means the turn or a phase has finished and the full content will be in the next event.
-      if (event.type !== 'TOOL_OUTPUT_STREAM') {
+      // If we receive a non-TOKEN event, we clear the corresponding streaming buffer
+      if (event.type === 'THOUGHT') {
+        this.streamingThought = ''
+      } else if (event.type === 'AGENT_MESSAGE') {
         this.streamingMessage = ''
+      } else if (event.type !== 'TOOL_OUTPUT_STREAM') {
+        // Clear all if it's a completely different phase (e.g. tool start)
+        this.streamingMessage = ''
+        this.streamingThought = ''
       }
 
-      // --- De-duplication and Placeholder handling for non-streaming mode ---
-      if (this.events.length > 0) {
-        const lastIndex = this.events.length - 1;
-        const lastEvent = this.events[lastIndex];
+      // --- 0. Update existing event if same eventId arrives ---
+      const existingIdx = this.events.findIndex(e => e.eventId === event.eventId)
+      if (existingIdx !== -1) {
+        this.events[existingIdx] = event
+        return
+      }
 
-        // 1. If we receive a real THOUGHT/AGENT_MESSAGE, remove the "..." placeholder
-        if ((event.type === 'THOUGHT' || event.type === 'AGENT_MESSAGE' || event.type === 'TOOL_START') && 
-             lastEvent && lastEvent.type === 'THOUGHT' && lastEvent.data.content === '...') {
-          this.events.splice(lastIndex, 1);
-        }
-
-        // 2. Refresh last event after potential removal
-        const currentLastEvent = this.events.length > 0 ? this.events[this.events.length - 1] : null;
-
-        // 3. Avoid double rendering if THOUGHT and AGENT_MESSAGE have same content
-        if (event.type === 'AGENT_MESSAGE' && currentLastEvent && 
-            currentLastEvent.type === 'THOUGHT' && 
-            currentLastEvent.data.content.trim() === event.data.content.trim()) {
-          // Replace THOUGHT with AGENT_MESSAGE to give it more prominence
-          this.events.splice(this.events.length - 1, 1, event);
-          return;
+      // --- 1. Robust Placeholder handling ---
+      const isThoughtPlaceholder = (e: ServerEvent) => e && e.type === 'THOUGHT' && String(e.data.content).trim() === '...';
+      
+      if (event.type === 'THOUGHT' || event.type === 'AGENT_MESSAGE' || event.type === 'TOOL_START') {
+        // Find "..." placeholder in last few events
+        const placeholderIdx = this.events.findLastIndex(isThoughtPlaceholder);
+        
+        if (placeholderIdx !== -1 && placeholderIdx >= this.events.length - 3) {
+          if (event.type === 'THOUGHT' && !isThoughtPlaceholder(event)) {
+            // Replace placeholder with real thought content to maintain position
+            this.events[placeholderIdx] = event;
+            return;
+          } else if (event.type !== 'THOUGHT') {
+            // Remove placeholder if we are moving to next phase (Message/Tool)
+            this.events.splice(placeholderIdx, 1);
+          }
         }
       }
 

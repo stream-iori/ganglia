@@ -4,7 +4,7 @@ import io.vertx.core.Vertx;
 import work.ganglia.config.model.ModelConfig;
 import work.ganglia.infrastructure.external.llm.OpenAIModelGateway;
 import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
-import work.ganglia.kernel.loop.EventBusObservationPublisher;
+import work.ganglia.kernel.loop.DefaultObservationDispatcher;
 import work.ganglia.kernel.loop.StandardAgentLoop;
 import java.util.List;
 import work.ganglia.port.chat.SessionContext;
@@ -79,7 +79,7 @@ public class SWEBenchEvaluator {
                 toolExecutor, null, null, null
             );
 
-            StandardAgentLoop loop = new StandardAgentLoop(vertx, model, scheduleableFactory, sessionManager, promptEngine, config, new DefaultContextOptimizer(config, compressor, new TokenCounter()), new ConsecutiveFailurePolicy(), List.of(new EventBusObservationPublisher(vertx)));
+            StandardAgentLoop loop = new StandardAgentLoop(vertx, model, scheduleableFactory, sessionManager, promptEngine, config, new DefaultContextOptimizer(config, compressor, new TokenCounter()), new ConsecutiveFailurePolicy(), new DefaultObservationDispatcher(vertx));
 
             // 2. Run Agent
             Map<String, Object> metadata = new HashMap<>();

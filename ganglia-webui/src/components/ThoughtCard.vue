@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 
-defineProps<{
+const props = defineProps<{
   content: string
+  initiallyExpanded?: boolean
 }>()
 
-const isExpanded = ref(false)
+const isExpanded = ref(props.initiallyExpanded || false)
 </script>
 
 <template>

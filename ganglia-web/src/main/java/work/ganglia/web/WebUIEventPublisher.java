@@ -15,6 +15,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.UUID;
 
+import work.ganglia.port.external.tool.ObservationEvent;
+
 /**
  * Publishes Agent Loop observations to the WebUI via EventBus.
  */
@@ -24,6 +26,18 @@ public class WebUIEventPublisher implements AgentLoopObserver {
 
     public WebUIEventPublisher(Vertx vertx) {
         this.vertx = vertx;
+        setupConsumer();
+    }
+
+    private void setupConsumer() {
+        vertx.eventBus().<JsonObject>consumer(Constants.ADDRESS_OBSERVATIONS_ALL, msg -> {
+            try {
+                ObservationEvent obs = msg.body().mapTo(ObservationEvent.class);
+                onObservation(obs.sessionId(), obs.type(), obs.content(), obs.data());
+            } catch (Exception e) {
+                logger.error("Failed to process observation event from bus", e);
+            }
+        });
     }
 
     private void publish(String sessionId, EventType type, Object data) {
