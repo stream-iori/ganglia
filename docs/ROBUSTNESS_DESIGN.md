@@ -10,16 +10,20 @@ To ensure Ganglia remains stable, responsive, and recoverable in the face of LLM
 ## 2. LLM Call Robustness
 
 ### 2.1 Structured Exception Mapping
-The `ModelGateway` abstracts provider-specific errors into a unified `LLMException` hierarchy:
-- `RateLimitException`: Triggers exponential backoff.
-- `ContextOverflowException`: Triggers aggressive history pruning or summarization.
-- `AuthenticationException`: Critical failure, alerts the user.
+The `ModelGateway` abstracts provider-specific errors into a unified `LLMException` hierarchy.
 
-### 2.2 Retry with Backoff
-The `RetryingModelGateway` (Infrastructure) implements jittered exponential backoff for transient errors (500, 502, 503, 504, 429). It ensures that individual LLM calls are resilient to temporary network or provider issues before failing the reasoning step.
+### 2.2 Explicit Timeouts
+Every model configuration supports a `timeout` parameter (default 60000ms). This is enforced at the `WebClient` level to prevent the agent from hanging indefinitely on stalled connections or silent stream deaths.
 
-### 2.3 Model Fallback
-If the `primary` model fails consistently or hits quota limits, the `FallbackModelGateway` can automatically downgrade to the `utility` model defined in `ConfigManager`.
+### 2.3 User-Aware Retry with Backoff
+The `RetryingModelGateway` (Infrastructure) implements jittered exponential backoff.
+- **Criteria**: Retries are triggered for HTTP 429, 5xx, and critical network exceptions including `IOException`, `ConnectException`, `SocketTimeoutException`, and Vert.x `TimeoutException`.
+- **Visibility**: When a retry is initiated, a specialized warning token is emitted to the `ExecutionContext`:
+  `⚠️ Network error: [reason]. Retrying attempt X of Y...`
+  This ensures the user sees real-time status in the WebUI thought block rather than experiencing a frozen UI.
+
+### 2.4 Model Fallback
+If the `primary` model fails consistently or hits its `maxRetries` (default 5), the `FallbackModelGateway` can automatically switch to the `utility` model.
 
 ### 2.4 Active Cancellation
 LLM requests are bound to the `AgentSignal`. When an abort is triggered:

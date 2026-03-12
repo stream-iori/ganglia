@@ -23,6 +23,7 @@ classDiagram
         -scheduleableFactory: SchedulableFactory
         -sessionManager: SessionManager
         -promptEngine: PromptEngine
+        -dispatcher: ObservationDispatcher
         +run(...)
         +resume(...)
         -runLoop(...)
@@ -33,7 +34,7 @@ classDiagram
     class Schedulable {
         <<Interface>>
         +id() String
-        +execute(context: SessionContext) Future~SchedulableResult~
+        +execute(context: SessionContext, executionContext: ExecutionContext) Future~SchedulableResult~
     }
 
     subgraph Tasks [Kernel Tasks]
@@ -51,53 +52,71 @@ classDiagram
     subgraph Port [Port Layer - work.ganglia.port]
         class ModelGateway { <<Interface>> }
         class SessionManager { <<Interface>> }
-        class ToolExecutor { <<Interface>> }
+        class ToolSet { <<Interface>> }
         class PromptEngine { <<Interface>> }
+        class ObservationDispatcher { <<Interface>> }
+        class ExecutionContext { <<Interface>> }
     end
 
     StandardAgentLoop --> ModelGateway : uses
     StandardAgentLoop --> SessionManager : uses
     StandardAgentLoop --> PromptEngine : uses
-    ToolTask --> ToolExecutor : uses
+    StandardAgentLoop --> ObservationDispatcher : uses
+    ToolTask --> ToolSet : uses
+    ToolTask ..> ExecutionContext : provides
 ```
 
 ## 2. Sequence Diagram: The ReAct Loop
 
-The Kernel coordinates the flow between Prompt preparation, Model interaction, and Task execution.
+The Kernel coordinates the flow between Prompt preparation, Model interaction, and Task execution, utilizing a unified dispatcher for observations.
 
 ```mermaid
 sequenceDiagram
     autonumber
     participant User
     participant Loop as StandardAgentLoop
+    participant Disp as ObservationDispatcher
     participant Port as PortLayer (Prompt/Model/Session)
     participant Task as SchedulableTask
 
     User->>Loop: run(userInput, context, signal)
-    Loop->>Port: startTurn & persist
+    Loop->>Disp: dispatch(TURN_STARTED)
     
     loop ReAct Cycle (Max Iterations)
         Note over Loop, Port: 1. Reasoning Phase
+        Loop->>Disp: dispatch(REASONING_STARTED)
         Loop->>Port: prepareRequest(Context)
-        Port-->>Loop: LlmRequest (Layered Prompts + Tools)
+        Port-->>Loop: LlmRequest
         
-        Loop->>Port: chatStream(LlmRequest)
-        Port-->>Loop: ModelResponse (Accumulated Content + ToolCalls)
+        Loop->>Port: chatStream(LlmRequest, ExecutionContext)
+        
+        loop Token Streaming
+            Port->>Disp: dispatch(TOKEN_RECEIVED)
+        end
+        
+        Port-->>Loop: ModelResponse (Finalized)
+        Loop->>Disp: dispatch(REASONING_FINISHED)
         
         alt Has Tool Calls?
             Note over Loop, Task: 2. Execution Phase
             Loop->>Loop: create tasks via Factory
             
             loop For each ToolCall
-                Loop->>Task: execute(Context)
+                Loop->>Disp: dispatch(TOOL_STARTED)
+                Loop->>Task: execute(Context, ExecutionContext)
+                
+                loop TTY Streaming
+                    Task->>Disp: dispatch(TOOL_OUTPUT_STREAM)
+                end
+                
                 Task-->>Loop: SchedulableResult (Observation)
-                Loop->>Port: publishObservation
+                Loop->>Disp: dispatch(TOOL_FINISHED)
             end
             
-            Loop->>Port: persist(Context)
+            Loop->>Port: saveSession(Context)
             
         else No Tool Calls (Final Answer)
-            Loop->>Port: completeTurn & persist
+            Loop->>Disp: dispatch(TURN_FINISHED)
             Note right of Loop: Break Loop
         end
     end

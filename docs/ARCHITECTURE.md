@@ -1,7 +1,7 @@
 # Ganglia Architecture Documentation
 
 > **Status:** Implemented
-> **Version:** 1.3.0
+> **Version:** 1.4.0
 
 ## 1. System Overview
 
@@ -20,10 +20,14 @@ The core design philosophy follows a **Hexagonal (Ports & Adapters)** architectu
     - The **Kernel** (Reasoning) is isolated from **Infrastructure** (LLM, Storage).
     - All dependencies flow inward towards the Kernel and the Domain Port layer.
 
-3.  **Tool-First Navigation:**
+3.  **Unified Observation Stream:**
+    - All system activities (macro loop events and micro streaming tokens/TTY) are unified into a single EventBus-driven pipeline.
+    - Decouples event generation (Tools/Gateways) from transport/UI logic.
+
+4.  **Tool-First Navigation:**
     - The agent explores codebases using tools (`grep`, `glob`, `read`) rather than relying purely on pre-computed embeddings.
 
-4.  **Memory as Code:**
+5.  **Memory as Code:**
     - Memory is stored in **Markdown files** (`MEMORY.md`, Daily Records).
     - It is transparent, editable, and version-controlled.
 
@@ -43,20 +47,20 @@ graph TD
 
     subgraph Kernel ["2. Kernel Layer (The Heart)"]
         Loop["StandardAgentLoop (Reasoning)"]
-        Task["Schedulable Tasks (Execution)"]
+        Dispatcher["ObservationDispatcher (Unified Routing)"]
         SchedFactory["SchedulableFactory (Orchestration)"]
     end
 
     subgraph Port ["3. Port Layer (Contracts & Domain)"]
         Chat["Chat Domain (Message, Turn, Context)"]
-        IntPorts["Internal Ports (MemoryService, PromptEngine, State)"]
-        ExtPorts["External Ports (ModelGateway, ToolExecutor)"]
+        IntPorts["Internal Ports (Memory, Prompt, ExecutionContext)"]
+        ExtPorts["External Ports (ModelGateway, ToolSet)"]
     end
 
     subgraph Infra ["4. Infrastructure Layer (Implementation)"]
         Gateways["Native LLM Gateways (OpenAI, Anthropic Protocols)"]
         Tools["Standard Tool Implementations (Bash, FS)"]
-        Storage["File-based State & Daily Logs"]
+        Observability["TraceManager & WebUIEventPublisher (Event Consumers)"]
         Vertx["Vert.x Core (EventBus, WebClient)"]
     end
 
@@ -64,25 +68,26 @@ graph TD
     Kernel --> Port
     Infra -- implements --> Port
     Kernel -.-> Port
+    Observability -.->|Consumes| Dispatcher
 ```
 
 ### 3.1 The Kernel Layer ("The Brain")
 
 - **Reasoning Loop:** `StandardAgentLoop` manages the iterative cycle of Thought, Action, and Observation.
-- **Task System:** All actions (Tools, Sub-Agents, Skills) are encapsulated as `Schedulable` tasks, ensuring uniform execution and sequential safety.
-- **Robustness:** Includes failure policies (`ConsecutiveFailurePolicy`) and retry mechanisms.
+- **Observation Dispatcher:** `DefaultObservationDispatcher` acts as the central hub for all events. It broadcasts macro events (from the loop) and micro events (from tools via `ExecutionContext`) to a unified EventBus topic (`ganglia.observations.*`).
+- **Robustness:** Includes failure policies, jittered exponential backoff retries, and configurable timeouts.
 
 ### 3.2 The Port Layer ("The Contracts")
 
-- **Internal Ports:** Define how the Kernel interacts with its internal cognitive systems (Memory, Prompt, State).
-- **External Ports:** Define how the Kernel interacts with the environment (LLMs via `ModelGateway`, Tools via `ToolExecutor`).
-- **Domain Models:** All core data structures like `Message`, `SessionContext`, and `ToolCall` are defined here, ensuring high cohesion.
+- **Internal Ports:** Define how the Kernel interacts with its internal systems. Crucially includes `ExecutionContext` which allows tools to emit stream chunks without knowing about Vert.x.
+- **External Ports:** Define interactions with LLMs (`ModelGateway`) and Environment (`ToolSet`).
+- **Domain Models:** Records like `Message`, `SessionContext`, and `ObservationEvent` ensure data integrity.
 
 ### 3.3 The Infrastructure Layer ("The Hands")
 
-- **Native LLM Gateways:** Re-implemented OpenAI and Anthropic protocols using Vert.x `WebClient` and SSE parsing, eliminating heavy SDK dependencies.
-- **Tool Implementations:** Concrete logic for file system manipulation, shell execution, and web fetching.
-- **Persistence:** Implementation of file-based session state and daily journaling.
+- **Native LLM Gateways:** Implements protocols via Vert.x `WebClient`. Supports explicit timeouts and broadened retry logic for connection resets.
+- **Event Consumers:** `WebUIEventPublisher` and `TraceManager` are decoupled from the loop; they simply consume the unified observation stream and forward it to WebSockets or Files.
+- **Persistence:** File-based session state and daily journaling.
 
 ## 4. The Memory System
 

@@ -13,11 +13,12 @@ This document describes the implemented module structure of the Ganglia system, 
 - **Reasoning Loop**: `StandardAgentLoop` (Thought -> Task -> Observation).
 - **Task System**: `Schedulable` abstraction and concrete task types (`ToolTask`, `SubAgentTask`, `SkillTask`).
 - **Scheduling**: `SchedulableFactory` for mapping intents to execution.
+- **Observation**: `DefaultObservationDispatcher` for unified event routing.
 
 ### 1.2 Port Layer (`work.ganglia.port`)
 - **Chat Domain**: `Message`, `Role`, `Turn`, `SessionContext`.
-- **Internal Contract**: `MemoryService`, `PromptEngine`, `SessionManager`, `StateEngine`, `SkillService`.
-- **External Contract**: `ModelGateway`, `ToolExecutor`.
+- **Internal Contract**: `MemoryService`, `PromptEngine`, `SessionManager`, `StateEngine`, `SkillService`, `ExecutionContext`, `ObservationDispatcher`.
+- **External Contract**: `ModelGateway`, `ToolSet`.
 
 ### 1.3 Infrastructure Layer (`work.ganglia.infrastructure`)
 - **LLM Integration**: Native OpenAI and Anthropic protocol implementations using Vert.x `WebClient`.

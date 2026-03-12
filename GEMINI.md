@@ -64,6 +64,8 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for
 - Maintain **Sequential Task Execution** within the loop via the `Schedulable` interface.
 - Use **JDK 17 Text Blocks** for JSON schemas and large strings.
 - Strictly adhere to the **3-tier memory model** defined in `docs/MEMORY_ARCHITECTURE.md`.
+- **Unified Observation Stream**: All system activities MUST be reported via the `ObservationDispatcher` or `ExecutionContext`. Tools and Gateways MUST NOT use `vertx.eventBus()` directly for observations.
+- **Network Resilience**: LLM requests MUST enforce a `timeout` (default 60s). Retries for network errors MUST be handled by the `RetryingModelGateway`.
 - Use `just` for development tasks (e.g., `just frontend`, `just backend`, `just ui-watch`).
 
 <!-- MANUAL ADDITIONS START -->
