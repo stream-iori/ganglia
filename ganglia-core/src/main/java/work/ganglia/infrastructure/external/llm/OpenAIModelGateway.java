@@ -29,11 +29,17 @@ public class OpenAIModelGateway extends AbstractModelGateway {
     private final WebClient webClient;
     private final String apiKey;
     private final String endpoint;
+    private final int timeoutMs;
 
     public OpenAIModelGateway(Vertx vertx, WebClient webClient, String apiKey, String baseUrl) {
+        this(vertx, webClient, apiKey, baseUrl, 60000);
+    }
+
+    public OpenAIModelGateway(Vertx vertx, WebClient webClient, String apiKey, String baseUrl, int timeoutMs) {
         super(vertx);
         this.webClient = webClient;
         this.apiKey = apiKey;
+        this.timeoutMs = timeoutMs;
         this.endpoint = baseUrl.endsWith("/chat/completions") ? baseUrl :
             (baseUrl.endsWith("/") ? baseUrl + "chat/completions" : baseUrl + "/chat/completions");
     }
@@ -48,6 +54,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
             webClient.postAbs(endpoint)
                 .putHeader("Authorization", "Bearer " + apiKey)
                 .putHeader("Content-Type", "application/json")
+                .timeout(timeoutMs)
                 .as(BodyCodec.jsonObject())
                 .sendJsonObject(payload)
                 .compose(response -> {
@@ -131,10 +138,10 @@ public class OpenAIModelGateway extends AbstractModelGateway {
             } catch (Exception e) {
                 logger.error("Failed to parse SSE JSON chunk", e);
             }
-        }, promise::fail);
+        }, promise::tryFail);
 
         SseWriteStream writeStream = new SseWriteStream(parser);
-        writeStream.exceptionHandler(promise::fail);
+        writeStream.exceptionHandler(promise::tryFail);
 
         // Active cancellation: fail the promise immediately when abort signal is received
         signal.onAbort(() -> {
@@ -146,6 +153,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                 .putHeader("Authorization", "Bearer " + apiKey)
                 .putHeader("Content-Type", "application/json")
                 .putHeader("Accept", "text/event-stream")
+                .timeout(timeoutMs)
                 .as(BodyCodec.pipe(writeStream, true))
                 .sendJsonObject(payload)
                 .onSuccess(response -> {
@@ -172,7 +180,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                     if (signal.isAborted()) {
                         promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
                     } else {
-                        promise.fail(err);
+                        promise.tryFail(err);
                     }
                 })
         );

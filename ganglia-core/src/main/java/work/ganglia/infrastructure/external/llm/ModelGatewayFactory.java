@@ -42,31 +42,39 @@ public class ModelGatewayFactory {
             logger.warn("No API key found in configuration for provider: {} (Model: {}).", type, config.name());
         }
 
-        return switch (type.toLowerCase()) {
+        ModelGateway baseGateway = switch (type.toLowerCase()) {
             case "anthropic" -> createAnthropic(vertx, webClient, config);
             case "gemini" -> createGemini(vertx, webClient, config);
             default -> createOpenAI(vertx, webClient, config);
         };
+
+        int maxRetries = config.getMaxRetriesOrDefault();
+        if (maxRetries > 0) {
+            logger.debug("Wrapping provider {} with RetryingModelGateway (maxRetries: {})", type, maxRetries);
+            return new RetryingModelGateway(baseGateway, vertx, maxRetries);
+        }
+        
+        return baseGateway;
     }
 
     private static ModelGateway createOpenAI(Vertx vertx, WebClient webClient, ModelConfig config) {
         String baseUrl = config.baseUrl();
         if (baseUrl == null || baseUrl.isEmpty()) baseUrl = "https://api.openai.com/v1";
         logger.info("Initializing OpenAI provider (Base URL: {})", baseUrl);
-        return new OpenAIModelGateway(vertx, webClient, config.apiKey(), baseUrl);
+        return new OpenAIModelGateway(vertx, webClient, config.apiKey(), baseUrl, config.getTimeoutOrDefault());
     }
 
     private static ModelGateway createAnthropic(Vertx vertx, WebClient webClient, ModelConfig config) {
         String baseUrl = config.baseUrl();
         if (baseUrl == null || baseUrl.isEmpty()) baseUrl = "https://api.anthropic.com";
         logger.info("Initializing Anthropic provider (Base URL: {})", baseUrl);
-        return new AnthropicModelGateway(vertx, webClient, config.apiKey(), baseUrl);
+        return new AnthropicModelGateway(vertx, webClient, config.apiKey(), baseUrl, config.getTimeoutOrDefault());
     }
 
     private static ModelGateway createGemini(Vertx vertx, WebClient webClient, ModelConfig config) {
         String baseUrl = config.baseUrl();
         if (baseUrl == null || baseUrl.isEmpty()) baseUrl = "https://generativelanguage.googleapis.com/v1beta/openai";
         logger.info("Initializing Gemini provider via OpenAI compatibility (Base URL: {})", baseUrl);
-        return new OpenAIModelGateway(vertx, webClient, config.apiKey(), baseUrl);
+        return new OpenAIModelGateway(vertx, webClient, config.apiKey(), baseUrl, config.getTimeoutOrDefault());
     }
 }

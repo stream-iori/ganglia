@@ -29,12 +29,18 @@ public class AnthropicModelGateway extends AbstractModelGateway {
     private final WebClient webClient;
     private final String apiKey;
     private final String endpoint;
+    private final int timeoutMs;
 
     public AnthropicModelGateway(Vertx vertx, WebClient webClient, String apiKey, String baseUrl) {
+        this(vertx, webClient, apiKey, baseUrl, 60000);
+    }
+
+    public AnthropicModelGateway(Vertx vertx, WebClient webClient, String apiKey, String baseUrl, int timeoutMs) {
         super(vertx);
         this.webClient = webClient;
         this.apiKey = apiKey;
-        this.endpoint = baseUrl.endsWith("/v1/messages") ? baseUrl : 
+        this.timeoutMs = timeoutMs;
+        this.endpoint = baseUrl.endsWith("/v1/messages") ? baseUrl :
             (baseUrl.endsWith("/") ? baseUrl + "v1/messages" : baseUrl + "/v1/messages");
     }
 
@@ -46,7 +52,9 @@ public class AnthropicModelGateway extends AbstractModelGateway {
                 .putHeader("x-api-key", apiKey)
                 .putHeader("anthropic-version", "2023-06-01")
                 .putHeader("Content-Type", "application/json")
+                .timeout(timeoutMs)
                 .as(BodyCodec.jsonObject())
+
                 .sendJsonObject(payload)
                 .compose(response -> {
                     if (signal.isAborted()) {
@@ -134,10 +142,10 @@ public class AnthropicModelGateway extends AbstractModelGateway {
             } catch (Exception e) {
                 logger.error("Failed to parse Anthropic SSE chunk", e);
             }
-        }, promise::fail);
+        }, promise::tryFail);
 
         SseWriteStream writeStream = new SseWriteStream(parser);
-        writeStream.exceptionHandler(promise::fail);
+        writeStream.exceptionHandler(promise::tryFail);
 
         // Active cancellation: fail the promise immediately when abort signal is received
         signal.onAbort(() -> {
@@ -150,6 +158,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
                 .putHeader("anthropic-version", "2023-06-01")
                 .putHeader("Content-Type", "application/json")
                 .putHeader("Accept", "text/event-stream")
+                .timeout(timeoutMs)
                 .as(BodyCodec.pipe(writeStream, true))
                 .sendJsonObject(payload)
                 .onSuccess(response -> {
@@ -174,7 +183,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
                     if (signal.isAborted()) {
                         promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
                     } else {
-                        promise.fail(err);
+                        promise.tryFail(err);
                     }
                 })
         );

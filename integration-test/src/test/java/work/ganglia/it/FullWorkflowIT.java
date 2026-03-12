@@ -70,7 +70,7 @@ public class FullWorkflowIT {
 
                 ModelResponse res4 = new ModelResponse("All done.", Collections.emptyList(), new TokenUsage(1, 1));
 
-                when(mockModel.chatStream(anyList(), anyList(), any(), anyString(), any()))
+                when(mockModel.chatStream(anyList(), anyList(), any(), any(), any()))
                     .thenReturn(Future.succeededFuture(res1))
                     .thenReturn(Future.succeededFuture(res2))
                     .thenReturn(Future.succeededFuture(res3))

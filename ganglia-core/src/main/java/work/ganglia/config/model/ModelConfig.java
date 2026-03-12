@@ -11,5 +11,15 @@ public record ModelConfig(
     String type,      // "openai", "anthropic", "gemini"
     String apiKey,
     String baseUrl,
-    Boolean stream
-) {}
+    Boolean stream,
+    Integer timeout,
+    Integer maxRetries
+) {
+    public int getTimeoutOrDefault() {
+        return timeout != null ? timeout : 60000;
+    }
+
+    public int getMaxRetriesOrDefault() {
+        return maxRetries != null ? maxRetries : 5;
+    }
+}

@@ -24,7 +24,9 @@
           "type": { "type": "string", "enum": ["openai", "anthropic", "gemini"] },
           "apiKey": { "type": "string" },
           "baseUrl": { "type": "string" },
-          "stream": { "type": "boolean" }
+          "stream": { "type": "boolean" },
+          "timeout": { "type": "integer", "default": 60000 },
+          "maxRetries": { "type": "integer", "default": 5 }
         },
         "required": ["name", "type"]
       }

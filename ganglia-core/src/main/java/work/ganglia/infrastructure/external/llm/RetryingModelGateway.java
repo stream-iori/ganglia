@@ -50,7 +50,7 @@ public class RetryingModelGateway implements ModelGateway {
         if (future == null) {
             return Future.failedFuture("Delegate gateway returned null future for chat");
         }
-        return future.recover(err -> handleRetry(err, attempt, () -> retryChat(history, availableTools, options, signal, attempt + 1)));
+        return future.recover(err -> handleRetry(err, attempt, () -> retryChat(history, availableTools, options, signal, attempt + 1), null));
     }
 
     private Future<ModelResponse> retryChatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal, int attempt) {
@@ -59,14 +59,18 @@ public class RetryingModelGateway implements ModelGateway {
         if (future == null) {
             return Future.failedFuture("Delegate gateway returned null future for chatStream");
         }
-        return future.recover(err -> handleRetry(err, attempt, () -> retryChatStream(history, availableTools, options, context, signal, attempt + 1)));
+        return future.recover(err -> handleRetry(err, attempt, () -> retryChatStream(history, availableTools, options, context, signal, attempt + 1), context));
     }
 
-    private Future<ModelResponse> handleRetry(Throwable err, int attempt, java.util.function.Supplier<Future<ModelResponse>> nextAttempt) {
+    private Future<ModelResponse> handleRetry(Throwable err, int attempt, java.util.function.Supplier<Future<ModelResponse>> nextAttempt, work.ganglia.port.internal.state.ExecutionContext context) {
         if (shouldRetry(err) && attempt < maxRetries) {
             long delay = calculateDelay(attempt);
-            //TODO: retry 信息要透入出去,让用户感知
-            logger.warn("Transient LLM error. Retrying in {}ms... Error: {}", delay, err.getMessage());
+            logger.warn("Transient LLM error. Retrying attempt {}/{} in {}ms... Error: {}", attempt + 1, maxRetries, delay, err.getMessage());
+            
+            if (context != null) {
+                String warning = String.format("\n\n⚠️ Network error: %s. Retrying attempt %d of %d...\n\n", err.getMessage(), attempt + 1, maxRetries);
+                context.emitStream(warning);
+            }
 
             Promise<ModelResponse> promise = Promise.promise();
             vertx.setTimer(delay, id -> nextAttempt.get().onComplete(promise));
@@ -76,6 +80,17 @@ public class RetryingModelGateway implements ModelGateway {
     }
 
     private boolean shouldRetry(Throwable err) {
+        // Unwrap Vert.x generic errors if possible
+        Throwable cause = err.getCause() != null ? err.getCause() : err;
+        logger.debug("Checking if should retry. Error class: {}, Cause class: {}, Message: {}", err.getClass().getName(), cause.getClass().getName(), cause.getMessage());
+        
+        if (cause instanceof java.io.IOException || 
+            cause instanceof java.net.ConnectException || 
+            cause.getClass().getName().contains("TimeoutException") ||
+            (cause instanceof io.vertx.core.VertxException && cause.getMessage() != null && cause.getMessage().toLowerCase().contains("connection was closed"))) {
+            return true;
+        }
+
         if (err instanceof LLMException) {
             LLMException le = (LLMException) err;
             int status = le.httpStatusCode().orElse(0);

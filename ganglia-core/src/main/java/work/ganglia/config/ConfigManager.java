@@ -166,7 +166,9 @@ public class ConfigManager {
                 .put(ConfigKeys.CONTEXT_LIMIT, 128000)
                 .put(ConfigKeys.TYPE, "openai")
                 .put(ConfigKeys.API_KEY, "")
-                .put(ConfigKeys.BASE_URL, "https://api.moonshot.cn/v1");
+                .put(ConfigKeys.BASE_URL, "https://api.moonshot.cn/v1")
+                .put("timeout", 60000)
+                .put("maxRetries", 5);
 
         JsonObject utilityModel = new JsonObject()
                 .put(ConfigKeys.NAME, "moonshot-v1-8k")
@@ -175,7 +177,9 @@ public class ConfigManager {
                 .put(ConfigKeys.CONTEXT_LIMIT, 128000)
                 .put(ConfigKeys.TYPE, "openai")
                 .put(ConfigKeys.API_KEY, "")
-                .put(ConfigKeys.BASE_URL, "https://api.moonshot.cn/v1");
+                .put(ConfigKeys.BASE_URL, "https://api.moonshot.cn/v1")
+                .put("timeout", 60000)
+                .put("maxRetries", 5);
 
         Map<String, Object> models = new HashMap<>();
         models.put(ConfigKeys.PRIMARY, primaryModel);
