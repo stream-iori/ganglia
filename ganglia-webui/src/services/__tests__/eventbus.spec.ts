@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 import { eventBusService } from '../eventbus'
 import { useSystemStore } from '../../stores/system'
 import { useLogStore } from '../../stores/log'
@@ -57,8 +56,9 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
   let originalWebSocket: any;
 
   beforeEach(() => {
-    setActivePinia(createPinia())
     vi.clearAllMocks()
+    useSystemStore.setState({ status: 'DISCONNECTED', fileTreeUpdatedAt: 0 })
+    useLogStore.setState({ events: [], activeToolCalls: {} })
     
     originalWebSocket = window.WebSocket;
     (window as any).WebSocket = MockWebSocket;
@@ -67,24 +67,21 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
   afterEach(() => {
     (window as any).WebSocket = originalWebSocket;
     MockWebSocket.lastInstance = null;
+    eventBusService.close();
   })
 
   it('should connect and sync history', async () => {
     eventBusService.connect()
-    const systemStore = useSystemStore()
-    const logStore = useLogStore()
     
     await new Promise(resolve => setTimeout(resolve, 50));
     
-    expect(systemStore.status).toBe('CONNECTED')
-    expect(logStore.events).toHaveLength(0)
+    expect(useSystemStore.getState().status).toBe('CONNECTED')
+    expect(useLogStore.getState().events).toHaveLength(0)
   })
 
   it('should handle server events (notifications)', async () => {
     eventBusService.connect()
     await new Promise(resolve => setTimeout(resolve, 20));
-    
-    const logStore = useLogStore()
     
     MockWebSocket.lastInstance?.simulateMessage({
       jsonrpc: '2.0',
@@ -96,17 +93,17 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
       }
     })
     
-    expect(logStore.events).toHaveLength(1)
-    expect(logStore.events[0].type).toBe('THOUGHT')
-    expect(logStore.events[0].data.content).toBe('Test Thinking')
+    const logState = useLogStore.getState()
+    expect(logState.events).toHaveLength(1)
+    expect(logState.events[0].type).toBe('THOUGHT')
+    expect((logState.events[0].data as any).content).toBe('Test Thinking')
   })
 
   it('should update fileTreeUpdatedAt on FILE_TREE event', async () => {
     eventBusService.connect()
     await new Promise(resolve => setTimeout(resolve, 20));
     
-    const systemStore = useSystemStore()
-    const initialTime = systemStore.fileTreeUpdatedAt
+    const initialTime = useSystemStore.getState().fileTreeUpdatedAt
     
     MockWebSocket.lastInstance?.simulateMessage({
       jsonrpc: '2.0',
@@ -118,17 +115,16 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
       }
     })
     
-    expect(systemStore.fileTreeUpdatedAt).toBeGreaterThan(initialTime)
+    expect(useSystemStore.getState().fileTreeUpdatedAt).toBeGreaterThan(initialTime)
   })
 
   it('should handle tty events', async () => {
     eventBusService.connect()
     await new Promise(resolve => setTimeout(resolve, 20));
     
-    const logStore = useLogStore()
     const toolCallId = 'call-123'
     
-    logStore.addEvent({
+    useLogStore.getState().addEvent({
       eventId: 'start-1',
       type: 'TOOL_START',
       data: { toolCallId, toolName: 'bash', command: 'ls' }
@@ -143,7 +139,7 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
       }
     })
     
-    expect(logStore.activeToolCalls[toolCallId]).toContain('hello\n')
+    expect(useLogStore.getState().activeToolCalls[toolCallId]).toContain('hello\n')
   })
 
   it('should support promise-based send', async () => {

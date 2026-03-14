@@ -1,15 +1,22 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { setActivePinia, createPinia } from 'pinia'
 import { useLogStore } from '../log'
 import type { ServerEvent, ToolStartData } from '../../types'
 
 describe('Log Store', () => {
   beforeEach(() => {
-    setActivePinia(createPinia())
+    // Reset Zustand store
+    useLogStore.setState({
+      events: [],
+      activeToolCalls: {},
+      fileCache: {},
+      fileTree: null,
+      streamingMessage: '',
+      streamingThought: ''
+    })
   })
 
   it('should add an event', () => {
-    const store = useLogStore()
+    const store = useLogStore.getState()
     const event: ServerEvent = {
       eventId: '1',
       timestamp: Date.now(),
@@ -18,12 +25,13 @@ describe('Log Store', () => {
     }
     
     store.addEvent(event)
-    expect(store.events).toHaveLength(1)
-    expect(store.events[0]).toEqual(event)
+    const state = useLogStore.getState()
+    expect(state.events).toHaveLength(1)
+    expect(state.events[0]).toEqual(event)
   })
 
   it('should initialize TTY map when TOOL_START is added', () => {
-    const store = useLogStore()
+    const store = useLogStore.getState()
     const toolCallId = 'call_123'
     const event: ServerEvent<ToolStartData> = {
       eventId: '2',
@@ -37,72 +45,79 @@ describe('Log Store', () => {
     }
     
     store.addEvent(event)
-    expect(store.activeToolCalls[toolCallId]).toBeDefined()
-    expect(store.activeToolCalls[toolCallId]).toEqual([])
+    const state = useLogStore.getState()
+    expect(state.activeToolCalls[toolCallId]).toBeDefined()
+    expect(state.activeToolCalls[toolCallId]).toEqual([])
   })
 
   it('should append Tty data', () => {
-    const store = useLogStore()
+    const store = useLogStore.getState()
     const toolCallId = 'call_123'
     
     // Setup active call
-    store.activeToolCalls[toolCallId] = []
+    useLogStore.setState({ activeToolCalls: { [toolCallId]: [] } })
     
     store.appendTty(toolCallId, 'line 1\n')
-    expect(store.activeToolCalls[toolCallId]).toHaveLength(1)
-    expect(store.activeToolCalls[toolCallId][0]).toBe('line 1\n')
+    const state = useLogStore.getState()
+    expect(state.activeToolCalls[toolCallId]).toHaveLength(1)
+    expect(state.activeToolCalls[toolCallId][0]).toBe('line 1\n')
   })
 
   it('should clear events', () => {
-    const store = useLogStore()
-    store.events = [{ eventId: '1' } as any]
-    store.activeToolCalls = { '1': [] }
+    const store = useLogStore.getState()
+    useLogStore.setState({ 
+      events: [{ eventId: '1' } as any],
+      activeToolCalls: { '1': [] } 
+    })
     
     store.clear()
-    expect(store.events).toHaveLength(0)
-    expect(Object.keys(store.activeToolCalls)).toHaveLength(0)
+    const state = useLogStore.getState()
+    expect(state.events).toHaveLength(0)
+    expect(Object.keys(state.activeToolCalls)).toHaveLength(0)
   })
 
   it('should handle USER_MESSAGE', () => {
-    const store = useLogStore()
+    const store = useLogStore.getState()
     const event: ServerEvent = {
       eventId: 'user-1',
       timestamp: Date.now(),
       type: 'USER_MESSAGE',
-      data: { content: 'who are you' }
+      data: { content: 'who are you' } as any
     }
     
     store.addEvent(event)
-    expect(store.events).toHaveLength(1)
-    expect(store.events[0]?.type).toBe('USER_MESSAGE')
+    const state = useLogStore.getState()
+    expect(state.events).toHaveLength(1)
+    expect(state.events[0]?.type).toBe('USER_MESSAGE')
   })
 
   it('should replace "..." placeholder when real thought arrives', () => {
-    const store = useLogStore()
+    const store = useLogStore.getState()
     
     // 1. Add placeholder
     store.addEvent({
       eventId: 'p1',
       timestamp: Date.now(),
       type: 'THOUGHT',
-      data: { content: '...' }
+      data: { content: '...' } as any
     })
-    expect(store.events).toHaveLength(1)
+    expect(useLogStore.getState().events).toHaveLength(1)
 
     // 2. Add real thought
     store.addEvent({
       eventId: 't1',
       timestamp: Date.now(),
       type: 'THOUGHT',
-      data: { content: 'I am thinking about it' }
+      data: { content: 'I am thinking about it' } as any
     })
     
-    expect(store.events).toHaveLength(1)
-    expect(store.events[0]?.data.content).toBe('I am thinking about it')
+    const state = useLogStore.getState()
+    expect(state.events).toHaveLength(1)
+    expect((state.events[0]?.data as any).content).toBe('I am thinking about it')
   })
 
   it('should deduplicate THOUGHT and AGENT_MESSAGE with same content', () => {
-    const store = useLogStore()
+    const store = useLogStore.getState()
     
     const content = 'Hello world'
     
@@ -110,17 +125,18 @@ describe('Log Store', () => {
       eventId: 't1',
       timestamp: Date.now(),
       type: 'THOUGHT',
-      data: { content }
+      data: { content } as any
     })
     
     store.addEvent({
       eventId: 'a1',
       timestamp: Date.now(),
       type: 'AGENT_MESSAGE',
-      data: { content }
+      data: { content } as any
     })
     
-    expect(store.events).toHaveLength(1)
-    expect(store.events[0]?.type).toBe('AGENT_MESSAGE')
+    const state = useLogStore.getState()
+    expect(state.events).toHaveLength(1)
+    expect(state.events[0]?.type).toBe('AGENT_MESSAGE')
   })
 })

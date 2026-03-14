@@ -88,8 +88,7 @@ class EventBusService {
           }
         } else if (msg.method === 'CANCEL') {
           this.clearSimulations()
-          const systemStore = useSystemStore()
-          systemStore.activeAskId = null
+          useSystemStore.setState({ activeAskId: null })
           this.respond(msg.id!, { status: 'cancelled' })
           this.notify('server_event', {
             eventId: 'stop-1',
@@ -97,8 +96,7 @@ class EventBusService {
             data: { content: 'Execution cancelled by user.' }
           })
         } else if (msg.method === 'RESPOND_ASK') {
-          const systemStore = useSystemStore()
-          systemStore.activeAskId = null
+          useSystemStore.setState({ activeAskId: null })
           this.respond(msg.id!, { status: 'resumed' })
           this.simulateTypewriterResponse('Thank you for your decision. I will proceed now.')
         } else if (msg.method === 'LIST_FILES') {
@@ -286,7 +284,7 @@ class EventBusService {
   }
 
   connect() {
-    const systemStore = useSystemStore()
+    const systemStore = useSystemStore.getState()
     console.log(`Connecting to WebSocket at ${this.url}...`)
     
     this.ws = new WebSocket(this.url)
@@ -299,7 +297,7 @@ class EventBusService {
       // Request history sync
       this.send('SYNC', {}).then((reply: any) => {
         if (reply && reply.history) {
-          const logStore = useLogStore()
+          const logStore = useLogStore.getState()
           logStore.clear()
           const history = reply.history as ServerEvent[]
           history.forEach((event: ServerEvent) => logStore.addEvent(event))
@@ -361,7 +359,7 @@ class EventBusService {
   private reconnect() {
     if (this.retryCount >= this.maxRetryCount) return
 
-    const systemStore = useSystemStore()
+    const systemStore = useSystemStore.getState()
     systemStore.setStatus('RECONNECTING')
     
     this.retryCount++
@@ -381,7 +379,7 @@ class EventBusService {
   send(action: 'CANCEL' | 'RETRY', payload: {}): Promise<any>;
   send(action: ClientAction, payload: any): Promise<any> {
     return new Promise((resolve, reject) => {
-      const systemStore = useSystemStore()
+      const systemStore = useSystemStore.getState()
       if (systemStore.status !== 'CONNECTED' || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
         reject(new Error('WebSocket not connected'))
         return
@@ -410,8 +408,8 @@ class EventBusService {
 
   private handleServerEvent(event: ServerEvent) {
     console.debug('[WebSocket] Received event:', event.type, event);
-    const systemStore = useSystemStore()
-    const logStore = useLogStore()
+    const systemStore = useSystemStore.getState()
+    const logStore = useLogStore.getState()
 
     if (event.type === 'INIT_CONFIG') {
       const data = event.data as InitConfigData
@@ -421,18 +419,18 @@ class EventBusService {
     }
 
     if (event.type === 'FILE_TREE') {
-      systemStore.fileTreeUpdatedAt = Date.now()
+      useSystemStore.setState({ fileTreeUpdatedAt: Date.now() })
     }
 
     if (event.type === 'ASK_USER') {
-      systemStore.activeAskId = event.data.askId
+      useSystemStore.setState({ activeAskId: event.data.askId })
     }
 
     logStore.addEvent(event)
   }
 
   private handleTtyEvent(event: TtyData) {
-    const logStore = useLogStore()
+    const logStore = useLogStore.getState()
     if (event.toolCallId && event.text) {
       logStore.appendTty(event.toolCallId, event.text)
     }
