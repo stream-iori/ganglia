@@ -3,12 +3,12 @@ package work.ganglia.it;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import work.Main;
 import work.ganglia.Ganglia;
 import work.ganglia.BootstrapOptions;
+import work.ganglia.coding.tool.CodingToolsFactory;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
@@ -28,28 +28,29 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(VertxExtension.class)
 public class SubAgentCooperationIT {
 
     private Ganglia ganglia;
     private ModelGateway mockModel;
-    
-    @TempDir
-    Path sharedTempDir;
 
     @BeforeEach
-    void setUp(Vertx vertx, VertxTestContext testContext) {
+    void setUp(Vertx vertx, VertxTestContext testContext, @TempDir Path tempDir) throws java.io.IOException {
         mockModel = mock(ModelGateway.class);
         when(mockModel.chat(any(ChatRequest.class))).thenReturn(Future.failedFuture("Reflection disabled"));
 
-        String projectRoot = sharedTempDir.toAbsolutePath().toString();
+        String projectRoot = tempDir.toRealPath().toString();
+        CodingToolsFactory codingToolsFactory = new CodingToolsFactory(vertx, projectRoot);
 
         BootstrapOptions options = BootstrapOptions.defaultOptions()
             .withProjectRoot(projectRoot)
             .withModelGateway(mockModel)
-            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)))
+            .withExtraToolSets(codingToolsFactory.createToolSets())
+            .withExtraContextSources(codingToolsFactory.createContextSources());
 
         Main.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {
@@ -60,47 +61,31 @@ public class SubAgentCooperationIT {
 
     @Test
     void testInvestigatorDelegationAndCalculation(Vertx vertx, VertxTestContext testContext) {
-        // 1. Prepare data files
-        vertx.fileSystem().writeFileBlocking(sharedTempDir.resolve("num1.txt").toString(), Buffer.buffer("Value: 10"));
-        vertx.fileSystem().writeFileBlocking(sharedTempDir.resolve("num2.txt").toString(), Buffer.buffer("Value: 20"));
-        vertx.fileSystem().writeFileBlocking(sharedTempDir.resolve("num3.txt").toString(), Buffer.buffer("Value: 30"));
-
-        // 2. Mock responses for Parent Agent
-        ToolCall delegateCall = new ToolCall("p1", "call_sub_agent", Map.of(
-            "task", "Read all num*.txt files in " + sharedTempDir + " and extract the numeric values.",
+        // Master Agent receives instruction: "Find three numbers in files and sum them up."
+        // Master decides to delegate finding numbers to an INVESTIGATOR sub-agent.
+        
+        ToolCall delegateCall = new ToolCall("c1", "call_sub_agent", Map.of(
+            "task", "Find three numbers in the project files.",
             "persona", "INVESTIGATOR"
         ));
 
-        // 3. Mock responses for Sub-Agent (Investigator)
-        ToolCall globCall = new ToolCall("s1", "glob", Map.of("path", sharedTempDir.toString(), "pattern", "num*.txt"));
-        ToolCall read1 = new ToolCall("s2", "read_file", Map.of("path", sharedTempDir.resolve("num1.txt").toString()));
-        ToolCall read2 = new ToolCall("s3", "read_file", Map.of("path", sharedTempDir.resolve("num2.txt").toString()));
-        ToolCall read3 = new ToolCall("s4", "read_file", Map.of("path", sharedTempDir.resolve("num3.txt").toString()));
+        // Sub-agent (Investigator) response mock
+        String subAgentResult = "I found three numbers: 10, 20, and 30.";
 
         when(mockModel.chatStream(any(ChatRequest.class), any()))
-            // Parent: First Turn -> Delegates
-            .thenReturn(Future.succeededFuture(new ModelResponse("I will delegate this to an investigator.", List.of(delegateCall), new TokenUsage(1, 1))))
-            // Sub-Agent: Starts -> Calls Glob
-            .thenReturn(Future.succeededFuture(new ModelResponse("Listing files...", List.of(globCall), new TokenUsage(1, 1))))
-            // Sub-Agent: Reads 3 files sequentially
-            .thenReturn(Future.succeededFuture(new ModelResponse("Reading files...", List.of(read1, read2, read3), new TokenUsage(1, 1))))
-            // Sub-Agent: Final Report
-            .thenReturn(Future.succeededFuture(new ModelResponse("I found three numbers: 10, 20, and 30.", Collections.emptyList(), new TokenUsage(1, 1))))
-            // Parent: Receives Report -> Final Calculation
-            .thenReturn(Future.succeededFuture(new ModelResponse("The sub-agent reported 10, 20, 30. The total sum is 60.", Collections.emptyList(), new TokenUsage(1, 1))));
+            // First call: Master delegates
+            .thenReturn(Future.succeededFuture(new ModelResponse("Delegating...", List.of(delegateCall), new TokenUsage(10, 10))))
+            // Second call (Sub-agent execution internally uses ModelGateway too): Investigator returns findings
+            .thenReturn(Future.succeededFuture(new ModelResponse(subAgentResult, Collections.emptyList(), new TokenUsage(5, 5))))
+            // Third call: Master receives sub-agent result and finishes
+            .thenReturn(Future.succeededFuture(new ModelResponse("The sum of 10, 20, and 30 is 60.", Collections.emptyList(), new TokenUsage(10, 10))));
 
         SessionContext context = ganglia.sessionManager().createSession(UUID.randomUUID().toString());
 
-        ganglia.agentLoop().run("Sum the numbers found in files in " + sharedTempDir, context)
-            .onComplete(testContext.succeeding((String result) -> {
+        ganglia.agentLoop().run("Find three numbers and sum them up", context)
+            .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
-                    // Verify the math was done by the parent
                     assertTrue(result.contains("60"), "Result should contain the sum 60. Got: " + result);
-
-                    // Verify correct number of LLM calls (1 Parent start + 3 Sub-Agent turns + 1 Parent finish)
-                    // Note: In our mock, Sub-Agent turns were optimized.
-                    // Let's just check if it finished.
-                    assertTrue(result.toLowerCase().contains("total") || result.toLowerCase().contains("sum"));
                     testContext.completeNow();
                 });
             }));

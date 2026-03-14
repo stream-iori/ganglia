@@ -15,7 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Default implementation of ToolExecutor that orchestrates standard built-in tool sets.
+ * Default implementation of ToolExecutor that orchestrates standard built-in tool sets and any extra tool sets.
  */
 public class DefaultToolExecutor implements ToolExecutor {
     private static final Logger log = LoggerFactory.getLogger(DefaultToolExecutor.class);
@@ -24,14 +24,19 @@ public class DefaultToolExecutor implements ToolExecutor {
     private final ToolCallValidator validator = new ToolCallValidator();
 
     public DefaultToolExecutor(ToolsFactory factory) {
-        // Add standard built-in toolsets
-        builtInToolSets.add(factory.getBashFileSystemTools());
+        this(factory, List.of());
+    }
+
+    public DefaultToolExecutor(ToolsFactory factory, List<ToolSet> extraToolSets) {
+        // Add standard core toolsets
         builtInToolSets.add(factory.getToDoTools());
         builtInToolSets.add(factory.getKnowledgeBaseTools());
         builtInToolSets.add(factory.getInteractionTools());
-        builtInToolSets.add(factory.getWebFetchTools());
-        builtInToolSets.add(factory.getBashTools());
-        builtInToolSets.add(factory.getFileEditTools());
+
+        // Add extra toolsets (e.g., from ganglia-coding)
+        if (extraToolSets != null) {
+            builtInToolSets.addAll(extraToolSets);
+        }
     }
 
     @Override
@@ -49,10 +54,10 @@ public class DefaultToolExecutor implements ToolExecutor {
             }
         }
 
-        // 2. Try built-in tools
+        // 2. Try built-in and extra tools
         for (ToolSet ts : builtInToolSets) {
             if (hasTool(ts, toolName)) {
-                log.debug("Found tool {} in built-in toolset: {}", toolName, ts.getClass().getSimpleName());
+                log.debug("Found tool {} in toolset: {}", toolName, ts.getClass().getSimpleName());
                 return ts.execute(toolCall, context, executionContext)
                     .onSuccess(res -> log.debug("[TOOL_RESULT] Name: {}, ID: {}, Status: {}", toolName, toolCall.id(), res.status()))
                     .onFailure(err -> log.error("[TOOL_ERROR] Name: {}, ID: {}, Error: {}", toolName, toolCall.id(), err.getMessage()));

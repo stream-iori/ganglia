@@ -17,10 +17,8 @@ import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.port.chat.*;
 import work.ganglia.port.external.llm.*;
 import work.ganglia.port.external.tool.*;
-import work.ganglia.port.internal.state.*;;
+import work.ganglia.port.internal.state.*;
 import java.util.Collections;
-import work.ganglia.infrastructure.internal.prompt.context.*;
-import work.ganglia.kernel.subagent.SubAgentContextSource;
 import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.prompt.PromptEngine;
@@ -43,14 +41,21 @@ public class StandardPromptEngine implements PromptEngine {
                                 SkillRuntime skillRuntime,
                                 AgentTaskFactory taskFactory,
                                 TokenCounter tokenCounter) {
-        MarkdownContextResolver resolver = new MarkdownContextResolver(vertx);
+        this(vertx, memoryService, skillRuntime, taskFactory, tokenCounter, List.of());
+    }
+
+    public StandardPromptEngine(Vertx vertx,
+                                MemoryService memoryService,
+                                SkillRuntime skillRuntime,
+                                AgentTaskFactory taskFactory,
+                                TokenCounter tokenCounter,
+                                List<ContextSource> extraSources) {
         this.tokenCounter = tokenCounter;
         this.composer = new ContextComposer(this.tokenCounter);
         this.taskFactory = taskFactory;
 
-        // Initialize default sources
+        // Initialize default core sources
         sources.add(new PersonaContextSource());
-        sources.add(new FileContextSource(vertx, resolver, Constants.FILE_GANGLIA_MD));
         sources.add(new EnvironmentSource(vertx));
         sources.add(new SkillContextSource(skillRuntime));
         if (this.taskFactory != null) {
@@ -59,6 +64,11 @@ public class StandardPromptEngine implements PromptEngine {
         sources.add(new ToDoContextSource());
         sources.add(new MemoryContextSource(memoryService));
         sources.add(new SubAgentContextSource());
+
+        // Add extra sources (e.g., from ganglia-coding)
+        if (extraSources != null) {
+            sources.addAll(extraSources);
+        }
     }
 
     public void setTaskFactory(AgentTaskFactory taskFactory) {
@@ -108,10 +118,10 @@ public class StandardPromptEngine implements PromptEngine {
             }
 
             // 4. Resolve Tools (with sub-agent filtering)
-            var tools = taskFactory.getAvailableDefinitions(context);
+            List<ToolDefinition> tools = taskFactory != null ? taskFactory.getAvailableDefinitions(context) : Collections.emptyList();
 
             boolean isSub = (boolean) context.metadata().getOrDefault("is_sub_agent", false);
-            if (isSub) {
+            if (isSub && !tools.isEmpty()) {
                 String persona = (String) context.metadata().getOrDefault("sub_agent_persona", "GENERAL");
                 if ("INVESTIGATOR".equals(persona)) {
                     // Filter out tools that modify files

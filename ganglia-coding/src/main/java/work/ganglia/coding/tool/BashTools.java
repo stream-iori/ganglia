@@ -1,4 +1,4 @@
-package work.ganglia.infrastructure.external.tool;
+package work.ganglia.coding.tool;
 
 import work.ganglia.util.Constants;
 

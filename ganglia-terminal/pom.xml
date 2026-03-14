@@ -16,6 +16,10 @@
             <groupId>me.stream</groupId>
             <artifactId>ganglia-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>me.stream</groupId>
+            <artifactId>ganglia-coding</artifactId>
+        </dependency>
 
         <dependency>
             <groupId>org.jline</groupId>

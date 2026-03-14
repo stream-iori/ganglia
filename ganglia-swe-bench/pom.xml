@@ -21,6 +21,10 @@
             <groupId>me.stream</groupId>
             <artifactId>ganglia-core</artifactId>
         </dependency>
+        <dependency>
+            <groupId>me.stream</groupId>
+            <artifactId>ganglia-coding</artifactId>
+        </dependency>
 
         <!-- Testcontainers -->
         <dependency>

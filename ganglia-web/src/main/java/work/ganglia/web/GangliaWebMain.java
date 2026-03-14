@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.Main;
 import work.ganglia.BootstrapOptions;
+import work.ganglia.coding.tool.CodingToolsFactory;
 import work.ganglia.config.model.GangliaConfig;
 
 import java.util.List;
@@ -19,10 +20,14 @@ public class GangliaWebMain {
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
         String configPath = System.getProperty("ganglia.config", ".ganglia/config.json");
+        String projectRoot = System.getProperty("user.dir");
+        CodingToolsFactory codingToolsFactory = new CodingToolsFactory(vertx, projectRoot);
 
         BootstrapOptions options = BootstrapOptions.defaultOptions()
             .withConfigPath(configPath)
-            .withObservers(List.of(new WebUIEventPublisher(vertx)));
+            .withObservers(List.of(new WebUIEventPublisher(vertx)))
+            .withExtraToolSets(codingToolsFactory.createToolSets())
+            .withExtraContextSources(codingToolsFactory.createContextSources());
 
         Main.bootstrap(vertx, options)
             .onSuccess(ganglia -> {

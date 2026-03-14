@@ -95,11 +95,11 @@ public class GangliaKernel {
                     memoryService.registerModule(new LongTermKnowledgeModule(longTermMemory));
 
                     ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, longTermMemory, projectRoot);
-                    StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, memoryService, skillRuntime, null, tokenCounter);
+                    StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, memoryService, skillRuntime, null, tokenCounter, options.extraContextSources());
                     promptEngine.addContextSource(new DailyContextSource(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString()));
 
                     SessionManager sessionManager = new DefaultSessionManager(new FileStateEngine(vertx), new FileLogManager(vertx), configManager);
-                    DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory);
+                    DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, options.extraToolSets());
                     DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
 
                     // Create AgentEnv
@@ -125,7 +125,7 @@ public class GangliaKernel {
 
                     ReActAgentLoop agentLoop = new ReActAgentLoop(env);
 
-                    return Future.succeededFuture(new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop, configManager));
+                    return Future.succeededFuture(new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop, configManager, env));
                 });
             });
         });

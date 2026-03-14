@@ -8,12 +8,12 @@ import io.vertx.junit5.VertxTestContext;
 import work.Main;
 import work.ganglia.Ganglia;
 import work.ganglia.BootstrapOptions;
+import work.ganglia.coding.tool.CodingToolsFactory;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.state.TokenUsage;
-import work.ganglia.stubs.StubModelGateway;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,22 +25,30 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(VertxExtension.class)
 public class SteeringE2EIT {
 
     private Ganglia ganglia;
-    private StubModelGateway stubModel;
+    private ModelGateway mockModel;
 
     @BeforeEach
-    void setUp(Vertx vertx, VertxTestContext testContext, @TempDir Path tempDir) {
-        stubModel = new StubModelGateway();
+    void setUp(Vertx vertx, VertxTestContext testContext, @TempDir Path tempDir) throws java.io.IOException {
+        mockModel = mock(ModelGateway.class);
+        // Default failure for bootstrap
+        when(mockModel.chat(any(ChatRequest.class))).thenReturn(Future.failedFuture("Reflection disabled"));
+
+        String projectRoot = tempDir.toRealPath().toString();
+        CodingToolsFactory codingToolsFactory = new CodingToolsFactory(vertx, projectRoot);
 
         BootstrapOptions options = BootstrapOptions.defaultOptions()
-            .withProjectRoot(tempDir.toAbsolutePath().toString())
-            .withModelGateway(stubModel)
-            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
+            .withProjectRoot(projectRoot)
+            .withModelGateway(mockModel)
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)))
+            .withExtraToolSets(codingToolsFactory.createToolSets())
+            .withExtraContextSources(codingToolsFactory.createContextSources());
 
         Main.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {
@@ -50,17 +58,24 @@ public class SteeringE2EIT {
     }
 
     @Test
-    void testSteering(Vertx vertx, VertxTestContext testContext) {
-        stubModel.addResponse(new ModelResponse("Initial thought.", Collections.emptyList(), new TokenUsage(1, 1)));
-        stubModel.addResponse(new ModelResponse("Steered response.", Collections.emptyList(), new TokenUsage(1, 1)));
+    void testSteeringInfluence(Vertx vertx, VertxTestContext testContext) {
+        String sessionId = UUID.randomUUID().toString();
+        
+        // Mock Model Response: initially ignore, then accept steering
+        when(mockModel.chatStream(any(ChatRequest.class), any()))
+            .thenReturn(Future.succeededFuture(new ModelResponse("Initial plan.", Collections.emptyList(), new TokenUsage(1, 1))))
+            .thenReturn(Future.succeededFuture(new ModelResponse("Steered response.", Collections.emptyList(), new TokenUsage(1, 1))));
 
-
-        SessionContext context = ganglia.sessionManager().createSession(UUID.randomUUID().toString());
-
+        SessionContext context = ganglia.sessionManager().createSession(sessionId);
+        
         ganglia.agentLoop().run("Initial prompt", context)
+            .compose(res -> {
+                ganglia.sessionManager().addSteeringMessage(sessionId, "Actually, do something else.");
+                return ganglia.agentLoop().run("Continue", context);
+            })
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
-                    assertTrue(result.contains("Steered") || result.contains("thought"));
+                    assertTrue(result.contains("Steered"));
                     testContext.completeNow();
                 });
             }));

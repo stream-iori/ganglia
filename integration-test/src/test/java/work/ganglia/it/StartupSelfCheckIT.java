@@ -1,18 +1,19 @@
 package work.ganglia.it;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import work.Main;
+import work.ganglia.Ganglia;
+import work.ganglia.BootstrapOptions;
+import work.ganglia.coding.tool.CodingToolsFactory;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
-import work.Main;
-import work.ganglia.BootstrapOptions;
-import work.ganglia.util.Constants;
 
-import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -20,29 +21,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class StartupSelfCheckIT {
 
     @Test
-    public void testBootstrapCreatesCoreStructure(Vertx vertx, VertxTestContext testContext, @TempDir Path tempDir) {
+    void testStartupStructureCreation(Vertx vertx, VertxTestContext testContext, @TempDir Path tempDir) {
         String projectRoot = tempDir.toAbsolutePath().toString();
-        String configPath = Paths.get(projectRoot, Constants.DEFAULT_CONFIG_FILE).toString();
-        
+        CodingToolsFactory codingToolsFactory = new CodingToolsFactory(vertx, projectRoot);
+
         BootstrapOptions options = BootstrapOptions.defaultOptions()
             .withProjectRoot(projectRoot)
-            .withConfigPath(configPath);
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)))
+            .withExtraToolSets(codingToolsFactory.createToolSets())
+            .withExtraContextSources(codingToolsFactory.createContextSources());
 
         Main.bootstrap(vertx, options)
             .onComplete(testContext.succeeding(ganglia -> {
                 testContext.verify(() -> {
-                    // Check config.json
-                    assertTrue(new File(configPath).exists(), "config.json should be created");
-                    
-                    // Check directories
-                    assertTrue(new File(projectRoot, Constants.DIR_SKILLS).exists(), "skills dir should be created");
-                    assertTrue(new File(projectRoot, Constants.DIR_MEMORY).exists(), "memory dir should be created");
-                    assertTrue(new File(projectRoot, Constants.DIR_STATE).exists(), "state dir should be created");
-                    assertTrue(new File(projectRoot, Constants.DIR_LOGS).exists(), "logs dir should be created");
-                    
-                    // Check MEMORY.md
-                    assertTrue(new File(projectRoot, Constants.FILE_MEMORY_MD).exists(), "MEMORY.md should be created");
-                    
+                    assertTrue(Files.exists(tempDir.resolve(".ganglia/skills")));
+                    assertTrue(Files.exists(tempDir.resolve(".ganglia/memory")));
+                    assertTrue(Files.exists(tempDir.resolve(".ganglia/state")));
+                    assertTrue(Files.exists(tempDir.resolve(".ganglia/logs")));
+                    assertTrue(Files.exists(tempDir.resolve("MEMORY.md")));
                     testContext.completeNow();
                 });
             }));

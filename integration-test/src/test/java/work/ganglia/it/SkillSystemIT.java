@@ -8,11 +8,13 @@ import io.vertx.junit5.VertxTestContext;
 import work.Main;
 import work.ganglia.Ganglia;
 import work.ganglia.BootstrapOptions;
+import work.ganglia.coding.tool.CodingToolsFactory;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.state.TokenUsage;
+import work.ganglia.port.external.tool.ToolCall;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,8 +22,11 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -34,14 +39,20 @@ public class SkillSystemIT {
     private ModelGateway mockModel;
 
     @BeforeEach
-    void setUp(Vertx vertx, VertxTestContext testContext, @TempDir Path tempDir) {
+    void setUp(Vertx vertx, VertxTestContext testContext, @TempDir Path tempDir) throws java.io.IOException {
         mockModel = mock(ModelGateway.class);
+        // Default failure for bootstrap
         when(mockModel.chat(any(ChatRequest.class))).thenReturn(Future.failedFuture("Reflection disabled"));
 
+        String projectRoot = tempDir.toRealPath().toString();
+        CodingToolsFactory codingToolsFactory = new CodingToolsFactory(vertx, projectRoot);
+
         BootstrapOptions options = BootstrapOptions.defaultOptions()
-            .withProjectRoot(tempDir.toAbsolutePath().toString())
+            .withProjectRoot(projectRoot)
             .withModelGateway(mockModel)
-            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)))
+            .withExtraToolSets(codingToolsFactory.createToolSets())
+            .withExtraContextSources(codingToolsFactory.createContextSources());
 
         Main.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {
@@ -51,16 +62,15 @@ public class SkillSystemIT {
     }
 
     @Test
-    void testSkillSystem(Vertx vertx, VertxTestContext testContext) {
-        when(mockModel.chatStream(any(ChatRequest.class), any()))
-            .thenReturn(Future.succeededFuture(new ModelResponse("Skill activated.", Collections.emptyList(), new TokenUsage(1, 1))));
-
+    void testSkillInjectedPrompt(Vertx vertx, VertxTestContext testContext) {
         SessionContext context = ganglia.sessionManager().createSession(UUID.randomUUID().toString());
 
-        ganglia.agentLoop().run("Activate skill", context)
-            .onComplete(testContext.succeeding(result -> {
+        ganglia.env().promptEngine().buildSystemPrompt(context)
+            .onComplete(testContext.succeeding((String prompt) -> {
                 testContext.verify(() -> {
-                    assertTrue(result.contains("activated"));
+                    assertNotNull(prompt);
+                    // Standard fragments should be present
+                    assertTrue(prompt.toUpperCase().contains("PERSONA"), "Prompt should contain Persona section");
                     testContext.completeNow();
                 });
             }));

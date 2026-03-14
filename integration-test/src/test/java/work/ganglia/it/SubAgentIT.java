@@ -8,6 +8,7 @@ import io.vertx.junit5.VertxTestContext;
 import work.Main; 
 import work.ganglia.Ganglia;
 import work.ganglia.BootstrapOptions;
+import work.ganglia.coding.tool.CodingToolsFactory;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
@@ -17,8 +18,10 @@ import work.ganglia.port.external.tool.ToolCall;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -35,13 +38,19 @@ public class SubAgentIT {
     private ModelGateway mockModel;
 
     @BeforeEach
-    void setUp(Vertx vertx, VertxTestContext testContext) {
+    void setUp(Vertx vertx, VertxTestContext testContext, @TempDir Path tempDir) {
         mockModel = mock(ModelGateway.class);
         when(mockModel.chat(any(ChatRequest.class))).thenReturn(Future.failedFuture("Reflection disabled"));
 
+        String projectRoot = tempDir.toAbsolutePath().toString();
+        CodingToolsFactory codingToolsFactory = new CodingToolsFactory(vertx, projectRoot);
+
         BootstrapOptions options = BootstrapOptions.defaultOptions()
+            .withProjectRoot(projectRoot)
             .withModelGateway(mockModel)
-            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)))
+            .withExtraToolSets(codingToolsFactory.createToolSets())
+            .withExtraContextSources(codingToolsFactory.createContextSources());
 
         Main.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {

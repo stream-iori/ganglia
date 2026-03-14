@@ -9,6 +9,7 @@ import io.vertx.junit5.VertxTestContext;
 import work.Main;
 import work.ganglia.Ganglia;
 import work.ganglia.BootstrapOptions;
+import work.ganglia.coding.tool.CodingToolsFactory;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
@@ -44,10 +45,15 @@ public class BatchFileSystemIT {
         mockModel = mock(ModelGateway.class);
         when(mockModel.chat(any(ChatRequest.class))).thenReturn(Future.failedFuture("Reflection disabled"));
 
+        String projectRoot = tempDir.toRealPath().toString();
+        CodingToolsFactory codingToolsFactory = new CodingToolsFactory(vertx, projectRoot);
+
         BootstrapOptions options = BootstrapOptions.defaultOptions()
-            .withProjectRoot(tempDir.toRealPath().toString())
+            .withProjectRoot(projectRoot)
             .withModelGateway(mockModel)
-            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)))
+            .withExtraToolSets(codingToolsFactory.createToolSets())
+            .withExtraContextSources(codingToolsFactory.createContextSources());
 
         Main.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {

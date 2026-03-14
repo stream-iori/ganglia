@@ -17,6 +17,10 @@
         </dependency>
         <dependency>
             <groupId>me.stream</groupId>
+            <artifactId>ganglia-coding</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>me.stream</groupId>
             <artifactId>ganglia-web</artifactId>
             <version>${project.version}</version>
         </dependency>
