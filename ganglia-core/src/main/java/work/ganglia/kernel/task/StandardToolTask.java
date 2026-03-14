@@ -9,7 +9,7 @@ import work.ganglia.port.internal.state.ExecutionContext;
 /**
  * A scheduleable task that wraps a standard tool execution (e.g. Bash, FileSystem).
  */
-public class StandardToolTask implements Schedulable {
+public class StandardToolTask implements AgentTask {
     private final ToolCall toolCall;
     private final ToolExecutor toolExecutor;
 
@@ -29,16 +29,16 @@ public class StandardToolTask implements Schedulable {
     }
 
     @Override
-    public Future<SchedulableResult> execute(SessionContext context, ExecutionContext executionContext) {
+    public Future<AgentTaskResult> execute(SessionContext context, ExecutionContext executionContext) {
         return toolExecutor.execute(toolCall, context, executionContext)
             .map(invokeResult -> {
-                SchedulableResult.Status status = switch (invokeResult.status()) {
-                    case SUCCESS -> SchedulableResult.Status.SUCCESS;
-                    case ERROR -> SchedulableResult.Status.ERROR;
-                    case EXCEPTION -> SchedulableResult.Status.EXCEPTION;
-                    case INTERRUPT -> SchedulableResult.Status.INTERRUPT;
+                AgentTaskResult.Status status = switch (invokeResult.status()) {
+                    case SUCCESS -> AgentTaskResult.Status.SUCCESS;
+                    case ERROR -> AgentTaskResult.Status.ERROR;
+                    case EXCEPTION -> AgentTaskResult.Status.EXCEPTION;
+                    case INTERRUPT -> AgentTaskResult.Status.INTERRUPT;
                 };
-                return new SchedulableResult(status, invokeResult.output(), invokeResult.modifiedContext());
+                return new AgentTaskResult(status, invokeResult.output(), invokeResult.modifiedContext());
             });
     }
 }

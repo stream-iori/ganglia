@@ -3,7 +3,7 @@ package work.ganglia.infrastructure.internal.prompt.context;
 import work.ganglia.port.internal.prompt.ContextFragment;
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.kernel.task.SchedulableFactory;
+import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.port.internal.prompt.ContextSource;
 
@@ -18,15 +18,15 @@ import java.util.stream.Collectors;
  */
 public class ToolContextSource implements ContextSource {
 
-    private final SchedulableFactory scheduleableFactory;
+    private final AgentTaskFactory taskFactory;
 
-    public ToolContextSource(SchedulableFactory scheduleableFactory) {
-        this.scheduleableFactory = scheduleableFactory;
+    public ToolContextSource(AgentTaskFactory taskFactory) {
+        this.taskFactory = taskFactory;
     }
 
     @Override
     public Future<List<ContextFragment>> getFragments(SessionContext context) {
-        List<ToolDefinition> tools = scheduleableFactory.getAvailableDefinitions(context);
+        List<ToolDefinition> tools = taskFactory.getAvailableDefinitions(context);
         if (tools.isEmpty()) {
             return Future.succeededFuture(Collections.emptyList());
         }

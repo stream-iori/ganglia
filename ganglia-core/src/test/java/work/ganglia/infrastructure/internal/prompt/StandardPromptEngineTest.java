@@ -7,8 +7,10 @@ import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.chat.Role;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.kernel.task.DefaultSchedulableFactory;
-import work.ganglia.kernel.task.SchedulableFactory;
+import work.ganglia.kernel.AgentEnv;
+import work.ganglia.port.external.llm.ChatRequest;
+import work.ganglia.kernel.task.DefaultAgentTaskFactory;
+import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.stubs.StubToolExecutor;
 import work.ganglia.kernel.todo.ToDoList;
@@ -29,8 +31,9 @@ class StandardPromptEngineTest {
     void testBuildPromptInjectsToDo(Vertx vertx, VertxTestContext testContext) {
         TokenCounter counter = new TokenCounter();
         StubToolExecutor toolExecutor = new StubToolExecutor();
-        SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(vertx, null, null, null, null, null, toolExecutor, null, null, null);
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, scheduleableFactory, counter);
+        AgentEnv env = new AgentEnv(vertx, null, null, null, null, null, null, null, null, null, null);
+        AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(env, toolExecutor, null, null, null);
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, taskFactory, counter);
         ToDoList toDoList = ToDoList.empty().addTask("Task A");
         SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, toDoList);
 
@@ -47,8 +50,9 @@ class StandardPromptEngineTest {
             .compose(v -> {
                 TokenCounter counter = new TokenCounter();
                 StubToolExecutor toolExecutor = new StubToolExecutor();
-                SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(vertx, null, null, null, null, null, toolExecutor, null, null, null);
-                StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, scheduleableFactory, counter);
+                AgentEnv env = new AgentEnv(vertx, null, null, null, null, null, null, null, null, null, null);
+                AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(env, toolExecutor, null, null, null);
+                StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, taskFactory, counter);
                 SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
                 return engine.buildSystemPrompt(context);
             })
@@ -83,8 +87,9 @@ class StandardPromptEngineTest {
     void testPrepareRequest(Vertx vertx, VertxTestContext testContext) {
         StubToolExecutor toolExecutor = new StubToolExecutor(); // Returns empty list by default
         TokenCounter counter = new TokenCounter();
-        SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(vertx, null, null, null, null, null, toolExecutor, null, null, null);
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, scheduleableFactory, counter);
+        AgentEnv env = new AgentEnv(vertx, null, null, null, null, null, null, null, null, null, null);
+        AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(env, toolExecutor, null, null, null);
+        StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, taskFactory, counter);
 
         ModelOptions options = new ModelOptions(0.0, 100, "test-model", true);
         SessionContext context = new SessionContext("sid", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());

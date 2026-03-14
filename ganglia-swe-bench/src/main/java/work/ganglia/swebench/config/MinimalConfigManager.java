@@ -36,7 +36,9 @@ public class MinimalConfigManager extends ConfigManager {
             primaryJson.getString("type"),
             primaryJson.getString("apiKey"),
             primaryJson.getString("baseUrl"),
-            primaryJson.getBoolean("stream", true)
+            primaryJson.getBoolean("stream", true),
+            60000,
+            5
         );
 
         ModelConfig utility = new ModelConfig(
@@ -47,7 +49,9 @@ public class MinimalConfigManager extends ConfigManager {
             utilityJson.getString("type"),
             utilityJson.getString("apiKey"),
             utilityJson.getString("baseUrl"),
-            utilityJson.getBoolean("stream", false)
+            utilityJson.getBoolean("stream", false),
+            60000,
+            5
         );
 
         AgentConfig agent = new AgentConfig(

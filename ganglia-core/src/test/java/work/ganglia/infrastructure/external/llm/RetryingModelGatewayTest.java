@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import work.ganglia.port.chat.Message;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
@@ -36,17 +37,17 @@ public class RetryingModelGatewayTest {
     void testNoRetryOnSuccess(Vertx vertx, VertxTestContext testContext) {
         ModelGateway delegate = new ModelGateway() {
             @Override
-            public Future<ModelResponse> chat(List<Message> history, List<work.ganglia.port.external.tool.ToolDefinition> availableTools, ModelOptions options, AgentSignal signal) {
+            public Future<ModelResponse> chat(ChatRequest request) {
                 return Future.succeededFuture(new ModelResponse("Success", Collections.emptyList(), new TokenUsage(10, 10)));
             }
             @Override
-            public Future<ModelResponse> chatStream(List<Message> history, List<work.ganglia.port.external.tool.ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal) {
+            public Future<ModelResponse> chatStream(ChatRequest request, work.ganglia.port.internal.state.ExecutionContext context) {
                 return Future.succeededFuture(new ModelResponse("Success", Collections.emptyList(), new TokenUsage(10, 10)));
             }
         };
 
         RetryingModelGateway gateway = new RetryingModelGateway(delegate, vertx, 3);
-        gateway.chatStream(history, Collections.emptyList(), options, new StubExecutionContext(), signal)
+        gateway.chatStream(new ChatRequest(history, Collections.emptyList(), options, signal), new StubExecutionContext())
             .onComplete(testContext.succeeding(res -> testContext.verify(() -> {
                 assertEquals("Success", res.content());
                 testContext.completeNow();
@@ -58,11 +59,11 @@ public class RetryingModelGatewayTest {
         AtomicInteger attempts = new AtomicInteger(0);
         ModelGateway delegate = new ModelGateway() {
             @Override
-            public Future<ModelResponse> chat(List<Message> history, List<work.ganglia.port.external.tool.ToolDefinition> availableTools, ModelOptions options, AgentSignal signal) {
+            public Future<ModelResponse> chat(ChatRequest request) {
                 return Future.failedFuture("Not used");
             }
             @Override
-            public Future<ModelResponse> chatStream(List<Message> history, List<work.ganglia.port.external.tool.ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal) {
+            public Future<ModelResponse> chatStream(ChatRequest request, work.ganglia.port.internal.state.ExecutionContext context) {
                 if (attempts.incrementAndGet() < 2) {
                     return Future.failedFuture(new ConnectException("Connection refused"));
                 }
@@ -72,7 +73,7 @@ public class RetryingModelGatewayTest {
 
         RetryingModelGateway gateway = new RetryingModelGateway(delegate, vertx, 3);
         StubExecutionContext context = new StubExecutionContext();
-        gateway.chatStream(history, Collections.emptyList(), options, context, signal)
+        gateway.chatStream(new ChatRequest(history, Collections.emptyList(), options, signal), context)
             .onComplete(testContext.succeeding(res -> testContext.verify(() -> {
                 assertEquals("Recovered", res.content());
                 assertEquals(2, attempts.get());
@@ -90,11 +91,11 @@ public class RetryingModelGatewayTest {
         AtomicInteger attempts = new AtomicInteger(0);
         ModelGateway delegate = new ModelGateway() {
             @Override
-            public Future<ModelResponse> chat(List<Message> history, List<work.ganglia.port.external.tool.ToolDefinition> availableTools, ModelOptions options, AgentSignal signal) {
+            public Future<ModelResponse> chat(ChatRequest request) {
                 return Future.failedFuture("Not used");
             }
             @Override
-            public Future<ModelResponse> chatStream(List<Message> history, List<work.ganglia.port.external.tool.ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal) {
+            public Future<ModelResponse> chatStream(ChatRequest request, work.ganglia.port.internal.state.ExecutionContext context) {
                 attempts.incrementAndGet();
                 return Future.failedFuture(new LLMException("Server Error", null, 502, "Bad Gateway", null));
             }
@@ -102,7 +103,7 @@ public class RetryingModelGatewayTest {
 
         int maxRetries = 2;
         RetryingModelGateway gateway = new RetryingModelGateway(delegate, vertx, maxRetries);
-        gateway.chatStream(history, Collections.emptyList(), options, new StubExecutionContext(), signal)
+        gateway.chatStream(new ChatRequest(history, Collections.emptyList(), options, signal), new StubExecutionContext())
             .onComplete(testContext.failing(err -> testContext.verify(() -> {
                 // Initial attempt + maxRetries
                 assertEquals(1 + maxRetries, attempts.get());

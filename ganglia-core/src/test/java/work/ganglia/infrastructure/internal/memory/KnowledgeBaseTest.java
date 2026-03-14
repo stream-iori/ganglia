@@ -1,6 +1,6 @@
 package work.ganglia.infrastructure.internal.memory;
 
-import work.ganglia.port.internal.memory.KnowledgeBase;
+import work.ganglia.port.internal.memory.LongTermMemory;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
@@ -15,13 +15,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class KnowledgeBaseTest {
 
     private Vertx vertx;
-    private KnowledgeBase knowledgeBase;
+    private LongTermMemory longTermMemory;
     private static final String TEST_MEMORY_FILE = "target/TEST_MEMORY.md";
 
     @BeforeEach
     void setUp(Vertx vertx) {
         this.vertx = vertx;
-        this.knowledgeBase = new FileSystemKnowledgeBase(vertx, TEST_MEMORY_FILE);
+        this.longTermMemory = new FileSystemLongTermMemory(vertx, TEST_MEMORY_FILE);
     }
 
     @AfterEach
@@ -32,7 +32,7 @@ class KnowledgeBaseTest {
 
     @Test
     void testInitializeCreatesFile(VertxTestContext testContext) {
-        knowledgeBase.ensureInitialized()
+        longTermMemory.ensureInitialized()
                 .compose(v -> vertx.fileSystem().exists(TEST_MEMORY_FILE))
                 .onComplete(testContext.succeeding(exists -> {
                     testContext.verify(() -> {
@@ -46,9 +46,9 @@ class KnowledgeBaseTest {
     void testAppendAndRead(VertxTestContext testContext) {
         String content = "User prefers concise answers.";
 
-        knowledgeBase.ensureInitialized()
-                .compose(v -> knowledgeBase.append("## User Preferences\n" + content))
-                .compose(v -> knowledgeBase.read())
+        longTermMemory.ensureInitialized()
+                .compose(v -> longTermMemory.append("## User Preferences\n" + content))
+                .compose(v -> longTermMemory.read())
                 .onComplete(testContext.succeeding(readContent -> {
                     testContext.verify(() -> {
                         assertTrue(readContent.contains(content));

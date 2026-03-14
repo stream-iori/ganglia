@@ -3,15 +3,16 @@ package work.ganglia.swebench;
 import io.vertx.core.Vertx;
 import work.ganglia.config.model.ModelConfig;
 import work.ganglia.infrastructure.external.llm.OpenAIModelGateway;
+import work.ganglia.kernel.AgentEnv;
 import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
 import work.ganglia.kernel.loop.DefaultObservationDispatcher;
-import work.ganglia.kernel.loop.StandardAgentLoop;
+import work.ganglia.kernel.loop.ReActAgentLoop;
 import java.util.List;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.infrastructure.internal.state.DefaultSessionManager;
-import work.ganglia.kernel.task.DefaultSchedulableFactory;
-import work.ganglia.kernel.task.SchedulableFactory;
+import work.ganglia.kernel.task.DefaultAgentTaskFactory;
+import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
 import work.ganglia.swebench.config.MinimalConfigManager;
@@ -73,13 +74,20 @@ public class SWEBenchEvaluator {
             ContextCompressor compressor = new DefaultContextCompressor(model, config);
             DefaultSessionManager sessionManager = new DefaultSessionManager(new InMemoryStateEngine(), new InMemoryLogManager(), config);
 
-            // Create a minimal SchedulableFactory without sub-agents or skills
-            SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(
-                vertx, model, sessionManager, promptEngine, config, compressor,
-                toolExecutor, null, null, null
+            AgentEnv env = new AgentEnv(
+                vertx, model, sessionManager, promptEngine,
+                config, config, compressor, null,
+                new DefaultObservationDispatcher(vertx), new ConsecutiveFailurePolicy(),
+                new DefaultContextOptimizer(config, config, compressor, new TokenCounter())
             );
 
-            StandardAgentLoop loop = new StandardAgentLoop(vertx, model, scheduleableFactory, sessionManager, promptEngine, config, new DefaultContextOptimizer(config, compressor, new TokenCounter()), new ConsecutiveFailurePolicy(), new DefaultObservationDispatcher(vertx));
+            // Create a minimal AgentTaskFactory without sub-agents or skills
+            AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(
+                env, toolExecutor, null, null, null
+            );
+            env.setTaskFactory(taskFactory);
+
+            ReActAgentLoop loop = new ReActAgentLoop(env);
 
             // 2. Run Agent
             Map<String, Object> metadata = new HashMap<>();

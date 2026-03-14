@@ -1,45 +1,21 @@
 package work.ganglia.port.external.llm;
 
 import io.vertx.core.Future;
-import work.ganglia.port.chat.Message;
-import work.ganglia.port.external.llm.ModelOptions;
-import work.ganglia.port.external.llm.ModelResponse;
-import work.ganglia.port.external.tool.ToolDefinition;
-import work.ganglia.port.internal.state.AgentSignal;
+import work.ganglia.port.internal.state.ExecutionContext;
 
-import java.util.List;
-
+/**
+ * Interface for LLM providers.
+ */
 public interface ModelGateway {
 
     /**
      * Sends a chat completion request to the LLM.
-     * @param history The conversation history.
-     * @param availableTools List of tools available to the model.
-     * @param options Model parameters (model name, temperature, etc).
-     * @param signal The abort signal to monitor for cancellation.
      */
-    Future<ModelResponse> chat(
-        List<Message> history,
-        List<ToolDefinition> availableTools,
-        ModelOptions options,
-        AgentSignal signal
-    );
+    Future<ModelResponse> chat(ChatRequest request);
 
     /**
-     * Streaming version of chat.
-     * Tokens are emitted via the provided execution context.
+     * Streaming version of chat. Tokens are emitted via the provided execution context.
      * Returns the complete accumulated response when finished.
-     * @param history The conversation history.
-     * @param availableTools List of tools available to the model.
-     * @param options Model parameters.
-     * @param context The execution context for emitting tokens.
-     * @param signal The abort signal to monitor for cancellation.
      */
-    Future<ModelResponse> chatStream(
-        List<Message> history,
-        List<ToolDefinition> availableTools,
-        ModelOptions options,
-        work.ganglia.port.internal.state.ExecutionContext context,
-        AgentSignal signal
-    );
+    Future<ModelResponse> chatStream(ChatRequest request, ExecutionContext context);
 }

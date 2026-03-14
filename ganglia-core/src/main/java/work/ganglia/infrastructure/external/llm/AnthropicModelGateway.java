@@ -10,9 +10,10 @@ import io.vertx.ext.web.codec.BodyCodec;
 import work.ganglia.infrastructure.external.llm.util.JsonSanitizer;
 import work.ganglia.infrastructure.external.llm.util.SseParser;
 import work.ganglia.infrastructure.external.llm.util.SseWriteStream;
-import work.ganglia.port.chat.Message;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.chat.Message;
 import work.ganglia.port.internal.state.AgentSignal;
 import work.ganglia.port.internal.state.TokenUsage;
 import work.ganglia.port.external.tool.ToolCall;
@@ -45,8 +46,8 @@ public class AnthropicModelGateway extends AbstractModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, AgentSignal signal) {
-        JsonObject payload = buildPayload(history, availableTools, options, false);
+    public Future<ModelResponse> chat(ChatRequest request) {
+        JsonObject payload = buildPayload(request.messages(), request.tools(), request.options(), false);
         return withSemaphore(
             webClient.postAbs(endpoint)
                 .putHeader("x-api-key", apiKey)
@@ -57,7 +58,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
 
                 .sendJsonObject(payload)
                 .compose(response -> {
-                    if (signal.isAborted()) {
+                    if (request.signal().isAborted()) {
                         return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
                     }
                     if (response.statusCode() >= 400) {
@@ -79,8 +80,8 @@ public class AnthropicModelGateway extends AbstractModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal) {
-        JsonObject payload = buildPayload(history, availableTools, options, true);
+    public Future<ModelResponse> chatStream(ChatRequest request, work.ganglia.port.internal.state.ExecutionContext context) {
+        JsonObject payload = buildPayload(request.messages(), request.tools(), request.options(), true);
         Promise<ModelResponse> promise = Promise.promise();
 
         StringBuilder fullContent = new StringBuilder();
@@ -88,7 +89,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
         int[] usage = new int[2]; // [input, output]
 
         SseParser parser = new SseParser(json -> {
-            if (signal.isAborted()) return; // Active cancellation check
+            if (request.signal().isAborted()) return; // Active cancellation check
             try {
                 String type = json.getString("type");
                 if (type == null) return;
@@ -148,7 +149,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
         writeStream.exceptionHandler(promise::tryFail);
 
         // Active cancellation: fail the promise immediately when abort signal is received
-        signal.onAbort(() -> {
+        request.signal().onAbort(() -> {
             promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
         });
 
@@ -162,7 +163,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
                 .as(BodyCodec.pipe(writeStream, true))
                 .sendJsonObject(payload)
                 .onSuccess(response -> {
-                    if (signal.isAborted()) {
+                    if (request.signal().isAborted()) {
                         promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
                         return;
                     }
@@ -180,7 +181,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
                     }
                 })
                 .onFailure(err -> {
-                    if (signal.isAborted()) {
+                    if (request.signal().isAborted()) {
                         promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
                     } else {
                         promise.tryFail(err);
@@ -189,6 +190,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
         );
         return promise.future();
     }
+
 
     private JsonObject buildPayload(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, boolean stream) {
         JsonObject payload = new JsonObject();

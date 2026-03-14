@@ -1,6 +1,6 @@
 package work.ganglia.infrastructure.internal.memory;
 
-import work.ganglia.port.internal.memory.KnowledgeBase;
+import work.ganglia.port.internal.memory.LongTermMemory;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -8,7 +8,7 @@ import io.vertx.core.buffer.Buffer;
 /**
  * File system implementation of the knowledge base.
  */
-public class FileSystemKnowledgeBase implements KnowledgeBase {
+public class FileSystemLongTermMemory implements LongTermMemory {
     private final Vertx vertx;
     private final String baseDir;
     private final String defaultFileName;
@@ -25,25 +25,25 @@ public class FileSystemKnowledgeBase implements KnowledgeBase {
             """;
 
     /**
-     * Creates a FileSystemKnowledgeBase with a base directory and default file name.
+     * Creates a FileSystemLongTermMemory with a base directory and default file name.
      *
      * @param vertx           The Vertx instance.
      * @param baseDir         The base directory for knowledge topics.
      * @param defaultFileName The default file name for the "project" topic.
      */
-    public FileSystemKnowledgeBase(Vertx vertx, String baseDir, String defaultFileName) {
+    public FileSystemLongTermMemory(Vertx vertx, String baseDir, String defaultFileName) {
         this.vertx = vertx;
         this.baseDir = baseDir != null ? baseDir : ".";
         this.defaultFileName = defaultFileName != null ? defaultFileName : "MEMORY.md";
     }
 
     /**
-     * Creates a FileSystemKnowledgeBase with a specific file path for the default project topic.
+     * Creates a FileSystemLongTermMemory with a specific file path for the default project topic.
      *
      * @param vertx    The Vertx instance.
      * @param filePath The file path for the default topic.
      */
-    public FileSystemKnowledgeBase(Vertx vertx, String filePath) {
+    public FileSystemLongTermMemory(Vertx vertx, String filePath) {
         this.vertx = vertx;
         if (filePath != null && filePath.contains("/")) {
             int lastSlash = filePath.lastIndexOf('/');
@@ -56,11 +56,11 @@ public class FileSystemKnowledgeBase implements KnowledgeBase {
     }
 
     /**
-     * Creates a FileSystemKnowledgeBase with default settings.
+     * Creates a FileSystemLongTermMemory with default settings.
      *
      * @param vertx The Vertx instance.
      */
-    public FileSystemKnowledgeBase(Vertx vertx) {
+    public FileSystemLongTermMemory(Vertx vertx) {
         this(vertx, "MEMORY.md");
     }
 

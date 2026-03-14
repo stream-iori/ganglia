@@ -5,7 +5,7 @@ import io.vertx.core.Future;
 /**
  * Interface for the long-term knowledge base.
  */
-public interface KnowledgeBase {
+public interface LongTermMemory {
     String DEFAULT_TOPIC = "project";
 
     /**

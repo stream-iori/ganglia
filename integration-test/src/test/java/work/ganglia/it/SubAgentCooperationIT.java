@@ -6,8 +6,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import work.Main; 
+import work.Main;
 import work.ganglia.Ganglia;
+import work.ganglia.BootstrapOptions;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.chat.SessionContext;
@@ -40,11 +42,11 @@ public class SubAgentCooperationIT {
     @BeforeEach
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
-        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled"));
+        when(mockModel.chat(any(ChatRequest.class))).thenReturn(Future.failedFuture("Reflection disabled"));
 
         String projectRoot = sharedTempDir.toAbsolutePath().toString();
 
-        work.ganglia.BootstrapOptions options = work.ganglia.BootstrapOptions.defaultOptions()
+        BootstrapOptions options = BootstrapOptions.defaultOptions()
             .withProjectRoot(projectRoot)
             .withModelGateway(mockModel)
             .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
@@ -75,7 +77,7 @@ public class SubAgentCooperationIT {
         ToolCall read2 = new ToolCall("s3", "read_file", Map.of("path", sharedTempDir.resolve("num2.txt").toString()));
         ToolCall read3 = new ToolCall("s4", "read_file", Map.of("path", sharedTempDir.resolve("num3.txt").toString()));
 
-        when(mockModel.chatStream(any(), any(), any(), any(), any()))
+        when(mockModel.chatStream(any(ChatRequest.class), any()))
             // Parent: First Turn -> Delegates
             .thenReturn(Future.succeededFuture(new ModelResponse("I will delegate this to an investigator.", List.of(delegateCall), new TokenUsage(1, 1))))
             // Sub-Agent: Starts -> Calls Glob

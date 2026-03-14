@@ -1,7 +1,5 @@
 package work.ganglia.config;
 
-import work.ganglia.util.Constants;
-
 import io.vertx.config.ConfigRetriever;
 import io.vertx.config.ConfigRetrieverOptions;
 import io.vertx.config.ConfigStoreOptions;
@@ -12,16 +10,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.config.model.GangliaConfig;
 import work.ganglia.config.model.ModelConfig;
+import work.ganglia.util.Constants;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 
-public class ConfigManager {
+/**
+ * SRP: Manages configuration retrieval, watching, and multi-domain provider implementation.
+ */
+public class ConfigManager implements ModelConfigProvider, AgentConfigProvider, WebUIConfigProvider, ObservabilityConfigProvider {
     private static final Logger logger = LoggerFactory.getLogger(ConfigManager.class);
     private static final String DEFAULT_CONFIG_FILE = Constants.DEFAULT_CONFIG_FILE;
 
@@ -47,14 +47,11 @@ public class ConfigManager {
 
         ConfigRetrieverOptions options = new ConfigRetrieverOptions()
                 .addStore(fileStore)
-                .setScanPeriod(2000); // Check for changes every 2 seconds
+                .setScanPeriod(2000);
 
         this.retriever = ConfigRetriever.create(vertx, options);
+        this.currentJson = DefaultConfigFactory.create();
 
-        // Initial setup with defaults
-        this.currentJson = getDefaultConfig();
-
-        // Load initial file if exists
         try {
             if (vertx.fileSystem().existsBlocking(this.configPath)) {
                 JsonObject fileConfig = vertx.fileSystem().readFileBlocking(this.configPath).toJsonObject();
@@ -71,19 +68,15 @@ public class ConfigManager {
         if (vertx.fileSystem().existsBlocking(path)) {
             return path;
         }
-
-        // Search upwards for .ganglia/config.json or the specified path
         Path current = Paths.get("").toAbsolutePath();
         while (current != null) {
             Path candidate = current.resolve(path);
             if (vertx.fileSystem().existsBlocking(candidate.toString())) {
-                logger.debug("Found config file at: {}", candidate);
                 return candidate.toString();
             }
             current = current.getParent();
         }
-
-        return path; // Fallback to original
+        return path;
     }
 
     public Future<Void> init() {
@@ -91,7 +84,6 @@ public class ConfigManager {
                 .compose(v -> retriever.getConfig())
                 .map(config -> {
                     updateConfig(config);
-
                     retriever.listen(change -> {
                         logger.info("Configuration changed, updating...");
                         updateConfig(change.getNewConfiguration());
@@ -101,19 +93,17 @@ public class ConfigManager {
     }
 
     private Future<Void> ensureConfigExists() {
-        return work.ganglia.util.FileSystemUtil.ensureFileWithDefault(vertx, this.configPath, getDefaultConfig().toBuffer())
+        return work.ganglia.util.FileSystemUtil.ensureFileWithDefault(vertx, this.configPath, DefaultConfigFactory.create().toBuffer())
                 .onFailure(err -> {
                     logger.error("Critical error: Unable to create configuration file at {}. Reason: {}", this.configPath, err.getMessage());
                 });
     }
 
     public synchronized void updateConfig(JsonObject newConfig) {
-        // Merge with current state or defaults
         if (this.currentJson == null) {
-            this.currentJson = getDefaultConfig();
+            this.currentJson = DefaultConfigFactory.create();
         }
         deepMerge(this.currentJson, newConfig);
-
         this.currentConfig = this.currentJson.mapTo(GangliaConfig.class);
         listeners.forEach(l -> l.accept(this.currentConfig));
     }
@@ -141,113 +131,111 @@ public class ConfigManager {
         listeners.add(listener);
     }
 
-    private JsonObject getDefaultConfig() {
-        // Create structured default JSON
-        JsonObject primaryModel = new JsonObject()
-                .put(ConfigKeys.NAME, "kimi-k2-0905-preview")
-                .put(ConfigKeys.TEMPERATURE, 0.0)
-                .put(ConfigKeys.MAX_TOKENS, 4096)
-                .put(ConfigKeys.CONTEXT_LIMIT, 128000)
-                .put(ConfigKeys.TYPE, "openai")
-                .put(ConfigKeys.API_KEY, "")
-                .put(ConfigKeys.BASE_URL, "https://api.moonshot.cn/v1")
-                .put("timeout", 60000)
-                .put("maxRetries", 5);
+    // --- ModelConfigProvider Implementation ---
 
-        JsonObject utilityModel = new JsonObject()
-                .put(ConfigKeys.NAME, "moonshot-v1-8k")
-                .put(ConfigKeys.TEMPERATURE, 0.0)
-                .put(ConfigKeys.MAX_TOKENS, 2048)
-                .put(ConfigKeys.CONTEXT_LIMIT, 128000)
-                .put(ConfigKeys.TYPE, "openai")
-                .put(ConfigKeys.API_KEY, "")
-                .put(ConfigKeys.BASE_URL, "https://api.moonshot.cn/v1")
-                .put("timeout", 60000)
-                .put("maxRetries", 5);
-
-        Map<String, Object> models = new HashMap<>();
-        models.put(ConfigKeys.PRIMARY, primaryModel);
-        models.put(ConfigKeys.UTILITY, utilityModel);
-
-        return new JsonObject()
-                .put(ConfigKeys.AGENT, new JsonObject()
-                        .put(ConfigKeys.MAX_ITERATIONS, 10)
-                        .put(ConfigKeys.COMPRESSION_THRESHOLD, 0.7))
-                .put(ConfigKeys.MODELS, models)
-                .put(ConfigKeys.OBSERVABILITY, new JsonObject()
-                        .put(ConfigKeys.ENABLED, false)
-                        .put(ConfigKeys.TRACE_PATH, Constants.DIR_TRACE))
-                .put(ConfigKeys.WEBUI, new JsonObject()
-                        .put(ConfigKeys.ENABLED, true)
-                        .put(ConfigKeys.PORT, 8080)
-                        .put(ConfigKeys.WEBROOT, "webroot"));
+    @Override
+    public ModelConfig getModelConfig(String modelKey) {
+        return currentConfig.getModel(modelKey);
     }
 
-    // --- Backward compatibility and convenience getters ---
-
+    @Override
     public String getModel() {
         ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
         return mc != null ? mc.name() : "gpt-4o";
     }
 
+    @Override
     public String getUtilityModel() {
         ModelConfig mc = currentConfig.getModel(ConfigKeys.UTILITY);
         return mc != null ? mc.name() : "gpt-4o-mini";
     }
 
+    @Override
     public double getTemperature() {
         ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
         return mc != null ? mc.temperature() : 0.0;
     }
 
+    @Override
     public int getMaxTokens() {
         ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
         return mc != null ? mc.maxTokens() : 4096;
     }
 
+    @Override
     public int getContextLimit() {
         ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
         return mc != null ? mc.contextLimit() : 128000;
     }
 
+    @Override
     public boolean isStream() {
         ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
         return mc != null && mc.stream() != null ? mc.stream() : true;
     }
 
+    @Override
     public boolean isUtilityStream() {
         ModelConfig mc = currentConfig.getModel(ConfigKeys.UTILITY);
         return mc != null && mc.stream() != null ? mc.stream() : false;
     }
 
+    @Override
+    public String getBaseUrl() {
+        ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
+        return mc != null ? mc.baseUrl() : "https://api.openai.com/v1";
+    }
+
+    @Override
+    public String getProvider() {
+        ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
+        return mc != null ? mc.type() : "openai";
+    }
+
+    // --- AgentConfigProvider Implementation ---
+
+    @Override
+    public int getMaxIterations() {
+        return currentConfig.agent() != null ? currentConfig.agent().maxIterations() : 10;
+    }
+
+    @Override
     public double getCompressionThreshold() {
         return currentConfig.agent() != null ? currentConfig.agent().compressionThreshold() : 0.7;
     }
 
+    @Override
     public String getProjectRoot() {
         return (currentConfig.agent() != null && currentConfig.agent().projectRoot() != null)
             ? currentConfig.agent().projectRoot()
             : System.getProperty("user.dir");
     }
 
-    public int getMaxIterations() {
-        return currentConfig.agent() != null ? currentConfig.agent().maxIterations() : 10;
+    // --- WebUIConfigProvider Implementation ---
+
+    @Override
+    public boolean isWebUIEnabled() {
+        return currentConfig.webui() != null && currentConfig.webui().enabled();
     }
 
-    public String getBaseUrl() {
-        ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
-        return mc != null ? mc.baseUrl() : "https://api.openai.com/v1";
+    @Override
+    public int getWebUIPort() {
+        return currentConfig.webui() != null ? currentConfig.webui().port() : 8080;
     }
 
-    public String getProvider() {
-        ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
-        return mc != null ? mc.type() : "openai";
+    @Override
+    public String getWebRoot() {
+        return currentConfig.webui() != null ? currentConfig.webui().webroot() : "webroot";
     }
 
+    // --- ObservabilityConfigProvider Implementation ---
+
+    @Override
     public boolean isObservabilityEnabled() {
         return currentConfig.observability() != null && currentConfig.observability().enabled();
     }
 
+    @Override
     public String getTracePath() {
         return (currentConfig.observability() != null) ? currentConfig.observability().tracePath() : Constants.DIR_TRACE;
     }

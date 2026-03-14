@@ -29,11 +29,11 @@ public class FileLogManager implements LogManager {
         // For now, let's assume we log the whole Turn if it's new? No.
         // Let's log the *last message* added.
         // SessionContext is immutable, so we can't easily know "what changed" without diffing.
-        // But StandardAgentLoop calls this after adding a message.
+        // But ReActAgentLoop calls this after adding a message.
 
         // Strategy: We won't implement full diffing here yet.
         // We'll just ensure the log file exists.
-        // Actual logging logic might need to be triggered by StandardAgentLoop with the specific message.
+        // Actual logging logic might need to be triggered by ReActAgentLoop with the specific message.
         // But interface takes Context.
 
         // Let's log the current turn's latest step.

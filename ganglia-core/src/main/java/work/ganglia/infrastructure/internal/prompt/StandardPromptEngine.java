@@ -21,7 +21,7 @@ import work.ganglia.port.internal.state.*;;
 import java.util.Collections;
 import work.ganglia.infrastructure.internal.prompt.context.*;
 import work.ganglia.kernel.subagent.SubAgentContextSource;
-import work.ganglia.kernel.task.SchedulableFactory;
+import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.prompt.PromptEngine;
 import work.ganglia.port.internal.prompt.ContextSource;
@@ -36,37 +36,37 @@ public class StandardPromptEngine implements PromptEngine {
     private final List<ContextSource> sources = new ArrayList<>();
     private final ContextComposer composer;
     private final TokenCounter tokenCounter;
-    private SchedulableFactory scheduleableFactory;
+    private AgentTaskFactory taskFactory;
 
     public StandardPromptEngine(Vertx vertx,
                                 MemoryService memoryService,
                                 SkillRuntime skillRuntime,
-                                SchedulableFactory scheduleableFactory,
+                                AgentTaskFactory taskFactory,
                                 TokenCounter tokenCounter) {
         MarkdownContextResolver resolver = new MarkdownContextResolver(vertx);
         this.tokenCounter = tokenCounter;
         this.composer = new ContextComposer(this.tokenCounter);
-        this.scheduleableFactory = scheduleableFactory;
+        this.taskFactory = taskFactory;
 
         // Initialize default sources
         sources.add(new PersonaContextSource());
         sources.add(new FileContextSource(vertx, resolver, Constants.FILE_GANGLIA_MD));
         sources.add(new EnvironmentSource(vertx));
         sources.add(new SkillContextSource(skillRuntime));
-        if (this.scheduleableFactory != null) {
-            sources.add(new ToolContextSource(this.scheduleableFactory));
+        if (this.taskFactory != null) {
+            sources.add(new ToolContextSource(this.taskFactory));
         }
         sources.add(new ToDoContextSource());
         sources.add(new MemoryContextSource(memoryService));
         sources.add(new SubAgentContextSource());
     }
 
-    public void setSchedulableFactory(SchedulableFactory scheduleableFactory) {
-        this.scheduleableFactory = scheduleableFactory;
+    public void setTaskFactory(AgentTaskFactory taskFactory) {
+        this.taskFactory = taskFactory;
         // Re-add ToolContextSource if it wasn't added during construction
         boolean hasToolSource = sources.stream().anyMatch(s -> s instanceof ToolContextSource);
-        if (!hasToolSource && scheduleableFactory != null) {
-            sources.add(new ToolContextSource(scheduleableFactory));
+        if (!hasToolSource && taskFactory != null) {
+            sources.add(new ToolContextSource(taskFactory));
         }
     }
 
@@ -108,7 +108,7 @@ public class StandardPromptEngine implements PromptEngine {
             }
 
             // 4. Resolve Tools (with sub-agent filtering)
-            var tools = scheduleableFactory.getAvailableDefinitions(context);
+            var tools = taskFactory.getAvailableDefinitions(context);
 
             boolean isSub = (boolean) context.metadata().getOrDefault("is_sub_agent", false);
             if (isSub) {

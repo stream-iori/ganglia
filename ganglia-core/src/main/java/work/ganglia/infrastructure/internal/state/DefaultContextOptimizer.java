@@ -1,15 +1,15 @@
 package work.ganglia.infrastructure.internal.state;
 
+import work.ganglia.config.AgentConfigProvider;
+import work.ganglia.config.ModelConfigProvider;
 import work.ganglia.port.internal.state.ContextOptimizer;
 import io.vertx.core.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import work.ganglia.config.ConfigManager;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.chat.Turn;
 import work.ganglia.port.internal.memory.ContextCompressor;
-import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
 
 import java.util.ArrayList;
@@ -18,12 +18,14 @@ import java.util.List;
 public class DefaultContextOptimizer implements ContextOptimizer {
     private static final Logger logger = LoggerFactory.getLogger(DefaultContextOptimizer.class);
     
-    private final ConfigManager configManager;
+    private final ModelConfigProvider modelConfig;
+    private final AgentConfigProvider agentConfig;
     private final ContextCompressor compressor;
     private final TokenCounter tokenCounter;
 
-    public DefaultContextOptimizer(ConfigManager configManager, ContextCompressor compressor, TokenCounter tokenCounter) {
-        this.configManager = configManager;
+    public DefaultContextOptimizer(ModelConfigProvider modelConfig, AgentConfigProvider agentConfig, ContextCompressor compressor, TokenCounter tokenCounter) {
+        this.modelConfig = modelConfig;
+        this.agentConfig = agentConfig;
         this.compressor = compressor;
         this.tokenCounter = tokenCounter;
     }
@@ -34,8 +36,8 @@ public class DefaultContextOptimizer implements ContextOptimizer {
                 .mapToInt(m -> m.countTokens(tokenCounter))
                 .sum();
 
-        int limit = configManager.getContextLimit();
-        double threshold = configManager.getCompressionThreshold();
+        int limit = modelConfig.getContextLimit();
+        double threshold = agentConfig.getCompressionThreshold();
 
         // Hard limit financial guardrail
         if (totalTokens > 500000) {

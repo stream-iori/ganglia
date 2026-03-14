@@ -5,14 +5,10 @@ import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import work.ganglia.port.chat.Message;
-import work.ganglia.port.external.llm.ModelOptions;
-import work.ganglia.port.external.llm.ModelResponse;
-import work.ganglia.port.internal.state.AgentSignal;
-import work.ganglia.port.external.tool.ToolDefinition;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
-
-import java.util.List;
+import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.internal.state.ExecutionContext;
 
 /**
  * Decorator for ModelGateway that adds network resilience (retry with exponential backoff).
@@ -35,34 +31,28 @@ public class RetryingModelGateway implements ModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, AgentSignal signal) {
-        return retryChat(history, availableTools, options, signal, 0);
+    public Future<ModelResponse> chat(ChatRequest request) {
+        return retryChat(request, 0);
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal) {
-        return retryChatStream(history, availableTools, options, context, signal, 0);
+    public Future<ModelResponse> chatStream(ChatRequest request, ExecutionContext context) {
+        return retryChatStream(request, context, 0);
     }
 
-    private Future<ModelResponse> retryChat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, AgentSignal signal, int attempt) {
-        if (signal.isAborted()) return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
-        Future<ModelResponse> future = delegate.chat(history, availableTools, options, signal);
-        if (future == null) {
-            return Future.failedFuture("Delegate gateway returned null future for chat");
-        }
-        return future.recover(err -> handleRetry(err, attempt, () -> retryChat(history, availableTools, options, signal, attempt + 1), null));
+    private Future<ModelResponse> retryChat(ChatRequest request, int attempt) {
+        if (request.signal().isAborted()) return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
+        return delegate.chat(request)
+            .recover(err -> handleRetry(err, attempt, () -> retryChat(request, attempt + 1), null));
     }
 
-    private Future<ModelResponse> retryChatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal, int attempt) {
-        if (signal.isAborted()) return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
-        Future<ModelResponse> future = delegate.chatStream(history, availableTools, options, context, signal);
-        if (future == null) {
-            return Future.failedFuture("Delegate gateway returned null future for chatStream");
-        }
-        return future.recover(err -> handleRetry(err, attempt, () -> retryChatStream(history, availableTools, options, context, signal, attempt + 1), context));
+    private Future<ModelResponse> retryChatStream(ChatRequest request, ExecutionContext context, int attempt) {
+        if (request.signal().isAborted()) return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
+        return delegate.chatStream(request, context)
+            .recover(err -> handleRetry(err, attempt, () -> retryChatStream(request, context, attempt + 1), context));
     }
 
-    private Future<ModelResponse> handleRetry(Throwable err, int attempt, java.util.function.Supplier<Future<ModelResponse>> nextAttempt, work.ganglia.port.internal.state.ExecutionContext context) {
+    private Future<ModelResponse> handleRetry(Throwable err, int attempt, java.util.function.Supplier<Future<ModelResponse>> nextAttempt, ExecutionContext context) {
         if (shouldRetry(err) && attempt < maxRetries) {
             long delay = calculateDelay(attempt);
             logger.warn("Transient LLM error. Retrying attempt {}/{} in {}ms... Error: {}", attempt + 1, maxRetries, delay, err.getMessage());

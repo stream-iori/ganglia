@@ -6,8 +6,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import work.Main; 
+import work.Main;
 import work.ganglia.Ganglia;
+import work.ganglia.BootstrapOptions;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.chat.Role;
@@ -51,6 +53,7 @@ public class FileSystemPaginationIT {
         vertx.fileSystem().writeFileBlocking(testFilePath, Buffer.buffer(sb.toString()));
 
         mockModel = mock(ModelGateway.class);
+        when(mockModel.chat(any(ChatRequest.class))).thenReturn(Future.failedFuture("Reflection disabled in tests"));
 
         // Mock Tool Call: Read first 5 lines
         ToolCall readCall = new ToolCall("call_1", "read_file", Map.of(
@@ -62,13 +65,13 @@ public class FileSystemPaginationIT {
         ModelResponse response1 = new ModelResponse("Reading first part of the file.", List.of(readCall), new TokenUsage(10, 10));
         ModelResponse response2 = new ModelResponse("I have read the first 5 lines.", Collections.emptyList(), new TokenUsage(10, 10));
 
-        when(mockModel.chatStream(any(), any(), any(), any(), any()))
+        when(mockModel.chatStream(any(ChatRequest.class), any()))
             .thenReturn(Future.succeededFuture(response1))
             .thenReturn(Future.succeededFuture(response2));
 
         String projectRoot = sharedTempDir.toAbsolutePath().toString();
 
-        work.ganglia.BootstrapOptions options = work.ganglia.BootstrapOptions.defaultOptions()
+        BootstrapOptions options = BootstrapOptions.defaultOptions()
             .withProjectRoot(projectRoot)
             .withModelGateway(mockModel)
             .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));

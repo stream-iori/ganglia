@@ -1,7 +1,8 @@
 package work.ganglia.infrastructure.internal.memory;
 
 import io.vertx.core.Future;
-import work.ganglia.config.ConfigManager;
+import work.ganglia.config.ModelConfigProvider;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ModelOptions;
@@ -12,13 +13,16 @@ import work.ganglia.port.internal.state.AgentSignal;
 import java.util.Collections;
 import java.util.List;
 
+/**
+ * SRP: Implementation of the ContextCompressor using an LLM to summarize past interactions.
+ */
 public class DefaultContextCompressor implements work.ganglia.port.internal.memory.ContextCompressor {
     private final ModelGateway model;
-    private final ConfigManager configManager;
+    private final ModelConfigProvider configProvider;
 
-    public DefaultContextCompressor(ModelGateway model, ConfigManager configManager) {
+    public DefaultContextCompressor(ModelGateway model, ModelConfigProvider configProvider) {
         this.model = model;
-        this.configManager = configManager;
+        this.configProvider = configProvider;
     }
 
     public Future<String> summarize(List<Turn> turns, ModelOptions options) {
@@ -39,98 +43,41 @@ public class DefaultContextCompressor implements work.ganglia.port.internal.memo
 
         // Use utility model from config if available
         ModelOptions summaryOptions = options;
-        if (configManager != null) {
+        if (configProvider != null) {
             summaryOptions = new ModelOptions(
-                    configManager.getTemperature(),
-                    configManager.getMaxTokens(),
-                    configManager.getUtilityModel(),
-                    configManager.isUtilityStream()
+                    configProvider.getTemperature(),
+                    configProvider.getMaxTokens(),
+                    configProvider.getUtilityModel(),
+                    configProvider.isUtilityStream()
             );
         }
 
-        var future = model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions, new AgentSignal());
-        if (future == null) {
-            return Future.failedFuture("Model gateway returned null for LLM call.");
-        }
-        return future.map(ModelResponse::content);
+        ChatRequest request = new ChatRequest(List.of(userMsg), Collections.emptyList(), summaryOptions, new AgentSignal());
+        return model.chat(request).map(ModelResponse::content);
     }
 
-    /**
-     * Reflects on a single turn to extract concise accomplishments.
-     */
+    @Override
     public Future<String> reflect(Turn turn) {
-        if (turn == null) return Future.succeededFuture("");
+        String content = turn.toString();
+        String prompt = "Review the following interaction and extract key learnings, state changes, or user preferences. " +
+                "Output ONLY the extracted facts as a short bulleted list.\n\n" + content;
 
-        var content = new StringBuilder("Please extract the technical accomplishments and key facts from the following interaction. " +
-                "Format as a concise bulleted list. Focus on WHAT was changed or learned.\n\n");
+        var userMsg = Message.user(prompt);
+        ModelOptions summaryOptions = new ModelOptions(0.0, 1024, configProvider.getUtilityModel(), false);
 
-        for (var m : turn.flatten()) {
-            content.append(m.role()).append(": ").append(m.content()).append("\n");
-        }
-
-        content.append("\nAccomplishments:");
-
-        var userMsg = Message.user(content.toString());
-
-        ModelOptions summaryOptions = new ModelOptions(
-                configManager.getTemperature(),
-                configManager.getMaxTokens(),
-                configManager.getUtilityModel(),
-                configManager.isUtilityStream()
-        );
-
-        Future<ModelResponse> future = model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions, new AgentSignal());
-        if (future == null) {
-            return Future.failedFuture("Model gateway returned null for LLM call.");
-        }
-        return future.map(ModelResponse::content);
+        ChatRequest request = new ChatRequest(List.of(userMsg), Collections.emptyList(), summaryOptions, new AgentSignal());
+        return model.chat(request).map(ModelResponse::content);
     }
 
-    /**
-     * Compresses a list of turns into a dense state summary.
-     */
+    @Override
     public Future<String> compress(List<Turn> turns) {
-        if (turns == null || turns.isEmpty()) {
-            return Future.succeededFuture("No previous context.");
-        }
-
-        var content = new StringBuilder("""
-            You are a system context compressor. Your goal is to summarize the following agent interaction history into a dense 'State Summary'.
-            This summary will replace the raw history in the agent's context window.
-
-            Preserve:
-            1. Key facts discovered (e.g. file paths, API endpoints, error messages).
-            2. Completed tasks and technical accomplishments.
-            3. Any critical constraints or user preferences mentioned.
-            4. Current state of the environment (if known).
-
-            Avoid:
-            - Conversational filler.
-            - Repetitive 'Thought' blocks.
-            - Large raw tool outputs (just summarize what they revealed).
-
-            HISTORY TO SUMMARIZE:
-            """);
-
-        for (Turn t : turns) {
-            content.append("--- Turn ").append(t.id()).append(" ---\n");
-            for (var m : t.flatten()) {
-                content.append("[").append(m.role()).append("] ").append(m.content()).append("\n");
-            }
-        }
-
-        content.append("\nGENERATE DENSE STATE SUMMARY:");
+        var content = new StringBuilder("Summarize these turns into a dense state report:\n");
+        for (Turn t : turns) content.append(t.toString()).append("\n");
 
         var userMsg = Message.user(content.toString());
+        ModelOptions summaryOptions = new ModelOptions(0.0, 2048, configProvider.getUtilityModel(), false);
 
-        ModelOptions summaryOptions = new ModelOptions(
-                configManager.getTemperature(),
-                configManager.getMaxTokens(),
-                configManager.getUtilityModel(),
-                configManager.isUtilityStream()
-        );
-
-        return model.chat(List.of(userMsg), Collections.emptyList(), summaryOptions, new AgentSignal())
-                .map(ModelResponse::content);
+        ChatRequest request = new ChatRequest(List.of(userMsg), Collections.emptyList(), summaryOptions, new AgentSignal());
+        return model.chat(request).map(ModelResponse::content);
     }
 }

@@ -5,7 +5,7 @@ import io.vertx.core.Vertx;
 import work.ganglia.util.PathSanitizer;
 import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
-import work.ganglia.port.internal.memory.KnowledgeBase;
+import work.ganglia.port.internal.memory.LongTermMemory;
 
 /**
  * Factory for creating and managing built-in tool sets.
@@ -20,16 +20,16 @@ public class ToolsFactory {
     private final BashTools bashTools;
     private final FileEditTools fileEditTools;
 
-    public ToolsFactory(Vertx vertx, ContextCompressor compressor, KnowledgeBase knowledgeBase) {
-        this(vertx, compressor, knowledgeBase, System.getProperty("user.dir"));
+    public ToolsFactory(Vertx vertx, ContextCompressor compressor, LongTermMemory longTermMemory) {
+        this(vertx, compressor, longTermMemory, System.getProperty("user.dir"));
     }
 
-    public ToolsFactory(Vertx vertx, ContextCompressor compressor, KnowledgeBase knowledgeBase, String projectRoot) {
+    public ToolsFactory(Vertx vertx, ContextCompressor compressor, LongTermMemory longTermMemory, String projectRoot) {
         this.vertx = vertx;
         PathSanitizer sanitizer = new PathSanitizer(projectRoot);
         this.bashFileSystemTools = new BashFileSystemTools(vertx, sanitizer);
         this.toDoTools = new ToDoTools(vertx, compressor);
-        this.knowledgeBaseTools = new KnowledgeBaseTools(vertx, knowledgeBase);
+        this.knowledgeBaseTools = new KnowledgeBaseTools(vertx, longTermMemory);
         this.interactionTools = new InteractionTools(vertx);
         this.webFetchTools = new WebFetchTools(vertx);
         this.bashTools = new BashTools(vertx);

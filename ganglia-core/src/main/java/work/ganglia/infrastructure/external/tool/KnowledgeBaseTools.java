@@ -2,7 +2,7 @@ package work.ganglia.infrastructure.external.tool;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import work.ganglia.port.internal.memory.KnowledgeBase;
+import work.ganglia.port.internal.memory.LongTermMemory;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
@@ -13,11 +13,11 @@ import java.util.Map;
 
 public class KnowledgeBaseTools implements ToolSet {
     private final Vertx vertx;
-    private final KnowledgeBase knowledgeBase;
+    private final LongTermMemory longTermMemory;
 
-    public KnowledgeBaseTools(Vertx vertx, KnowledgeBase knowledgeBase) {
+    public KnowledgeBaseTools(Vertx vertx, LongTermMemory longTermMemory) {
         this.vertx = vertx;
-        this.knowledgeBase = knowledgeBase;
+        this.longTermMemory = longTermMemory;
     }
 
     @Override
@@ -46,7 +46,7 @@ public class KnowledgeBaseTools implements ToolSet {
 
     public Future<ToolInvokeResult> remember(Map<String, Object> args, SessionContext context) {
         String fact = (String) args.get("fact");
-        return knowledgeBase.append("- " + fact)
+        return longTermMemory.append("- " + fact)
                 .map(v -> ToolInvokeResult.success("Remembered: " + fact))
                 .recover(err -> Future.succeededFuture(ToolInvokeResult.error("Failed to remember: " + err.getMessage())));
     }

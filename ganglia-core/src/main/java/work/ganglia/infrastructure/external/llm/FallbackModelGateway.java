@@ -1,16 +1,13 @@
 package work.ganglia.infrastructure.external.llm;
 
 import io.vertx.core.Future;
-import work.ganglia.port.chat.Message;
-import work.ganglia.port.external.llm.ModelOptions;
-import work.ganglia.port.external.llm.ModelResponse;
-import work.ganglia.port.internal.state.AgentSignal;
-import work.ganglia.port.external.tool.ToolDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
-
-import java.util.List;
+import work.ganglia.port.external.llm.ModelOptions;
+import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.internal.state.ExecutionContext;
 
 /**
  * A ModelGateway that automatically falls back to a utility model if the primary model fails.
@@ -29,46 +26,46 @@ public class FallbackModelGateway implements ModelGateway {
     }
 
     @Override
-    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, AgentSignal signal) {
-        return primary.chat(history, availableTools, options, signal)
+    public Future<ModelResponse> chat(ChatRequest request) {
+        return primary.chat(request)
             .recover(err -> {
                 if (shouldFallback(err)) {
                     logger.warn("Primary model failed, falling back to utility model {}. Error: {}",
                         utilityModelName, err.getMessage());
-                    ModelOptions fallbackOptions = new ModelOptions(
-                        options.temperature(),
-                        options.maxTokens(),
-                        utilityModelName,
-                        options.stream()
-                    );
-                    return utility.chat(history, availableTools, fallbackOptions, signal);
+                    ChatRequest fallbackRequest = createFallbackRequest(request);
+                    return utility.chat(fallbackRequest);
                 }
                 return Future.failedFuture(err);
             });
     }
 
     @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal) {
-        return primary.chatStream(history, availableTools, options, context, signal)
+    public Future<ModelResponse> chatStream(ChatRequest request, ExecutionContext context) {
+        return primary.chatStream(request, context)
             .recover(err -> {
                 if (shouldFallback(err)) {
                     logger.warn("Primary model stream failed, falling back to utility model {}. Error: {}",
                         utilityModelName, err.getMessage());
-                    ModelOptions fallbackOptions = new ModelOptions(
-                        options.temperature(),
-                        options.maxTokens(),
-                        utilityModelName,
-                        options.stream()
-                    );
-                    return utility.chatStream(history, availableTools, fallbackOptions, context, signal);
+                    ChatRequest fallbackRequest = createFallbackRequest(request);
+                    return utility.chatStream(fallbackRequest, context);
                 }
                 return Future.failedFuture(err);
             });
     }
 
+    private ChatRequest createFallbackRequest(ChatRequest original) {
+        ModelOptions originalOptions = original.options();
+        ModelOptions fallbackOptions = new ModelOptions(
+            originalOptions.temperature(),
+            originalOptions.maxTokens(),
+            utilityModelName,
+            originalOptions.stream()
+        );
+        return new ChatRequest(original.messages(), original.tools(), fallbackOptions, original.signal());
+    }
+
     private boolean shouldFallback(Throwable err) {
-        if (err instanceof LLMException) {
-            LLMException le = (LLMException) err;
+        if (err instanceof LLMException le) {
             int status = le.httpStatusCode().orElse(0);
             // Fallback on rate limit or server errors
             return status == 429 || (status >= 500 && status < 600);

@@ -1,112 +1,88 @@
 package work.ganglia.infrastructure.internal.memory;
 
 import io.vertx.core.Future;
+import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import work.ganglia.port.external.llm.ModelGateway;
-import work.ganglia.port.chat.*;
-import work.ganglia.port.external.llm.*;
-import work.ganglia.port.external.tool.*;
-import work.ganglia.port.internal.state.*;;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import work.ganglia.config.ConfigManager;
+import work.ganglia.port.chat.Message;
+import work.ganglia.port.chat.Turn;
+import work.ganglia.port.external.llm.ChatRequest;
+import work.ganglia.port.external.llm.ModelGateway;
+import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.internal.state.AgentSignal;
+import work.ganglia.stubs.StubConfigManager;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
-import work.ganglia.port.internal.memory.ContextCompressor;
+@ExtendWith(VertxExtension.class)
+public class DefaultContextCompressorTest {
 
-@ExtendWith({VertxExtension.class, MockitoExtension.class})
-class DefaultContextCompressorTest {
+    private ModelGateway model;
+    private ConfigManager configManager;
+    private DefaultContextCompressor compressor;
 
-    @Mock
-    ModelGateway model;
-    @Mock
-    ConfigManager configManager;
+    @BeforeEach
+    void setUp(Vertx vertx) {
+        model = mock(ModelGateway.class);
+        configManager = new StubConfigManager(vertx);
+        compressor = new DefaultContextCompressor(model, configManager);
+    }
 
     @Test
     void testSummarize(VertxTestContext testContext) {
-        when(configManager.getUtilityModel()).thenReturn("test-utility-model");
-        when(configManager.getTemperature()).thenReturn(0.0);
-        when(configManager.getMaxTokens()).thenReturn(100);
+        Turn turn = Turn.newTurn("t1", Message.user("Hello"));
+        ModelResponse mockResponse = new ModelResponse("Summary result", Collections.emptyList(), null);
+        
+        when(model.chat(any(ChatRequest.class))).thenReturn(Future.succeededFuture(mockResponse));
 
-        ContextCompressor compressor = new DefaultContextCompressor(model, configManager);
-        ModelOptions options = new ModelOptions(0.0, 100, "test-model", true);
-        ModelOptions summaryOptions = new ModelOptions(0.0, 100, "test-utility-model", false);
-
-        // Mock turns
-        Message msg1 = Message.user("Do task");
-        Message msg2 = Message.assistant("Doing it", null);
-        Turn turn = new Turn("t1", msg1, new ArrayList<>(), msg2);
-
-        // Mock Model Response
-        when(model.chat(any(), any(), eq(summaryOptions), any()))
-                .thenReturn(Future.succeededFuture(new ModelResponse("Task completed successfully.", Collections.emptyList(), new TokenUsage(10, 5))));
-
-        compressor.summarize(List.of(turn), options)
-                .onComplete(testContext.succeeding(summary -> {
-                    testContext.verify(() -> {
-                        assertEquals("Task completed successfully.", summary);
-                        testContext.completeNow();
-                    });
-                }));
+        compressor.summarize(List.of(turn), null)
+            .onComplete(testContext.succeeding(result -> {
+                testContext.verify(() -> {
+                    assertEquals("Summary result", result);
+                    verify(model).chat(any(ChatRequest.class));
+                    testContext.completeNow();
+                });
+            }));
     }
 
     @Test
     void testReflect(VertxTestContext testContext) {
-        when(configManager.getUtilityModel()).thenReturn("test-utility-model");
-        when(configManager.getTemperature()).thenReturn(0.0);
-        when(configManager.getMaxTokens()).thenReturn(100);
-
-        ContextCompressor compressor = new DefaultContextCompressor(model, configManager);
-
-        Message msg1 = Message.user("Add a feature");
-        Message msg2 = Message.assistant("Added feature", null);
-        Turn turn = new Turn("t1", msg1, new ArrayList<>(), msg2);
-
-        when(model.chat(any(), any(), any(), any()))
-                .thenReturn(Future.succeededFuture(new ModelResponse("- Added feature X\n- Updated docs", Collections.emptyList(), new TokenUsage(10, 5))));
+        Turn turn = Turn.newTurn("t1", Message.user("Hello"));
+        ModelResponse mockResponse = new ModelResponse("Fact 1", Collections.emptyList(), null);
+        
+        when(model.chat(any(ChatRequest.class))).thenReturn(Future.succeededFuture(mockResponse));
 
         compressor.reflect(turn)
-                .onComplete(testContext.succeeding(reflection -> {
-                    testContext.verify(() -> {
-                        assertTrue(reflection.startsWith("-"));
-                        assertTrue(reflection.contains("Added feature X"));
-                        testContext.completeNow();
-                    });
-                }));
+            .onComplete(testContext.succeeding(result -> {
+                testContext.verify(() -> {
+                    assertEquals("Fact 1", result);
+                    testContext.completeNow();
+                });
+            }));
     }
 
     @Test
     void testCompress(VertxTestContext testContext) {
-        when(configManager.getUtilityModel()).thenReturn("test-utility-model");
-        when(configManager.getTemperature()).thenReturn(0.0);
-        when(configManager.getMaxTokens()).thenReturn(100);
+        Turn turn = Turn.newTurn("t1", Message.user("Hello"));
+        ModelResponse mockResponse = new ModelResponse("Compressed state", Collections.emptyList(), null);
+        
+        when(model.chat(any(ChatRequest.class))).thenReturn(Future.succeededFuture(mockResponse));
 
-        ContextCompressor compressor = new DefaultContextCompressor(model, configManager);
-
-        Turn t1 = Turn.newTurn("t1", Message.user("Task 1"));
-        Turn t2 = Turn.newTurn("t2", Message.user("Task 2"));
-
-        when(model.chat(any(), any(), any(), any()))
-                .thenReturn(Future.succeededFuture(new ModelResponse("DENSE SUMMARY", Collections.emptyList(), new TokenUsage(20, 10))));
-
-        compressor.compress(List.of(t1, t2))
-                .onComplete(testContext.succeeding(res -> {
-                    testContext.verify(() -> {
-                        assertEquals("DENSE SUMMARY", res);
-                        testContext.completeNow();
-                    });
-                }));
+        compressor.compress(List.of(turn))
+            .onComplete(testContext.succeeding(result -> {
+                testContext.verify(() -> {
+                    assertEquals("Compressed state", result);
+                    testContext.completeNow();
+                });
+            }));
     }
 }

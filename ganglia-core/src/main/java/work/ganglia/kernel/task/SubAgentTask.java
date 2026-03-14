@@ -1,86 +1,66 @@
 package work.ganglia.kernel.task;
 
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import work.ganglia.config.ConfigManager;
-import work.ganglia.port.external.llm.ModelGateway;
-import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
-import work.ganglia.kernel.loop.DefaultObservationDispatcher;
-import work.ganglia.kernel.loop.StandardAgentLoop;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import work.ganglia.kernel.AgentEnv;
+import work.ganglia.kernel.loop.ReActAgentLoop;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.port.internal.prompt.PromptEngine;
-import work.ganglia.port.internal.state.SessionManager;
-import work.ganglia.port.internal.memory.ContextCompressor;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
-import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import work.ganglia.port.external.tool.ToolCall;
-import work.ganglia.kernel.subagent.ContextScoper;
 import work.ganglia.port.internal.state.ExecutionContext;
+import work.ganglia.kernel.subagent.ContextScoper;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public class SubAgentTask implements Schedulable {
+/**
+ * SRP: Task that executes a sub-agent turn using a child ReAct loop.
+ */
+public class SubAgentTask implements AgentTask {
+    private static final Logger logger = LoggerFactory.getLogger(SubAgentTask.class);
+
     private final ToolCall call;
-    private final Vertx vertx;
-    private final ModelGateway modelGateway;
-    private final SessionManager sessionManager;
-    private final PromptEngine promptEngine;
-    private final ConfigManager configManager;
-    private final ContextCompressor compressor;
-    private final SchedulableFactory scheduleableFactory;
+    private final AgentEnv env;
 
-    public SubAgentTask(ToolCall call, Vertx vertx, ModelGateway modelGateway, SessionManager sessionManager,
-                        PromptEngine promptEngine, ConfigManager configManager, ContextCompressor compressor,
-                        SchedulableFactory scheduleableFactory) {
+    public SubAgentTask(ToolCall call, AgentEnv env) {
         this.call = call;
-        this.vertx = vertx;
-        this.modelGateway = modelGateway;
-        this.sessionManager = sessionManager;
-        this.promptEngine = promptEngine;
-        this.configManager = configManager;
-        this.compressor = compressor;
-        this.scheduleableFactory = scheduleableFactory;
+        this.env = env;
     }
 
     @Override
-    public String id() {
-        return call.id();
-    }
+    public String id() { return call.id(); }
 
     @Override
-    public String name() {
-        return call.toolName();
-    }
+    public String name() { return call.toolName(); }
 
     @Override
-    public Future<SchedulableResult> execute(SessionContext parentContext, ExecutionContext executionContext) {
+    public Future<AgentTaskResult> execute(SessionContext parentContext, ExecutionContext executionContext) {
         String task = (String) call.arguments().get("task");
         String persona = (String) call.arguments().getOrDefault("persona", "GENERAL");
 
-        // 1. Recursion Control
-        Object levelObj = parentContext.metadata().getOrDefault("sub_agent_level", 0);
-        int currentLevel = (levelObj instanceof Number) ? ((Number) levelObj).intValue() : Integer.parseInt(levelObj.toString());
+        logger.info("Executing Sub-Agent task (Persona: {}): {}", persona, task);
 
-        if (currentLevel >= 1) {
-            return Future.succeededFuture(SchedulableResult.error("RECURSION_LIMIT: Nested sub-agents are not allowed."));
-        }
-
-        // 2. Prepare Child Context metadata
         String childSessionId = parentContext.sessionId() + "-sub-" + UUID.randomUUID().toString().substring(0, 4);
         Map<String, Object> childMetadata = new HashMap<>();
-        childMetadata.put("sub_agent_level", currentLevel + 1);
         childMetadata.put("is_sub_agent", true);
         childMetadata.put("sub_agent_persona", persona);
 
+        // Recursion depth limit
+        Object levelObj = parentContext.metadata().get("sub_agent_level");
+        int currentLevel = (levelObj instanceof Integer) ? (Integer) levelObj : 0;
+        if (currentLevel >= 3) {
+            logger.warn("Sub-agent recursion depth limit reached (level: {})", currentLevel);
+            return Future.succeededFuture(AgentTaskResult.error("RECURSION_LIMIT: Sub-agent depth limit reached."));
+        }
+        childMetadata.put("sub_agent_level", currentLevel + 1);
+
         SessionContext childContext = ContextScoper.scope(childSessionId, parentContext, childMetadata);
 
-        // Note: StandardAgentLoop now requires SchedulableFactory instead of ToolExecutor
-        StandardAgentLoop childLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, new DefaultContextOptimizer(configManager, compressor, new TokenCounter()), new ConsecutiveFailurePolicy(), new DefaultObservationDispatcher(vertx));
+        ReActAgentLoop childLoop = new ReActAgentLoop(env);
 
         return childLoop.run("TASK: " + task, childContext)
-            .map(report -> SchedulableResult.success("--- SUB-AGENT REPORT ---\n" + report + "\n--- END REPORT ---"))
-            .recover(err -> Future.succeededFuture(SchedulableResult.error("SUB_AGENT_ERROR: " + err.getMessage())));
+            .map(report -> AgentTaskResult.success("--- SUB-AGENT REPORT ---\n" + report + "\n--- END REPORT ---"))
+            .recover(err -> Future.succeededFuture(AgentTaskResult.error("SUB_AGENT_ERROR: " + err.getMessage())));
     }
 }

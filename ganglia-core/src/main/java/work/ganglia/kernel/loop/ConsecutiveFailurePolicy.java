@@ -4,8 +4,8 @@ import io.vertx.core.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.kernel.task.Schedulable;
-import work.ganglia.kernel.task.SchedulableResult;
+import work.ganglia.kernel.task.AgentTask;
+import work.ganglia.kernel.task.AgentTaskResult;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -27,8 +27,8 @@ public class ConsecutiveFailurePolicy implements FaultTolerancePolicy {
     }
 
     @Override
-    public Future<SessionContext> handleFailure(SessionContext context, Schedulable task, SchedulableResult result) {
-        if (result.status() == SchedulableResult.Status.ERROR || result.status() == SchedulableResult.Status.EXCEPTION) {
+    public Future<SessionContext> handleFailure(SessionContext context, AgentTask task, AgentTaskResult result) {
+        if (result.status() == AgentTaskResult.Status.ERROR || result.status() == AgentTaskResult.Status.EXCEPTION) {
             int fails = (int) context.metadata().getOrDefault("consecutive_tool_failures", 0);
             if (fails >= maxConsecutiveFailures - 1) { // 0-based, so checking against 2 for max 3
                 logger.warn("Task {} failed {} times consecutively. Aborting loop to prevent runaway usage.", task.name(), fails + 1);
@@ -43,7 +43,7 @@ public class ConsecutiveFailurePolicy implements FaultTolerancePolicy {
     }
 
     @Override
-    public SessionContext onSuccess(SessionContext context, Schedulable task) {
+    public SessionContext onSuccess(SessionContext context, AgentTask task) {
         if (context.metadata().containsKey("consecutive_tool_failures")) {
             Map<String, Object> newMetadata = new HashMap<>(context.metadata());
             newMetadata.remove("consecutive_tool_failures");

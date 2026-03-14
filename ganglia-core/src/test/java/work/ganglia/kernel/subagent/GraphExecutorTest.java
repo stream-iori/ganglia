@@ -1,29 +1,29 @@
 package work.ganglia.kernel.subagent;
 
-import work.ganglia.kernel.subagent.DefaultGraphExecutor;
-import work.ganglia.kernel.subagent.TaskNode;
-import work.ganglia.kernel.subagent.TaskGraph;
-import work.ganglia.kernel.subagent.GraphExecutor;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import work.ganglia.port.external.llm.ModelOptions;
-import work.ganglia.port.external.llm.ModelResponse;
-import work.ganglia.port.chat.SessionContext;
-import work.ganglia.infrastructure.internal.state.DefaultSessionManager;
-import work.ganglia.port.internal.state.SessionManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import work.ganglia.kernel.task.DefaultSchedulableFactory;
-import work.ganglia.kernel.task.SchedulableFactory;
-import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
+import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
+import work.ganglia.infrastructure.internal.state.DefaultSessionManager;
+import work.ganglia.kernel.AgentEnv;
+import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
+import work.ganglia.kernel.loop.DefaultObservationDispatcher;
+import work.ganglia.kernel.task.DefaultAgentTaskFactory;
+import work.ganglia.infrastructure.internal.memory.TokenCounter;
+import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.external.llm.ModelOptions;
+import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.internal.state.SessionManager;
 import work.ganglia.stubs.*;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -37,6 +37,7 @@ public class GraphExecutorTest {
     private StubPromptEngine promptEngine;
     private StubConfigManager configManager;
     private DefaultGraphExecutor graphExecutor;
+    private AgentEnv env;
 
     @BeforeEach
     void setUp(Vertx vertx) {
@@ -46,13 +47,22 @@ public class GraphExecutorTest {
         this.configManager = new StubConfigManager(vertx);
         this.sessionManager = new DefaultSessionManager(new InMemoryStateEngine(), new InMemoryLogManager(), configManager);
         this.promptEngine = new StubPromptEngine();
-        ContextCompressor compressor = new DefaultContextCompressor(modelGateway, configManager);
-        this.graphExecutor = new DefaultGraphExecutor(vertx, modelGateway, sessionManager, promptEngine, configManager, compressor);
-
-        SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(
-            vertx, modelGateway, sessionManager, promptEngine, configManager, compressor, toolExecutor, graphExecutor, null, null
+        DefaultContextCompressor compressor = new DefaultContextCompressor(modelGateway, configManager);
+        
+        this.env = new AgentEnv(
+            vertx, modelGateway, sessionManager, promptEngine,
+            configManager, configManager, compressor, null,
+            new DefaultObservationDispatcher(vertx), new ConsecutiveFailurePolicy(),
+            new DefaultContextOptimizer(configManager, configManager, compressor, new TokenCounter())
         );
-        this.graphExecutor.setSchedulableFactory(scheduleableFactory);
+
+        this.graphExecutor = new DefaultGraphExecutor(env);
+
+        DefaultAgentTaskFactory taskFactory = new DefaultAgentTaskFactory(
+            env, toolExecutor, graphExecutor, null, null
+        );
+        env.setTaskFactory(taskFactory);
+        graphExecutor.initialize(taskFactory);
     }
 
     @Test

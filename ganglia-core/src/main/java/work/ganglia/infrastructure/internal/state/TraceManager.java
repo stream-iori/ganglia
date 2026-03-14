@@ -7,7 +7,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.Message;
 import io.vertx.core.file.OpenOptions;
 import io.vertx.core.json.JsonObject;
-import work.ganglia.config.ConfigManager;
+import work.ganglia.config.ObservabilityConfigProvider;
 import work.ganglia.port.external.tool.ObservationEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,19 +24,19 @@ import java.time.format.DateTimeFormatter;
 public class TraceManager {
     private static final Logger logger = LoggerFactory.getLogger(TraceManager.class);
     private final Vertx vertx;
-    private final ConfigManager configManager;
+    private final ObservabilityConfigProvider configProvider;
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
-    public TraceManager(Vertx vertx, ConfigManager configManager) {
+    public TraceManager(Vertx vertx, ObservabilityConfigProvider configProvider) {
         this.vertx = vertx;
-        this.configManager = configManager;
+        this.configProvider = configProvider;
 
         // Listen to all observations
         vertx.eventBus().consumer(Constants.ADDRESS_OBSERVATIONS_ALL, this::handleEvent);
     }
 
     private void handleEvent(Message<JsonObject> message) {
-        if (!configManager.isObservabilityEnabled()) {
+        if (!configProvider.isObservabilityEnabled()) {
             return;
         }
 
@@ -44,7 +44,7 @@ public class TraceManager {
         String markdown = formatEventToMarkdown(event);
         String filename = getTraceFileName();
 
-        ensureDirExists(configManager.getTracePath());
+        ensureDirExists(configProvider.getTracePath());
 
         vertx.fileSystem().open(filename, new OpenOptions().setAppend(true).setCreate(true))
                 .compose(asyncFile -> asyncFile.write(Buffer.buffer(markdown)).compose(v -> asyncFile.close()))
@@ -103,7 +103,7 @@ public class TraceManager {
 
     private String getTraceFileName() {
         String date = LocalDate.now().format(DateTimeFormatter.ISO_DATE);
-        return configManager.getTracePath() + "/trace-" + date + ".md";
+        return configProvider.getTracePath() + "/trace-" + date + ".md";
     }
 
     private void ensureDirExists(String path) {

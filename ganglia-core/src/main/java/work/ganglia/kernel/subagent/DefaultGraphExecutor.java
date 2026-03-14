@@ -1,143 +1,115 @@
 package work.ganglia.kernel.subagent;
 
-import work.ganglia.kernel.subagent.GraphExecutor;
-import work.ganglia.kernel.subagent.TaskGraph;
-import work.ganglia.kernel.subagent.TaskNode;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import work.ganglia.config.ConfigManager;
-import work.ganglia.port.external.llm.ModelGateway;
-import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
-import work.ganglia.kernel.loop.DefaultObservationDispatcher;
-import work.ganglia.kernel.loop.StandardAgentLoop;
-import work.ganglia.port.chat.SessionContext;
-import work.ganglia.port.internal.prompt.PromptEngine;
-import work.ganglia.port.internal.state.SessionManager;
-import work.ganglia.kernel.task.SchedulableFactory;
-import work.ganglia.port.internal.memory.ContextCompressor;
-import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
-import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import work.ganglia.config.AgentConfigProvider;
+import work.ganglia.config.ModelConfigProvider;
+import work.ganglia.kernel.AgentEnv;
+import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
+import work.ganglia.kernel.loop.DefaultObservationDispatcher;
+import work.ganglia.kernel.loop.ReActAgentLoop;
+import work.ganglia.kernel.task.AgentTaskFactory;
+import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.external.llm.ModelGateway;
+import work.ganglia.infrastructure.internal.memory.TokenCounter;
+import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
+import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * SRP: Orchestrates the parallel/sequential execution of a TaskGraph.
+ * Uses ReActAgentLoop for individual node execution.
+ */
 public class DefaultGraphExecutor implements GraphExecutor {
     private static final Logger logger = LoggerFactory.getLogger(DefaultGraphExecutor.class);
 
-    private final Vertx vertx;
-    private final ModelGateway modelGateway;
-    private final SessionManager sessionManager;
-    private final PromptEngine promptEngine;
-    private final ConfigManager configManager;
-    private final ContextCompressor compressor;
-    private SchedulableFactory scheduleableFactory;
+    private final AgentEnv env;
 
-    public DefaultGraphExecutor(Vertx vertx, ModelGateway modelGateway, SessionManager sessionManager,
-                                PromptEngine promptEngine, ConfigManager configManager, ContextCompressor compressor) {
-        this.vertx = vertx;
-        this.modelGateway = modelGateway;
-        this.sessionManager = sessionManager;
-        this.promptEngine = promptEngine;
-        this.configManager = configManager;
-        this.compressor = compressor;
+    public DefaultGraphExecutor(AgentEnv env) {
+        this.env = env;
     }
 
-    public void setSchedulableFactory(SchedulableFactory scheduleableFactory) {
-        this.scheduleableFactory = scheduleableFactory;
+    @Override
+    public void initialize(AgentTaskFactory taskFactory) {
+        // Factory is already in env or will be set in env
     }
 
     @Override
     public Future<String> execute(TaskGraph graph, SessionContext parentContext) {
-        logger.info("Executing TaskGraph with {} nodes.", graph.nodes().size());
+        logger.info("Executing task graph with {} nodes for session: {}", graph.nodes().size(), parentContext.sessionId());
 
-        if (scheduleableFactory == null) {
-            return Future.failedFuture("SchedulableFactory not configured for GraphExecutor");
-        }
+        Map<String, String> results = new ConcurrentHashMap<>();
+        AtomicInteger completedCount = new AtomicInteger(0);
 
-        Map<String, Future<String>> results = new ConcurrentHashMap<>();
-        Map<String, TaskNode> nodeMap = graph.nodes().stream()
-            .collect(Collectors.toMap(TaskNode::id, node -> node));
-
-        // 1. Kick off all nodes (executeNodeRecursive will handle dependencies)
-        List<Future<String>> allFutures = graph.nodes().stream()
-            .map(node -> executeNodeRecursive(node, nodeMap, results, parentContext))
-            .toList();
-
-        return Future.all(allFutures)
-            .map(cf -> {
-                StringBuilder sb = new StringBuilder("--- TASK GRAPH EXECUTION REPORT ---\\n\\n");
-                for (TaskNode node : graph.nodes()) {
-                    sb.append("NODE ID: ").append(node.id()).append("\\n");
-                    sb.append("TASK: ").append(node.task()).append("\\n");
-                    sb.append("STATUS: SUCCESS\\n");
-                    sb.append("REPORT:\\n").append(results.get(node.id()).result()).append("\\n\\n");
-                    sb.append("-----------------------------------\\n");
-                }
-                sb.append("--- END OF GRAPH REPORT ---");
-                return sb.toString();
-            })
-            .recover(err -> {
-                logger.error("Graph execution failed: {}", err.getMessage());
-                return Future.failedFuture(err);
-            });
+        return executeReadyNodes(graph, parentContext, results, completedCount);
     }
 
-    private Future<String> executeNodeRecursive(TaskNode node, Map<String, TaskNode> nodeMap,
-                                                Map<String, Future<String>> results, SessionContext parentContext) {
-        return results.computeIfAbsent(node.id(), id -> {
-            List<String> deps = node.dependencies();
-            if (deps == null || deps.isEmpty()) {
-                return runSubAgent(node, parentContext, Collections.emptyMap());
-            }
-
-            List<Future<String>> depFutures = deps.stream()
-                .map(depId -> executeNodeRecursive(nodeMap.get(depId), nodeMap, results, parentContext))
+    private Future<String> executeReadyNodes(TaskGraph graph, SessionContext parentContext, Map<String, String> results, AtomicInteger completedCount) {
+        var readyNodes = graph.nodes().stream()
+                .filter(n -> !results.containsKey(n.id()) && results.keySet().containsAll(n.dependencies()))
                 .toList();
 
-            return Future.all(depFutures)
-                .compose(cf -> {
-                    Map<String, String> depResults = new HashMap<>();
-                    for (int i = 0; i < deps.size(); i++) {
-                        // resultAt(i) returns the result of the i-th future in depFutures
-                        depResults.put(deps.get(i), (String) cf.resultAt(i));
-                    }
-                    return runSubAgent(node, parentContext, depResults);
-                });
+        if (readyNodes.isEmpty()) {
+            if (completedCount.get() >= graph.nodes().size()) {
+                return Future.succeededFuture(formatFinalReport(graph, results));
+            }
+            return Future.failedFuture("Graph deadlock or cycle detected.");
+        }
+
+        var nodeFutures = readyNodes.stream().map(node -> executeNode(node, parentContext, results)).toList();
+
+        return Future.all(nodeFutures).compose(v -> {
+            completedCount.addAndGet(readyNodes.size());
+            return executeReadyNodes(graph, parentContext, results, completedCount);
         });
     }
 
-    private Future<String> runSubAgent(TaskNode node, SessionContext parentContext, Map<String, String> dependencyResults) {
-        logger.info("Starting Sub-Agent for node: {} (Persona: {})", node.id(), node.persona());
+    private Future<Void> executeNode(TaskNode node, SessionContext parentContext, Map<String, String> results) {
+        logger.info("Starting graph node [{}]: {}", node.id(), node.task());
 
-        // Prepare context metadata
-        String childSessionId = parentContext.sessionId() + "-sub-" + node.id() + "-" + UUID.randomUUID().toString().substring(0, 4);
-        Map<String, Object> childMetadata = new HashMap<>();
-        childMetadata.put("is_sub_agent", true);
-        childMetadata.put("sub_agent_persona", node.persona());
-        childMetadata.put("node_id", node.id());
+        String sessionId = parentContext.sessionId() + "-node-" + node.id();
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("graph_node_id", node.id());
+        metadata.put("sub_agent_persona", node.persona());
 
-        // Recursive depth control
-        Object levelObj = parentContext.metadata().getOrDefault("sub_agent_level", 0);
-        int currentLevel = (levelObj instanceof Number) ? ((Number) levelObj).intValue() : Integer.parseInt(levelObj.toString());
-        childMetadata.put("sub_agent_level", currentLevel + 1);
+        // Construct node-specific prompt with results from dependencies
+        Map<String, String> dependencyResults = new HashMap<>();
+        node.dependencies().forEach(depId -> dependencyResults.put(depId, results.get(depId)));
 
-        SessionContext childContext = ContextScoper.scope(childSessionId, parentContext, childMetadata);
+        SessionContext nodeContext = ContextScoper.scope(sessionId, parentContext, metadata);
 
-        StandardAgentLoop childLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager, promptEngine, configManager, new DefaultContextOptimizer(configManager, compressor, new TokenCounter()), new ConsecutiveFailurePolicy(), new DefaultObservationDispatcher(vertx));
+        ReActAgentLoop childLoop = new ReActAgentLoop(env);
 
-        StringBuilder promptBuilder = new StringBuilder("TASK: ").append(node.task()).append("\\n\\n");
+        StringBuilder promptBuilder = new StringBuilder("TASK: ").append(node.task()).append("\n\n");
         if (!dependencyResults.isEmpty()) {
-            promptBuilder.append("PREVIOUS TASK RESULTS:\\n");
+            promptBuilder.append("PREVIOUS TASK RESULTS:\n");
             dependencyResults.forEach((depId, report) -> {
-                promptBuilder.append("ID: ").append(depId).append("\\n");
-                promptBuilder.append("RESULT:\\n").append(report).append("\\n");
+                promptBuilder.append("ID: ").append(depId).append("\n");
+                promptBuilder.append("RESULT:\n").append(report).append("\n");
             });
         }
 
-        return childLoop.run(promptBuilder.toString(), childContext);
+        return childLoop.run(promptBuilder.toString(), nodeContext)
+                .map(report -> {
+                    results.put(node.id(), report);
+                    return (Void) null;
+                });
+    }
+
+    private String formatFinalReport(TaskGraph graph, Map<String, String> results) {
+        StringBuilder sb = new StringBuilder("# Task Graph Execution Report\n\n");
+        graph.nodes().forEach(node -> {
+            sb.append("## NODE ID: ").append(node.id()).append("\n");
+            sb.append("### TASK: ").append(node.task()).append("\n");
+            sb.append("### RESULT:\n").append(results.get(node.id())).append("\n\n");
+        });
+        return sb.toString();
     }
 }

@@ -13,7 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public class TaskGraphTask implements Schedulable {
+public class TaskGraphTask implements AgentTask {
     private final ToolCall call;
     private final GraphExecutor graphExecutor;
 
@@ -33,12 +33,12 @@ public class TaskGraphTask implements Schedulable {
     }
 
     @Override
-    public Future<SchedulableResult> execute(SessionContext context, ExecutionContext executionContext) {
+    public Future<AgentTaskResult> execute(SessionContext context, ExecutionContext executionContext) {
         // Check recursion
         Object levelObj = context.metadata().getOrDefault("sub_agent_level", 0);
         int currentLevel = (levelObj instanceof Number) ? ((Number) levelObj).intValue() : Integer.parseInt(levelObj.toString());
         if (currentLevel >= 1) {
-            return Future.succeededFuture(SchedulableResult.error("RECURSION_LIMIT: Nested task graphs are not allowed."));
+            return Future.succeededFuture(AgentTaskResult.error("RECURSION_LIMIT: Nested task graphs are not allowed."));
         }
 
         Object approvedObj = call.arguments().getOrDefault("approved", false);
@@ -51,7 +51,7 @@ public class TaskGraphTask implements Schedulable {
         return executeGraph(context);
     }
 
-    private Future<SchedulableResult> interruptForApproval() {
+    private Future<AgentTaskResult> interruptForApproval() {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> nodes = (List<Map<String, Object>>) call.arguments().get("nodes");
 
@@ -67,10 +67,10 @@ public class TaskGraphTask implements Schedulable {
         }
         sb.append("\\nDo you approve this execution plan? (y/n)");
 
-        return Future.succeededFuture(SchedulableResult.interrupt(sb.toString()));
+        return Future.succeededFuture(AgentTaskResult.interrupt(sb.toString()));
     }
 
-    private Future<SchedulableResult> executeGraph(SessionContext context) {
+    private Future<AgentTaskResult> executeGraph(SessionContext context) {
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> nodeData = (List<Map<String, Object>>) call.arguments().get("nodes");
         List<TaskNode> nodes = new ArrayList<>();
@@ -90,7 +90,7 @@ public class TaskGraphTask implements Schedulable {
 
         TaskGraph graph = new TaskGraph(nodes);
         return graphExecutor.execute(graph, context)
-            .map(SchedulableResult::success)
-            .recover(err -> Future.succeededFuture(SchedulableResult.error("GRAPH_EXECUTION_ERROR: " + err.getMessage())));
+            .map(AgentTaskResult::success)
+            .recover(err -> Future.succeededFuture(AgentTaskResult.error("GRAPH_EXECUTION_ERROR: " + err.getMessage())));
     }
 }

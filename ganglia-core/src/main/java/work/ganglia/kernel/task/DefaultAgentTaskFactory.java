@@ -1,50 +1,33 @@
 package work.ganglia.kernel.task;
 
-import io.vertx.core.Vertx;
-import work.ganglia.config.ConfigManager;
-import work.ganglia.port.external.llm.ModelGateway;
+import work.ganglia.kernel.AgentEnv;
+import work.ganglia.kernel.subagent.GraphExecutor;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.port.internal.prompt.PromptEngine;
-import work.ganglia.kernel.task.SkillTask;
-import work.ganglia.kernel.task.StandardToolTask;
-import work.ganglia.kernel.task.SubAgentTask;
-import work.ganglia.kernel.task.TaskGraphTask;
-import work.ganglia.port.internal.state.SessionManager;
-import work.ganglia.port.internal.memory.ContextCompressor;
-import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
-import work.ganglia.port.internal.skill.SkillRuntime;
-import work.ganglia.port.internal.skill.SkillService;
-import work.ganglia.port.external.tool.ToolExecutor;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.external.tool.ToolDefinition;
-import work.ganglia.kernel.subagent.GraphExecutor;
+import work.ganglia.port.external.tool.ToolExecutor;
+import work.ganglia.port.internal.skill.SkillRuntime;
+import work.ganglia.port.internal.skill.SkillService;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class DefaultSchedulableFactory implements SchedulableFactory {
+/**
+ * SRP: Factory for creating AgentTask tasks from tool calls.
+ * Uses AgentEnv to minimize constructor bloating.
+ */
+public class DefaultAgentTaskFactory implements AgentTaskFactory {
 
-    private final Vertx vertx;
-    private final ModelGateway modelGateway;
-    private final SessionManager sessionManager;
-    private final PromptEngine promptEngine;
-    private final ConfigManager configManager;
-    private final ContextCompressor compressor;
+    private final AgentEnv env;
     private final ToolExecutor standardToolExecutor;
     private final GraphExecutor graphExecutor; // Nullable
     private final SkillService skillService;   // Nullable
     private final SkillRuntime skillRuntime;   // Nullable
 
-    public DefaultSchedulableFactory(Vertx vertx, ModelGateway modelGateway, SessionManager sessionManager,
-                                      PromptEngine promptEngine, ConfigManager configManager, ContextCompressor compressor,
-                                      ToolExecutor standardToolExecutor, GraphExecutor graphExecutor,
-                                      SkillService skillService, SkillRuntime skillRuntime) {
-        this.vertx = vertx;
-        this.modelGateway = modelGateway;
-        this.sessionManager = sessionManager;
-        this.promptEngine = promptEngine;
-        this.configManager = configManager;
-        this.compressor = compressor;
+    public DefaultAgentTaskFactory(AgentEnv env, ToolExecutor standardToolExecutor, 
+                                   GraphExecutor graphExecutor, SkillService skillService, 
+                                   SkillRuntime skillRuntime) {
+        this.env = env;
         this.standardToolExecutor = standardToolExecutor;
         this.graphExecutor = graphExecutor;
         this.skillService = skillService;
@@ -52,11 +35,11 @@ public class DefaultSchedulableFactory implements SchedulableFactory {
     }
 
     @Override
-    public Schedulable create(ToolCall call, SessionContext context) {
+    public AgentTask create(ToolCall call, SessionContext context) {
         String toolName = call.toolName();
 
         if ("call_sub_agent".equals(toolName)) {
-            return new SubAgentTask(call, vertx, modelGateway, sessionManager, promptEngine, configManager, compressor, this);
+            return new SubAgentTask(call, env);
         } else if ("propose_task_graph".equals(toolName) && graphExecutor != null) {
             return new TaskGraphTask(call, graphExecutor);
         } else if (isSkillTool(toolName, context)) {
@@ -69,11 +52,8 @@ public class DefaultSchedulableFactory implements SchedulableFactory {
     @Override
     public List<ToolDefinition> getAvailableDefinitions(SessionContext context) {
         List<ToolDefinition> definitions = new ArrayList<>();
-
-        // 1. Standard tools (Bash, FileSystem, Interact, etc.)
         definitions.addAll(standardToolExecutor.getAvailableTools(context));
 
-        // 2. SubAgent tools
         definitions.add(new ToolDefinition(
             "call_sub_agent",
             "Delegate a specific, focused sub-task to a specialized sub-agent. Returns a summary report.",
@@ -124,7 +104,6 @@ public class DefaultSchedulableFactory implements SchedulableFactory {
             ));
         }
 
-        // 3. Skill tools (List/Activate + active skill tools)
         if (skillRuntime != null && skillService != null) {
             definitions.add(new ToolDefinition("list_available_skills", "List all skills available to be activated", "{}"));
             definitions.add(new ToolDefinition("activate_skill", "Activate a specific skill by ID to gain its specialized capabilities. This REQUIRES user confirmation unless already confirmed.",
@@ -147,10 +126,7 @@ public class DefaultSchedulableFactory implements SchedulableFactory {
 
     private boolean isSkillTool(String toolName, SessionContext context) {
         if (skillRuntime == null || skillService == null) return false;
-
-        if ("list_available_skills".equals(toolName) || "activate_skill".equals(toolName)) {
-            return true;
-        }
+        if ("list_available_skills".equals(toolName) || "activate_skill".equals(toolName)) return true;
         return skillRuntime.getActiveSkillsTools(context).stream()
                 .anyMatch(ts -> ts.getDefinitions().stream().anyMatch(d -> d.name().equals(toolName)));
     }

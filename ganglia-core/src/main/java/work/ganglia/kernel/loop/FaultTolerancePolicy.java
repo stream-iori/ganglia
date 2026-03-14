@@ -2,8 +2,8 @@ package work.ganglia.kernel.loop;
 
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.kernel.task.Schedulable;
-import work.ganglia.kernel.task.SchedulableResult;
+import work.ganglia.kernel.task.AgentTask;
+import work.ganglia.kernel.task.AgentTaskResult;
 
 /**
  * Strategy for handling errors during tool or sub-agent execution.
@@ -18,10 +18,10 @@ public interface FaultTolerancePolicy {
      * @param result  The result of the execution.
      * @return A Future containing the possibly modified SessionContext if allowed to continue, or a failed Future to abort.
      */
-    Future<SessionContext> handleFailure(SessionContext context, Schedulable task, SchedulableResult result);
+    Future<SessionContext> handleFailure(SessionContext context, AgentTask task, AgentTaskResult result);
 
     /**
      * Called when a task succeeds, allowing the policy to reset any tracked state.
      */
-    SessionContext onSuccess(SessionContext context, Schedulable task);
+    SessionContext onSuccess(SessionContext context, AgentTask task);
 }

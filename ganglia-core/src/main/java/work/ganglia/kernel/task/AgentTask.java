@@ -5,9 +5,9 @@ import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.state.ExecutionContext;
 
 /**
- * Represents an executable task that can be scheduled by the StandardAgentLoop.
+ * Represents an executable task that can be scheduled by the ReActAgentLoop.
  */
-public interface Schedulable {
+public interface AgentTask {
     /**
      * @return The unique identifier of this scheduleable task.
      */
@@ -24,5 +24,5 @@ public interface Schedulable {
      * @param executionContext The execution context for emitting streams and errors.
      * @return A future containing the result of the execution.
      */
-    Future<SchedulableResult> execute(SessionContext context, ExecutionContext executionContext);
+    Future<AgentTaskResult> execute(SessionContext context, ExecutionContext executionContext);
 }

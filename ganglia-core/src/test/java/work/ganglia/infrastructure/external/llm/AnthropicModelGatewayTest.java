@@ -8,6 +8,7 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import work.ganglia.port.chat.Message;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.internal.state.AgentSignal;
@@ -82,7 +83,7 @@ class AnthropicModelGatewayTest {
         List<Message> history = List.of(Message.user("Hello"));
         ModelOptions options = new ModelOptions(0.0, 1024, "claude-3-5-sonnet", false);
 
-        gateway.chat(history, Collections.emptyList(), options, new AgentSignal()).onComplete(testContext.succeeding(response -> {
+        gateway.chat(new ChatRequest(history, Collections.emptyList(), options, new AgentSignal())).onComplete(testContext.succeeding(response -> {
             testContext.verify(() -> {
                 assertEquals("Hello World!", response.content());
                 assertEquals(10, response.usage().promptTokens());
@@ -99,7 +100,7 @@ class AnthropicModelGatewayTest {
         ModelOptions options = new ModelOptions(0.0, 1024, "claude-3-5-sonnet", true);
         String sessionId = "test-session";
 
-        gateway.chatStream(history, Collections.emptyList(), options, new StubExecutionContext(sessionId), new AgentSignal()).onComplete(testContext.succeeding(response -> {
+        gateway.chatStream(new ChatRequest(history, Collections.emptyList(), options, new AgentSignal()), new StubExecutionContext(sessionId)).onComplete(testContext.succeeding(response -> {
             testContext.verify(() -> {
                 assertEquals("Hello World!", response.content());
                 assertEquals(10, response.usage().promptTokens());
@@ -123,7 +124,7 @@ class AnthropicModelGatewayTest {
             signal.abort();
         });
 
-        gateway.chatStream(history, Collections.emptyList(), options, execContext, signal).onComplete(testContext.failing(err -> {
+        gateway.chatStream(new ChatRequest(history, Collections.emptyList(), options, signal), execContext).onComplete(testContext.failing(err -> {
             testContext.verify(() -> {
                 assertTrue(err instanceof work.ganglia.kernel.loop.AgentAbortedException);
                 assertTrue(tokenCount.get() < 3); 

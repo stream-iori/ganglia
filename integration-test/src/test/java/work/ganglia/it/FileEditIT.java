@@ -6,8 +6,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import work.Main; 
+import work.Main;
 import work.ganglia.Ganglia;
+import work.ganglia.BootstrapOptions;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.chat.SessionContext;
@@ -39,19 +41,23 @@ public class FileEditIT {
     private String testFileName = "app.py";
     private SessionContext baseContext;
 
+    @TempDir
+    Path sharedTempDir;
+
     @BeforeEach
-    void setUp(Vertx vertx, @TempDir Path tempDir, VertxTestContext testContext) {
-        testFilePath = tempDir.resolve(testFileName).toString();
+    void setUp(Vertx vertx, VertxTestContext testContext) {
+        testFilePath = sharedTempDir.resolve(testFileName).toString();
         String initialContent = "def hello():\n    print(\"Hello World\")\n\nif __name__ == \"__main__\":\n    hello()\n";
         vertx.fileSystem().writeFileBlocking(testFilePath, Buffer.buffer(initialContent));
 
         mockModel = mock(ModelGateway.class);
         
-        JsonObject overrideConfig = new JsonObject()
-            .put("webui", new JsonObject().put("enabled", false))
-            .put("agent", new JsonObject().put("projectRoot", tempDir.toString()));
+        BootstrapOptions options = BootstrapOptions.defaultOptions()
+            .withProjectRoot(sharedTempDir.toAbsolutePath().toString())
+            .withModelGateway(mockModel)
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
 
-        Main.bootstrap(vertx, ".ganglia/config.json", overrideConfig, mockModel)
+        Main.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
                 this.baseContext = ganglia.sessionManager().createSession(UUID.randomUUID().toString());
@@ -67,7 +73,7 @@ public class FileEditIT {
             "new_string", "    print(\"Hello Ganglia\")"
         ));
 
-        when(mockModel.chatStream(any(), any(), any(), any(), any()))
+        when(mockModel.chatStream(any(ChatRequest.class), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("I will update the print statement.", List.of(replaceCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Updated successfully.", Collections.emptyList(), new TokenUsage(1, 1))));
 
@@ -90,7 +96,7 @@ public class FileEditIT {
             "content", newContent
         ));
 
-        when(mockModel.chatStream(any(), any(), any(), any(), any()))
+        when(mockModel.chatStream(any(ChatRequest.class), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Overwriting file.", List.of(writeCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Done.", Collections.emptyList(), new TokenUsage(1, 1))));
 
@@ -123,7 +129,7 @@ public class FileEditIT {
             "patch", patch
         ));
 
-        when(mockModel.chatStream(any(), any(), any(), any(), any()))
+        when(mockModel.chatStream(any(ChatRequest.class), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Applying patch.", List.of(patchCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Done.", Collections.emptyList(), new TokenUsage(1, 1))));
 

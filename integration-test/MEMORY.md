@@ -6,5 +6,3 @@
 
 ## Architecture Decisions
 
-
-- Execution result was SUCCESS

@@ -5,8 +5,10 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import work.Main; 
+import work.Main;
 import work.ganglia.Ganglia;
+import work.ganglia.BootstrapOptions;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.chat.SessionContext;
@@ -15,7 +17,9 @@ import work.ganglia.port.external.tool.ToolCall;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -31,13 +35,21 @@ public class SubAgentGraphIT {
     private Ganglia ganglia;
     private ModelGateway mockModel;
 
+    @TempDir
+    Path sharedTempDir;
+
     @BeforeEach
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
         // Default behavior for background reflection
-        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled"));
+        when(mockModel.chat(any(ChatRequest.class))).thenReturn(Future.failedFuture("Reflection disabled"));
 
-        Main.bootstrap(vertx, ".ganglia/config.json", new JsonObject().put("webui", new JsonObject().put("enabled", false)), mockModel)
+        BootstrapOptions options = BootstrapOptions.defaultOptions()
+            .withProjectRoot(sharedTempDir.toAbsolutePath().toString())
+            .withModelGateway(mockModel)
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
+
+        Main.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
                 testContext.completeNow();
@@ -66,7 +78,7 @@ public class SubAgentGraphIT {
         // Response for Sub-Agent Node 3
         ModelResponse res3 = new ModelResponse("Summary: Bug in B needs fixing, A is fine.", Collections.emptyList(), new TokenUsage(1, 1));
 
-        when(mockModel.chatStream(any(), any(), any(), any(), any()))
+        when(mockModel.chatStream(any(ChatRequest.class), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("I have a plan.", List.of(proposeGraph), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(res1)) // n1
             .thenReturn(Future.succeededFuture(res2)) // n2
@@ -113,7 +125,7 @@ public class SubAgentGraphIT {
             "approved", true
         ));
 
-        when(mockModel.chatStream(any(), any(), any(), any(), any()))
+        when(mockModel.chatStream(any(ChatRequest.class), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Executing...", List.of(approvedGraph), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Node 1 done.", Collections.emptyList(), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Everything finished.", Collections.emptyList(), new TokenUsage(1, 1))));
@@ -128,7 +140,7 @@ public class SubAgentGraphIT {
                     // 1. Parent thought -> ToolCall
                     // 2. Sub-agent node 1 loop
                     // 3. Parent final answer
-                    verify(mockModel, times(3)).chatStream(any(), any(), any(), any(), any());
+                    verify(mockModel, times(3)).chatStream(any(ChatRequest.class), any());
                     testContext.completeNow();
                 });
             }));

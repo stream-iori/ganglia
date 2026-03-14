@@ -1,6 +1,6 @@
 package work.ganglia.infrastructure.internal.memory;
 
-import work.ganglia.port.internal.memory.KnowledgeBase;
+import work.ganglia.port.internal.memory.LongTermMemory;
 import work.ganglia.port.internal.memory.MemoryModule;
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
@@ -13,10 +13,10 @@ import java.util.List;
  * Memory module representing the long-term project knowledge base.
  */
 public class LongTermKnowledgeModule implements MemoryModule {
-    private final KnowledgeBase knowledgeBase;
+    private final LongTermMemory longTermMemory;
 
-    public LongTermKnowledgeModule(KnowledgeBase knowledgeBase) {
-        this.knowledgeBase = knowledgeBase;
+    public LongTermKnowledgeModule(LongTermMemory longTermMemory) {
+        this.longTermMemory = longTermMemory;
     }
 
     @Override

@@ -1,7 +1,7 @@
 package work.ganglia.infrastructure.internal.state;
 
 import io.vertx.core.Future;
-import work.ganglia.config.ConfigManager;
+import work.ganglia.config.ModelConfigProvider;
 import work.ganglia.port.chat.*;
 import work.ganglia.port.external.llm.*;
 import work.ganglia.port.external.tool.*;
@@ -25,13 +25,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 public class DefaultSessionManager implements SessionManager {
     private final StateEngine stateEngine;
     private final LogManager logManager;
-    private final ConfigManager configManager;
+    private final ModelConfigProvider modelConfig;
     private final ConcurrentHashMap<String, ConcurrentLinkedQueue<String>> steeringQueues;
 
-    public DefaultSessionManager(StateEngine stateEngine, LogManager logManager, ConfigManager configManager) {
+    public DefaultSessionManager(StateEngine stateEngine, LogManager logManager, ModelConfigProvider modelConfig) {
         this.stateEngine = stateEngine;
         this.logManager = logManager;
-        this.configManager = configManager;
+        this.modelConfig = modelConfig;
         this.steeringQueues = new ConcurrentHashMap<>();
     }
 
@@ -47,10 +47,10 @@ public class DefaultSessionManager implements SessionManager {
         
         // Stage 2: Always sync with global config if major settings differ
         ModelOptions globalOptions = new ModelOptions(
-            configManager.getTemperature(),
-            configManager.getMaxTokens(),
-            configManager.getModel(),
-            configManager.isStream()
+            modelConfig.getTemperature(),
+            modelConfig.getMaxTokens(),
+            modelConfig.getModel(),
+            modelConfig.isStream()
         );
 
         if (currentOptions == null || 
@@ -72,10 +72,10 @@ public class DefaultSessionManager implements SessionManager {
     @Override
     public SessionContext createSession(String sessionId) {
         ModelOptions options = new ModelOptions(
-            configManager.getTemperature(),
-            configManager.getMaxTokens(),
-            configManager.getModel(),
-            configManager.isStream()
+            modelConfig.getTemperature(),
+            modelConfig.getMaxTokens(),
+            modelConfig.getModel(),
+            modelConfig.isStream()
         );
         return new SessionContext(
             sessionId,

@@ -147,4 +147,11 @@ public record SessionContext(
     public int getIterationCount() {
         return currentTurn != null ? currentTurn.getIterationCount() : 0;
     }
+
+    /**
+     * Convenience method to persist this context using the provided manager.
+     */
+    public io.vertx.core.Future<SessionContext> persistWith(work.ganglia.port.internal.state.SessionManager manager) {
+        return manager.persist(this).map(v -> this);
+    }
 }

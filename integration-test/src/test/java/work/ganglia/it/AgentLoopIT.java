@@ -9,6 +9,7 @@ import io.vertx.junit5.VertxTestContext;
 import work.Main;
 import work.ganglia.Ganglia;
 import work.ganglia.BootstrapOptions;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.chat.SessionContext;
@@ -43,7 +44,7 @@ public class AgentLoopIT {
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
         // Ensure background tasks like reflection don't crash with NPE
-        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
+        when(mockModel.chat(any(ChatRequest.class))).thenReturn(Future.failedFuture("Reflection disabled in tests"));
 
         String projectRoot = sharedTempDir.toAbsolutePath().toString();
 
@@ -73,7 +74,7 @@ public class AgentLoopIT {
         ToolCall readACall = new ToolCall("c2", "read_file", Map.of("path", fileA));
         ToolCall readBCall = new ToolCall("c3", "read_file", Map.of("path", fileB));
 
-        when(mockModel.chatStream(any(), any(), any(), any(), any()))
+        when(mockModel.chatStream(any(ChatRequest.class), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("I will list files.", List.of(lsCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("I see a.txt and b.txt. Reading a.txt.", List.of(readACall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Reading b.txt.", List.of(readBCall), new TokenUsage(1, 1))))

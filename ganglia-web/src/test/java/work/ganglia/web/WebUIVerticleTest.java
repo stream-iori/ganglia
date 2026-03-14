@@ -8,7 +8,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.Mockito.mock;
-import work.ganglia.kernel.loop.StandardAgentLoop;
+import work.ganglia.kernel.loop.ReActAgentLoop;
 import work.ganglia.port.internal.state.SessionManager;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,7 +20,7 @@ public class WebUIVerticleTest {
     @Test
     @DisplayName("Should start WebUI server and serve index.html")
     void shouldStartServer(Vertx vertx, VertxTestContext testContext) {
-        WebUIVerticle verticle = new WebUIVerticle(0, mock(StandardAgentLoop.class), mock(SessionManager.class));
+        WebUIVerticle verticle = new WebUIVerticle(0, mock(ReActAgentLoop.class), mock(SessionManager.class));
         
         vertx.deployVerticle(verticle).onComplete(deploy -> {
             testContext.verify(() -> {
@@ -34,7 +34,7 @@ public class WebUIVerticleTest {
     @DisplayName("Should respond to SockJS info request")
     void shouldRespondToSockJSInfo(Vertx vertx, VertxTestContext testContext) {
         int port = 8081;
-        WebUIVerticle verticle = new WebUIVerticle(port, mock(StandardAgentLoop.class), mock(SessionManager.class));
+        WebUIVerticle verticle = new WebUIVerticle(port, mock(ReActAgentLoop.class), mock(SessionManager.class));
         
         vertx.deployVerticle(verticle).onComplete(deploy -> {
             WebClient client = WebClient.create(vertx);

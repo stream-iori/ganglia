@@ -6,8 +6,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import work.Main; 
+import work.Main;
 import work.ganglia.Ganglia;
+import work.ganglia.BootstrapOptions;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.chat.SessionContext;
@@ -41,11 +43,11 @@ public class MemoryRetrievalIT {
     @BeforeEach
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
-        when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
+        when(mockModel.chat(any(ChatRequest.class))).thenReturn(Future.failedFuture("Reflection disabled in tests"));
 
         String projectRoot = sharedTempDir.toAbsolutePath().toString();
 
-        work.ganglia.BootstrapOptions options = work.ganglia.BootstrapOptions.defaultOptions()
+        BootstrapOptions options = BootstrapOptions.defaultOptions()
             .withProjectRoot(projectRoot)
             .withModelGateway(mockModel)
             .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
@@ -69,7 +71,7 @@ public class MemoryRetrievalIT {
             "pattern", "secret code"
         ));
 
-        when(mockModel.chatStream(any(), any(), any(), any(), any()))
+        when(mockModel.chatStream(any(ChatRequest.class), any()))
             .thenReturn(Future.succeededFuture(new ModelResponse("Searching memory...", List.of(grepCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("The code is 998877.", Collections.emptyList(), new TokenUsage(1, 1))));
 

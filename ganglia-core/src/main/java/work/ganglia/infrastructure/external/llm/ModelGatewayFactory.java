@@ -2,7 +2,7 @@ package work.ganglia.infrastructure.external.llm;
 
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
-import work.ganglia.config.ConfigManager;
+import work.ganglia.config.ModelConfigProvider;
 import work.ganglia.config.model.ModelConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,9 +14,9 @@ import work.ganglia.port.external.llm.ModelGateway;
 public class ModelGatewayFactory {
     private static final Logger logger = LoggerFactory.getLogger(ModelGatewayFactory.class);
 
-    public static ModelGateway create(Vertx vertx, ConfigManager configManager) {
+    public static ModelGateway create(Vertx vertx, ModelConfigProvider configProvider) {
         WebClient webClient = WebClient.create(vertx);
-        ModelConfig primaryConfig = configManager.getGangliaConfig().getModel("primary");
+        ModelConfig primaryConfig = configProvider.getModelConfig("primary");
         if (primaryConfig == null) {
             logger.error("No 'primary' model configuration found.");
             throw new RuntimeException("Missing primary model configuration");
@@ -24,7 +24,7 @@ public class ModelGatewayFactory {
 
         ModelGateway primaryGateway = createProvider(vertx, webClient, primaryConfig);
 
-        ModelConfig utilityConfig = configManager.getGangliaConfig().getModel("utility");
+        ModelConfig utilityConfig = configProvider.getModelConfig("utility");
         if (utilityConfig != null) {
             ModelGateway utilityGateway = createProvider(vertx, webClient, utilityConfig);
             logger.info("Initializing fallback mechanism: Primary -> Utility ({})", utilityConfig.name());

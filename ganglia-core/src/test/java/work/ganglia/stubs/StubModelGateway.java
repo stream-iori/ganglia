@@ -1,45 +1,33 @@
 package work.ganglia.stubs;
 
 import io.vertx.core.Future;
+import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
-import work.ganglia.port.chat.Message;
-import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
-import work.ganglia.port.external.tool.ToolDefinition;
-import work.ganglia.port.internal.state.AgentSignal;
+import work.ganglia.port.internal.state.ExecutionContext;
 
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Queue;
 
 public class StubModelGateway implements ModelGateway {
-
     private final Queue<ModelResponse> responses = new LinkedList<>();
 
-    @Override
-    public Future<ModelResponse> chat(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, AgentSignal signal) {
-        if (responses.isEmpty()) {
-            return Future.failedFuture("No stub response available");
-        }
-        return Future.succeededFuture(responses.poll());
-    }
-
-    @Override
-    public Future<ModelResponse> chatStream(List<Message> history, List<ToolDefinition> availableTools, ModelOptions options, work.ganglia.port.internal.state.ExecutionContext context, AgentSignal signal) {
-        // For testing, chatStream behaves like chat but we can simulate events if needed.
-        if (responses.isEmpty()) {
-            return Future.failedFuture("No stub response available");
-        }
-        return Future.succeededFuture(responses.poll());
-    }
-
     public void addResponse(ModelResponse response) {
-        responses.offer(response);
+        responses.add(response);
     }
 
-    public void addResponses(ModelResponse... responses) {
-        for (ModelResponse r : responses) {
-            this.responses.offer(r);
+    @Override
+    public Future<ModelResponse> chat(ChatRequest request) {
+        ModelResponse response = responses.poll();
+        return response != null ? Future.succeededFuture(response) : Future.failedFuture("No stub response available");
+    }
+
+    @Override
+    public Future<ModelResponse> chatStream(ChatRequest request, ExecutionContext context) {
+        ModelResponse response = responses.poll();
+        if (response != null && response.content() != null) {
+            context.emitStream(response.content());
         }
+        return response != null ? Future.succeededFuture(response) : Future.failedFuture("No stub response available");
     }
 }
