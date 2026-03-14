@@ -38,7 +38,7 @@ public class FileStateEngine implements StateEngine {
         String tempFile = filename + ".tmp";
 
         // Asynchronous encoding and writing to temp file, then atomic move to replace existing
-        return vertx.fileSystem().mkdirs(STATE_DIR)
+        return work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, STATE_DIR)
                 .compose(v -> vertx.fileSystem().writeFile(tempFile, Buffer.buffer(Json.encodePrettily(context))))
                 .compose(v -> vertx.fileSystem().move(tempFile, filename, new CopyOptions().setReplaceExisting(true)));
     }

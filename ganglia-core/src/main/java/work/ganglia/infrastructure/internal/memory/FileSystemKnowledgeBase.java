@@ -74,15 +74,7 @@ public class FileSystemKnowledgeBase implements KnowledgeBase {
     @Override
     public Future<Void> ensureInitialized(String topic) {
         String filePath = getFilePath(topic);
-        return vertx.fileSystem().exists(filePath)
-                .compose(exists -> {
-                    if (!exists) {
-                        return vertx.fileSystem().mkdirs(baseDir)
-                                .recover(err -> Future.succeededFuture()) // Ignore if already exists
-                                .compose(v -> vertx.fileSystem().writeFile(filePath, Buffer.buffer(DEFAULT_TEMPLATE)));
-                    }
-                    return Future.succeededFuture();
-                });
+        return work.ganglia.util.FileSystemUtil.ensureFileWithDefault(vertx, filePath, DEFAULT_TEMPLATE);
     }
 
     @Override

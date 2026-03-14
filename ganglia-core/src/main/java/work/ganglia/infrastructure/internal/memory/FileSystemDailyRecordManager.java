@@ -33,7 +33,7 @@ public class FileSystemDailyRecordManager implements DailyRecordManager {
                        "- **Goal:** " + goal + "\n" +
                        "- **Accomplishments:**\n" + accomplishments + "\n";
 
-        return vertx.fileSystem().mkdirs(basePath)
+        return work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, basePath)
             .compose(v -> vertx.fileSystem().exists(filePath))
             .compose(exists -> {
                 if (exists) {

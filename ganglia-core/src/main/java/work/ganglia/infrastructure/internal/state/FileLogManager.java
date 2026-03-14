@@ -46,10 +46,10 @@ public class FileLogManager implements LogManager {
         String logEntry = formatLogEntry(latest);
         String filename = getLogFileName();
 
-        return vertx.fileSystem()
-            .open(filename, new OpenOptions().setAppend(true).setCreate(true))
+        return work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, LOG_DIR)
+            .compose(v -> vertx.fileSystem().open(filename, new OpenOptions().setAppend(true).setCreate(true)))
             .compose(asyncFile -> asyncFile.write(Buffer.buffer(logEntry))
-                .compose(v -> asyncFile.close())
+                .compose(v2 -> asyncFile.close())
             );
     }
 

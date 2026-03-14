@@ -92,6 +92,16 @@ public class Main {
         }
 
         return configManager.init().compose(v -> {
+            // Self-check: ensure core directories exist
+            List<Future<Void>> dirFutures = new ArrayList<>();
+            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Constants.DIR_SKILLS));
+            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Constants.DIR_MEMORY));
+            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Constants.DIR_STATE));
+            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Constants.DIR_LOGS));
+            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Constants.DIR_TRACE));
+
+            return Future.join(dirFutures).map(v2 -> (Void) null);
+        }).compose(v -> {
             ModelGateway rawGateway = options.modelGatewayOverride() != null ? options.modelGatewayOverride() : ModelGatewayFactory.create(vertx, configManager);
             ModelGateway modelGateway = new RetryingModelGateway(rawGateway, vertx);
 
