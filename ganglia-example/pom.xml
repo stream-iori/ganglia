@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>me.stream</groupId>
+        <groupId>work.ganglia</groupId>
         <artifactId>ganglia-parent</artifactId>
         <version>1.0-SNAPSHOT</version>
     </parent>
@@ -12,20 +12,20 @@
 
     <dependencies>
         <dependency>
-            <groupId>me.stream</groupId>
+            <groupId>work.ganglia</groupId>
             <artifactId>ganglia-core</artifactId>
         </dependency>
         <dependency>
-            <groupId>me.stream</groupId>
+            <groupId>work.ganglia</groupId>
             <artifactId>ganglia-coding</artifactId>
         </dependency>
         <dependency>
-            <groupId>me.stream</groupId>
+            <groupId>work.ganglia</groupId>
             <artifactId>ganglia-web</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
-            <groupId>me.stream</groupId>
+            <groupId>work.ganglia</groupId>
             <artifactId>ganglia-terminal</artifactId>
         </dependency>
         <dependency>
