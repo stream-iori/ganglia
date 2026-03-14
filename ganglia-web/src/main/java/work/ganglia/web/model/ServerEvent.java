@@ -74,4 +74,8 @@ public record ServerEvent(
         String workspacePath,
         String sessionId
     ) {}
+
+    public record PlanUpdateData(
+        work.ganglia.kernel.todo.ToDoList plan
+    ) {}
 }

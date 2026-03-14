@@ -1,5 +1,6 @@
 import { useSystemStore } from '../stores/system'
 import { useLogStore } from '../stores/log'
+import { usePlanStore } from '../stores/plan'
 import type { 
   ServerEvent, ClientAction, TtyData, 
   JsonRpcRequest, JsonRpcResponse, JsonRpcNotification,
@@ -79,6 +80,8 @@ class EventBusService {
             this.simulateFileTreeChange()
           } else if (prompt.includes('ls') || prompt.includes('run')) {
             this.simulateToolExecution(prompt)
+          } else if (prompt.includes('plan') || prompt.includes('todo')) {
+            this.simulatePlanUpdate()
           } else if (prompt.includes('diff') || prompt.includes('ask')) {
             this.simulateAskWithDiff()
           } else if (prompt.includes('select') || prompt.includes('choice')) {
@@ -269,6 +272,27 @@ class EventBusService {
         })
       }
 
+      private simulatePlanUpdate() {
+        this.notify('server_event', { eventId: 't-plan', type: 'THOUGHT', data: { content: 'Creating a plan for your request...' } })
+        
+        const plan = {
+          items: [
+            { id: '1', description: 'Research codebase structure', status: 'DONE', result: 'Found core modules and documentation.' },
+            { id: '2', description: 'Implement new feature', status: 'IN_PROGRESS' },
+            { id: '3', description: 'Write unit tests', status: 'TODO' }
+          ]
+        }
+
+        setTimeout(() => {
+          this.notify('server_event', {
+            eventId: 'plan-1',
+            type: 'PLAN_UPDATED',
+            data: { plan }
+          })
+          this.simulateTypewriterResponse('I have created a plan for this task. You can see the current progress in the Plan Sidebar.')
+        }, 1000)
+      }
+
       respond(id: string | number, result: any) {
         const response: JsonRpcResponse = { jsonrpc: '2.0', id, result }
         setTimeout(() => this.onmessage && this.onmessage({ data: JSON.stringify(response) }), 100)
@@ -424,6 +448,13 @@ class EventBusService {
 
     if (event.type === 'ASK_USER') {
       useSystemStore.setState({ activeAskId: event.data.askId })
+    }
+
+    if (event.type === 'PLAN_UPDATED') {
+      const planStore = usePlanStore.getState()
+      if (event.data && event.data.plan) {
+        planStore.setPlan(event.data.plan)
+      }
     }
 
     logStore.addEvent(event)

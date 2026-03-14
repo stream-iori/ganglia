@@ -15,5 +15,6 @@ public enum EventType {
     FILE_TREE,
     TOKEN,
     USER_MESSAGE,
-    INIT_CONFIG
+    INIT_CONFIG,
+    PLAN_UPDATED
 }

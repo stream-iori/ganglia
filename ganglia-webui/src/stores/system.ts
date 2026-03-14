@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { useLogStore } from './log'
 
 export type ConnectionStatus = 'CONNECTED' | 'DISCONNECTED' | 'RECONNECTING'
-export type InspectorMode = 'TERMINAL' | 'CODE' | 'DIFF'
+export type InspectorMode = 'TERMINAL' | 'CODE' | 'DIFF' | 'PLAN'
 export type AgentPhase = 'IDLE' | 'PLANNING' | 'EXECUTING' | 'WAITING' | 'REVIEWING'
 
 interface SystemState {

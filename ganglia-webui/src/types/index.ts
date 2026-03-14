@@ -10,7 +10,25 @@ export type EventType =
   | 'FILE_TREE'
   | 'TOKEN'
   | 'USER_MESSAGE'
-  | 'INIT_CONFIG';
+  | 'INIT_CONFIG'
+  | 'PLAN_UPDATED';
+
+export type TaskStatus = 'TODO' | 'IN_PROGRESS' | 'DONE';
+
+export interface ToDoItem {
+  id: string;
+  description: string;
+  status: TaskStatus;
+  result?: string;
+}
+
+export interface ToDoList {
+  items: ToDoItem[];
+}
+
+export interface PlanUpdateData {
+  plan: ToDoList;
+}
 
 export interface InitConfigData {
   workspacePath: string;

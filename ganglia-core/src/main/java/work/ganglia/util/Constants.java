@@ -10,7 +10,6 @@ public final class Constants {
     public static final String ADDRESS_MEMORY_EVENT = "ganglia.memory.event";
     public static final String ADDRESS_USAGE_RECORD = "ganglia.usage.record";
     public static final String ADDRESS_USAGE_ESTIMATE = "ganglia.usage.estimate";
-    public static final String ADDRESS_UI_REQ = "ganglia.ui.req";
     public static final String ADDRESS_UI_STREAM_PREFIX = "ganglia.ui.stream.";
     public static final String SUFFIX_TTY = ".tty";
     public static final String ADDRESS_UI_OUTBOUND_CACHE = "ganglia.ui.stream.outbound.cache";
@@ -25,7 +24,7 @@ public final class Constants {
     public static final String DIR_SKILLS = ".ganglia/skills";
     public static final String DIR_MEMORY = ".ganglia/memory";
     public static final String DIR_TRACE = ".ganglia/trace";
-    
+
     public static final String FILE_MEMORY_MD = "MEMORY.md";
     public static final String FILE_GANGLIA_MD = "GANGLIA.md";
     public static final String FILE_SKILL_MD = "SKILL.md";

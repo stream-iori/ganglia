@@ -71,7 +71,7 @@ export const useLogStore = create<LogState>((set) => ({
           }
           newState.thoughtStartTime = null
         }
-      } else if (event.type !== 'TOOL_OUTPUT_STREAM' && event.type !== 'TOKEN') {
+      } else if (event.type !== 'TOOL_OUTPUT_STREAM' && event.type !== 'PLAN_UPDATED') {
         newState.streamingMessage = ''
         newState.streamingThought = ''
         newState.thoughtStartTime = null

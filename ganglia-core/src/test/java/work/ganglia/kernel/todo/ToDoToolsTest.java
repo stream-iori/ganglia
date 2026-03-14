@@ -14,7 +14,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import work.ganglia.port.internal.state.ExecutionContext;
+import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
@@ -27,18 +30,28 @@ class ToDoToolsTest {
 
     private ToDoTools tools;
     private SessionContext context;
+    private ExecutionContext execContext;
     @Mock
     private ContextCompressor compressor;
 
     @BeforeEach
     void setUp(Vertx vertx) {
         tools = new ToDoTools(vertx, compressor);
-        context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
+        String sessionId = UUID.randomUUID().toString();
+        context = new SessionContext(sessionId, Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
+        execContext = new ExecutionContext() {
+            @Override public String sessionId() { return sessionId; }
+            @Override public void emitStream(String chunk) {}
+            @Override public void emitError(Throwable error) {}
+        };
     }
 
     @Test
     void testAddAndList(VertxTestContext testContext) {
-        tools.add(Map.of("description", "Task 1"), context)
+        Map<String, Object> args = new HashMap<>();
+        args.put("description", "Task 1");
+        
+        tools.add(args, context, execContext)
             .compose(result -> {
                 assertNotNull(result.modifiedContext());
                 SessionContext ctx1 = result.modifiedContext();
@@ -57,11 +70,16 @@ class ToDoToolsTest {
     void testComplete(VertxTestContext testContext) {
         when(compressor.summarize(any(), any())).thenReturn(io.vertx.core.Future.succeededFuture("Task done."));
 
-        tools.add(Map.of("description", "Task To Complete"), context)
+        Map<String, Object> addArgs = new HashMap<>();
+        addArgs.put("description", "Task To Complete");
+
+        tools.add(addArgs, context, execContext)
             .compose(result -> {
                 SessionContext ctx1 = result.modifiedContext();
                 String id = ctx1.toDoList().items().get(0).id();
-                return tools.complete(Map.of("id", id), ctx1);
+                Map<String, Object> completeArgs = new HashMap<>();
+                completeArgs.put("id", id);
+                return tools.complete(completeArgs, ctx1, execContext);
             })
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {

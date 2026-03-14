@@ -52,5 +52,10 @@ public enum ObservationType {
     /**
      * A system-level event like context compression.
      */
-    SYSTEM_EVENT
+    SYSTEM_EVENT,
+
+    /**
+     * The task plan (ToDoList) has been updated.
+     */
+    PLAN_UPDATED
 }

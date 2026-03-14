@@ -55,9 +55,9 @@ public class ToDoTools implements ToolSet {
     @Override
     public Future<ToolInvokeResult> execute(String toolName, Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         return switch (toolName) {
-            case "todo_add" -> add(args, context);
+            case "todo_add" -> add(args, context, executionContext);
             case "todo_list" -> list(context);
-            case "todo_complete" -> complete(args, context);
+            case "todo_complete" -> complete(args, context, executionContext);
             default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
         };
     }
@@ -67,13 +67,17 @@ public class ToDoTools implements ToolSet {
         return execute(call.toolName(), call.arguments(), context, executionContext);
     }
 
-    public Future<ToolInvokeResult> add(Map<String, Object> args, SessionContext context) {
+    public Future<ToolInvokeResult> add(Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         String description = (String) args.get("description");
         ToDoList currentList = context.toDoList();
         if (currentList == null) currentList = ToDoList.empty();
 
         ToDoList newList = currentList.addTask(description);
         SessionContext newContext = context.withToDoList(newList);
+
+        if (executionContext != null && executionContext instanceof work.ganglia.port.internal.state.ObservationDispatcher dispatcher) {
+            dispatcher.dispatch(executionContext.sessionId(), work.ganglia.port.external.tool.ObservationType.PLAN_UPDATED, "Task added", Map.of("plan", newList));
+        }
 
         return Future.succeededFuture(ToolInvokeResult.success("Task added.", newContext));
     }
@@ -83,7 +87,7 @@ public class ToDoTools implements ToolSet {
         return Future.succeededFuture(ToolInvokeResult.success(list == null ? "No tasks." : list.toString()));
     }
 
-    public Future<ToolInvokeResult> complete(Map<String, Object> args, SessionContext context) {
+    public Future<ToolInvokeResult> complete(Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         String id = (String) args.get("id");
         ToDoList currentList = context.toDoList();
         if (currentList == null) return Future.succeededFuture(ToolInvokeResult.error("No plan exists."));
@@ -96,6 +100,10 @@ public class ToDoTools implements ToolSet {
                 .map(summary -> {
                     ToDoList newList = currentList.updateTaskStatus(id, TaskStatus.DONE)
                                                   .updateTaskResult(id, summary);
+
+                    if (executionContext != null && executionContext instanceof work.ganglia.port.internal.state.ObservationDispatcher dispatcher) {
+                        dispatcher.dispatch(executionContext.sessionId(), work.ganglia.port.external.tool.ObservationType.PLAN_UPDATED, "Task completed", Map.of("plan", newList));
+                    }
 
                     // Clear compressed turns from context
                     SessionContext newContext = new SessionContext(

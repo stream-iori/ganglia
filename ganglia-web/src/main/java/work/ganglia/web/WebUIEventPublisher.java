@@ -129,6 +129,12 @@ public class WebUIEventPublisher implements AgentLoopObserver {
                     canRetry
                 ));
             }
+            case PLAN_UPDATED -> {
+                if (data != null && data.containsKey("plan")) {
+                    work.ganglia.kernel.todo.ToDoList plan = (work.ganglia.kernel.todo.ToDoList) data.get("plan");
+                    publish(sessionId, EventType.PLAN_UPDATED, new ServerEvent.PlanUpdateData(plan));
+                }
+            }
         }
     }
 

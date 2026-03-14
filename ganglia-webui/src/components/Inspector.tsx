@@ -4,6 +4,7 @@ import { useLogStore } from '../stores/log'
 import { eventBusService } from '../services/eventbus'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import Prism from 'prismjs'
+import PlanSidebar from './PlanSidebar'
 import 'prismjs/themes/prism-tomorrow.css'
 import 'prismjs/components/prism-java'
 import 'prismjs/components/prism-javascript'
@@ -95,7 +96,7 @@ const Inspector: React.FC = () => {
           <div className="flex items-center gap-3 mb-1">
             <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-widest">Inspector</h3>
             <div className="flex bg-slate-900 rounded p-0.5 border border-slate-800">
-              {(['TERMINAL', 'CODE', 'DIFF'] as const).map((mode) => (
+              {(['TERMINAL', 'CODE', 'DIFF', 'PLAN'] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => systemStore.toggleInspector(systemStore.inspectorToolCallId, mode)}
@@ -104,7 +105,7 @@ const Inspector: React.FC = () => {
                     systemStore.inspectorMode === mode ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'
                   )}
                 >
-                  {mode === 'TERMINAL' ? 'Terminal' : mode === 'CODE' ? 'Code' : 'Diff'}
+                  {mode === 'TERMINAL' ? 'Terminal' : mode === 'CODE' ? 'Code' : mode === 'DIFF' ? 'Diff' : 'Plan'}
                 </button>
               ))}
             </div>
@@ -113,6 +114,7 @@ const Inspector: React.FC = () => {
             {systemStore.inspectorMode === 'TERMINAL' && `Target: ${systemStore.inspectorToolCallId}`}
             {systemStore.inspectorMode === 'CODE' && `File: ${systemStore.inspectFile}`}
             {systemStore.inspectorMode === 'DIFF' && 'Diff Review'}
+            {systemStore.inspectorMode === 'PLAN' && 'Active Task Plan'}
           </span>
         </div>
 
@@ -247,6 +249,10 @@ const Inspector: React.FC = () => {
               </div>
             )}
           </div>
+        )}
+
+        {systemStore.inspectorMode === 'PLAN' && (
+          <PlanSidebar />
         )}
       </div>
     </aside>
