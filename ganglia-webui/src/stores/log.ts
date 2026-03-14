@@ -8,6 +8,7 @@ interface LogState {
   fileTree: FileTreeNode | null
   streamingMessage: string
   streamingThought: string
+  thoughtStartTime: number | null
 
   addEvent: (event: ServerEvent) => void
   appendTty: (toolCallId: string, text: string) => void
@@ -21,6 +22,7 @@ export const useLogStore = create<LogState>((set) => ({
   fileTree: null,
   streamingMessage: '',
   streamingThought: '',
+  thoughtStartTime: null,
 
   addEvent: (event) => {
     set((state) => {
@@ -39,6 +41,9 @@ export const useLogStore = create<LogState>((set) => ({
         }
 
         if (role === 'thought') {
+          if (newState.streamingThought === '' && !newState.thoughtStartTime) {
+            newState.thoughtStartTime = Date.now()
+          }
           newState.streamingThought += data.content
         } else {
           newState.streamingMessage += data.content
@@ -48,54 +53,67 @@ export const useLogStore = create<LogState>((set) => ({
 
       if (event.type === 'THOUGHT') {
         newState.streamingThought = ''
+        if (newState.thoughtStartTime) {
+          // Attach duration to the thought event
+          ;(event.data as any).durationMs = Date.now() - newState.thoughtStartTime
+          newState.thoughtStartTime = null
+        }
       } else if (event.type === 'AGENT_MESSAGE') {
         newState.streamingMessage = ''
       } else if (event.type !== 'TOOL_OUTPUT_STREAM') {
         newState.streamingMessage = ''
         newState.streamingThought = ''
+        newState.thoughtStartTime = null
       }
 
       const newEvents = [...state.events]
-      const existingIdx = newEvents.findIndex(e => e.eventId === event.eventId)
+      const existingIdx = newEvents.findIndex((e) => e.eventId === event.eventId)
       if (existingIdx !== -1) {
         newEvents[existingIdx] = event
         newState.events = newEvents
         return newState
       }
 
-      const isThoughtPlaceholder = (e: ServerEvent) => e && e.type === 'THOUGHT' && String((e.data as any).content).trim() === '...'
+      const isThoughtPlaceholder = (e: ServerEvent) =>
+        e && e.type === 'THOUGHT' && String((e.data as any).content).trim() === '...'
+
+      // We only want to replace the `...` placeholder with the real THOUGHT event.
+      // We DO NOT want to delete a real THOUGHT event just because an AGENT_MESSAGE arrived.
+      // We also might want to deduplicate identical literal content if the backend sends both, but we'll prioritize keeping them if they are unique steps.
       
       if (event.type === 'THOUGHT' || event.type === 'AGENT_MESSAGE' || event.type === 'TOOL_START') {
-        // Find existing thought/message with same content to deduplicate
-        if (event.type === 'AGENT_MESSAGE' || event.type === 'THOUGHT') {
-          const content = (event.data as any).content
-          const sameContentIdx = newEvents.findLastIndex((e: ServerEvent) => (e.type === 'THOUGHT' || e.type === 'AGENT_MESSAGE') && (e.data as any).content === content)
-          if (sameContentIdx !== -1) {
-            // Keep the AGENT_MESSAGE version if possible
-            if (event.type === 'AGENT_MESSAGE') {
-              newEvents[sameContentIdx] = event
-            }
-            newState.events = newEvents
-            return newState
-          }
-        }
-
         const placeholderIdx = newEvents.findLastIndex(isThoughtPlaceholder)
-        
-        if (placeholderIdx !== -1 && placeholderIdx >= newEvents.length - 3) {
-          if (event.type === 'THOUGHT' && !isThoughtPlaceholder(event)) {
+
+        if (placeholderIdx !== -1) {
+          if (event.type === 'THOUGHT') {
+            // Replace placeholder with the actual thought
             newEvents[placeholderIdx] = event
             newState.events = newEvents
             return newState
-          } else if (event.type !== 'THOUGHT') {
+          } else {
+            // Something else started, remove the thought placeholder
             newEvents.splice(placeholderIdx, 1)
+          }
+        }
+
+        // Deduplication for exact same content between THOUGHT and AGENT_MESSAGE (a backend quirk)
+        if (event.type === 'AGENT_MESSAGE') {
+          const content = (event.data as any).content
+          const sameContentIdx = newEvents.findLastIndex(
+            (e: ServerEvent) => e.type === 'THOUGHT' && (e.data as any).content === content
+          )
+          if (sameContentIdx !== -1) {
+            // Upgrade THOUGHT to AGENT_MESSAGE if identical
+            newEvents[sameContentIdx] = event
+            newState.events = newEvents
+            return newState
           }
         }
       }
 
       newEvents.push(event)
       newState.events = newEvents
-      
+
       if (event.type === 'TOOL_START') {
         const data = event.data as ToolStartData
         if (data.toolCallId && !newState.activeToolCalls[data.toolCallId]) {
@@ -122,20 +140,22 @@ export const useLogStore = create<LogState>((set) => ({
         return {
           activeToolCalls: {
             ...state.activeToolCalls,
-            [toolCallId]: [...state.activeToolCalls[toolCallId], text]
-          }
+            [toolCallId]: [...state.activeToolCalls[toolCallId], text],
+          },
         }
       }
       return state
     })
   },
 
-  clear: () => set({
-    events: [],
-    activeToolCalls: {},
-    fileCache: {},
-    fileTree: null,
-    streamingMessage: '',
-    streamingThought: ''
-  })
+  clear: () =>
+    set({
+      events: [],
+      activeToolCalls: {},
+      fileCache: {},
+      fileTree: null,
+      streamingMessage: '',
+      streamingThought: '',
+      thoughtStartTime: null,
+    }),
 }))

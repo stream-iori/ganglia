@@ -4,19 +4,22 @@ import { cn } from '../lib/utils'
 interface ThoughtCardProps {
   content: string
   initiallyExpanded?: boolean
+  durationMs?: number
 }
 
-const ThoughtCard: React.FC<ThoughtCardProps> = ({ content, initiallyExpanded = false }) => {
+const ThoughtCard: React.FC<ThoughtCardProps> = ({ content, initiallyExpanded = false, durationMs }) => {
   const [isExpanded, setIsExpanded] = useState(initiallyExpanded)
 
+  const durationStr = durationMs ? `(${(durationMs / 1000).toFixed(1)}s)` : ''
+
   return (
-    <div className="border-l-2 border-slate-700 pl-4 py-1 my-2">
+    <div className="border-l-2 border-slate-700 pl-4 py-1 my-2 ml-2">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className="text-[10px] uppercase tracking-widest text-slate-500 hover:text-slate-300 flex items-center gap-2 transition-colors"
       >
         <span className={cn('transition-transform inline-block', isExpanded && 'rotate-90')}>▶</span>
-        Thought Process
+        Thought Process {durationStr}
       </button>
 
       {isExpanded && (

@@ -91,65 +91,68 @@ const MainStream: React.FC = () => {
     eventBusService.send('RETRY', {})
   }
 
-  return (
-    <main className="flex-1 flex flex-col bg-slate-950 h-full relative overflow-hidden">
-      <StatusBar />
-
-      <div
-        className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-800 relative"
-        ref={streamContainerRef}
-        onScroll={handleScroll}
-      >
-        {isBlocked && <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px] z-10 transition-all duration-500"></div>}
-
-        <div className="max-w-3xl mx-auto space-y-8 pb-20 relative z-20">
-          {logStore.events.length === 0 && (
-            <div className="text-slate-500 text-center py-20">
-              <div className="text-4xl mb-4 opacity-20 text-emerald-500">⚛</div>
-              <p className="text-sm font-medium text-slate-300">Ganglia TUI Pro</p>
-              <p className="text-[10px] opacity-40 mt-1">Autonomous Coding Agent Navigator</p>
+  const renderEventTimeline = () => {
+    return logStore.events.map((event, index) => {
+      // User messages stand out from the timeline
+      if (event.type === 'USER_MESSAGE') {
+        return (
+          <div key={event.eventId} className="flex justify-end my-4">
+            <div className="bg-slate-800 text-slate-100 px-4 py-2 rounded-2xl rounded-tr-none max-w-[80%] shadow-md border border-slate-700/50">
+              {(event.data as any).content}
             </div>
-          )}
+          </div>
+        )
+      }
 
-          {logStore.events.map((event) => {
-            if (event.type === 'USER_MESSAGE') {
-              return (
-                <div key={event.eventId} className="flex justify-end">
-                  <div className="bg-slate-800 text-slate-100 px-4 py-2 rounded-2xl rounded-tr-none max-w-[80%] shadow-md border border-slate-700/50">
-                    {(event.data as any).content}
-                  </div>
-                </div>
-              )
-            }
+      const isLastTimelineItem = index === logStore.events.length - 1 && !logStore.streamingThought && !logStore.streamingMessage
 
-            if (event.type === 'THOUGHT') {
+      // General Agent Event Wrapper with Timeline Line
+      return (
+        <div key={event.eventId} className="relative pl-6 py-2 group">
+          {/* Vertical timeline line */}
+          <div className={cn(
+            "absolute left-[11px] top-0 w-0.5 bg-slate-800/50",
+            isLastTimelineItem ? "h-6" : "h-full"
+          )}></div>
+          
+          {/* Timeline node */}
+          <div className="absolute left-[9px] top-4 w-1.5 h-1.5 rounded-full bg-slate-600 ring-4 ring-slate-950 group-hover:bg-slate-400 transition-colors"></div>
+
+          {/* Event Content */}
+          <div className="relative -mt-1.5">
+            {event.type === 'THOUGHT' && (() => {
               const content = (event.data as any).content
+              const durationMs = (event.data as any).durationMs
               if (content === '...' && logStore.streamingThought) return null
-              return <ThoughtCard key={event.eventId} content={content} />
-            }
+              return <ThoughtCard content={content} durationMs={durationMs} />
+            })()}
 
-            if (event.type === 'TOOL_START') {
-              return <ToolCard key={event.eventId} event={event as any} allEvents={logStore.events} />
-            }
+            {event.type === 'TOOL_START' && (
+              <div className="ml-2">
+                <ToolCard event={event as any} allEvents={logStore.events} />
+              </div>
+            )}
 
-            if (event.type === 'AGENT_MESSAGE') {
+            {event.type === 'AGENT_MESSAGE' && (() => {
               const content = (event.data as any).content
               return (
-                <React.Fragment key={event.eventId}>
+                <div className="ml-2 mt-2">
                   <AgentMessage content={content} />
                   {content.includes('Task completed') && <TaskReviewCard />}
-                </React.Fragment>
+                </div>
               )
-            }
+            })()}
 
-            if (event.type === 'ASK_USER') {
-              return <AskUserForm key={event.eventId} event={event as any} />
-            }
+            {event.type === 'ASK_USER' && (
+              <div className="ml-2">
+                <AskUserForm event={event as any} />
+              </div>
+            )}
 
-            if (event.type === 'SYSTEM_ERROR') {
+            {event.type === 'SYSTEM_ERROR' && (() => {
               const data = event.data as any
               return (
-                <div key={event.eventId} className="bg-rose-950/20 border border-rose-500/50 p-4 rounded-lg text-rose-200 text-xs shadow-lg">
+                <div className="ml-2 bg-rose-950/20 border border-rose-500/50 p-4 rounded-lg text-rose-200 text-xs shadow-lg mt-2">
                   <div className="font-bold mb-1 uppercase tracking-tight flex items-center justify-between">
                     <span>System Error: {data.code}</span>
                     {data.canRetry && (
@@ -164,28 +167,63 @@ const MainStream: React.FC = () => {
                   {data.message}
                 </div>
               )
-            }
+            })()}
+          </div>
+        </div>
+      )
+    })
+  }
 
-            return null
-          })}
+  return (
+    <main className="flex-1 flex flex-col bg-slate-950 h-full relative overflow-hidden">
+      <StatusBar />
 
-          {logStore.streamingThought && (
-            <div className="animate-in fade-in duration-300">
-              <div className="flex items-center gap-2 mb-2 text-slate-500">
-                <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
-                <span className="text-[10px] font-bold uppercase tracking-widest">Agent is thinking...</span>
-              </div>
-              <ThoughtCard content={logStore.streamingThought} initiallyExpanded={true} />
+      <div
+        className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-800 relative"
+        ref={streamContainerRef}
+        onScroll={handleScroll}
+      >
+        {isBlocked && <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[1px] z-10 transition-all duration-500"></div>}
+
+        <div className="max-w-3xl mx-auto pb-20 relative z-20">
+          {logStore.events.length === 0 && (
+            <div className="text-slate-500 text-center py-20">
+              <div className="text-4xl mb-4 opacity-20 text-emerald-500">⚛</div>
+              <p className="text-sm font-medium text-slate-300">Ganglia TUI Pro</p>
+              <p className="text-[10px] opacity-40 mt-1">Autonomous Coding Agent Navigator</p>
             </div>
           )}
 
-          {logStore.streamingMessage && (
-            <div className="animate-in fade-in duration-300">
-              <div className="flex items-center gap-2 mb-2 text-slate-500">
-                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
-                <span className="text-[10px] font-bold uppercase tracking-widest">{typingStatus}</span>
+          {/* Render historical timeline */}
+          {renderEventTimeline()}
+
+          {/* Render active streaming states attached to the timeline */}
+          {(logStore.streamingThought || logStore.streamingMessage) && (
+            <div className="relative pl-6 py-2">
+              {/* Timeline extending to current stream */}
+              <div className="absolute left-[11px] top-0 w-0.5 h-full bg-gradient-to-b from-slate-800/50 to-transparent"></div>
+              
+              <div className="relative -mt-1.5 ml-2">
+                {logStore.streamingThought && (
+                  <div className="animate-in fade-in duration-300">
+                    <div className="flex items-center gap-2 mb-2 text-slate-500">
+                      <span className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse"></span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Agent is thinking...</span>
+                    </div>
+                    <ThoughtCard content={logStore.streamingThought} initiallyExpanded={true} />
+                  </div>
+                )}
+
+                {logStore.streamingMessage && (
+                  <div className="animate-in fade-in duration-300 mt-4">
+                    <div className="flex items-center gap-2 mb-2 text-slate-500">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                      <span className="text-[10px] font-bold uppercase tracking-widest">{typingStatus}</span>
+                    </div>
+                    <AgentMessage content={logStore.streamingMessage} />
+                  </div>
+                )}
               </div>
-              <AgentMessage content={logStore.streamingMessage} />
             </div>
           )}
 
