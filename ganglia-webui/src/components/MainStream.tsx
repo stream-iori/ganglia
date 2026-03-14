@@ -92,7 +92,13 @@ const MainStream: React.FC = () => {
   }
 
   const renderEventTimeline = () => {
-    return logStore.events.map((event, index) => {
+    const visibleEvents = logStore.events.filter(e => {
+      if (!['USER_MESSAGE', 'THOUGHT', 'TOOL_START', 'AGENT_MESSAGE', 'ASK_USER', 'SYSTEM_ERROR'].includes(e.type)) return false
+      if (e.type === 'THOUGHT' && (e.data as any).content === '...' && logStore.streamingThought) return false
+      return true
+    })
+
+    return visibleEvents.map((event, index) => {
       // User messages stand out from the timeline
       if (event.type === 'USER_MESSAGE') {
         return (
@@ -104,7 +110,7 @@ const MainStream: React.FC = () => {
         )
       }
 
-      const isLastTimelineItem = index === logStore.events.length - 1 && !logStore.streamingThought && !logStore.streamingMessage
+      const isLastTimelineItem = index === visibleEvents.length - 1 && !logStore.streamingThought && !logStore.streamingMessage
 
       // General Agent Event Wrapper with Timeline Line
       return (

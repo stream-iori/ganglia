@@ -145,10 +145,10 @@ const ToolCard: React.FC<ToolCardProps> = ({ event, allEvents }) => {
             </button>
           )}
 
-          {(executionTime > 0 || isRunning) && (
+          {(executionTime >= 0 || isRunning) && (
             <span className={cn('text-[9px] font-mono', isRunning ? 'text-amber-500 font-bold' : 'text-slate-600')}>
               {isRunning ? 'running ' : ''}
-              {executionTime}s
+              {executionTime === 0 && !isRunning ? '< 1s' : `${executionTime}s`}
             </span>
           )}
           {ttyLineCount > 0 && (

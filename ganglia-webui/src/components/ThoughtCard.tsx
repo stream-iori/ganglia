@@ -10,7 +10,7 @@ interface ThoughtCardProps {
 const ThoughtCard: React.FC<ThoughtCardProps> = ({ content, initiallyExpanded = false, durationMs }) => {
   const [isExpanded, setIsExpanded] = useState(initiallyExpanded)
 
-  const durationStr = durationMs ? `(${(durationMs / 1000).toFixed(1)}s)` : ''
+  const durationStr = durationMs !== undefined ? `(${(durationMs / 1000).toFixed(1)}s)` : ''
 
   return (
     <div className="border-l-2 border-slate-700 pl-4 py-1 my-2 ml-2">

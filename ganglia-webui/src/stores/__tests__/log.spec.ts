@@ -11,7 +11,8 @@ describe('Log Store', () => {
       fileCache: {},
       fileTree: null,
       streamingMessage: '',
-      streamingThought: ''
+      streamingThought: '',
+      thoughtStartTime: null
     })
   })
 
@@ -138,5 +139,31 @@ describe('Log Store', () => {
     const state = useLogStore.getState()
     expect(state.events).toHaveLength(1)
     expect(state.events[0]?.type).toBe('AGENT_MESSAGE')
+  })
+
+  it('should track thought duration correctly', () => {
+    const store = useLogStore.getState()
+    
+    // 1. Thought starts
+    store.addEvent({
+      eventId: 't1',
+      timestamp: Date.now(),
+      type: 'THOUGHT',
+      data: { content: 'Processing...' } as any
+    })
+    
+    expect(useLogStore.getState().thoughtStartTime).toBeDefined()
+    
+    // 2. Transition to AGENT_MESSAGE
+    store.addEvent({
+      eventId: 'a1',
+      timestamp: Date.now(),
+      type: 'AGENT_MESSAGE',
+      data: { content: 'hello' } as any
+    })
+    
+    const state = useLogStore.getState()
+    const thought = state.events.find(e => e.eventId === 't1')
+    expect((thought?.data as any).durationMs).toBeDefined()
   })
 })

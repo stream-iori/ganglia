@@ -27,6 +27,7 @@ export const useLogStore = create<LogState>((set) => ({
   addEvent: (event) => {
     set((state) => {
       const newState = { ...state }
+      const newEvents = [...state.events]
 
       if (event.type === 'TOKEN') {
         const data = event.data as TokenData
@@ -52,21 +53,30 @@ export const useLogStore = create<LogState>((set) => ({
       }
 
       if (event.type === 'THOUGHT') {
-        newState.streamingThought = ''
+        if (!newState.thoughtStartTime) newState.thoughtStartTime = Date.now()
+        if ((event.data as any).content !== '...') {
+          newState.streamingThought = ''
+        }
+      } else if (event.type === 'AGENT_MESSAGE' || event.type === 'TOOL_START' || event.type === 'ASK_USER' || event.type === 'USER_MESSAGE') {
+        if (event.type === 'AGENT_MESSAGE') newState.streamingMessage = ''
+        
         if (newState.thoughtStartTime) {
-          // Attach duration to the thought event
-          ;(event.data as any).durationMs = Date.now() - newState.thoughtStartTime
+          const lastThoughtIdx = newEvents.findLastIndex(e => e.type === 'THOUGHT')
+          if (lastThoughtIdx !== -1) {
+            const lastThought = { ...newEvents[lastThoughtIdx], data: { ...newEvents[lastThoughtIdx].data } }
+            if (!(lastThought.data as any).durationMs) {
+              ;(lastThought.data as any).durationMs = Date.now() - newState.thoughtStartTime
+              newEvents[lastThoughtIdx] = lastThought
+            }
+          }
           newState.thoughtStartTime = null
         }
-      } else if (event.type === 'AGENT_MESSAGE') {
-        newState.streamingMessage = ''
-      } else if (event.type !== 'TOOL_OUTPUT_STREAM') {
+      } else if (event.type !== 'TOOL_OUTPUT_STREAM' && event.type !== 'TOKEN') {
         newState.streamingMessage = ''
         newState.streamingThought = ''
         newState.thoughtStartTime = null
       }
 
-      const newEvents = [...state.events]
       const existingIdx = newEvents.findIndex((e) => e.eventId === event.eventId)
       if (existingIdx !== -1) {
         newEvents[existingIdx] = event
@@ -79,7 +89,6 @@ export const useLogStore = create<LogState>((set) => ({
 
       // We only want to replace the `...` placeholder with the real THOUGHT event.
       // We DO NOT want to delete a real THOUGHT event just because an AGENT_MESSAGE arrived.
-      // We also might want to deduplicate identical literal content if the backend sends both, but we'll prioritize keeping them if they are unique steps.
       
       if (event.type === 'THOUGHT' || event.type === 'AGENT_MESSAGE' || event.type === 'TOOL_START') {
         const placeholderIdx = newEvents.findLastIndex(isThoughtPlaceholder)
