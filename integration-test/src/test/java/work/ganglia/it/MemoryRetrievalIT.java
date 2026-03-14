@@ -34,16 +34,23 @@ public class MemoryRetrievalIT {
 
     private Ganglia ganglia;
     private ModelGateway mockModel;
+    
+    @TempDir
+    Path sharedTempDir;
 
     @BeforeEach
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
         when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
 
-        io.vertx.core.json.JsonObject configOverride = new io.vertx.core.json.JsonObject()
-            .put("agent", new io.vertx.core.json.JsonObject().put("projectRoot", "/"));
+        String projectRoot = sharedTempDir.toAbsolutePath().toString();
 
-        Main.bootstrap(vertx, ".ganglia/config.json", configOverride.put("webui", new JsonObject().put("enabled", false)), mockModel)
+        work.ganglia.BootstrapOptions options = work.ganglia.BootstrapOptions.defaultOptions()
+            .withProjectRoot(projectRoot)
+            .withModelGateway(mockModel)
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
+
+        Main.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
                 testContext.completeNow();
@@ -51,14 +58,14 @@ public class MemoryRetrievalIT {
     }
 
     @Test
-    void testAgentRetrievesFromMemory(Vertx vertx, VertxTestContext testContext, @TempDir Path tempDir) {
-        String memoryFile = tempDir.resolve("MEMORY.md").toString();
+    void testAgentRetrievesFromMemory(Vertx vertx, VertxTestContext testContext) {
+        String memoryFile = sharedTempDir.resolve("MEMORY.md").toString();
         String secret = "The secret code is 998877";
         vertx.fileSystem().writeFileBlocking(memoryFile, Buffer.buffer(secret));
 
         // Mock Tool Calls: grep for secret in the memory file
         ToolCall grepCall = new ToolCall("c1", "grep_search", Map.of(
-            "path", tempDir.toString(),
+            "path", sharedTempDir.toString(),
             "pattern", "secret code"
         ));
 
@@ -68,8 +75,8 @@ public class MemoryRetrievalIT {
 
         SessionContext context = ganglia.sessionManager().createSession(UUID.randomUUID().toString());
 
-        ganglia.agentLoop().run("Find the secret code in " + tempDir, context)
-            .onComplete(testContext.succeeding(result -> {
+        ganglia.agentLoop().run("Find the secret code in " + sharedTempDir, context)
+            .onComplete(testContext.succeeding((String result) -> {
                 testContext.verify(() -> {
                     assertTrue(result.contains("998877"));
                     testContext.completeNow();

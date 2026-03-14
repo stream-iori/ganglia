@@ -8,6 +8,7 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import work.Main;
 import work.ganglia.Ganglia;
+import work.ganglia.BootstrapOptions;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.chat.SessionContext;
@@ -34,6 +35,9 @@ public class AgentLoopIT {
 
     private Ganglia ganglia;
     private ModelGateway mockModel;
+    
+    @TempDir
+    Path sharedTempDir;
 
     @BeforeEach
     void setUp(Vertx vertx, VertxTestContext testContext) {
@@ -41,12 +45,15 @@ public class AgentLoopIT {
         // Ensure background tasks like reflection don't crash with NPE
         when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled in tests"));
 
-        // Allow access to /private/var or other temp dirs by setting a broad project root for tests
-        io.vertx.core.json.JsonObject configOverride = new io.vertx.core.json.JsonObject()
-            .put("agent", new io.vertx.core.json.JsonObject().put("projectRoot", "/"));
+        String projectRoot = sharedTempDir.toAbsolutePath().toString();
 
         // Bootstrap with real components but mocked model
-        Main.bootstrap(vertx, ".ganglia/config.json", configOverride.put("webui", new JsonObject().put("enabled", false)), mockModel)
+        BootstrapOptions options = BootstrapOptions.defaultOptions()
+            .withProjectRoot(projectRoot)
+            .withModelGateway(mockModel)
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
+
+        Main.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
                 testContext.completeNow();
@@ -54,15 +61,15 @@ public class AgentLoopIT {
     }
 
     @Test
-    void testFileConcatenation(Vertx vertx, VertxTestContext testContext, @TempDir Path tempDir) {
+    void testFileConcatenation(Vertx vertx, VertxTestContext testContext) {
         // Prepare test files
-        String fileA = tempDir.resolve("a.txt").toString();
-        String fileB = tempDir.resolve("b.txt").toString();
+        String fileA = sharedTempDir.resolve("a.txt").toString();
+        String fileB = sharedTempDir.resolve("b.txt").toString();
         vertx.fileSystem().writeFileBlocking(fileA, Buffer.buffer("Hello"));
         vertx.fileSystem().writeFileBlocking(fileB, Buffer.buffer("World"));
 
         // Define expected sequence of tool calls
-        ToolCall lsCall = new ToolCall("c1", "list_directory", Map.of("path", tempDir.toString()));
+        ToolCall lsCall = new ToolCall("c1", "list_directory", Map.of("path", sharedTempDir.toString()));
         ToolCall readACall = new ToolCall("c2", "read_file", Map.of("path", fileA));
         ToolCall readBCall = new ToolCall("c3", "read_file", Map.of("path", fileB));
 
@@ -74,12 +81,13 @@ public class AgentLoopIT {
 
         SessionContext context = ganglia.sessionManager().createSession(UUID.randomUUID().toString());
 
-        ganglia.agentLoop().run("Concatenate a.txt and b.txt in " + tempDir, context)
-            .onComplete(testContext.succeeding(result -> {
+        ganglia.agentLoop().run("Concatenate files a.txt and b.txt in " + sharedTempDir, context)
+            .onComplete(testContext.succeeding((String result) -> {
                 testContext.verify(() -> {
                     assertTrue(result.contains("HelloWorld"), "Result was: " + result);
                     testContext.completeNow();
                 });
             }));
+
     }
 }

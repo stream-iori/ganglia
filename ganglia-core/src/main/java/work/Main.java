@@ -91,14 +91,16 @@ public class Main {
             configManager.updateConfig(options.overrideConfig());
         }
 
+        final String projectRoot = options.projectRoot() != null ? options.projectRoot() : configManager.getProjectRoot();
+
         return configManager.init().compose(v -> {
             // Self-check: ensure core directories exist
             List<Future<Void>> dirFutures = new ArrayList<>();
-            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Constants.DIR_SKILLS));
-            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Constants.DIR_MEMORY));
-            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Constants.DIR_STATE));
-            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Constants.DIR_LOGS));
-            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Constants.DIR_TRACE));
+            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Paths.get(projectRoot, Constants.DIR_SKILLS).toString()));
+            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString()));
+            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Paths.get(projectRoot, Constants.DIR_STATE).toString()));
+            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Paths.get(projectRoot, Constants.DIR_LOGS).toString()));
+            dirFutures.add(work.ganglia.util.FileSystemUtil.ensureDirectoryExists(vertx, Paths.get(projectRoot, Constants.DIR_TRACE).toString()));
 
             return Future.join(dirFutures).map(v2 -> (Void) null);
         }).compose(v -> {
@@ -107,10 +109,10 @@ public class Main {
 
             // Setup loaders
             List<Path> skillPaths = new ArrayList<>();
-            skillPaths.add(Paths.get(Constants.DIR_SKILLS));
+            skillPaths.add(Paths.get(projectRoot, Constants.DIR_SKILLS));
             String userHome = System.getProperty("user.home");
             if (userHome != null) skillPaths.add(Paths.get(userHome, ".ganglia/skills"));
-            skillPaths.add(Paths.get("skills"));
+            skillPaths.add(Paths.get(projectRoot, "skills"));
 
             List<SkillLoader> loaders = new ArrayList<>();
             loaders.add(new FileSystemSkillLoader(vertx, skillPaths));
@@ -119,49 +121,46 @@ public class Main {
             SkillService skillService = new DefaultSkillService(loaders);
             SkillRuntime skillRuntime = new DefaultSkillRuntime(vertx, skillService);
 
-            return skillService.init().map(v2 -> {
+            return skillService.init().compose(v2 -> {
                 TokenCounter tokenCounter = new TokenCounter();
-                KnowledgeBase knowledgeBase = new FileSystemKnowledgeBase(vertx);
-                ContextCompressor compressor = new DefaultContextCompressor(modelGateway, configManager);
-                DailyRecordManager dailyRecordManager = new FileSystemDailyRecordManager(vertx, Constants.DIR_MEMORY);
+                KnowledgeBase knowledgeBase = new FileSystemKnowledgeBase(vertx, Paths.get(projectRoot, Constants.FILE_MEMORY_MD).toString());
+                
+                return knowledgeBase.ensureInitialized().map(v3 -> {
+                    ContextCompressor compressor = new DefaultContextCompressor(modelGateway, configManager);
+                    DailyRecordManager dailyRecordManager = new FileSystemDailyRecordManager(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString());
 
-                MemoryService memoryService = new MemoryService(vertx);
-                memoryService.registerModule(new work.ganglia.infrastructure.internal.memory.DailyJournalModule(compressor, dailyRecordManager));
-                memoryService.registerModule(new work.ganglia.infrastructure.internal.memory.LongTermKnowledgeModule(knowledgeBase));
+                    MemoryService memoryService = new MemoryService(vertx);
+                    memoryService.registerModule(new work.ganglia.infrastructure.internal.memory.DailyJournalModule(compressor, dailyRecordManager));
+                    memoryService.registerModule(new work.ganglia.infrastructure.internal.memory.LongTermKnowledgeModule(knowledgeBase));
 
-                ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase, configManager.getProjectRoot());
-                StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, memoryService, skillRuntime, null, tokenCounter);
-                promptEngine.addContextSource(new DailyContextSource(vertx, Constants.DIR_MEMORY));
+                    ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, knowledgeBase, projectRoot);
+                    StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, memoryService, skillRuntime, null, tokenCounter);
+                    promptEngine.addContextSource(new work.ganglia.infrastructure.internal.prompt.context.DailyContextSource(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString()));
 
-                SessionManager sessionManager = new DefaultSessionManager(new FileStateEngine(vertx), new FileLogManager(vertx), configManager);
-                DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory);
-                GraphExecutor graphExecutor = new DefaultGraphExecutor(vertx, modelGateway, sessionManager, promptEngine, configManager, compressor);
+                    SessionManager sessionManager = new DefaultSessionManager(new FileStateEngine(vertx), new FileLogManager(vertx), configManager);
+                    DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory);
+                    GraphExecutor graphExecutor = new DefaultGraphExecutor(vertx, modelGateway, sessionManager, promptEngine, configManager, compressor);
 
-                SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(
-                    vertx, modelGateway, sessionManager, promptEngine, configManager, compressor,
-                    toolExecutor, graphExecutor, skillService, skillRuntime
-                );
-                promptEngine.setSchedulableFactory(scheduleableFactory);
-                if (graphExecutor instanceof DefaultGraphExecutor) {
-                    ((DefaultGraphExecutor) graphExecutor).setSchedulableFactory(scheduleableFactory);
-                }
+                    SchedulableFactory scheduleableFactory = new DefaultSchedulableFactory(
+                        vertx, modelGateway, sessionManager, promptEngine, configManager, compressor,
+                        toolExecutor, graphExecutor, skillService, skillRuntime
+                    );
+                    promptEngine.setSchedulableFactory(scheduleableFactory);
+                    if (graphExecutor instanceof DefaultGraphExecutor) {
+                        ((DefaultGraphExecutor) graphExecutor).setSchedulableFactory(scheduleableFactory);
+                    }
 
-                new TraceManager(vertx, configManager);
-                new TokenUsageManager(vertx, tokenCounter);
+                    new TraceManager(vertx, configManager);
+                    new TokenUsageManager(vertx, tokenCounter);
 
-                DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
-                if (options.extraObservers() != null) {
-                    // Legacy observer support could be added to dispatcher if needed, 
-                    // or just pass the dispatcher down. For now, since StandardAgentLoop 
-                    // only takes one dispatcher, we will ignore extra observers if they aren't adapted.
-                    // Ideally, WebUIDemo shouldn't use extraObservers anymore.
-                }
+                    DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
+                    
+                    StandardAgentLoop agentLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager,
+                        promptEngine, configManager, new DefaultContextOptimizer(configManager, compressor, tokenCounter),
+                        new ConsecutiveFailurePolicy(), dispatcher);
 
-                StandardAgentLoop agentLoop = new StandardAgentLoop(vertx, modelGateway, scheduleableFactory, sessionManager,
-                    promptEngine, configManager, new DefaultContextOptimizer(configManager, compressor, tokenCounter),
-                    new ConsecutiveFailurePolicy(), dispatcher);
-
-                return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop, configManager);
+                    return new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop, configManager);
+                });
             });
         });
     }

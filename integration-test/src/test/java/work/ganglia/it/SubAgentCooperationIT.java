@@ -33,16 +33,23 @@ public class SubAgentCooperationIT {
 
     private Ganglia ganglia;
     private ModelGateway mockModel;
+    
+    @TempDir
+    Path sharedTempDir;
 
     @BeforeEach
     void setUp(Vertx vertx, VertxTestContext testContext) {
         mockModel = mock(ModelGateway.class);
         when(mockModel.chat(any(), any(), any(), any())).thenReturn(Future.failedFuture("Reflection disabled"));
 
-        io.vertx.core.json.JsonObject configOverride = new io.vertx.core.json.JsonObject()
-            .put("agent", new io.vertx.core.json.JsonObject().put("projectRoot", "/"));
+        String projectRoot = sharedTempDir.toAbsolutePath().toString();
 
-        Main.bootstrap(vertx, ".ganglia/config.json", configOverride.put("webui", new JsonObject().put("enabled", false)), mockModel)
+        work.ganglia.BootstrapOptions options = work.ganglia.BootstrapOptions.defaultOptions()
+            .withProjectRoot(projectRoot)
+            .withModelGateway(mockModel)
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
+
+        Main.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
                 testContext.completeNow();
@@ -50,23 +57,23 @@ public class SubAgentCooperationIT {
     }
 
     @Test
-    void testInvestigatorDelegationAndCalculation(Vertx vertx, VertxTestContext testContext, @TempDir Path tempDir) {
+    void testInvestigatorDelegationAndCalculation(Vertx vertx, VertxTestContext testContext) {
         // 1. Prepare data files
-        vertx.fileSystem().writeFileBlocking(tempDir.resolve("num1.txt").toString(), Buffer.buffer("Value: 10"));
-        vertx.fileSystem().writeFileBlocking(tempDir.resolve("num2.txt").toString(), Buffer.buffer("Value: 20"));
-        vertx.fileSystem().writeFileBlocking(tempDir.resolve("num3.txt").toString(), Buffer.buffer("Value: 30"));
+        vertx.fileSystem().writeFileBlocking(sharedTempDir.resolve("num1.txt").toString(), Buffer.buffer("Value: 10"));
+        vertx.fileSystem().writeFileBlocking(sharedTempDir.resolve("num2.txt").toString(), Buffer.buffer("Value: 20"));
+        vertx.fileSystem().writeFileBlocking(sharedTempDir.resolve("num3.txt").toString(), Buffer.buffer("Value: 30"));
 
         // 2. Mock responses for Parent Agent
         ToolCall delegateCall = new ToolCall("p1", "call_sub_agent", Map.of(
-            "task", "Read all num*.txt files in " + tempDir + " and extract the numeric values.",
+            "task", "Read all num*.txt files in " + sharedTempDir + " and extract the numeric values.",
             "persona", "INVESTIGATOR"
         ));
 
         // 3. Mock responses for Sub-Agent (Investigator)
-        ToolCall globCall = new ToolCall("s1", "glob", Map.of("path", tempDir.toString(), "pattern", "num*.txt"));
-        ToolCall read1 = new ToolCall("s2", "read_file", Map.of("path", tempDir.resolve("num1.txt").toString()));
-        ToolCall read2 = new ToolCall("s3", "read_file", Map.of("path", tempDir.resolve("num2.txt").toString()));
-        ToolCall read3 = new ToolCall("s4", "read_file", Map.of("path", tempDir.resolve("num3.txt").toString()));
+        ToolCall globCall = new ToolCall("s1", "glob", Map.of("path", sharedTempDir.toString(), "pattern", "num*.txt"));
+        ToolCall read1 = new ToolCall("s2", "read_file", Map.of("path", sharedTempDir.resolve("num1.txt").toString()));
+        ToolCall read2 = new ToolCall("s3", "read_file", Map.of("path", sharedTempDir.resolve("num2.txt").toString()));
+        ToolCall read3 = new ToolCall("s4", "read_file", Map.of("path", sharedTempDir.resolve("num3.txt").toString()));
 
         when(mockModel.chatStream(any(), any(), any(), any(), any()))
             // Parent: First Turn -> Delegates
@@ -82,8 +89,8 @@ public class SubAgentCooperationIT {
 
         SessionContext context = ganglia.sessionManager().createSession(UUID.randomUUID().toString());
 
-        ganglia.agentLoop().run("Sum the numbers found in files in " + tempDir, context)
-            .onComplete(testContext.succeeding(result -> {
+        ganglia.agentLoop().run("Sum the numbers found in files in " + sharedTempDir, context)
+            .onComplete(testContext.succeeding((String result) -> {
                 testContext.verify(() -> {
                     // Verify the math was done by the parent
                     assertTrue(result.contains("60"), "Result should contain the sum 60. Got: " + result);

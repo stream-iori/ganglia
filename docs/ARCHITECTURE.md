@@ -1,7 +1,7 @@
 # Ganglia Architecture Documentation
 
 > **Status:** Implemented
-> **Version:** 1.4.0
+> **Version:** 1.5.0
 
 ## 1. System Overview
 
@@ -30,6 +30,9 @@ The core design philosophy follows a **Hexagonal (Ports & Adapters)** architectu
 5.  **Memory as Code:**
     - Memory is stored in **Markdown files** (`MEMORY.md`, Daily Records).
     - It is transparent, editable, and version-controlled.
+
+6.  **Startup Self-Check:**
+    - The system automatically validates and initializes the necessary directory structure (`.ganglia/skills`, `memory`, `state`, `logs`, etc.) and configuration at bootstrap.
 
 ## 3. Logical Architecture (Hexagonal)
 
@@ -87,7 +90,7 @@ graph TD
 
 - **Native LLM Gateways:** Implements protocols via Vert.x `WebClient`. Supports explicit timeouts and broadened retry logic for connection resets.
 - **Event Consumers:** `WebUIEventPublisher` and `TraceManager` are decoupled from the loop; they simply consume the unified observation stream and forward it to WebSockets or Files.
-- **Persistence:** File-based session state and daily journaling.
+- **Persistence:** Unified via `FileSystemUtil`, ensuring standard structures like `.ganglia/config.json` and session state folders exist.
 
 ## 4. The Memory System
 
@@ -96,6 +99,7 @@ graph TD
     - **Medium-Term (Session):** Managed via rolling compression.
     - **Daily Journal:** Cross-session summaries in `.ganglia/memory/daily-*.md`.
     - **Long-Term (Project):** `MEMORY.md`.
+- **Deduplication & Timeline:** The system preserves a literal timeline of thoughts and tool calls, calculating and displaying execution/reasoning duration for every step.
 
 ## 5. Human-in-the-Loop & Steering
 
@@ -107,9 +111,9 @@ Ganglia supports an asynchronous **"Steering & Abort"** mechanism:
 
 ## 6. WebUI Observation & Control (The 3x3 Matrix)
 
-Starting from v1.3.0, the WebUI implements a **System Interaction Matrix** to manage cognitive load:
-- **Glance (Low Load)**: Real-time Phase indicators (Planning, Executing, Waiting), Mini-mode ToolCards, and **Reactive File Tree synchronization** with visual transient notifications.
-- **Inspect (Medium Load)**: A side-drawer `Inspector` with TTY virtualization (TanStack Virtual), regex-based log filtering, and high-fidelity Code/Diff viewers (Shiki).
+Starting from v1.5.0, the WebUI is built with **React 18 + TypeScript + shadcn/ui**:
+- **Glance (Low Load)**: Real-time Phase indicators, Mini-mode ToolCards, and **Continuous Timeline** with duration metrics.
+- **Inspect (Medium Load)**: A side-drawer `Inspector` with TTY virtualization (TanStack Virtual), regex-based log filtering, and high-fidelity Code/Diff viewers (Prism.js).
 - **Block (High Load)**: Modal `AskUserForm` with embedded Diff context for high-stakes authorization and decision making.
 
 ## 7. Technology Stack
@@ -118,6 +122,6 @@ Starting from v1.3.0, the WebUI implements a **System Interaction Matrix** to ma
 - **Core Framework:** Vert.x 5 (Reactive, Non-blocking I/O)
 - **Transport:** Native WebSockets (RFC 6455)
 - **Protocol:** JSON-RPC 2.0
-- **UI:** Vue 3, Vite, Tailwind CSS, Pinia
+- **UI:** React 18, Vite, Tailwind CSS, Zustand, shadcn/ui
 - **Monitoring:** JDK WatchService (Recursive native hooks)
-- **Testing:** JUnit 5, Mockito, JaCoCo, Vitest (WebUI)
+- **Testing:** JUnit 5, Mockito, JaCoCo, Vitest + RTL (WebUI)

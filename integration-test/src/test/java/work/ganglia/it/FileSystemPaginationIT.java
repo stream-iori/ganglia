@@ -37,10 +37,13 @@ public class FileSystemPaginationIT {
     private ModelGateway mockModel;
     private String testFilePath;
     private SessionContext baseContext;
+    
+    @TempDir
+    Path sharedTempDir;
 
     @BeforeEach
-    void setUp(Vertx vertx, @TempDir Path tempDir, VertxTestContext testContext) {
-        testFilePath = tempDir.resolve("large_file.txt").toString();
+    void setUp(Vertx vertx, VertxTestContext testContext) {
+        testFilePath = sharedTempDir.resolve("large_file.txt").toString();
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 20; i++) {
             sb.append("Line ").append(i).append("\n");
@@ -63,11 +66,14 @@ public class FileSystemPaginationIT {
             .thenReturn(Future.succeededFuture(response1))
             .thenReturn(Future.succeededFuture(response2));
 
-        // Mock Config to have a very small context limit
-        io.vertx.core.json.JsonObject configOverride = new io.vertx.core.json.JsonObject()
-            .put("agent", new io.vertx.core.json.JsonObject().put("projectRoot", "/"));
+        String projectRoot = sharedTempDir.toAbsolutePath().toString();
 
-        Main.bootstrap(vertx, ".ganglia/config.json", configOverride.put("webui", new JsonObject().put("enabled", false)), mockModel)
+        work.ganglia.BootstrapOptions options = work.ganglia.BootstrapOptions.defaultOptions()
+            .withProjectRoot(projectRoot)
+            .withModelGateway(mockModel)
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
+
+        Main.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
                 this.baseContext = ganglia.sessionManager().createSession(UUID.randomUUID().toString());

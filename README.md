@@ -3,7 +3,7 @@
 **Ganglia** is a high-performance, non-blocking Java 17 Agent framework built on **Vert.x 5.0.6**. It follows a **Hexagonal (Ports & Adapters)** architecture, prioritizing simplicity, robustness, and transparency for building autonomous agents that can be integrated into any third-party application.
 
 ![Status](https://img.shields.io/badge/status-Implemented-success)
-![Version](https://img.shields.io/badge/version-1.3.0-blue)
+![Version](https://img.shields.io/badge/version-1.5.0-blue)
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![Vert.x](https://img.shields.io/badge/Vert.x-5.0.6-purple)
 
@@ -15,14 +15,15 @@
 - **Hexagonal Architecture:** Complete decoupling of core reasoning (Kernel) from model providers and technical implementations (Infrastructure).
 - **Native LLM Gateways:** Native support for OpenAI and Anthropic protocols via Vert.x WebClient. **No third-party SDK dependencies.**
 - **Memory as Code:** Transparent, file-based memory system using Markdown (`MEMORY.md` and Daily Journals).
-- **Standard-based Communication:** Standard **WebSockets** and **JSON-RPC 2.0** for all client-server interactions, supporting multi-platform clients.
-- **Real-time File Monitoring:** Integrated recursive file system monitoring using JDK `WatchService` with debounced UI synchronization.
+- **Startup Self-Check:** Automatic initialization of core directory structure (`skills/`, `memory/`, `state/`, etc.) and configuration.
+- **Standard-based Communication:** Standard **WebSockets** and **JSON-RPC 2.0** for all client-server interactions.
 - **Asynchronous & Reactive:** Built entirely on Vert.x for high-concurrency, non-blocking operations.
-- **Modern WebUI:** A reactive dashboard built with Vue 3 and Tailwind CSS for real-time monitoring, interaction, and high-fidelity code/diff review.
+- **Modern React WebUI:** A high-performance dashboard built with **React 18**, **Zustand**, and **shadcn/ui** for real-time monitoring, continuous timeline tracking, and high-fidelity code/diff review.
 
 ---
 
 ## ⚡ Quick Start with `just`
+...
 
 The project uses the `just` command runner for common development tasks.
 
