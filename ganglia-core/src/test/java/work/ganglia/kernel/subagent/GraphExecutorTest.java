@@ -80,7 +80,7 @@ public class GraphExecutorTest {
         modelGateway.addResponse(new ModelResponse("Final Aggregated Report", Collections.emptyList(), null));
 
         ModelOptions options = new ModelOptions(0.0, 1024, "test-model", true);
-        SessionContext parentContext = new SessionContext("parent-session", null, null, Map.of("sub_agent_level", 0), null, options, null);
+        SessionContext parentContext = new SessionContext("parent-session", null, null, Map.of("sub_agent_level", 0), null, options);
 
         graphExecutor.execute(graph, parentContext)
             .onComplete(testContext.succeeding(report -> {

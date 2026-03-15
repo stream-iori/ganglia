@@ -14,7 +14,6 @@ import work.ganglia.port.internal.state.LogManager;
 import work.ganglia.port.internal.state.StateEngine;
 import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
-import work.ganglia.kernel.todo.ToDoList;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -83,8 +82,7 @@ public class DefaultSessionManager implements SessionManager {
             null,
             Collections.emptyMap(),
             Collections.emptyList(),
-            options,
-            ToDoList.empty()
+            options
         );
     }
 
@@ -115,8 +113,7 @@ public class DefaultSessionManager implements SessionManager {
                     cleanedTurn,
                     context.metadata(),
                     context.activeSkillIds(),
-                    context.modelOptions(),
-                    context.toDoList()
+                    context.modelOptions()
                 );
             }
         }

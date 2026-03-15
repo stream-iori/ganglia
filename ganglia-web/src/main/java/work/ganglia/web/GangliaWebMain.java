@@ -4,9 +4,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import work.Main;
 import work.ganglia.BootstrapOptions;
-import work.ganglia.coding.tool.CodingToolsFactory;
+import work.ganglia.coding.CodingAgentBuilder;
 import work.ganglia.config.model.GangliaConfig;
 
 import java.util.List;
@@ -21,15 +20,12 @@ public class GangliaWebMain {
         Vertx vertx = Vertx.vertx();
         String configPath = System.getProperty("ganglia.config", ".ganglia/config.json");
         String projectRoot = System.getProperty("user.dir");
-        CodingToolsFactory codingToolsFactory = new CodingToolsFactory(vertx, projectRoot);
 
         BootstrapOptions options = BootstrapOptions.defaultOptions()
             .withConfigPath(configPath)
-            .withObservers(List.of(new WebUIEventPublisher(vertx)))
-            .withExtraToolSets(codingToolsFactory.createToolSets())
-            .withExtraContextSources(codingToolsFactory.createContextSources());
+            .withObservers(List.of(new WebUIEventPublisher(vertx)));
 
-        Main.bootstrap(vertx, options)
+        CodingAgentBuilder.bootstrap(vertx, options)
             .onSuccess(ganglia -> {
                 GangliaConfig.WebUIConfig webUIConfig = ganglia.configManager().getGangliaConfig().webui();
                 if (webUIConfig != null && webUIConfig.enabled()) {

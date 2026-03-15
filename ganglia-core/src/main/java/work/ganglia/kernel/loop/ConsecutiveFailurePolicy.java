@@ -36,8 +36,7 @@ public class ConsecutiveFailurePolicy implements FaultTolerancePolicy {
             }
             Map<String, Object> newMetadata = new HashMap<>(context.metadata());
             newMetadata.put("consecutive_tool_failures", fails + 1);
-            return Future.succeededFuture(new SessionContext(context.sessionId(), context.previousTurns(), context.currentTurn(),
-                newMetadata, context.activeSkillIds(), context.modelOptions(), context.toDoList()));
+            return Future.succeededFuture(context.withMetadata(newMetadata));
         }
         return Future.succeededFuture(context);
     }
@@ -47,8 +46,7 @@ public class ConsecutiveFailurePolicy implements FaultTolerancePolicy {
         if (context.metadata().containsKey("consecutive_tool_failures")) {
             Map<String, Object> newMetadata = new HashMap<>(context.metadata());
             newMetadata.remove("consecutive_tool_failures");
-            return new SessionContext(context.sessionId(), context.previousTurns(), context.currentTurn(),
-                newMetadata, context.activeSkillIds(), context.modelOptions(), context.toDoList());
+            return context.withMetadata(newMetadata);
         }
         return context;
     }

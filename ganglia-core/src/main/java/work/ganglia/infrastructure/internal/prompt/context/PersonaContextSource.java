@@ -8,12 +8,20 @@ import work.ganglia.port.internal.prompt.ContextSource;
 import java.util.List;
 
 public class PersonaContextSource implements ContextSource {
+    private final String persona;
+
+    public PersonaContextSource() {
+        this("You are a helpful AI assistant.");
+    }
+
+    public PersonaContextSource(String persona) {
+        this.persona = persona;
+    }
+
     @Override
     public Future<List<ContextFragment>> getFragments(SessionContext sessionContext) {
-        String persona = """
-                You are Ganglia, an advanced AI software engineer.
-                You are running in a CLI environment.
-                """;
-        return Future.succeededFuture(List.of(new ContextFragment("Persona", persona, ContextFragment.PRIORITY_PERSONA, true)));
+        return Future.succeededFuture(List.of(
+            ContextFragment.mandatory("Persona", persona, ContextFragment.PRIORITY_PERSONA)
+        ));
     }
 }

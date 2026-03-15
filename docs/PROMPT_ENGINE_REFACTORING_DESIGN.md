@@ -35,6 +35,8 @@ public interface PromptEngine {
 
 ### 3.2 `ContextSource` (Port)
 Standardized provider for system prompt fragments (Persona, Mandates, Env, etc.).
+- **`WorkflowContextSource`**: Interface for the **Process Layer** (e.g., Research-Strategy-Execution).
+- **`GuidelineContextSource`**: Interface for the **Rule Layer** (e.g., Senior Engineer guidelines).
 
 ## 4. `StandardPromptEngine` (Infrastructure)
 

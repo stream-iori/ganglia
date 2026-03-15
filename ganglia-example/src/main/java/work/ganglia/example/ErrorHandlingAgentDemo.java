@@ -2,7 +2,6 @@ package work.ganglia.example;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import work.Main;
 import work.ganglia.Ganglia;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.ui.TerminalUI;
@@ -20,7 +19,7 @@ public class ErrorHandlingAgentDemo {
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
 
-        Main.bootstrap(vertx)
+        Ganglia.bootstrap(vertx)
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
                 DemoUtil.gracefulShutdown(vertx);

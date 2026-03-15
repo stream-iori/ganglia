@@ -1,9 +1,9 @@
 package work.ganglia.example;
 
 import io.vertx.core.Vertx;
-import work.Main;
 import work.ganglia.Ganglia;
 import work.ganglia.BootstrapOptions;
+import work.ganglia.coding.CodingAgentBuilder;
 import work.ganglia.kernel.loop.AgentAbortedException;
 import work.ganglia.port.internal.state.AgentSignal;
 import work.ganglia.ui.TerminalUI;
@@ -13,7 +13,6 @@ import org.jline.reader.EndOfFileException;
 import org.jline.reader.UserInterruptException;
 import org.jline.terminal.Terminal;
 
-import work.ganglia.coding.tool.CodingToolsFactory;
 
 import java.util.UUID;
 
@@ -25,13 +24,11 @@ public class InteractiveChatDemo {
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
         String projectRoot = System.getProperty("user.dir");
-        CodingToolsFactory codingToolsFactory = new CodingToolsFactory(vertx, projectRoot);
 
         BootstrapOptions options = BootstrapOptions.defaultOptions()
-            .withExtraToolSets(codingToolsFactory.createToolSets())
-            .withExtraContextSources(codingToolsFactory.createContextSources());
+            .withProjectRoot(projectRoot);
 
-        Main.bootstrap(vertx, options)
+         CodingAgentBuilder.bootstrap(vertx, options)
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
                 vertx.close();

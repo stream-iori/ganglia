@@ -1,7 +1,7 @@
 package work.ganglia.example;
 
 import io.vertx.core.Vertx;
-import work.Main;
+import work.ganglia.Ganglia;
 import work.ganglia.ui.TerminalUI;
 
 import java.util.UUID;
@@ -14,8 +14,8 @@ public class ToDoWorkflowDemo {
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
 
-        // 1. Bootstrap core logic using Main
-        Main.bootstrap(vertx)
+        // 1. Bootstrap core logic using Ganglia
+        Ganglia.bootstrap(vertx)
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
                 vertx.close();

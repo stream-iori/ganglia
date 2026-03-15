@@ -5,6 +5,8 @@ import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.BootstrapOptions;
+import work.ganglia.port.external.tool.ToolSet;
+import work.ganglia.port.external.tool.ToolSetProvider;
 import work.ganglia.Ganglia;
 import work.ganglia.config.*;
 import work.ganglia.infrastructure.external.llm.ModelGatewayFactory;
@@ -99,7 +101,13 @@ public class GangliaKernel {
                     promptEngine.addContextSource(new DailyContextSource(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString()));
 
                     SessionManager sessionManager = new DefaultSessionManager(new FileStateEngine(vertx), new FileLogManager(vertx), configManager);
-                    DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, options.extraToolSets());
+                    
+                    List<ToolSet> allExtraToolSets = new ArrayList<>(options.extraToolSets());
+                    for (work.ganglia.port.external.tool.ToolSetProvider provider : options.extraToolSetProviders()) {
+                        allExtraToolSets.add(provider.create(vertx, compressor, longTermMemory, projectRoot));
+                    }
+                    
+                    DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, allExtraToolSets);
                     DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
 
                     // Create AgentEnv

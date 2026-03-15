@@ -8,7 +8,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.CopyOptions;
 import io.vertx.core.json.Json;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.kernel.todo.ToDoList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.port.internal.state.StateEngine;
@@ -55,8 +54,7 @@ public class FileStateEngine implements StateEngine {
                 null,
                 Collections.emptyMap(),
                 Collections.emptyList(),
-                null, // ModelOptions (will be set by Loop or default)
-                ToDoList.empty()
+                null // ModelOptions (will be set by Loop or default)
         );
     }
 

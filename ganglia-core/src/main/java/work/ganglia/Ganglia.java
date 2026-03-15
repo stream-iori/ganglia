@@ -1,11 +1,23 @@
 package work.ganglia;
 
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import work.ganglia.config.ConfigManager;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.kernel.AgentEnv;
 import work.ganglia.kernel.loop.ReActAgentLoop;
 import work.ganglia.port.internal.state.SessionManager;
 import work.ganglia.port.external.tool.ToolExecutor;
+import work.ganglia.kernel.GangliaKernel;
+import work.ganglia.kernel.todo.ToDoTools;
+import work.ganglia.kernel.todo.ToDoContextSource;
+import work.ganglia.infrastructure.external.tool.KnowledgeBaseTools;
+import work.ganglia.port.external.tool.ToolSetProvider;
+import work.ganglia.port.internal.prompt.ContextSource;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A container for the bootstrapped Ganglia core components.
@@ -17,4 +29,50 @@ public record Ganglia(
     ReActAgentLoop agentLoop,
     ConfigManager configManager,
     AgentEnv env
-) {}
+) {
+    /**
+     * Initializes the Ganglia framework with default configuration.
+     *
+     * @param vertx The Vertx instance to use.
+     * @return A future that completes with the initialized Ganglia instance.
+     */
+    public static Future<Ganglia> bootstrap(Vertx vertx) {
+        return bootstrap(vertx, BootstrapOptions.defaultOptions());
+    }
+
+    /**
+     * Initializes the Ganglia framework with specific options.
+     *
+     * @param vertx   The Vertx instance to use.
+     * @param options Initialization options.
+     * @return A future that completes with the initialized Ganglia instance.
+     */
+    public static Future<Ganglia> bootstrap(Vertx vertx, BootstrapOptions options) {
+        // Inject Core general-purpose tools and contexts
+        List<ToolSetProvider> providers = new ArrayList<>(options.extraToolSetProviders());
+        providers.add((v, compressor, memory, root) -> new ToDoTools(v, compressor));
+        providers.add((v, compressor, memory, root) -> new KnowledgeBaseTools(v, memory));
+
+        List<ContextSource> contexts = new ArrayList<>(options.extraContextSources());
+        contexts.add(new ToDoContextSource());
+
+        BootstrapOptions finalOptions = options
+            .withExtraToolSetProviders(providers)
+            .withExtraContextSources(contexts);
+
+        return new GangliaKernel(vertx, finalOptions).init();
+    }
+
+    /**
+     * Legacy bootstrap method for backward compatibility.
+     */
+    @Deprecated
+    public static Future<Ganglia> bootstrap(Vertx vertx, String configPath, JsonObject overrideConfig, ModelGateway gateway) {
+        BootstrapOptions options = BootstrapOptions.defaultOptions()
+            .withConfigPath(configPath)
+            .withOverrideConfig(overrideConfig)
+            .withModelGateway(gateway);
+        return bootstrap(vertx, options);
+    }
+}
+

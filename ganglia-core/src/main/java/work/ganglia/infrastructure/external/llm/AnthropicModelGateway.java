@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 public class AnthropicModelGateway extends AbstractModelGateway {
     private static final Logger logger = LoggerFactory.getLogger(AnthropicModelGateway.class);
+    private static final Logger llmLogger = LoggerFactory.getLogger("LLM_LOG");
     private final WebClient webClient;
     private final String apiKey;
     private final String endpoint;
@@ -48,6 +49,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
     @Override
     public Future<ModelResponse> chat(ChatRequest request) {
         JsonObject payload = buildPayload(request.messages(), request.tools(), request.options(), false);
+        llmLogger.info("[REQ] [ANTHROPIC] Model: {}, Payload: {}", request.options().modelName(), payload.encode());
         return withSemaphore(
             webClient.postAbs(endpoint)
                 .putHeader("x-api-key", apiKey)
@@ -82,6 +84,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
     @Override
     public Future<ModelResponse> chatStream(ChatRequest request, work.ganglia.port.internal.state.ExecutionContext context) {
         JsonObject payload = buildPayload(request.messages(), request.tools(), request.options(), true);
+        llmLogger.info("[STREAM_REQ] [ANTHROPIC] Session: {}, Model: {}, Payload: {}", context.sessionId(), request.options().modelName(), payload.encode());
         Promise<ModelResponse> promise = Promise.promise();
 
         StringBuilder fullContent = new StringBuilder();

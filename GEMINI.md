@@ -19,7 +19,7 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for
 ### 3.1 Reasoning & Orchestration
 - **Kernel Loop:** `StandardAgentLoop` (in `work.ganglia.kernel.loop`) handles iterative reasoning and sequential task execution.
 - **Task Scheduling:** `SchedulableFactory` maps LLM tool calls to executable `Schedulable` tasks (Standard Tools, Sub-Agents, Skills, DAGs).
-- **Hierarchical Context:** `StandardPromptEngine` with `ContextComposer` stacks Persona, Mandates, Env, Skills, and Memory.
+- **Hierarchical Context:** `StandardPromptEngine` with `ContextComposer` stacks five layers: **Kernel** (Persona/Mandates), **Process** (Workflow), **Rule** (Guidelines/Tools), **Capability** (Skills), and **Context** (Env/Plan/Memory).
 - **Sub-Agents:** `SubAgentTask` for transient delegation and `GraphExecutor` for DAG-based execution.
 
 ### 3.2 Implemented Toolsets

@@ -31,10 +31,10 @@ public class SkillContextSource implements ContextSource {
             String suggestions = composite.resultAt(1);
 
             if (!skills.isEmpty()) {
-                fragments.add(new ContextFragment("Active Skills", skills, ContextFragment.PRIORITY_SKILLS, false));
+                fragments.add(ContextFragment.prunable("Active Skills", skills, ContextFragment.PRIORITY_SKILLS));
             }
             if (!suggestions.isEmpty()) {
-                fragments.add(new ContextFragment("Skill Suggestions", suggestions, ContextFragment.PRIORITY_SKILLS, false));
+                fragments.add(ContextFragment.prunable("Skill Suggestions", suggestions, ContextFragment.PRIORITY_SKILLS));
             }
             return fragments;
         });

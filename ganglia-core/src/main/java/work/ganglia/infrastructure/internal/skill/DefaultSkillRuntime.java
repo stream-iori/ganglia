@@ -52,8 +52,7 @@ public class DefaultSkillRuntime implements SkillRuntime {
             context.currentTurn(),
             context.metadata(),
             activeSkills,
-            context.modelOptions(),
-            context.toDoList()
+            context.modelOptions()
         ));
     }
 
@@ -71,8 +70,7 @@ public class DefaultSkillRuntime implements SkillRuntime {
             context.currentTurn(),
             context.metadata(),
             activeSkills,
-            context.modelOptions(),
-            context.toDoList()
+            context.modelOptions()
         ));
     }
 

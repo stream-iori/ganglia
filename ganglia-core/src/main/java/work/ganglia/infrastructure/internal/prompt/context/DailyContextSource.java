@@ -34,7 +34,7 @@ public class DailyContextSource implements ContextSource {
                 return vertx.fileSystem().readFile(filePath)
                     .map(buffer -> {
                         String content = buffer.toString();
-                        return List.of(new ContextFragment("Daily Journal", content, 9, false));
+                        return List.of(ContextFragment.prunable("Daily Journal", content, ContextFragment.PRIORITY_PLAN));
                     });
             });
     }

@@ -57,8 +57,8 @@ public class ToolContextSource implements ContextSource {
         }
 
         List<ContextFragment> fragments = new ArrayList<>();
-        // Priority 5 (Same as Skill context, to keep "How to" instructions together)
-        fragments.add(new ContextFragment("ToolGuidelines", guidelines.toString(), 5, false));
+        // Capability layer (Tools) - Mandatory rules for usage
+        fragments.add(ContextFragment.mandatory("ToolGuidelines", guidelines.toString(), ContextFragment.PRIORITY_TOOLS));
 
         return Future.succeededFuture(fragments);
     }

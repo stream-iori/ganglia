@@ -22,8 +22,8 @@ public class EnvironmentSource implements ContextSource {
     @Override
     public Future<List<ContextFragment>> getFragments(SessionContext sessionContext) {
         List<ContextFragment> fragments = new ArrayList<>();
-        fragments.add(new ContextFragment("OS", System.getProperty("os.name"), ContextFragment.PRIORITY_ENVIRONMENT, true));
-        fragments.add(new ContextFragment("Working Directory", System.getProperty("user.dir"), ContextFragment.PRIORITY_ENVIRONMENT, true));
+        fragments.add(ContextFragment.prunable("OS", System.getProperty("os.name"), ContextFragment.PRIORITY_ENVIRONMENT));
+        fragments.add(ContextFragment.prunable("Working Directory", System.getProperty("user.dir"), ContextFragment.PRIORITY_ENVIRONMENT));
 
         // Add simple tree snapshot (top level)
         return vertx.fileSystem().readDir(".")
@@ -35,7 +35,7 @@ public class EnvironmentSource implements ContextSource {
                             sb.append("- ").append(name).append("\n");
                         }
                     }
-                    fragments.add(new ContextFragment("Directory Structure", sb.toString(), ContextFragment.PRIORITY_ENVIRONMENT, false));
+                    fragments.add(ContextFragment.prunable("Directory Structure", sb.toString(), ContextFragment.PRIORITY_ENVIRONMENT));
                     return fragments;
                 })
                 .recover(err -> Future.succeededFuture(fragments));

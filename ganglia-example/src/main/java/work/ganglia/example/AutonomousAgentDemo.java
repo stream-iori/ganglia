@@ -1,7 +1,7 @@
 package work.ganglia.example;
 
 import io.vertx.core.Vertx;
-import work.Main;
+import work.ganglia.Ganglia;
 import work.ganglia.ui.TerminalUI;
 
 import java.util.UUID;
@@ -16,7 +16,7 @@ public class AutonomousAgentDemo {
     public static void main(String[] args) {
         Vertx vertx = Vertx.vertx();
 
-        Main.bootstrap(vertx)
+        Ganglia.bootstrap(vertx)
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
                 DemoUtil.gracefulShutdown(vertx);

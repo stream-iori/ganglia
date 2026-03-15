@@ -29,8 +29,6 @@ public class DefaultToolExecutor implements ToolExecutor {
 
     public DefaultToolExecutor(ToolsFactory factory, List<ToolSet> extraToolSets) {
         // Add standard core toolsets
-        builtInToolSets.add(factory.getToDoTools());
-        builtInToolSets.add(factory.getKnowledgeBaseTools());
         builtInToolSets.add(factory.getInteractionTools());
 
         // Add extra toolsets (e.g., from ganglia-coding)

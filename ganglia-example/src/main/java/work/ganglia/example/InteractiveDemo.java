@@ -4,7 +4,6 @@ import io.vertx.core.Future;
 import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
-import work.Main;
 import work.ganglia.Ganglia;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.ui.TerminalUI;
@@ -45,7 +44,7 @@ public class InteractiveDemo {
             }
         }, "stdin-reader-thread").start();
 
-        Main.bootstrap(vertx)
+        Ganglia.bootstrap(vertx)
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
                 DemoUtil.gracefulShutdown(vertx);

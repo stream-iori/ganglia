@@ -23,7 +23,6 @@ import work.ganglia.swebench.tools.DockerBashTools;
 import work.ganglia.swebench.tools.DockerFileSystemTools;
 import work.ganglia.swebench.tools.DockerFileEditTools;
 import work.ganglia.swebench.tools.SWEBenchToolExecutor;
-import work.ganglia.kernel.todo.ToDoList;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import org.slf4j.Logger;
@@ -101,8 +100,7 @@ public class SWEBenchEvaluator {
                 null,
                 metadata,
                 Collections.emptyList(),
-                options,
-                ToDoList.empty()
+                options
             );
 
             log.info("Launching Agent for task {}...", task.getInstanceId());

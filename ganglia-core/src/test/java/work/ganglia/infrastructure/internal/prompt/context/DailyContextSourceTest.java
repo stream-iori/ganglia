@@ -3,6 +3,7 @@ package work.ganglia.infrastructure.internal.prompt.context;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import work.ganglia.port.internal.prompt.ContextFragment;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,7 +41,7 @@ public class DailyContextSourceTest {
                     assertEquals(1, fragments.size());
                     assertEquals("Daily Journal", fragments.get(0).name());
                     assertTrue(fragments.get(0).content().contains("Some accomplishments"));
-                    assertEquals(9, fragments.get(0).priority());
+                    assertEquals(ContextFragment.PRIORITY_PLAN, fragments.get(0).priority());
                     testContext.completeNow();
                 });
             }));

@@ -45,7 +45,7 @@ class KnowledgeBaseToolsTest {
     @ValueSource(strings = {"The sky is blue.", "Java is object-oriented.", "Vert.x is reactive."})
     @DisplayName("Parameterized LongTermMemory Remember Test")
     void testRemember(String fact, VertxTestContext testContext) {
-        SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
+        SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null);
 
         tools.remember(Map.of("fact", fact), context)
                 .compose(result -> longTermMemory.read())

@@ -28,7 +28,7 @@ class WebFetchToolsTest {
     @BeforeEach
     void setUp(Vertx vertx) {
         tools = new WebFetchTools(vertx);
-        context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
+        context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null);
     }
 
     @Test

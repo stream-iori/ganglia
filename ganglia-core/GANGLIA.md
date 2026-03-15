@@ -1,0 +1,2 @@
+## [Guidelines]
+- Rule 1

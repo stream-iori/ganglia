@@ -27,24 +27,35 @@ The core engine responsible for combining fragments based on priority.
 - **Priority Management**: Assigns a priority (1-10) to each fragment.
 - **Budgeting**: Provides the `StandardPromptEngine` with fragments to be assembled into the final prompt.
 
-## 3. Context Hierarchy
+## 3. Context Hierarchy (5-Layer Model)
 
-The system prompt is constructed by stacking fragments according to their priority. Lower priority numbers indicate "Core" instructions that are essential for the agent's identity and safety.
+The system prompt is constructed by stacking fragments into 5 conceptual layers. We distinguish between **Static Rules** (Mandatory, never pruned) and **Dynamic State** (Prunable, removed bottom-up if budget exceeded).
 
-| Priority | Source Type | Role | Implementation |
-| :--- | :--- | :--- | :--- |
-| 1 | **Persona** | **Who am I?** (Identity and tone) | `PersonaContextSource` |
-| 2 | **Mandates** | **What are my hard rules?** | `FileContextSource` (GANGLIA.md [Mandates]) |
-| 3 | **Project Context** | **What tech am I using?** | `FileContextSource` (GANGLIA.md [Context]) |
-| 4 | **Environment** | **Where am I?** | `EnvironmentSource` |
-| 5 | **Active Skills** | **What are my specialties?** | `SkillContextSource` |
-| 6 | **Current Plan** | **What is the goal?** | `ToDoContextSource` |
-| 10 | **Memory** | **What have I learned?** | `MemoryContextSource` |
+### 3.1 Mandatory Layers (The "Soul" - Never Pruned)
+These fragments define the agent's identity, core rules, and operational methods.
+
+| Layer | Priority | Source Type | Role | Implementation |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Kernel** | 10 | **Persona** | **Who am I?** (Identity and tone) | `PersonaContextSource` |
+| | 11 | **Mandates** | **What are my hard rules?** | `MandatesContextSource` |
+| **2. Process** | 20 | **Workflow** | **How do I work?** (R-S-E lifecycle) | `WorkflowContextSource` |
+| **3. Rule** | 21 | **Guidelines** | **What are my operational standards?**| `GuidelineContextSource` |
+| | 22 | **Tools** | **How do I use my tools?** | `ToolContextSource` |
+
+### 3.2 Prunable Layers (The "World" - Bottom-Up Pruning)
+These fragments represent the agent's current knowledge of the world and its tasks. They can be removed to fit the token budget, starting from the highest priority number (e.g., Memory is pruned first).
+
+| Layer | Priority | Source Type | Role | Implementation |
+| :--- | :--- | :--- | :--- | :--- |
+| **4. Capability**| 40 | **Skills** | **What are my specialties?** | `SkillContextSource` |
+| **5. Context** | 50 | **Environment** | **Where am I?** (System, path, structure) | `EnvironmentSource` |
+| | 51 | **Current Plan** | **What is the goal?** (ToDo list) | `ToDoContextSource` |
+| | 60 | **Memory** | **What have I learned?** (MEMORY.md) | `MemoryContextSource` |
 
 ## 4. Implementation Detail: Token Pruning
 The `StandardPromptEngine` applies a **bottom-up pruning** strategy when total tokens exceed the model's window:
-- **Volatile Context**: Memory (Priority 10) is the first to be removed.
-- **Prime Directives**: Persona and Mandates (Priority 1-2) are **never** pruned.
+- **Volatile Context**: Context and Capability fragments (Priority 40-60) are pruned starting from the highest number (e.g., Memory @ 60 is the first to go).
+- **Prime Directives**: Layers 1-3 (Priority 10-22) are marked as `Mandatory` and are **never** pruned by the composer.
 - **History Pruning**: Conversation history is pruned independently to fit within the `historyTokenWindow` (e.g., 4000 tokens).
 
 ## 5. Sequence Diagram

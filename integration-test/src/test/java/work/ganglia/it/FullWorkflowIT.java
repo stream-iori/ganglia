@@ -5,10 +5,9 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import work.Main;
 import work.ganglia.Ganglia;
 import work.ganglia.BootstrapOptions;
-import work.ganglia.coding.tool.CodingToolsFactory;
+import work.ganglia.coding.CodingAgentBuilder;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
@@ -43,16 +42,13 @@ public class FullWorkflowIT {
         when(mockModel.chat(any(ChatRequest.class))).thenReturn(Future.failedFuture("Reflection disabled"));
 
         String projectRoot = tempDir.toAbsolutePath().toString();
-        CodingToolsFactory codingToolsFactory = new CodingToolsFactory(vertx, projectRoot);
 
         BootstrapOptions options = BootstrapOptions.defaultOptions()
             .withProjectRoot(projectRoot)
             .withModelGateway(mockModel)
-            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)))
-            .withExtraToolSets(codingToolsFactory.createToolSets())
-            .withExtraContextSources(codingToolsFactory.createContextSources());
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
 
-        Main.bootstrap(vertx, options)
+        CodingAgentBuilder.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
                 testContext.completeNow();

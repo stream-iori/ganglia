@@ -1,14 +1,12 @@
 package work.ganglia.it;
 
-import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import work.Main;
 import work.ganglia.Ganglia;
 import work.ganglia.BootstrapOptions;
-import work.ganglia.coding.tool.CodingToolsFactory;
+import work.ganglia.coding.CodingAgentBuilder;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.chat.SessionContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,16 +31,13 @@ public class ContextEngineIT {
     void setUp(Vertx vertx, VertxTestContext testContext, @TempDir Path tempDir) throws java.io.IOException {
         mockModel = mock(ModelGateway.class);
         String projectRoot = tempDir.toRealPath().toString();
-        CodingToolsFactory codingToolsFactory = new CodingToolsFactory(vertx, projectRoot);
 
         BootstrapOptions options = BootstrapOptions.defaultOptions()
             .withProjectRoot(projectRoot)
             .withModelGateway(mockModel)
-            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)))
-            .withExtraToolSets(codingToolsFactory.createToolSets())
-            .withExtraContextSources(codingToolsFactory.createContextSources());
+            .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
 
-        Main.bootstrap(vertx, options)
+         CodingAgentBuilder.bootstrap(vertx, options)
             .onComplete(testContext.succeeding((Ganglia g) -> {
                 this.ganglia = g;
                 testContext.completeNow();

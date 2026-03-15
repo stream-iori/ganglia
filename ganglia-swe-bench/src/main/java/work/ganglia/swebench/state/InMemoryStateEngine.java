@@ -3,7 +3,6 @@ package work.ganglia.swebench.state;
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.state.StateEngine;
-import work.ganglia.kernel.todo.ToDoList;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,8 +33,7 @@ public class InMemoryStateEngine implements StateEngine {
             null,
             Collections.emptyMap(),
             Collections.emptyList(),
-            null,
-            ToDoList.empty()
+            null
         );
     }
 }

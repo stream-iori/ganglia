@@ -3,10 +3,9 @@ package work.ganglia.it.harness;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import work.Main; 
 import work.ganglia.Ganglia;
 import work.ganglia.BootstrapOptions;
-import work.ganglia.coding.tool.CodingToolsFactory;
+import work.ganglia.coding.CodingAgentBuilder;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.stubs.StubModelGateway;
 import org.slf4j.Logger;
@@ -39,17 +38,13 @@ public class E2ETestHarness {
 
     public Future<Void> setup(JsonObject configOverride) {
         stubModel = new StubModelGateway();
-        String projectRoot = System.getProperty("user.dir");
-        CodingToolsFactory codingToolsFactory = new CodingToolsFactory(vertx, projectRoot);
 
         BootstrapOptions options = BootstrapOptions.defaultOptions()
             .withConfigPath(".ganglia/config.json")
             .withOverrideConfig(configOverride)
-            .withModelGateway(stubModel)
-            .withExtraToolSets(codingToolsFactory.createToolSets())
-            .withExtraContextSources(codingToolsFactory.createContextSources());
+            .withModelGateway(stubModel);
 
-        return Main.bootstrap(vertx, options)
+        return CodingAgentBuilder.bootstrap(vertx, options)
             .onSuccess(g -> this.ganglia = g)
             .mapEmpty();
     }

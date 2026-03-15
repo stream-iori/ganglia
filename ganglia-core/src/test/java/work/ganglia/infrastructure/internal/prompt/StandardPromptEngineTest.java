@@ -13,7 +13,6 @@ import work.ganglia.kernel.task.DefaultAgentTaskFactory;
 import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.stubs.StubToolExecutor;
-import work.ganglia.kernel.todo.ToDoList;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -28,46 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class StandardPromptEngineTest {
 
     @Test
-    void testBuildPromptInjectsToDo(Vertx vertx, VertxTestContext testContext) {
-        TokenCounter counter = new TokenCounter();
-        StubToolExecutor toolExecutor = new StubToolExecutor();
-        AgentEnv env = new AgentEnv(vertx, null, null, null, null, null, null, null, null, null, null);
-        AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(env, toolExecutor, null, null, null);
-        StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, taskFactory, counter);
-        ToDoList toDoList = ToDoList.empty().addTask("Task A");
-        SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, toDoList);
-
-        engine.buildSystemPrompt(context).onComplete(testContext.succeeding(prompt -> {
-            assertTrue(prompt.contains("Task A"));
-            testContext.completeNow();
-        }));
-    }
-
-    @Test
-    void testBuildPromptInjectsGuidelines(Vertx vertx, VertxTestContext testContext) {
-        String guidelines = "## [Guidelines]\n- Rule 1";
-        vertx.fileSystem().writeFile("GANGLIA.md", io.vertx.core.buffer.Buffer.buffer(guidelines))
-            .compose(v -> {
-                TokenCounter counter = new TokenCounter();
-                StubToolExecutor toolExecutor = new StubToolExecutor();
-                AgentEnv env = new AgentEnv(vertx, null, null, null, null, null, null, null, null, null, null);
-                AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(env, toolExecutor, null, null, null);
-                StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, taskFactory, counter);
-                SessionContext context = new SessionContext(UUID.randomUUID().toString(), Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
-                return engine.buildSystemPrompt(context);
-            })
-            .onComplete(testContext.succeeding(prompt -> {
-                assertTrue(prompt.contains("Rule 1"));
-                // Clean up
-                vertx.fileSystem().delete("GANGLIA.md");
-                testContext.completeNow();
-            }));
-    }
-
-    @Test
     void testPruneHistory() {
         TokenCounter counter = new TokenCounter();
-        SessionContext context = new SessionContext("sid", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
+        SessionContext context = new SessionContext("sid", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null);
 
         Message m1 = Message.user("Msg 1");
         Message m2 = Message.assistant("Msg 2");
@@ -92,7 +54,7 @@ class StandardPromptEngineTest {
         StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, taskFactory, counter);
 
         ModelOptions options = new ModelOptions(0.0, 100, "test-model", true);
-        SessionContext context = new SessionContext("sid", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options, ToDoList.empty());
+        SessionContext context = new SessionContext("sid", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), options);
 
         engine.prepareRequest(context, 0).onComplete(testContext.succeeding(request -> {
             assertEquals(1, request.messages().size());

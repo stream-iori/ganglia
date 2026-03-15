@@ -31,7 +31,9 @@ public class LongTermKnowledgeModule implements MemoryModule {
                 - Use the 'remember' tool to save important facts, user preferences, or architectural decisions.
                 - Use 'grep' or 'read' to search MEMORY.md if you need to recall project context.
                 """;
-        return Future.succeededFuture(List.of(new ContextFragment("Memory & Context", content, ContextFragment.PRIORITY_MEMORY, false)));
+        return Future.succeededFuture(List.of(
+            ContextFragment.prunable("Memory & Context", content, ContextFragment.PRIORITY_MEMORY)
+        ));
     }
 
     @Override

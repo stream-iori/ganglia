@@ -1,0 +1,28 @@
+package work.ganglia.infrastructure.internal.prompt.context;
+
+import io.vertx.core.Future;
+import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.internal.prompt.ContextFragment;
+import work.ganglia.port.internal.prompt.ContextSource;
+
+import java.util.List;
+
+/**
+ * Core abstraction for providing operational mandates.
+ * Mandates represent hard rules that the agent must strictly follow.
+ */
+public abstract class MandatesContextSource implements ContextSource {
+    
+    protected abstract String getMandates();
+
+    @Override
+    public Future<List<ContextFragment>> getFragments(SessionContext sessionContext) {
+        String mandates = getMandates();
+        if (mandates == null || mandates.isBlank()) {
+            return Future.succeededFuture(List.of());
+        }
+        return Future.succeededFuture(List.of(
+            ContextFragment.mandatory("Mandates", mandates, ContextFragment.PRIORITY_MANDATES)
+        ));
+    }
+}

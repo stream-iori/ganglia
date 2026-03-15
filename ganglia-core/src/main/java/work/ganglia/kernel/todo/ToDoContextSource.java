@@ -12,7 +12,8 @@ public class ToDoContextSource implements ContextSource {
     @Override
     public Future<List<ContextFragment>> getFragments(SessionContext sessionContext) {
         StringBuilder sb = new StringBuilder();
-        ToDoList toDoList = sessionContext.toDoList();
+        Object obj = sessionContext.metadata().get("todo_list");
+        ToDoList toDoList = obj instanceof ToDoList ? (ToDoList) obj : null;
         if (toDoList != null && !toDoList.isEmpty()) {
             sb.append(toDoList.toString());
         } else {
@@ -22,6 +23,8 @@ public class ToDoContextSource implements ContextSource {
         sb.append("\n\n- Break down complex tasks into steps using todo_add.\n");
         sb.append("- Mark tasks as complete using todo_complete ONLY when the work is verified.");
 
-        return Future.succeededFuture(List.of(new ContextFragment("Current Plan", sb.toString(), ContextFragment.PRIORITY_PLAN, true)));
+        return Future.succeededFuture(List.of(
+            ContextFragment.prunable("Current Plan", sb.toString(), ContextFragment.PRIORITY_PLAN)
+        ));
     }
 }

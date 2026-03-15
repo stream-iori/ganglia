@@ -1,7 +1,6 @@
 package work.ganglia.infrastructure.internal.prompt;
 
 import work.ganglia.port.internal.prompt.ContextFragment;
-import work.ganglia.kernel.todo.ToDoContextSource;
 import work.ganglia.util.Constants;
 
 import io.vertx.core.Future;
@@ -54,20 +53,23 @@ public class StandardPromptEngine implements PromptEngine {
         this.composer = new ContextComposer(this.tokenCounter);
         this.taskFactory = taskFactory;
 
-        // Initialize default core sources
-        sources.add(new PersonaContextSource());
-        sources.add(new EnvironmentSource(vertx));
-        sources.add(new SkillContextSource(skillRuntime));
-        if (this.taskFactory != null) {
-            sources.add(new ToolContextSource(this.taskFactory));
-        }
-        sources.add(new ToDoContextSource());
-        sources.add(new MemoryContextSource(memoryService));
-        sources.add(new SubAgentContextSource());
-
         // Add extra sources (e.g., from ganglia-coding)
         if (extraSources != null) {
             sources.addAll(extraSources);
+        }
+
+        // Initialize default core sources if not already provided
+        if (sources.stream().noneMatch(s -> s instanceof PersonaContextSource)) {
+            sources.add(new PersonaContextSource());
+        }
+        sources.add(new EnvironmentSource(vertx));
+        sources.add(new SkillContextSource(skillRuntime));
+        if (this.taskFactory != null && sources.stream().noneMatch(s -> s instanceof ToolContextSource)) {
+            sources.add(new ToolContextSource(this.taskFactory));
+        }
+        sources.add(new MemoryContextSource(memoryService));
+        if (sources.stream().noneMatch(s -> s instanceof SubAgentContextSource)) {
+            sources.add(new SubAgentContextSource());
         }
     }
 
@@ -117,19 +119,8 @@ public class StandardPromptEngine implements PromptEngine {
                 currentOptions = new ModelOptions(0.0, 4096, "gpt-4o", true);
             }
 
-            // 4. Resolve Tools (with sub-agent filtering)
+            // 4. Resolve Tools
             List<ToolDefinition> tools = taskFactory != null ? taskFactory.getAvailableDefinitions(context) : Collections.emptyList();
-
-            boolean isSub = (boolean) context.metadata().getOrDefault("is_sub_agent", false);
-            if (isSub && !tools.isEmpty()) {
-                String persona = (String) context.metadata().getOrDefault("sub_agent_persona", "GENERAL");
-                if ("INVESTIGATOR".equals(persona)) {
-                    // Filter out tools that modify files
-                    tools = tools.stream()
-                        .filter(t -> !t.name().equals("write_file") && !t.name().equals("replace_in_file") && !t.name().equals("run_shell_command"))
-                        .toList();
-                }
-            }
 
             return new LLMRequest(modelHistory, tools, currentOptions);
         });

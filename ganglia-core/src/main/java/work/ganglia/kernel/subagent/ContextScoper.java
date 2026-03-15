@@ -1,7 +1,6 @@
 package work.ganglia.kernel.subagent;
 
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.kernel.todo.ToDoList;
 
 import java.util.*;
 
@@ -29,8 +28,7 @@ public class ContextScoper {
             null,
             childMetadata,
             parentContext.activeSkillIds(),
-            parentContext.modelOptions(),
-            ToDoList.empty()
+            parentContext.modelOptions()
         );
     }
 }

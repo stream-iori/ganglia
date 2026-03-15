@@ -39,7 +39,7 @@ public class SkillIntegrationTest {
         SkillRuntime runtime = new DefaultSkillRuntime(vertx, service);
 
         service.init().compose(v -> {
-            SessionContext context = new SessionContext("s1", null, null, null, List.of("test-skill"), null, null);
+            SessionContext context = new SessionContext("s1", null, null, null, List.of("test-skill"), null);
             return runtime.getActiveSkillsPrompt(context);
         }).onComplete(testContext.succeeding((String prompt) -> {
             testContext.verify(() -> {

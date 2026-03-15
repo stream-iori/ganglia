@@ -38,7 +38,7 @@ class ToDoToolsTest {
     void setUp(Vertx vertx) {
         tools = new ToDoTools(vertx, compressor);
         String sessionId = UUID.randomUUID().toString();
-        context = new SessionContext(sessionId, Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null, ToDoList.empty());
+        context = new SessionContext(sessionId, Collections.emptyList(), null, Map.of("todo_list", ToDoList.empty()), Collections.emptyList(), null);
         execContext = new ExecutionContext() {
             @Override public String sessionId() { return sessionId; }
             @Override public void emitStream(String chunk) {}
@@ -55,7 +55,7 @@ class ToDoToolsTest {
             .compose(result -> {
                 assertNotNull(result.modifiedContext());
                 SessionContext ctx1 = result.modifiedContext();
-                assertEquals(1, ctx1.toDoList().items().size());
+                assertEquals(1, ((ToDoList) ctx1.metadata().get("todo_list")).items().size());
                 return tools.list(ctx1);
             })
             .onComplete(testContext.succeeding(result -> {
@@ -76,7 +76,7 @@ class ToDoToolsTest {
         tools.add(addArgs, context, execContext)
             .compose(result -> {
                 SessionContext ctx1 = result.modifiedContext();
-                String id = ctx1.toDoList().items().get(0).id();
+                String id = ((ToDoList) ctx1.metadata().get("todo_list")).items().get(0).id();
                 Map<String, Object> completeArgs = new HashMap<>();
                 completeArgs.put("id", id);
                 return tools.complete(completeArgs, ctx1, execContext);
@@ -84,7 +84,7 @@ class ToDoToolsTest {
             .onComplete(testContext.succeeding(result -> {
                 testContext.verify(() -> {
                     assertNotNull(result.modifiedContext());
-                    assertEquals(TaskStatus.DONE, result.modifiedContext().toDoList().items().get(0).status());
+                    assertEquals(TaskStatus.DONE, ((ToDoList) result.modifiedContext().metadata().get("todo_list")).items().get(0).status());
                     testContext.completeNow();
                 });
             }));

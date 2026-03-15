@@ -2,7 +2,6 @@ package work.ganglia.port.chat;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
-import work.ganglia.kernel.todo.ToDoList;
 import work.ganglia.port.external.llm.ModelOptions;
 
 import java.util.stream.Collectors;
@@ -18,8 +17,7 @@ public record SessionContext(
     Turn currentTurn,
     Map<String, Object> metadata,
     List<String> activeSkillIds,
-    ModelOptions modelOptions,
-    ToDoList toDoList
+    ModelOptions modelOptions
 ) {
     /**
      * Compact constructor to ensure data integrity and null safety.
@@ -36,9 +34,6 @@ public record SessionContext(
         }
         if (activeSkillIds == null) {
             activeSkillIds = Collections.emptyList();
-        }
-        if (toDoList == null) {
-            toDoList = ToDoList.empty();
         }
     }
 
@@ -57,7 +52,7 @@ public record SessionContext(
         }
 
         Turn newCurrentTurn = Turn.newTurn(UUID.randomUUID().toString(), userMessage);
-        return new SessionContext(sessionId, newPreviousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions, toDoList);
+        return new SessionContext(sessionId, newPreviousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions);
     }
 
     public SessionContext addStep(Message step) {
@@ -66,7 +61,7 @@ public record SessionContext(
             newCurrentTurn = new Turn(UUID.randomUUID().toString(), null, new ArrayList<>(), null);
         }
         newCurrentTurn = newCurrentTurn.withStep(step);
-        return new SessionContext(sessionId, previousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions, toDoList);
+        return new SessionContext(sessionId, previousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions);
     }
 
     public SessionContext completeTurn(Message response) {
@@ -75,7 +70,7 @@ public record SessionContext(
             newCurrentTurn = new Turn(UUID.randomUUID().toString(), null, new ArrayList<>(), null);
         }
         newCurrentTurn = newCurrentTurn.withResponse(response);
-        return new SessionContext(sessionId, previousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions, toDoList);
+        return new SessionContext(sessionId, previousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions);
     }
 
     public List<Message> history() {
@@ -129,15 +124,21 @@ public record SessionContext(
     }
 
     public SessionContext withModelOptions(ModelOptions newOptions) {
-        return new SessionContext(sessionId, previousTurns, currentTurn, metadata, activeSkillIds, newOptions, toDoList);
+        return new SessionContext(sessionId, previousTurns, currentTurn, metadata, activeSkillIds, newOptions);
     }
 
-    public SessionContext withToDoList(ToDoList newToDoList) {
-        return new SessionContext(sessionId, previousTurns, currentTurn, metadata, activeSkillIds, modelOptions, newToDoList);
+    public SessionContext withMetadata(Map<String, Object> newMetadata) {
+        return new SessionContext(sessionId, previousTurns, currentTurn, newMetadata, activeSkillIds, modelOptions);
+    }
+
+    public SessionContext withNewMetadata(String key, Object value) {
+        Map<String, Object> newMetadata = new HashMap<>(metadata);
+        newMetadata.put(key, value);
+        return withMetadata(Collections.unmodifiableMap(newMetadata));
     }
 
     public SessionContext withPreviousTurns(List<Turn> newPreviousTurns) {
-        return new SessionContext(sessionId, newPreviousTurns, currentTurn, metadata, activeSkillIds, modelOptions, toDoList);
+        return new SessionContext(sessionId, newPreviousTurns, currentTurn, metadata, activeSkillIds, modelOptions);
     }
 
     /**

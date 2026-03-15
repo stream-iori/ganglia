@@ -2,7 +2,7 @@ package work.ganglia.example;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import work.Main;
+import work.ganglia.Ganglia;
 import work.ganglia.ui.TerminalUI;
 
 import java.util.UUID;
@@ -24,7 +24,7 @@ public class SubAgentCooperationDemo {
         vertx.fileSystem().writeFileBlocking(dataDir + "/sales_q2.txt", Buffer.buffer("Revenue: 2300"));
         vertx.fileSystem().writeFileBlocking(dataDir + "/sales_q3.txt", Buffer.buffer("Revenue: 1200"));
 
-        Main.bootstrap(vertx)
+        Ganglia.bootstrap(vertx)
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
                 vertx.close();

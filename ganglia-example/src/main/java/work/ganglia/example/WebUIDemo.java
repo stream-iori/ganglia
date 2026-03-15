@@ -3,7 +3,7 @@ package work.ganglia.example;
 import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import work.Main;
+import work.ganglia.Ganglia;
 import work.ganglia.BootstrapOptions;
 import work.ganglia.config.model.GangliaConfig;
 import work.ganglia.web.WebUIEventPublisher;
@@ -25,8 +25,8 @@ public class WebUIDemo {
         BootstrapOptions options = BootstrapOptions.defaultOptions()
             .withObservers(List.of(new WebUIEventPublisher(vertx)));
 
-        // 2. Initializing Core Engine
-        Main.bootstrap(vertx, options)
+        // 2. Bootstrap Ganglia
+        Ganglia.bootstrap(vertx, options)
             .onSuccess(ganglia -> {
                 logger.info("Ganglia Core bootstrapped successfully.");
 

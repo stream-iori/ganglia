@@ -13,8 +13,19 @@
       </Policies>
       <DefaultRolloverStrategy max="10"/>
     </RollingFile>
+    <RollingFile name="LLMLogFile" fileName=".ganglia/logs/llm-request.log"
+                 filePattern=".ganglia/logs/llm-request-%i.log.gz">
+      <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} - %msg%n"/>
+      <Policies>
+        <SizeBasedTriggeringPolicy size="1 GB"/>
+      </Policies>
+      <DefaultRolloverStrategy max="5"/>
+    </RollingFile>
   </Appenders>
   <Loggers>
+    <Logger name="LLM_LOG" level="info" additivity="false">
+      <AppenderRef ref="LLMLogFile"/>
+    </Logger>
     <Logger name="me.stream.ganglia.core.llm" level="debug" additivity="false">
       <AppenderRef ref="Console" level="info"/>
       <AppenderRef ref="DebugFile"/>

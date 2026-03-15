@@ -69,11 +69,10 @@ public class ToDoTools implements ToolSet {
 
     public Future<ToolInvokeResult> add(Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         String description = (String) args.get("description");
-        ToDoList currentList = context.toDoList();
-        if (currentList == null) currentList = ToDoList.empty();
+        ToDoList currentList = getToDoList(context);
 
         ToDoList newList = currentList.addTask(description);
-        SessionContext newContext = context.withToDoList(newList);
+        SessionContext newContext = context.withNewMetadata("todo_list", newList);
 
         if (executionContext != null && executionContext instanceof work.ganglia.port.internal.state.ObservationDispatcher dispatcher) {
             dispatcher.dispatch(executionContext.sessionId(), work.ganglia.port.external.tool.ObservationType.PLAN_UPDATED, "Task added", Map.of("plan", newList));
@@ -82,15 +81,23 @@ public class ToDoTools implements ToolSet {
         return Future.succeededFuture(ToolInvokeResult.success("Task added.", newContext));
     }
 
+    private ToDoList getToDoList(SessionContext context) {
+        Object obj = context.metadata().get("todo_list");
+        if (obj instanceof ToDoList list) {
+            return list;
+        }
+        return ToDoList.empty();
+    }
+
     public Future<ToolInvokeResult> list(SessionContext context) {
-        ToDoList list = context.toDoList();
-        return Future.succeededFuture(ToolInvokeResult.success(list == null ? "No tasks." : list.toString()));
+        ToDoList list = getToDoList(context);
+        return Future.succeededFuture(ToolInvokeResult.success(list == null || list.isEmpty() ? "No tasks." : list.toString()));
     }
 
     public Future<ToolInvokeResult> complete(Map<String, Object> args, SessionContext context, work.ganglia.port.internal.state.ExecutionContext executionContext) {
         String id = (String) args.get("id");
-        ToDoList currentList = context.toDoList();
-        if (currentList == null) return Future.succeededFuture(ToolInvokeResult.error("No plan exists."));
+        ToDoList currentList = getToDoList(context);
+        if (currentList.isEmpty()) return Future.succeededFuture(ToolInvokeResult.error("No plan exists."));
 
         // Trigger Compression of Previous Turns
         // Strategy: Summarize all previousTurns, store result in the task, and CLEAR previousTurns.
@@ -112,9 +119,8 @@ public class ToDoTools implements ToolSet {
                             context.currentTurn(), // Keep current turn
                             context.metadata(),
                             context.activeSkillIds(),
-                            context.modelOptions(),
-                            newList
-                    );
+                            context.modelOptions()
+                    ).withNewMetadata("todo_list", newList);
 
                     return ToolInvokeResult.success("Task " + id + " completed. Context compressed: " + summary, newContext);
                 })
