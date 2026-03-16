@@ -21,6 +21,7 @@ import work.ganglia.infrastructure.internal.skill.DefaultSkillService;
 import work.ganglia.infrastructure.internal.skill.FileSystemSkillLoader;
 import work.ganglia.infrastructure.internal.skill.JarSkillLoader;
 import work.ganglia.infrastructure.internal.state.*;
+import work.ganglia.kernel.loop.AgentLoopFactory;
 import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
 import work.ganglia.kernel.loop.DefaultObservationDispatcher;
 import work.ganglia.kernel.loop.ReActAgentLoop;
@@ -69,74 +70,14 @@ public class GangliaKernel {
     public Future<Ganglia> init() {
         final String projectRoot = options.projectRoot() != null ? options.projectRoot() : configManager.getProjectRoot();
 
-        return configManager.init().compose(v -> {
-            logger.info("Configuration initialized. Starting self-check...");
-            return ensureCoreStructure(projectRoot);
-        }).compose(v -> {
-            ModelConfigProvider modelConfig = configManager;
-            AgentConfigProvider agentConfig = configManager;
-
-            ModelGateway rawGateway = options.modelGatewayOverride() != null 
-                ? options.modelGatewayOverride() 
-                : ModelGatewayFactory.create(vertx, modelConfig);
-            ModelGateway modelGateway = new RetryingModelGateway(rawGateway, vertx);
-
-            SkillService skillService = setupSkillService(projectRoot);
-            SkillRuntime skillRuntime = new DefaultSkillRuntime(vertx, skillService);
-
-            return skillService.init().compose(v2 -> {
-                LongTermMemory longTermMemory = new FileSystemLongTermMemory(vertx, Paths.get(projectRoot, Constants.FILE_MEMORY_MD).toString());
-                
-                return longTermMemory.ensureInitialized().compose(v3 -> {
-                    TokenCounter tokenCounter = new TokenCounter();
-                    ContextCompressor compressor = new DefaultContextCompressor(modelGateway, modelConfig);
-                    DailyRecordManager dailyRecordManager = new FileSystemDailyRecordManager(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString());
-
-                    MemoryService memoryService = new MemoryService(vertx);
-                    memoryService.registerModule(new DailyJournalModule(compressor, dailyRecordManager));
-                    memoryService.registerModule(new LongTermKnowledgeModule(longTermMemory));
-
-                    ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, longTermMemory, projectRoot);
-                    StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, memoryService, skillRuntime, null, tokenCounter, options.extraContextSources());
-                    promptEngine.addContextSource(new DailyContextSource(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString()));
-
-                    SessionManager sessionManager = new DefaultSessionManager(new FileStateEngine(vertx), new FileLogManager(vertx), configManager);
-                    
-                    List<ToolSet> allExtraToolSets = new ArrayList<>(options.extraToolSets());
-                    for (work.ganglia.port.external.tool.ToolSetProvider provider : options.extraToolSetProviders()) {
-                        allExtraToolSets.add(provider.create(vertx, compressor, longTermMemory, projectRoot));
-                    }
-                    
-                    DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, allExtraToolSets);
-                    DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
-
-                    // Create AgentEnv
-                    AgentEnv env = new AgentEnv(
-                        vertx, modelGateway, sessionManager, promptEngine,
-                        agentConfig, modelConfig, compressor, memoryService,
-                        dispatcher, new ConsecutiveFailurePolicy(),
-                        new DefaultContextOptimizer(modelConfig, agentConfig, compressor, tokenCounter)
-                    );
-
-                    GraphExecutor graphExecutor = new DefaultGraphExecutor(env);
-
-                    AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(
-                        env, toolExecutor, graphExecutor, skillService, skillRuntime
-                    );
-                    
-                    env.setTaskFactory(taskFactory);
-                    promptEngine.setTaskFactory(taskFactory);
-                    graphExecutor.initialize(taskFactory);
-
-                    new TraceManager(vertx, configManager);
-                    new TokenUsageManager(vertx, tokenCounter);
-
-                    ReActAgentLoop agentLoop = new ReActAgentLoop(env);
-
-                    return Future.succeededFuture(new Ganglia(modelGateway, toolExecutor, sessionManager, agentLoop, configManager, env));
-                });
-            });
-        });
+        return configManager.init()
+            .compose(v -> {
+                logger.info("Configuration initialized. Starting self-check...");
+                return ensureCoreStructure(projectRoot);
+            })
+            .compose(v -> initializeSkillSystem(projectRoot))
+            .compose(skillService -> initializeMemorySystem(projectRoot).map(longTermMemory -> new InitContext(skillService, longTermMemory)))
+            .compose(ctx -> assembleSystem(projectRoot, ctx.skillService, ctx.longTermMemory));
     }
 
     private Future<Void> ensureCoreStructure(String projectRoot) {
@@ -146,10 +87,10 @@ public class GangliaKernel {
         dirFutures.add(FileSystemUtil.ensureDirectoryExists(vertx, Paths.get(projectRoot, Constants.DIR_STATE).toString()));
         dirFutures.add(FileSystemUtil.ensureDirectoryExists(vertx, Paths.get(projectRoot, Constants.DIR_LOGS).toString()));
         dirFutures.add(FileSystemUtil.ensureDirectoryExists(vertx, Paths.get(projectRoot, Constants.DIR_TRACE).toString()));
-        return Future.join(dirFutures).map(v2 -> null);
+        return Future.join(dirFutures).map(v -> null);
     }
 
-    private SkillService setupSkillService(String projectRoot) {
+    private Future<SkillService> initializeSkillSystem(String projectRoot) {
         List<Path> skillPaths = new ArrayList<>();
         skillPaths.add(Paths.get(projectRoot, Constants.DIR_SKILLS));
         String userHome = System.getProperty("user.home");
@@ -160,6 +101,136 @@ public class GangliaKernel {
         loaders.add(new FileSystemSkillLoader(vertx, skillPaths));
         loaders.add(new JarSkillLoader(vertx, skillPaths));
 
-        return new DefaultSkillService(loaders);
+        SkillService skillService = new DefaultSkillService(loaders);
+        return skillService.init().map(v -> skillService);
+    }
+
+    private Future<LongTermMemory> initializeMemorySystem(String projectRoot) {
+        LongTermMemory longTermMemory = new FileSystemLongTermMemory(vertx, Paths.get(projectRoot, Constants.FILE_MEMORY_MD).toString());
+        return longTermMemory.ensureInitialized().map(v -> longTermMemory);
+    }
+
+    private Future<Ganglia> assembleSystem(String projectRoot, SkillService skillService, LongTermMemory longTermMemory) {
+        ModelGateway rawGateway = options.modelGatewayOverride() != null 
+            ? options.modelGatewayOverride() 
+            : ModelGatewayFactory.create(vertx, configManager);
+        ModelGateway modelGateway = new RetryingModelGateway(rawGateway, vertx);
+
+        SkillRuntime skillRuntime = new DefaultSkillRuntime(vertx, skillService);
+        TokenCounter tokenCounter = new TokenCounter();
+        ContextCompressor compressor = new DefaultContextCompressor(modelGateway, configManager);
+        DailyRecordManager dailyRecordManager = new FileSystemDailyRecordManager(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString());
+
+        MemoryService memoryService = new MemoryService(vertx);
+        memoryService.registerModule(new DailyJournalModule(compressor, dailyRecordManager));
+        memoryService.registerModule(new LongTermKnowledgeModule(longTermMemory));
+
+        ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, longTermMemory, projectRoot);
+        StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, memoryService, skillRuntime, null, tokenCounter, options.extraContextSources());
+        promptEngine.addContextSource(new DailyContextSource(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString()));
+
+        SessionManager sessionManager = new DefaultSessionManager(new FileStateEngine(vertx), new FileLogManager(vertx), configManager);
+        
+        List<ToolSet> allExtraToolSets = new ArrayList<>(options.extraToolSets());
+        for (ToolSetProvider provider : options.extraToolSetProviders()) {
+            allExtraToolSets.add(provider.create(vertx, compressor, longTermMemory, projectRoot));
+        }
+        
+        DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, allExtraToolSets);
+        DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
+        ConsecutiveFailurePolicy failurePolicy = new ConsecutiveFailurePolicy();
+        DefaultContextOptimizer contextOptimizer = new DefaultContextOptimizer(configManager, configManager, compressor, tokenCounter);
+
+        // Core component construction via explicitly declared dependencies and Factories
+        LazyTaskFactoryProxy lazyTaskFactoryProxy = new LazyTaskFactoryProxy();
+        AgentLoopFactory loopFactory = () -> ReActAgentLoop.builder()
+            .vertx(vertx)
+            .dispatcher(dispatcher)
+            .sessionManager(sessionManager)
+            .configProvider(configManager)
+            .contextOptimizer(contextOptimizer)
+            .promptEngine(promptEngine)
+            .modelGateway(modelGateway)
+            .taskFactory(lazyTaskFactoryProxy)
+            .faultTolerancePolicy(failurePolicy)
+            .build();
+
+        GraphExecutor graphExecutor = new DefaultGraphExecutor(loopFactory);
+
+        AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(
+            loopFactory, toolExecutor, graphExecutor, skillService, skillRuntime
+        );
+        
+        // Wire circular dependencies
+        lazyTaskFactoryProxy.setDelegate(taskFactory);
+        // Better: use AgentEnv as the holder or just set it in PromptEngine
+        promptEngine.setTaskFactory(taskFactory);
+        graphExecutor.initialize(taskFactory);
+
+        // Build AgentEnv as the global container/registry
+        AgentEnv env = AgentEnv.builder()
+            .vertx(vertx)
+            .modelGateway(modelGateway)
+            .sessionManager(sessionManager)
+            .promptEngine(promptEngine)
+            .configProvider(configManager)
+            .modelConfig(configManager)
+            .compressor(compressor)
+            .memoryService(memoryService)
+            .dispatcher(dispatcher)
+            .faultTolerancePolicy(failurePolicy)
+            .contextOptimizer(contextOptimizer)
+            .taskFactory(taskFactory)
+            .build();
+
+        // Update the loop factory to correctly provide the task factory without reflection hack:
+        AgentLoopFactory finalLoopFactory = () -> ReActAgentLoop.builder()
+            .vertx(vertx)
+            .dispatcher(dispatcher)
+            .sessionManager(sessionManager)
+            .configProvider(configManager)
+            .contextOptimizer(contextOptimizer)
+            .promptEngine(promptEngine)
+            .modelGateway(modelGateway)
+            .taskFactory(taskFactory)
+            .faultTolerancePolicy(failurePolicy)
+            .build();
+
+        // Update factories with the correct loop factory
+        AgentTaskFactory finalTaskFactory = new DefaultAgentTaskFactory(
+            finalLoopFactory, toolExecutor, graphExecutor, skillService, skillRuntime
+        );
+        env.setTaskFactory(finalTaskFactory);
+        promptEngine.setTaskFactory(finalTaskFactory);
+        
+        // recreate GraphExecutor to use finalLoopFactory
+        GraphExecutor finalGraphExecutor = new DefaultGraphExecutor(finalLoopFactory);
+
+        new TraceManager(vertx, configManager);
+        new TokenUsageManager(vertx, tokenCounter);
+
+        ReActAgentLoop primaryAgentLoop = (ReActAgentLoop) finalLoopFactory.createLoop();
+
+        return Future.succeededFuture(new Ganglia(modelGateway, toolExecutor, sessionManager, primaryAgentLoop, configManager, env));
+    }
+
+    private record InitContext(SkillService skillService, LongTermMemory longTermMemory) {}
+
+    private static class LazyTaskFactoryProxy implements AgentTaskFactory {
+        private AgentTaskFactory delegate;
+
+        public void setDelegate(AgentTaskFactory delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public work.ganglia.kernel.task.AgentTask create(work.ganglia.port.external.tool.ToolCall call, work.ganglia.port.chat.SessionContext context) {
+            return delegate.create(call, context);
+        }
+
+        @Override
+        public List<work.ganglia.port.external.tool.ToolDefinition> getAvailableDefinitions(work.ganglia.port.chat.SessionContext context) {
+            return delegate.getAvailableDefinitions(context);
+        }
     }
 }

@@ -3,8 +3,8 @@ package work.ganglia.kernel.task;
 import io.vertx.core.Future;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import work.ganglia.kernel.AgentEnv;
-import work.ganglia.kernel.loop.ReActAgentLoop;
+import work.ganglia.kernel.loop.AgentLoop;
+import work.ganglia.kernel.loop.AgentLoopFactory;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.internal.state.ExecutionContext;
@@ -21,11 +21,11 @@ public class SubAgentTask implements AgentTask {
     private static final Logger logger = LoggerFactory.getLogger(SubAgentTask.class);
 
     private final ToolCall call;
-    private final AgentEnv env;
+    private final AgentLoopFactory loopFactory;
 
-    public SubAgentTask(ToolCall call, AgentEnv env) {
+    public SubAgentTask(ToolCall call, AgentLoopFactory loopFactory) {
         this.call = call;
-        this.env = env;
+        this.loopFactory = loopFactory;
     }
 
     @Override
@@ -57,7 +57,7 @@ public class SubAgentTask implements AgentTask {
 
         SessionContext childContext = ContextScoper.scope(childSessionId, parentContext, childMetadata);
 
-        ReActAgentLoop childLoop = new ReActAgentLoop(env);
+        AgentLoop childLoop = loopFactory.createLoop();
 
         return childLoop.run("TASK: " + task, childContext)
             .map(report -> AgentTaskResult.success("--- SUB-AGENT REPORT ---\n" + report + "\n--- END REPORT ---"))

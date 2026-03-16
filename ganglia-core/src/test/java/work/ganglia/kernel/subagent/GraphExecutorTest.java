@@ -13,6 +13,7 @@ import work.ganglia.kernel.AgentEnv;
 import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
 import work.ganglia.kernel.loop.DefaultObservationDispatcher;
 import work.ganglia.kernel.task.DefaultAgentTaskFactory;
+import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.llm.ModelOptions;
@@ -48,21 +49,28 @@ public class GraphExecutorTest {
         this.sessionManager = new DefaultSessionManager(new InMemoryStateEngine(), new InMemoryLogManager(), configManager);
         this.promptEngine = new StubPromptEngine();
         DefaultContextCompressor compressor = new DefaultContextCompressor(modelGateway, configManager);
+        DefaultContextOptimizer optimizer = new DefaultContextOptimizer(configManager, configManager, compressor, new TokenCounter());
         
-        this.env = new AgentEnv(
-            vertx, modelGateway, sessionManager, promptEngine,
-            configManager, configManager, compressor, null,
-            new DefaultObservationDispatcher(vertx), new ConsecutiveFailurePolicy(),
-            new DefaultContextOptimizer(configManager, configManager, compressor, new TokenCounter())
-        );
+        final AgentTaskFactory[] taskFactoryRef = new AgentTaskFactory[1];
+        
+        work.ganglia.kernel.loop.AgentLoopFactory loopFactory = () -> work.ganglia.kernel.loop.ReActAgentLoop.builder()
+            .vertx(vertx)
+            .dispatcher(new DefaultObservationDispatcher(vertx))
+            .sessionManager(sessionManager)
+            .configProvider(configManager)
+            .contextOptimizer(optimizer)
+            .promptEngine(promptEngine)
+            .modelGateway(modelGateway)
+            .taskFactory(taskFactoryRef[0])
+            .faultTolerancePolicy(new ConsecutiveFailurePolicy())
+            .build();
 
-        this.graphExecutor = new DefaultGraphExecutor(env);
+        this.graphExecutor = new DefaultGraphExecutor(loopFactory);
 
-        DefaultAgentTaskFactory taskFactory = new DefaultAgentTaskFactory(
-            env, toolExecutor, graphExecutor, null, null
+        taskFactoryRef[0] = new DefaultAgentTaskFactory(
+            loopFactory, toolExecutor, graphExecutor, null, null
         );
-        env.setTaskFactory(taskFactory);
-        graphExecutor.initialize(taskFactory);
+        graphExecutor.initialize(taskFactoryRef[0]);
     }
 
     @Test

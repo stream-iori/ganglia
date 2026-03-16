@@ -17,19 +17,12 @@
             <artifactId>ganglia-core</artifactId>
             <version>${project.version}</version>
         </dependency>
-        <dependency>
-            <groupId>work.ganglia</groupId>
-            <artifactId>ganglia-core</artifactId>
-            <version>${project.version}</version>
-            <type>test-jar</type>
-            <scope>test</scope>
-        </dependency>
 
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-        
+
         <dependency>
             <groupId>io.vertx</groupId>
             <artifactId>vertx-core</artifactId>

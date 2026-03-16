@@ -1,6 +1,6 @@
 package work.ganglia.kernel.task;
 
-import work.ganglia.kernel.AgentEnv;
+import work.ganglia.kernel.loop.AgentLoopFactory;
 import work.ganglia.kernel.subagent.GraphExecutor;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolCall;
@@ -14,20 +14,20 @@ import java.util.List;
 
 /**
  * SRP: Factory for creating AgentTask tasks from tool calls.
- * Uses AgentEnv to minimize constructor bloating.
+ * Uses explicit dependencies and AgentLoopFactory.
  */
 public class DefaultAgentTaskFactory implements AgentTaskFactory {
 
-    private final AgentEnv env;
+    private final AgentLoopFactory loopFactory;
     private final ToolExecutor standardToolExecutor;
     private final GraphExecutor graphExecutor; // Nullable
     private final SkillService skillService;   // Nullable
     private final SkillRuntime skillRuntime;   // Nullable
 
-    public DefaultAgentTaskFactory(AgentEnv env, ToolExecutor standardToolExecutor, 
+    public DefaultAgentTaskFactory(AgentLoopFactory loopFactory, ToolExecutor standardToolExecutor, 
                                    GraphExecutor graphExecutor, SkillService skillService, 
                                    SkillRuntime skillRuntime) {
-        this.env = env;
+        this.loopFactory = loopFactory;
         this.standardToolExecutor = standardToolExecutor;
         this.graphExecutor = graphExecutor;
         this.skillService = skillService;
@@ -39,7 +39,7 @@ public class DefaultAgentTaskFactory implements AgentTaskFactory {
         String toolName = call.toolName();
 
         if ("call_sub_agent".equals(toolName)) {
-            return new SubAgentTask(call, env);
+            return new SubAgentTask(call, loopFactory);
         } else if ("propose_task_graph".equals(toolName) && graphExecutor != null) {
             return new TaskGraphTask(call, graphExecutor);
         } else if (isSkillTool(toolName, context)) {

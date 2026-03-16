@@ -4,41 +4,32 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import work.ganglia.config.AgentConfigProvider;
-import work.ganglia.config.ModelConfigProvider;
-import work.ganglia.kernel.AgentEnv;
-import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
-import work.ganglia.kernel.loop.DefaultObservationDispatcher;
-import work.ganglia.kernel.loop.ReActAgentLoop;
+import work.ganglia.kernel.loop.AgentLoop;
+import work.ganglia.kernel.loop.AgentLoopFactory;
 import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.port.external.llm.ModelGateway;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
-import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * SRP: Orchestrates the parallel/sequential execution of a TaskGraph.
- * Uses ReActAgentLoop for individual node execution.
+ * Uses AgentLoopFactory for individual node execution.
  */
 public class DefaultGraphExecutor implements GraphExecutor {
     private static final Logger logger = LoggerFactory.getLogger(DefaultGraphExecutor.class);
 
-    private final AgentEnv env;
+    private final AgentLoopFactory loopFactory;
 
-    public DefaultGraphExecutor(AgentEnv env) {
-        this.env = env;
+    public DefaultGraphExecutor(AgentLoopFactory loopFactory) {
+        this.loopFactory = loopFactory;
     }
 
     @Override
     public void initialize(AgentTaskFactory taskFactory) {
-        // Factory is already in env or will be set in env
+        // Initialization handled externally or not required here anymore
     }
 
     @Override
@@ -85,7 +76,7 @@ public class DefaultGraphExecutor implements GraphExecutor {
 
         SessionContext nodeContext = ContextScoper.scope(sessionId, parentContext, metadata);
 
-        ReActAgentLoop childLoop = new ReActAgentLoop(env);
+        AgentLoop childLoop = loopFactory.createLoop();
 
         StringBuilder promptBuilder = new StringBuilder("TASK: ").append(node.task()).append("\n\n");
         if (!dependencyResults.isEmpty()) {

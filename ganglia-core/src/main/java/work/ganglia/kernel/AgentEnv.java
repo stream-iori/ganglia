@@ -15,7 +15,7 @@ import work.ganglia.port.internal.state.SessionManager;
 
 /**
  * Aggregates all core services and dependencies required by the Agent Kernel.
- * This simplifies constructor signatures and improves maintainability.
+ * This acts as a centralized container for application-wide singletons.
  */
 public class AgentEnv {
     private final Vertx vertx;
@@ -31,21 +31,23 @@ public class AgentEnv {
     private final ContextOptimizer contextOptimizer;
     private AgentTaskFactory taskFactory;
 
-    public AgentEnv(Vertx vertx, ModelGateway modelGateway, SessionManager sessionManager, PromptEngine promptEngine, 
-                    AgentConfigProvider configProvider, ModelConfigProvider modelConfig, ContextCompressor compressor, 
-                    MemoryService memoryService, ObservationDispatcher dispatcher, FaultTolerancePolicy faultTolerancePolicy, 
-                    ContextOptimizer contextOptimizer) {
-        this.vertx = vertx;
-        this.modelGateway = modelGateway;
-        this.sessionManager = sessionManager;
-        this.promptEngine = promptEngine;
-        this.configProvider = configProvider;
-        this.modelConfig = modelConfig;
-        this.compressor = compressor;
-        this.memoryService = memoryService;
-        this.dispatcher = dispatcher;
-        this.faultTolerancePolicy = faultTolerancePolicy;
-        this.contextOptimizer = contextOptimizer;
+    private AgentEnv(Builder builder) {
+        this.vertx = builder.vertx;
+        this.modelGateway = builder.modelGateway;
+        this.sessionManager = builder.sessionManager;
+        this.promptEngine = builder.promptEngine;
+        this.configProvider = builder.configProvider;
+        this.modelConfig = builder.modelConfig;
+        this.compressor = builder.compressor;
+        this.memoryService = builder.memoryService;
+        this.dispatcher = builder.dispatcher;
+        this.faultTolerancePolicy = builder.faultTolerancePolicy;
+        this.contextOptimizer = builder.contextOptimizer;
+        this.taskFactory = builder.taskFactory;
+    }
+
+    public static Builder builder() {
+        return new Builder();
     }
 
     public Vertx vertx() { return vertx; }
@@ -61,4 +63,38 @@ public class AgentEnv {
     public ContextOptimizer contextOptimizer() { return contextOptimizer; }
     public AgentTaskFactory taskFactory() { return taskFactory; }
     public void setTaskFactory(AgentTaskFactory taskFactory) { this.taskFactory = taskFactory; }
+
+    public static class Builder {
+        private Vertx vertx;
+        private ModelGateway modelGateway;
+        private SessionManager sessionManager;
+        private PromptEngine promptEngine;
+        private AgentConfigProvider configProvider;
+        private ModelConfigProvider modelConfig;
+        private ContextCompressor compressor;
+        private MemoryService memoryService;
+        private ObservationDispatcher dispatcher;
+        private FaultTolerancePolicy faultTolerancePolicy;
+        private ContextOptimizer contextOptimizer;
+        private AgentTaskFactory taskFactory;
+
+        private Builder() {}
+
+        public Builder vertx(Vertx vertx) { this.vertx = vertx; return this; }
+        public Builder modelGateway(ModelGateway modelGateway) { this.modelGateway = modelGateway; return this; }
+        public Builder sessionManager(SessionManager sessionManager) { this.sessionManager = sessionManager; return this; }
+        public Builder promptEngine(PromptEngine promptEngine) { this.promptEngine = promptEngine; return this; }
+        public Builder configProvider(AgentConfigProvider configProvider) { this.configProvider = configProvider; return this; }
+        public Builder modelConfig(ModelConfigProvider modelConfig) { this.modelConfig = modelConfig; return this; }
+        public Builder compressor(ContextCompressor compressor) { this.compressor = compressor; return this; }
+        public Builder memoryService(MemoryService memoryService) { this.memoryService = memoryService; return this; }
+        public Builder dispatcher(ObservationDispatcher dispatcher) { this.dispatcher = dispatcher; return this; }
+        public Builder faultTolerancePolicy(FaultTolerancePolicy faultTolerancePolicy) { this.faultTolerancePolicy = faultTolerancePolicy; return this; }
+        public Builder contextOptimizer(ContextOptimizer contextOptimizer) { this.contextOptimizer = contextOptimizer; return this; }
+        public Builder taskFactory(AgentTaskFactory taskFactory) { this.taskFactory = taskFactory; return this; }
+
+        public AgentEnv build() {
+            return new AgentEnv(this);
+        }
+    }
 }

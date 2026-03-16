@@ -51,17 +51,20 @@ public class ReActAgentLoopTest {
         StubToolExecutor tools = new StubToolExecutor();
         DefaultContextOptimizer optimizer = new DefaultContextOptimizer(configManager, configManager, compressor, new TokenCounter());
         
-        env = new AgentEnv(
-            vertx, model, sessionManager, prompt,
-            configManager, configManager, compressor, null,
-            new DefaultObservationDispatcher(vertx), new ConsecutiveFailurePolicy(),
-            optimizer
-        );
-
-        AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(env, tools, null, null, null);
-        env.setTaskFactory(taskFactory);
+        AgentLoopFactory loopFactory = () -> loop; // cyclic dependency hack for tests
+        AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(loopFactory, tools, null, null, null);
         
-        loop = new ReActAgentLoop(env);
+        loop = ReActAgentLoop.builder()
+            .vertx(vertx)
+            .dispatcher(new DefaultObservationDispatcher(vertx))
+            .sessionManager(sessionManager)
+            .configProvider(configManager)
+            .contextOptimizer(optimizer)
+            .promptEngine(prompt)
+            .modelGateway(model)
+            .taskFactory(taskFactory)
+            .faultTolerancePolicy(new ConsecutiveFailurePolicy())
+            .build();
     }
 
     @Test
