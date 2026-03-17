@@ -73,20 +73,47 @@ public class SWEBenchEvaluator {
             ContextCompressor compressor = new DefaultContextCompressor(model, config);
             DefaultSessionManager sessionManager = new DefaultSessionManager(new InMemoryStateEngine(), new InMemoryLogManager(), config);
 
-            AgentEnv env = new AgentEnv(
-                vertx, model, sessionManager, promptEngine,
-                config, config, compressor, null,
-                new DefaultObservationDispatcher(vertx), new ConsecutiveFailurePolicy(),
-                new DefaultContextOptimizer(config, config, compressor, new TokenCounter())
-            );
+            AgentEnv env = AgentEnv.builder()
+                .vertx(vertx)
+                .modelGateway(model)
+                .sessionManager(sessionManager)
+                .promptEngine(promptEngine)
+                .configProvider(config)
+                .modelConfig(config)
+                .compressor(compressor)
+                .dispatcher(new DefaultObservationDispatcher(vertx))
+                .faultTolerancePolicy(new ConsecutiveFailurePolicy())
+                .contextOptimizer(new DefaultContextOptimizer(config, config, compressor, new TokenCounter()))
+                .build();
 
             // Create a minimal AgentTaskFactory without sub-agents or skills
             AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(
-                env, toolExecutor, null, null, null
+                () -> ReActAgentLoop.builder()
+                        .vertx(env.vertx())
+                        .dispatcher(env.dispatcher())
+                        .sessionManager(env.sessionManager())
+                        .configProvider(env.configProvider())
+                        .contextOptimizer(env.contextOptimizer())
+                        .promptEngine(env.promptEngine())
+                        .modelGateway(env.modelGateway())
+                        .taskFactory(env.taskFactory())
+                        .faultTolerancePolicy(env.faultTolerancePolicy())
+                        .build(),
+                toolExecutor, null, null, null
             );
             env.setTaskFactory(taskFactory);
 
-            ReActAgentLoop loop = new ReActAgentLoop(env);
+            ReActAgentLoop loop = ReActAgentLoop.builder()
+                .vertx(env.vertx())
+                .dispatcher(env.dispatcher())
+                .sessionManager(env.sessionManager())
+                .configProvider(env.configProvider())
+                .contextOptimizer(env.contextOptimizer())
+                .promptEngine(env.promptEngine())
+                .modelGateway(env.modelGateway())
+                .taskFactory(env.taskFactory())
+                .faultTolerancePolicy(env.faultTolerancePolicy())
+                .build();
 
             // 2. Run Agent
             Map<String, Object> metadata = new HashMap<>();
