@@ -34,6 +34,13 @@
 
         <!-- Test dependencies -->
         <dependency>
+            <groupId>work.ganglia</groupId>
+            <artifactId>ganglia-core</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
