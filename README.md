@@ -1,30 +1,48 @@
 # Ganglia
 
-**Ganglia** is a high-performance, non-blocking Java 17 Agent framework built on **Vert.x 5.0.6**. It follows a **Hexagonal (Ports & Adapters)** architecture, prioritizing simplicity, robustness, and transparency for building autonomous agents that can be integrated into any third-party application.
+**Ganglia** is a high-performance, non-blocking Java 17 Agent framework built on **Vert.x 5.0.6**. It follows a **Hexagonal (Ports & Adapters)** architecture, prioritizing simplicity, robustness, and transparency for building autonomous agents that can be seamlessly integrated into any third-party application.
 
-![Status](https://img.shields.io/badge/status-Implemented-success)
-![Version](https://img.shields.io/badge/version-1.5.0-blue)
+![Status](https://img.shields.io/badge/status-In_Development-yellow)
+![Version](https://img.shields.io/badge/version-0.1.5-blue)
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![Vert.x](https://img.shields.io/badge/Vert.x-5.0.6-purple)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+> [!WARNING]
+> **Status: Early Development.** Ganglia is currently in an active development phase. API stability is not guaranteed, and it is **not yet suitable for production use**.
 
 ---
 
 ## 🚀 Key Features
 
-- **Single Control Loop (ReAct):** A powerful, flat reasoning loop inspired by Claude Code.
-- **Hexagonal Architecture:** Complete decoupling of core reasoning (Kernel) from model providers and technical implementations (Infrastructure).
-- **Layered Prompt Architecture:** A 5-layer prompt assembly model (**Kernel, Process, Capability, Rule, Context**) ensuring a consistent, senior engineer identity and sequential R-S-E workflow.
-- **Native LLM Gateways:** Native support for OpenAI and Anthropic protocols via Vert.x WebClient. **No third-party SDK dependencies.**
+- **Single Control Loop (ReAct):** A powerful, flat reasoning loop inspired by modern coding agents (e.g., Claude Code), designed for iterative problem-solving and tool execution.
+- **Hexagonal Architecture:** Complete decoupling of core reasoning (Kernel) from model providers and technical implementations (Infrastructure), ensuring high testability and platform independence.
+- **Aspect-Oriented Hooks:** A unified `AgentInterceptor` pipeline allowing for transparent context enrichment, security validation, and post-turn reflection without cluttering core logic.
+- **Advanced Memory Subsystem (v1.3 logic):**
+    - **MemoryStore:** Hybrid search (text + metadata) for long-term knowledge retrieval.
+    - **Observation Compression:** Real-time, LLM-powered summarization of large tool outputs (>4000 chars) to prevent context window bloat.
+    - **Progressive Disclosure:** Automatic injection of memory indexes into prompts, allowing agents to recall full details on demand using unique IDs.
+    - **Timeline Ledger:** An automated system medical record (`TIMELINE.md`) tracking every major decision and architectural change.
+- **Native LLM Gateways:** Native implementations of OpenAI and Anthropic protocols using Vert.x WebClient. **Zero third-party SDK dependencies.**
 - **Memory as Code:** Transparent, file-based memory system using Markdown (`.ganglia/memory/MEMORY.md` and Daily Journals).
-- **Startup Self-Check:** Automatic initialization of core directory structure (`skills/`, `memory/`, `state/`, etc.) and configuration.
-- **Standard-based Communication:** Standard **WebSockets** and **JSON-RPC 2.0** for all client-server interactions.
-- **Asynchronous & Reactive:** Built entirely on Vert.x for high-concurrency, non-blocking operations.
 - **Modern React WebUI:** A high-performance dashboard built with **React 18**, **Zustand**, and **shadcn/ui** for real-time monitoring, continuous timeline tracking, and high-fidelity code/diff review.
 
 ---
 
+## 🏗 Architecture
+
+Ganglia is organized into four clean hexagonal layers:
+
+1.  **API / Adapter Layer**: Entry points like `WebUIVerticle` (WebSockets) and `TerminalUI` (Console).
+2.  **Kernel Layer**: The heart of the reasoning loop, task scheduling, interceptor pipeline, and state evolution.
+3.  **Port Layer**: Domain models (`Message`, `Turn`, `Context`, `MemoryEntry`) and strict service interfaces.
+4.  **Infrastructure Layer**: Technical implementations (LLM Gateways, File System, Memory Persistence).
+
+For more details, see the [Architecture Documentation](docs/ARCHITECTURE.md).
+
+---
+
 ## ⚡ Quick Start with `just`
-...
 
 The project uses the `just` command runner for common development tasks.
 
@@ -36,35 +54,6 @@ The project uses the `just` command runner for common development tasks.
 | `just ui-watch` | Build UI in watch mode (updates `dist/` continuously) |
 | `just build-all` | Full production build (UI + Backend JAR) |
 | `just test` | Run all tests (Backend & Frontend) |
-
----
-
-## 🛠 Development Workflow
-
-### Mock Mode (No Backend Required)
-For rapid UI prototyping and protocol verification, you can run the frontend in **Mock Mode**:
-1. Start the dev server: `just frontend`
-2. Open **`http://localhost:5173/?mock`**
-3. See [MOCK-PROTOCOL.md](ganglia-webui/docs/MOCK-PROTOCOL.md) for verification steps.
-
-### Linked Debugging (Recommended)
-To see frontend changes reflected in the backend-served UI immediately:
-1. **Terminal 1**: `just ui-watch` (keeps `dist/` updated).
-2. **Terminal 2**: `just backend` (serves assets from `dist/`).
-3. Open `http://localhost:8080`.
-
----
-
-## 🏗 Architecture
-
-Ganglia is organized into four hexagonal layers:
-
-1.  **API / Adapter Layer**: Entry points like `WebUIVerticle` (WebSockets) and `TerminalUI` (Console).
-2.  **Kernel Layer**: The heart of the reasoning loop, task scheduling, and state evolution.
-3.  **Port Layer**: Domain models (`Message`, `Turn`, `Context`) and strict service interfaces.
-4.  **Infrastructure Layer**: Implementation details (LLM Gateways, File System, Persistence).
-
-For more details, see the [Architecture Documentation](docs/ARCHITECTURE.md).
 
 ---
 
@@ -88,5 +77,7 @@ Ganglia uses **JSON-RPC 2.0** over **WebSockets** for all external client commun
 ---
 
 ## 📜 License
+
+Distributed under the **MIT License**. See `LICENSE` for more information.
 
 © 2026 Ganglia Team. All rights reserved.
