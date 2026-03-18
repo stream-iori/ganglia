@@ -30,6 +30,9 @@ import work.ganglia.kernel.subagent.GraphExecutor;
 import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.kernel.task.DefaultAgentTaskFactory;
 import work.ganglia.port.external.llm.ModelGateway;
+import work.ganglia.port.internal.hook.AgentInterceptor;
+import work.ganglia.kernel.hook.InterceptorPipeline;
+import work.ganglia.kernel.hook.builtin.ObservationCompressionHook;
 import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.port.internal.memory.DailyRecordManager;
 import work.ganglia.port.internal.memory.LongTermMemory;
@@ -134,6 +137,9 @@ public class GangliaKernel {
         memoryService.registerModule(new DailyJournalModule(compressor, dailyRecordManager));
         memoryService.registerModule(new LongTermKnowledgeModule(longTermMemory));
 
+        InterceptorPipeline pipeline = new InterceptorPipeline();
+        pipeline.addInterceptor(new ObservationCompressionHook(observationCompressor, memoryStore));
+
         ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, longTermMemory, projectRoot);
         StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, memoryService, skillRuntime, null, tokenCounter, options.extraContextSources());
         promptEngine.addContextSource(new DailyContextSource(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString()));
@@ -167,12 +173,13 @@ public class GangliaKernel {
             .modelGateway(modelGateway)
             .taskFactory(lazyTaskFactoryProxy)
             .faultTolerancePolicy(failurePolicy)
+            .pipeline(pipeline)
             .build();
 
         GraphExecutor graphExecutor = new DefaultGraphExecutor(loopFactory);
 
         AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(
-            loopFactory, toolExecutor, graphExecutor, skillService, skillRuntime, observationCompressor, memoryStore
+            loopFactory, toolExecutor, graphExecutor, skillService, skillRuntime
         );
         
         // Wire circular dependencies
@@ -208,11 +215,12 @@ public class GangliaKernel {
             .modelGateway(modelGateway)
             .taskFactory(taskFactory)
             .faultTolerancePolicy(failurePolicy)
+            .pipeline(pipeline)
             .build();
 
         // Update factories with the correct loop factory
         AgentTaskFactory finalTaskFactory = new DefaultAgentTaskFactory(
-            finalLoopFactory, toolExecutor, graphExecutor, skillService, skillRuntime, observationCompressor, memoryStore
+            finalLoopFactory, toolExecutor, graphExecutor, skillService, skillRuntime
         );
         env.setTaskFactory(finalTaskFactory);
         promptEngine.setTaskFactory(finalTaskFactory);

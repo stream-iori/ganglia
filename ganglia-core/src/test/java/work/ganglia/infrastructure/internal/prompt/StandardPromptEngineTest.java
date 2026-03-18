@@ -49,7 +49,7 @@ class StandardPromptEngineTest {
     void testPrepareRequest(Vertx vertx, VertxTestContext testContext) {
         StubToolExecutor toolExecutor = new StubToolExecutor(); // Returns empty list by default
         TokenCounter counter = new TokenCounter();
-        AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(() -> null, new StubToolExecutor(), null, null, null, null, null);
+        AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(() -> null, new StubToolExecutor(), null, null, null);
         StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, taskFactory, counter);
 
         ModelOptions options = new ModelOptions(0.0, 100, "test-model", true);

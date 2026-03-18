@@ -68,7 +68,7 @@ public class GraphExecutorTest {
         this.graphExecutor = new DefaultGraphExecutor(loopFactory);
 
         taskFactoryRef[0] = new DefaultAgentTaskFactory(
-            loopFactory, toolExecutor, graphExecutor, null, null, null, null
+            loopFactory, toolExecutor, graphExecutor, null, null
         );
         graphExecutor.initialize(taskFactoryRef[0]);
     }

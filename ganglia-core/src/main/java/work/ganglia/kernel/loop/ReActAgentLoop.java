@@ -32,6 +32,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
+import work.ganglia.kernel.hook.InterceptorPipeline;
+
 /**
  * Manages the ReAct reasoning loop.
  */
@@ -47,6 +50,7 @@ public class ReActAgentLoop implements AgentLoop {
     private final ModelGateway modelGateway;
     private final AgentTaskFactory taskFactory;
     private final FaultTolerancePolicy faultTolerancePolicy;
+    private final InterceptorPipeline pipeline;
 
     private final ConcurrentHashMap<String, AgentSignal> sessionSignals = new ConcurrentHashMap<>();
 
@@ -60,6 +64,7 @@ public class ReActAgentLoop implements AgentLoop {
         this.modelGateway = builder.modelGateway;
         this.taskFactory = builder.taskFactory;
         this.faultTolerancePolicy = builder.faultTolerancePolicy;
+        this.pipeline = builder.pipeline != null ? builder.pipeline : new InterceptorPipeline();
     }
 
     public static Builder builder() {
@@ -83,11 +88,20 @@ public class ReActAgentLoop implements AgentLoop {
         sessionSignals.put(initialContext.sessionId(), signal);
         publishObservation(initialContext.sessionId(), ObservationType.TURN_STARTED, userInput);
 
-        Message userMessage = Message.user(userInput);
-        SessionContext context = sessionManager.startTurn(initialContext, userMessage);
+        return pipeline.executePreTurn(initialContext, userInput)
+            .compose(hookedContext -> {
+                Message userMessage = Message.user(userInput);
+                SessionContext contextWithInput = sessionManager.startTurn(hookedContext, userMessage);
 
-        return sessionManager.persist(context)
-            .compose(v -> runLoop(context, signal))
+                return sessionManager.persist(contextWithInput)
+                    .compose(v -> runLoop(contextWithInput, signal))
+                    .compose(finalResponse -> {
+                        // Fire and forget postTurn hook
+                        pipeline.executePostTurn(contextWithInput, Message.assistant(finalResponse))
+                                .onFailure(err -> logger.warn("PostTurn hook failed", err));
+                        return Future.succeededFuture(finalResponse);
+                    });
+            })
             .onComplete(v -> sessionSignals.remove(initialContext.sessionId()))
             .recover(err -> {
                 if (!(err instanceof AgentInterruptException)) {
@@ -282,8 +296,21 @@ public class ReActAgentLoop implements AgentLoop {
             }
         };
 
-        return task.execute(originalContext, execContext)
-            .recover(err -> Future.succeededFuture(new AgentTaskResult(AgentTaskResult.Status.EXCEPTION, "Execution error: " + err.getMessage(), null)))
+        return pipeline.executePreToolExecute(task.getToolCall(), currentContext)
+            .compose(hookedCall -> {
+                // If hookedCall is rejected via a failed future, the recover block handles it
+                return task.execute(originalContext, execContext)
+                    .recover(err -> Future.succeededFuture(new AgentTaskResult(AgentTaskResult.Status.EXCEPTION, "Execution error: " + err.getMessage(), null)))
+                    .compose(rawResult -> {
+                        ToolInvokeResult toolResult = new ToolInvokeResult(rawResult.output(), convertStatus(rawResult.status()), null, rawResult.modifiedContext(), "");
+                        return pipeline.executePostToolExecute(hookedCall, toolResult, originalContext)
+                            .map(hookedResult -> new AgentTaskResult(convertStatusBack(hookedResult.status()), hookedResult.output(), hookedResult.modifiedContext()));
+                    });
+            })
+            .recover(err -> {
+                // If preToolExecute blocked it or postToolExecute totally crashed
+                return Future.succeededFuture(new AgentTaskResult(AgentTaskResult.Status.ERROR, "Hook execution blocked/failed: " + err.getMessage(), null));
+            })
             .compose(result -> {
                 Map<String, Object> resData = Map.of("toolCallId", task.id());
                 switch (result.status()) {
@@ -309,6 +336,24 @@ public class ReActAgentLoop implements AgentLoop {
             });
     }
 
+    private ToolInvokeResult.Status convertStatus(AgentTaskResult.Status status) {
+        return switch (status) {
+            case SUCCESS -> ToolInvokeResult.Status.SUCCESS;
+            case ERROR -> ToolInvokeResult.Status.ERROR;
+            case EXCEPTION -> ToolInvokeResult.Status.EXCEPTION;
+            case INTERRUPT -> ToolInvokeResult.Status.INTERRUPT;
+        };
+    }
+
+    private AgentTaskResult.Status convertStatusBack(ToolInvokeResult.Status status) {
+        return switch (status) {
+            case SUCCESS -> AgentTaskResult.Status.SUCCESS;
+            case ERROR -> AgentTaskResult.Status.ERROR;
+            case EXCEPTION -> AgentTaskResult.Status.EXCEPTION;
+            case INTERRUPT -> AgentTaskResult.Status.INTERRUPT;
+        };
+    }
+
     private Future<SessionContext> cancelRemainingTasks(List<AgentTask> tasks, int index, SessionContext currentContext) {
         if (index >= tasks.size()) return Future.succeededFuture(currentContext);
         AgentTask task = tasks.get(index);
@@ -326,6 +371,7 @@ public class ReActAgentLoop implements AgentLoop {
         private ModelGateway modelGateway;
         private AgentTaskFactory taskFactory;
         private FaultTolerancePolicy faultTolerancePolicy;
+        private InterceptorPipeline pipeline;
 
         private Builder() {}
 
@@ -338,6 +384,7 @@ public class ReActAgentLoop implements AgentLoop {
         public Builder modelGateway(ModelGateway modelGateway) { this.modelGateway = modelGateway; return this; }
         public Builder taskFactory(AgentTaskFactory taskFactory) { this.taskFactory = taskFactory; return this; }
         public Builder faultTolerancePolicy(FaultTolerancePolicy faultTolerancePolicy) { this.faultTolerancePolicy = faultTolerancePolicy; return this; }
+        public Builder pipeline(InterceptorPipeline pipeline) { this.pipeline = pipeline; return this; }
 
         public ReActAgentLoop build() {
             return new ReActAgentLoop(this);
