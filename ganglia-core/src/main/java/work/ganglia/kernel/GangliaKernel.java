@@ -34,6 +34,9 @@ import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.port.internal.memory.DailyRecordManager;
 import work.ganglia.port.internal.memory.LongTermMemory;
 import work.ganglia.port.internal.memory.MemoryService;
+import work.ganglia.port.internal.memory.MemoryStore;
+import work.ganglia.port.internal.memory.ObservationCompressor;
+import work.ganglia.port.internal.memory.TimelineLedger;
 import work.ganglia.port.internal.skill.SkillLoader;
 import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.skill.SkillService;
@@ -77,7 +80,9 @@ public class GangliaKernel {
             })
             .compose(v -> initializeSkillSystem(projectRoot))
             .compose(skillService -> initializeMemorySystem(projectRoot).map(longTermMemory -> new InitContext(skillService, longTermMemory)))
-            .compose(ctx -> assembleSystem(projectRoot, ctx.skillService, ctx.longTermMemory));
+            .compose(ctx -> work.ganglia.infrastructure.mcp.McpConfigManager.loadMcpToolSets(vertx, projectRoot)
+                .map(mcpRegistry -> new InitContext2(ctx, mcpRegistry)))
+            .compose(ctx2 -> assembleSystem(projectRoot, ctx2.ctx.skillService, ctx2.ctx.longTermMemory, ctx2.mcpRegistry));
     }
 
     private Future<Void> ensureCoreStructure(String projectRoot) {
@@ -110,11 +115,15 @@ public class GangliaKernel {
         return longTermMemory.ensureInitialized().map(v -> longTermMemory);
     }
 
-    private Future<Ganglia> assembleSystem(String projectRoot, SkillService skillService, LongTermMemory longTermMemory) {
+    private Future<Ganglia> assembleSystem(String projectRoot, SkillService skillService, LongTermMemory longTermMemory, work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry) {
         ModelGateway rawGateway = options.modelGatewayOverride() != null 
             ? options.modelGatewayOverride() 
             : ModelGatewayFactory.create(vertx, configManager);
         ModelGateway modelGateway = new RetryingModelGateway(rawGateway, vertx);
+
+        MemoryStore memoryStore = new FileSystemMemoryStore(vertx, projectRoot);
+        ObservationCompressor observationCompressor = new LLMObservationCompressor(modelGateway, 4000);
+        TimelineLedger timelineLedger = new MarkdownTimelineLedger(vertx, projectRoot);
 
         SkillRuntime skillRuntime = new DefaultSkillRuntime(vertx, skillService);
         TokenCounter tokenCounter = new TokenCounter();
@@ -128,13 +137,18 @@ public class GangliaKernel {
         ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, longTermMemory, projectRoot);
         StandardPromptEngine promptEngine = new StandardPromptEngine(vertx, memoryService, skillRuntime, null, tokenCounter, options.extraContextSources());
         promptEngine.addContextSource(new DailyContextSource(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString()));
+        promptEngine.addContextSource(new MemoryContextSource(memoryStore));
 
         SessionManager sessionManager = new DefaultSessionManager(new FileStateEngine(vertx), new FileLogManager(vertx), configManager);
         
         List<ToolSet> allExtraToolSets = new ArrayList<>(options.extraToolSets());
+        if (mcpRegistry != null && mcpRegistry.toolSets() != null) {
+            allExtraToolSets.addAll(mcpRegistry.toolSets());
+        }
         for (ToolSetProvider provider : options.extraToolSetProviders()) {
             allExtraToolSets.add(provider.create(vertx, compressor, longTermMemory, projectRoot));
         }
+        allExtraToolSets.add(new work.ganglia.infrastructure.external.tool.RecallMemoryTools(memoryStore));
         
         DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, allExtraToolSets);
         DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
@@ -158,7 +172,7 @@ public class GangliaKernel {
         GraphExecutor graphExecutor = new DefaultGraphExecutor(loopFactory);
 
         AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(
-            loopFactory, toolExecutor, graphExecutor, skillService, skillRuntime
+            loopFactory, toolExecutor, graphExecutor, skillService, skillRuntime, observationCompressor, memoryStore
         );
         
         // Wire circular dependencies
@@ -198,7 +212,7 @@ public class GangliaKernel {
 
         // Update factories with the correct loop factory
         AgentTaskFactory finalTaskFactory = new DefaultAgentTaskFactory(
-            finalLoopFactory, toolExecutor, graphExecutor, skillService, skillRuntime
+            finalLoopFactory, toolExecutor, graphExecutor, skillService, skillRuntime, observationCompressor, memoryStore
         );
         env.setTaskFactory(finalTaskFactory);
         promptEngine.setTaskFactory(finalTaskFactory);
@@ -211,10 +225,12 @@ public class GangliaKernel {
 
         ReActAgentLoop primaryAgentLoop = (ReActAgentLoop) finalLoopFactory.createLoop();
 
-        return Future.succeededFuture(new Ganglia(modelGateway, toolExecutor, sessionManager, primaryAgentLoop, configManager, env));
+        int mcpCount = mcpRegistry != null && mcpRegistry.toolSets() != null ? mcpRegistry.toolSets().size() : 0;
+        return Future.succeededFuture(new Ganglia(modelGateway, toolExecutor, sessionManager, primaryAgentLoop, configManager, env, mcpCount, mcpRegistry));
     }
 
     private record InitContext(SkillService skillService, LongTermMemory longTermMemory) {}
+    private record InitContext2(InitContext ctx, work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry) {}
 
     private static class LazyTaskFactoryProxy implements AgentTaskFactory {
         private AgentTaskFactory delegate;

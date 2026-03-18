@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public record McpCallToolResult(
     List<Content> content,
     Boolean isError

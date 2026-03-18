@@ -34,7 +34,7 @@ public class StartupSelfCheckIT {
                     assertTrue(Files.exists(tempDir.resolve(".ganglia/memory")));
                     assertTrue(Files.exists(tempDir.resolve(".ganglia/state")));
                     assertTrue(Files.exists(tempDir.resolve(".ganglia/logs")));
-                    assertTrue(Files.exists(tempDir.resolve("MEMORY.md")));
+                    assertTrue(Files.exists(tempDir.resolve(".ganglia/memory/MEMORY.md")));
                     testContext.completeNow();
                 });
             }));

@@ -6,6 +6,8 @@ import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.port.external.tool.ToolExecutor;
+import work.ganglia.port.internal.memory.MemoryStore;
+import work.ganglia.port.internal.memory.ObservationCompressor;
 import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.skill.SkillService;
 
@@ -23,15 +25,20 @@ public class DefaultAgentTaskFactory implements AgentTaskFactory {
     private final GraphExecutor graphExecutor; // Nullable
     private final SkillService skillService;   // Nullable
     private final SkillRuntime skillRuntime;   // Nullable
+    private final ObservationCompressor observationCompressor;
+    private final MemoryStore memoryStore;
 
     public DefaultAgentTaskFactory(AgentLoopFactory loopFactory, ToolExecutor standardToolExecutor, 
                                    GraphExecutor graphExecutor, SkillService skillService, 
-                                   SkillRuntime skillRuntime) {
+                                   SkillRuntime skillRuntime,
+                                   ObservationCompressor observationCompressor, MemoryStore memoryStore) {
         this.loopFactory = loopFactory;
         this.standardToolExecutor = standardToolExecutor;
         this.graphExecutor = graphExecutor;
         this.skillService = skillService;
         this.skillRuntime = skillRuntime;
+        this.observationCompressor = observationCompressor;
+        this.memoryStore = memoryStore;
     }
 
     @Override
@@ -45,7 +52,7 @@ public class DefaultAgentTaskFactory implements AgentTaskFactory {
         } else if (isSkillTool(toolName, context)) {
             return new SkillTask(call, skillService, skillRuntime);
         } else {
-            return new StandardToolTask(call, standardToolExecutor);
+            return new StandardToolTask(call, standardToolExecutor, observationCompressor, memoryStore);
         }
     }
 

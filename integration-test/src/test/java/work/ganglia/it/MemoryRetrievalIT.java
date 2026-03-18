@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
@@ -61,7 +62,14 @@ public class MemoryRetrievalIT {
 
     @Test
     void testAgentRetrievesFromMemory(Vertx vertx, VertxTestContext testContext) {
-        String memoryFile = sharedTempDir.resolve("MEMORY.md").toString();
+        Path memoryPath = sharedTempDir.resolve(".ganglia/memory/MEMORY.md");
+        try {
+            Files.createDirectories(memoryPath.getParent());
+        } catch (Exception e) {
+            testContext.failNow(e);
+            return;
+        }
+        String memoryFile = memoryPath.toString();
         String secret = "The secret code is 998877";
         vertx.fileSystem().writeFileBlocking(memoryFile, Buffer.buffer(secret));
 

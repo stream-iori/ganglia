@@ -99,7 +99,7 @@ public class SWEBenchEvaluator {
                         .taskFactory(env.taskFactory())
                         .faultTolerancePolicy(env.faultTolerancePolicy())
                         .build(),
-                toolExecutor, null, null, null
+                toolExecutor, null, null, null, null, null
             );
             env.setTaskFactory(taskFactory);
 

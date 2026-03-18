@@ -28,8 +28,18 @@ public record Ganglia(
     SessionManager sessionManager,
     ReActAgentLoop agentLoop,
     ConfigManager configManager,
-    AgentEnv env
+    AgentEnv env,
+    int mcpServersCount,
+    work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry
 ) {
+    /**
+     * Shuts down the Ganglia instance and all its components, including MCP servers.
+     */
+    public void shutdown() {
+        if (mcpRegistry != null) {
+            mcpRegistry.close();
+        }
+    }
     /**
      * Initializes the Ganglia framework with default configuration.
      *

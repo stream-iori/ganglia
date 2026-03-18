@@ -9,7 +9,7 @@
 *   **Expected Behavior**:
     1. Call `web_fetch` to get content.
     2. Extract the "Conventions" section.
-    3. Call `remember` to write content to `MEMORY.md`.
+    3. Call `remember` to write content to `.ganglia/memory/MEMORY.md`.
 *   **Verification**: `MEMORY_CONTAINS` expectation in `Scenario1KnowledgeAcquisitionE2EIT`.
 
 ## 2. Scenario 2: System Diagnosis & Issue Location (Shell -> Thought)

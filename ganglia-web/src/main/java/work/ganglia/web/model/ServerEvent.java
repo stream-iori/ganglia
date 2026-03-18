@@ -72,7 +72,8 @@ public record ServerEvent(
 
     public record InitConfigData(
         String workspacePath,
-        String sessionId
+        String sessionId,
+        int mcpCount
     ) {}
 
     public record PlanUpdateData(

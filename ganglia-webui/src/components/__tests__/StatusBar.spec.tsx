@@ -19,7 +19,8 @@ describe('StatusBar Component', () => {
       status: 'DISCONNECTED',
       fileTreeUpdatedAt: 0,
       workspacePath: 'Loading...',
-      currentPhase: 'IDLE'
+      currentPhase: 'IDLE',
+      mcpCount: 0
     })
     useLogStore.setState({ events: [], streamingMessage: '' })
   })
@@ -32,6 +33,13 @@ describe('StatusBar Component', () => {
     // The connected dot should have bg-emerald-500
     const dot = document.querySelector('.bg-emerald-500')
     expect(dot).toBeInTheDocument()
+  })
+
+  it('renders MCP count when greater than 0', () => {
+    useSystemStore.setState({ mcpCount: 2 })
+    render(<StatusBar />)
+    expect(screen.getByText('MCP')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
   })
 
   it('shows file synchronization tip when fileTreeUpdatedAt changes', async () => {

@@ -15,7 +15,7 @@
 - **Hexagonal Architecture:** Complete decoupling of core reasoning (Kernel) from model providers and technical implementations (Infrastructure).
 - **Layered Prompt Architecture:** A 5-layer prompt assembly model (**Kernel, Process, Capability, Rule, Context**) ensuring a consistent, senior engineer identity and sequential R-S-E workflow.
 - **Native LLM Gateways:** Native support for OpenAI and Anthropic protocols via Vert.x WebClient. **No third-party SDK dependencies.**
-- **Memory as Code:** Transparent, file-based memory system using Markdown (`MEMORY.md` and Daily Journals).
+- **Memory as Code:** Transparent, file-based memory system using Markdown (`.ganglia/memory/MEMORY.md` and Daily Journals).
 - **Startup Self-Check:** Automatic initialization of core directory structure (`skills/`, `memory/`, `state/`, etc.) and configuration.
 - **Standard-based Communication:** Standard **WebSockets** and **JSON-RPC 2.0** for all client-server interactions.
 - **Asynchronous & Reactive:** Built entirely on Vert.x for high-concurrency, non-blocking operations.

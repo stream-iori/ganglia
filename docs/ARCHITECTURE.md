@@ -28,7 +28,7 @@ The core design philosophy follows a **Hexagonal (Ports & Adapters)** architectu
     - The agent explores codebases using tools (`grep`, `glob`, `read`) rather than relying purely on pre-computed embeddings.
 
 5.  **Memory as Code:**
-    - Memory is stored in **Markdown files** (`MEMORY.md`, Daily Records).
+    - Memory is stored in **Markdown files** (`.ganglia/memory/MEMORY.md`, Daily Records).
     - It is transparent, editable, and version-controlled.
 
 6.  **Startup Self-Check:**
@@ -63,6 +63,7 @@ graph TD
     subgraph Infra ["4. Infrastructure Layer (Implementation)"]
         Gateways["Native LLM Gateways (OpenAI, Anthropic Protocols)"]
         Tools["Standard Tool Implementations (Bash, FS)"]
+        MCP["MCP Client (Stdio / SSE)"]
         Observability["TraceManager & WebUIEventPublisher (Event Consumers)"]
         Vertx["Vert.x Core (EventBus, WebClient)"]
     end
@@ -89,8 +90,9 @@ graph TD
 ### 3.3 The Infrastructure Layer ("The Hands")
 
 - **Native LLM Gateways:** Implements protocols via Vert.x `WebClient`. Supports explicit timeouts and broadened retry logic for connection resets.
+- **MCP Client:** Implements the Model Context Protocol. Allows Ganglia to dynamically load tools from external MCP servers (configured via `.ganglia/.mcp.json`).
 - **Event Consumers:** `WebUIEventPublisher` and `TraceManager` are decoupled from the loop; they simply consume the unified observation stream and forward it to WebSockets or Files.
-- **Persistence:** Unified via `FileSystemUtil`, ensuring standard structures like `.ganglia/config.json` and session state folders exist.
+- **Persistence:** Unified via `FileSystemUtil`, ensuring standard structures like `.ganglia/config.json`, `.mcp.json`, and session state folders exist.
 
 ## 4. The Memory System
 
@@ -98,7 +100,7 @@ graph TD
     - **Short-Term (Turn):** Raw interaction details.
     - **Medium-Term (Session):** Managed via rolling compression.
     - **Daily Journal:** Cross-session summaries in `.ganglia/memory/daily-*.md`.
-    - **Long-Term (Project):** `MEMORY.md`.
+    - **Long-Term (Project):** `.ganglia/memory/MEMORY.md`.
 - **Deduplication & Timeline:** The system preserves a literal timeline of thoughts and tool calls, calculating and displaying execution/reasoning duration for every step.
 
 ## 5. Human-in-the-Loop & Steering

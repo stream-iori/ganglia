@@ -33,6 +33,7 @@ export interface PlanUpdateData {
 export interface InitConfigData {
   workspacePath: string;
   sessionId: string;
+  mcpCount?: number;
 }
 
 export interface ThoughtData {

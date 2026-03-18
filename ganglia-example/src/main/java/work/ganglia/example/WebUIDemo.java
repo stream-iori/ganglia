@@ -3,8 +3,8 @@ package work.ganglia.example;
 import io.vertx.core.Vertx;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import work.ganglia.Ganglia;
 import work.ganglia.BootstrapOptions;
+import work.ganglia.coding.CodingAgentBuilder;
 import work.ganglia.config.model.GangliaConfig;
 import work.ganglia.web.WebUIEventPublisher;
 import work.ganglia.web.WebUIVerticle;
@@ -13,7 +13,7 @@ import java.util.List;
 
 /**
  * Example demonstrating how to bootstrap Ganglia with the WebUI.
- * This demo uses the new 'ganglia-web' module for decoupling.
+ * This demo uses the new 'ganglia-web' module for decoupling and CodingAgent for capabilities.
  */
 public class WebUIDemo {
     private static final Logger logger = LoggerFactory.getLogger(WebUIDemo.class);
@@ -25,10 +25,12 @@ public class WebUIDemo {
         BootstrapOptions options = BootstrapOptions.defaultOptions()
             .withObservers(List.of(new WebUIEventPublisher(vertx)));
 
-        // 2. Bootstrap Ganglia
-        Ganglia.bootstrap(vertx, options)
+        // 2. Bootstrap Ganglia with Coding Capabilities
+        CodingAgentBuilder.bootstrap(vertx, options)
             .onSuccess(ganglia -> {
-                logger.info("Ganglia Core bootstrapped successfully.");
+                Runtime.getRuntime().addShutdownHook(new Thread(ganglia::shutdown));
+
+                System.out.println("Ganglia Core bootstrapped successfully.");
 
                 // 3. Extract WebUI config and deploy the Verticle from ganglia-web module
                 GangliaConfig.WebUIConfig webConfig = ganglia.configManager().getGangliaConfig().webui();
@@ -37,7 +39,8 @@ public class WebUIDemo {
                         webConfig.port(),
                         webConfig.webroot(),
                         ganglia.agentLoop(),
-                        ganglia.sessionManager()
+                        ganglia.sessionManager(),
+                        ganglia.mcpServersCount()
                     );
 
                     vertx.deployVerticle(webUIVerticle)

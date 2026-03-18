@@ -1,6 +1,6 @@
 # Ganglia Project Context
 
-**Status:** Core Implemented (v1.2.0)
+**Status:** Core Implemented (v1.3.0 - Context Compression & Memory Refactoring)
 
 ## 1. Project Overview
 Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for high-performance, non-blocking agentic workflows. It follows a **Hexagonal (Ports & Adapters)** architecture, featuring a robust **Kernel** loop, a unified **Port** layer for domain models and interfaces, and a native **Infrastructure** layer for LLM integrations and file-based memory.
@@ -28,11 +28,16 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for
 - **FileEdit:** `FileEditTools` for precise line-based search and replace.
 - **Interaction:** `InteractionTools` (`ask_selection`) for human-in-the-loop flows.
 - **Workflow:** `ToDoTools` for managing agent-led plans and task status.
-- **Memory:** `KnowledgeBaseTools` for reading/updating `MEMORY.md`.
+- **Memory:** `KnowledgeBaseTools`, **`RecallMemoryTools`** (fetch compressed observations).
 - **Search:** `grep_search`, `glob`, and `web_fetch`.
 
 ### 3.3 Memory & State
-- **Three-Tier Memory:** Turns (ephemeral), Sessions (compressed via `ContextCompressor`), and Long-term (`MEMORY.md` & Daily Logs).
+- **Three-Tier Memory:** Turns (ephemeral), Sessions (compressed via `ContextCompressor`), and Long-term (`.ganglia/memory/MEMORY.md` & Daily Logs).
+- **Context Compression & Hybrid Search (v1.3.0):**
+    - `MemoryStore`: File-based storage for `MemoryEntry` with hybrid search (keyword, category, tags).
+    - `ObservationCompressor`: LLM-powered real-time compression of large tool outputs (>4000 chars).
+    - `TimelineLedger`: Automated Markdown-based system medical record (`TIMELINE.md`).
+    - `Progressive Disclosure`: Injecting memory indexes into system prompts via `MemoryContextSource`.
 - **Daily Journal:** `DailyRecordManager` persists cross-session accomplishments to `.ganglia/memory/daily-*.md`.
 - **Persistence:** `FileStateEngine` ensures session continuity across restarts via JSON serialization.
 

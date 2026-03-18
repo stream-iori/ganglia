@@ -25,7 +25,7 @@ public final class Constants {
     public static final String DIR_MEMORY = ".ganglia/memory";
     public static final String DIR_TRACE = ".ganglia/trace";
 
-    public static final String FILE_MEMORY_MD = "MEMORY.md";
+    public static final String FILE_MEMORY_MD = ".ganglia/memory/MEMORY.md";
     public static final String FILE_GANGLIA_MD = "GANGLIA.md";
     public static final String FILE_SKILL_MD = "SKILL.md";
 }

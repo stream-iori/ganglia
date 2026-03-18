@@ -27,9 +27,9 @@ public class LongTermKnowledgeModule implements MemoryModule {
     @Override
     public Future<List<ContextFragment>> provideContext(SessionContext context) {
         String content = """
-                - You have access to a persistent knowledge base (MEMORY.md).
+                - You have access to a persistent knowledge base (.ganglia/memory/MEMORY.md).
                 - Use the 'remember' tool to save important facts, user preferences, or architectural decisions.
-                - Use 'grep' or 'read' to search MEMORY.md if you need to recall project context.
+                - Use 'grep' or 'read' to search .ganglia/memory/MEMORY.md if you need to recall project context.
                 """;
         return Future.succeededFuture(List.of(
             ContextFragment.prunable("Memory & Context", content, ContextFragment.PRIORITY_MEMORY)

@@ -37,8 +37,8 @@
 
 ### 1.3 Memory & Context ("The Brain")
 *   **Ephemeral Memory:** The system shall log all interactions (thoughts, tool calls, results) to a daily markdown file (`.ganglia/logs/YYYY-MM-DD.md`).
-*   **Curated Memory:** The system shall support a `MEMORY.md` file for long-term user preferences and project context.
-*   **Active Retrieval:** The agent shall be able to search its own memory files (`grep` logs or `MEMORY.md`) to recall past information.
+*   **Curated Memory:** The system shall support a `.ganglia/memory/MEMORY.md` file for long-term user preferences and project context.
+*   **Active Retrieval:** The agent shall be able to search its own memory files (`grep` logs or `.ganglia/memory/MEMORY.md`) to recall past information.
 *   **Context Management:** The system shall intelligently prune the context window to stay within token limits while preserving the most relevant information.
 
 ### 1.4 Human-in-the-Loop & Interaction
@@ -70,7 +70,7 @@
 *   **Latency:** The system shall support streaming responses (tokens) to the UI to minimize perceived latency. [DONE]
 *   **Transparency:** All agent actions ("Thoughts", Tool Calls) must be visible to the user in real-time. [DONE via WebUI Stream]
 *   **Rich UI:** The terminal interface shall support multiline input, syntax highlighting, and Markdown rendering. The WebUI shall implement an Interaction Matrix for noise reduction. [DONE]
-*   **Editability:** Users must be able to manually edit the generated `MEMORY.md` and log files to correct the agent's understanding.
+*   **Editability:** Users must be able to manually edit the generated `.ganglia/memory/MEMORY.md` and log files to correct the agent's understanding.
 
 ### 2.3 Observability & Debugging
 *   **Tracing:** The system shall emit OpenTelemetry traces for every ReAct step and tool execution.

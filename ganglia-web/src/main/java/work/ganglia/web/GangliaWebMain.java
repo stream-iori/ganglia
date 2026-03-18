@@ -27,6 +27,8 @@ public class GangliaWebMain {
 
         CodingAgentBuilder.bootstrap(vertx, options)
             .onSuccess(ganglia -> {
+                Runtime.getRuntime().addShutdownHook(new Thread(ganglia::shutdown));
+                
                 GangliaConfig.WebUIConfig webUIConfig = ganglia.configManager().getGangliaConfig().webui();
                 if (webUIConfig != null && webUIConfig.enabled()) {
                     int port = webUIConfig.port();
@@ -36,7 +38,8 @@ public class GangliaWebMain {
                         port, 
                         webroot, 
                         ganglia.agentLoop(), 
-                        ganglia.sessionManager()
+                        ganglia.sessionManager(),
+                        ganglia.mcpServersCount()
                     );
                     
                     vertx.deployVerticle(webUIVerticle)

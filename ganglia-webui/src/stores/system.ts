@@ -20,6 +20,7 @@ interface SystemState {
   pendingContextPath: string | null
   fileTreeUpdatedAt: number
   activeAskId: string | null
+  mcpCount: number
 
   // Actions
   setStatus: (status: ConnectionStatus) => void
@@ -67,6 +68,7 @@ export const useSystemStore = create<SystemState>((set, get) => {
     pendingContextPath: null,
     fileTreeUpdatedAt: 0,
     activeAskId: null,
+    mcpCount: 0,
 
     setStatus: (status) => set({ status }),
     setSessionId: (id) => {

@@ -35,7 +35,22 @@ The `SkillContextSource` ensures that:
 - **Expert Guidelines**: The "System Prompt" fragments from `SKILL.md` are added to the Kernel's prompt.
 - **Tool Schemas**: Schemas for tools belonging to active skills are merged into the model request.
 
-## 5. Directory Constants
+## 6. Model Context Protocol (MCP) Integration
+
+While Skills provide internal, domain-specific extensions, Ganglia also supports the **Model Context Protocol (MCP)** for cross-platform tool integration.
+
+### 6.1 MCP vs. Skills
+- **Skills**: Native to Ganglia, tied to `.ganglia/skills`, can be JARs or simple scripts with a `SKILL.md` manifest.
+- **MCP**: Industry-standard protocol. Ganglia acts as an MCP Client, connecting to external MCP Servers (e.g., SQLite, GitHub, Chrome DevTools) via **Stdio** or **SSE** transports.
+
+### 6.2 Configuration & Lifecycle
+- **Config**: MCP servers are configured in `.ganglia/.mcp.json`.
+- **Loading**: `McpConfigManager` bootstraps servers during the `GangliaKernel` initialization.
+- **Tool Mapping**: Tools provided by MCP servers are automatically wrapped into a `McpToolSet` and made available to the agent.
+- **Shutdown**: All MCP server child processes are gracefully closed via the JVM shutdown hook managed by `McpRegistry`.
+
+## 7. Directory Constants
 Paths are managed via `work.ganglia.util.Constants`:
 - `DIR_SKILLS`: Default location (`.ganglia/skills`).
 - `FILE_SKILL_MD`: Standard manifest filename (`SKILL.md`).
+- `FILE_MCP_JSON`: MCP configuration (`.ganglia/.mcp.json`).

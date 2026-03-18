@@ -46,7 +46,7 @@ The content of `GANGLIA.md` is parsed by headers and injected into the system pr
 | System | Role | Persistence |
 | :--- | :--- | :--- |
 | **Guidelines (`GANGLIA.md`)** | Immutable (mostly) behavioral rules and project standards. | Project-level (Git) |
-| **Memory (`MEMORY.md`)** | Evolving facts, preferences, and architectural decisions. | Project-level (Git) |
+| **Memory (`.ganglia/memory/MEMORY.md`)** | Evolving facts, preferences, and architectural decisions. | Project-level (Git) |
 | **Skills** | Domain-specific expertise and tools (e.g., "AWS Expert"). | Module-level |
 
 ## 5. Benefits

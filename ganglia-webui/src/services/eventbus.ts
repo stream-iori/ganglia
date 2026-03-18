@@ -439,6 +439,7 @@ class EventBusService {
       const data = event.data as InitConfigData
       if (data.workspacePath) systemStore.setWorkspacePath(data.workspacePath)
       if (data.sessionId) systemStore.setSessionId(data.sessionId)
+      if (data.mcpCount !== undefined) useSystemStore.setState({ mcpCount: data.mcpCount })
       return
     }
 

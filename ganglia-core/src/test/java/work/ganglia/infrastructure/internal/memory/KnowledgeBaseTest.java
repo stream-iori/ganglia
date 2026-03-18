@@ -43,6 +43,23 @@ class KnowledgeBaseTest {
     }
 
     @Test
+    void testDefaultConstructorUsesConsolidatedPath(Vertx vertx, VertxTestContext testContext) {
+        FileSystemLongTermMemory defaultMemory = new FileSystemLongTermMemory(vertx);
+        // The default path is .ganglia/memory/MEMORY.md
+        String defaultPath = ".ganglia/memory/MEMORY.md";
+        
+        defaultMemory.ensureInitialized()
+            .compose(v -> vertx.fileSystem().exists(defaultPath))
+            .onComplete(testContext.succeeding(exists -> {
+                testContext.verify(() -> {
+                    assertTrue(exists, "Default MEMORY.md should be created in .ganglia/memory/");
+                    // Cleanup
+                    vertx.fileSystem().delete(defaultPath).onComplete(v -> testContext.completeNow());
+                });
+            }));
+    }
+
+    @Test
     void testAppendAndRead(VertxTestContext testContext) {
         String content = "User prefers concise answers.";
 

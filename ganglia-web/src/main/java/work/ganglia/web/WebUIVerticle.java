@@ -42,20 +42,23 @@ public class WebUIVerticle extends AbstractVerticle {
     private final Map<String, List<JsonObject>> sessionHistories = new ConcurrentHashMap<>();
     private final Map<String, Set<ServerWebSocket>> sessionSockets = new ConcurrentHashMap<>();
 
+    private final int mcpServersCount;
+
     private WatchService watchService;
     private volatile Thread watcherThread;
     private long lastNotifyTime = 0;
     private static final long DEBOUNCE_MS = 1000;
 
-    public WebUIVerticle(int port, AgentLoop agentLoop, SessionManager sessionManager) {
-        this(port, "webroot", agentLoop, sessionManager);
+    public WebUIVerticle(int port, AgentLoop agentLoop, SessionManager sessionManager, int mcpServersCount) {
+        this(port, "webroot", agentLoop, sessionManager, mcpServersCount);
     }
 
-    public WebUIVerticle(int port, String webroot, AgentLoop agentLoop, SessionManager sessionManager) {
+    public WebUIVerticle(int port, String webroot, AgentLoop agentLoop, SessionManager sessionManager, int mcpServersCount) {
         this.port = port;
         this.webroot = webroot != null ? webroot : "webroot";
         this.agentLoop = agentLoop;
         this.sessionManager = sessionManager;
+        this.mcpServersCount = mcpServersCount;
     }
 
     @Override
@@ -281,7 +284,7 @@ public class WebUIVerticle extends AbstractVerticle {
     private void handleSync(JsonRpcRequest request, ServerWebSocket ws, String sessionId) {
         // Push Init Config first
         publishEvent(sessionId, EventType.INIT_CONFIG,
-            new ServerEvent.InitConfigData(Path.of(".").toAbsolutePath().toString(), sessionId));
+            new ServerEvent.InitConfigData(Path.of(".").toAbsolutePath().toString(), sessionId, mcpServersCount));
 
         List<JsonObject> history = sessionHistories.getOrDefault(sessionId, java.util.Collections.emptyList());
         sendRpcResponse(ws, request.id(), new JsonObject().put("history", new JsonArray(history)));

@@ -98,9 +98,9 @@ public class E2ETestHarness {
                     assertTrue(Files.exists(Path.of(exp.value())),
                         "File should exist: " + exp.value());
                 case "MEMORY_CONTAINS" -> {
-                    // Logic to check MEMORY.md
+                    // Logic to check .ganglia/memory/MEMORY.md
                     try {
-                        String memory = Files.readString(Path.of("MEMORY.md"));
+                        String memory = Files.readString(Path.of(".ganglia/memory/MEMORY.md"));
                         assertTrue(memory.contains(exp.value()),
                             "Memory should contain: " + exp.value());
                     } catch (Exception e) {

@@ -34,7 +34,7 @@ public class FileSystemLongTermMemory implements LongTermMemory {
     public FileSystemLongTermMemory(Vertx vertx, String baseDir, String defaultFileName) {
         this.vertx = vertx;
         this.baseDir = baseDir != null ? baseDir : ".";
-        this.defaultFileName = defaultFileName != null ? defaultFileName : "MEMORY.md";
+        this.defaultFileName = defaultFileName != null ? defaultFileName : ".ganglia/memory/MEMORY.md";
     }
 
     /**
@@ -51,7 +51,7 @@ public class FileSystemLongTermMemory implements LongTermMemory {
             this.defaultFileName = filePath.substring(lastSlash + 1);
         } else {
             this.baseDir = ".";
-            this.defaultFileName = filePath != null ? filePath : "MEMORY.md";
+            this.defaultFileName = filePath != null ? filePath : ".ganglia/memory/MEMORY.md";
         }
     }
 
@@ -61,7 +61,7 @@ public class FileSystemLongTermMemory implements LongTermMemory {
      * @param vertx The Vertx instance.
      */
     public FileSystemLongTermMemory(Vertx vertx) {
-        this(vertx, "MEMORY.md");
+        this(vertx, ".ganglia/memory/MEMORY.md");
     }
 
     private String getFilePath(String topic) {

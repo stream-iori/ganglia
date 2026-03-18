@@ -27,10 +27,10 @@ Ganglia implements a **Three-Tier Memory System** designed to balance high-fidel
 ### Tier 3: Long-Term Memory (The "Project Knowledge")
 *   **Scope:** Cross-session project lifespan.
 *   **Implementation:** 
-    *   `MEMORY.md`: Curated "lessons learned" and preferences.
+    *   `.ganglia/memory/MEMORY.md`: Curated "lessons learned" and preferences.
     *   `.ganglia/logs/`: Archived raw logs.
 *   **Addition:** **Active**. The agent uses the `remember` tool to append facts. Users can also manually edit this file.
-*   **Retrieval:** **Agentic / On-Demand**. The agent is instructed that it has access to `MEMORY.md` and should use `grep_search` or `read_file` to recall context when needed. This prevents context bloat while keeping knowledge accessible.
+*   **Retrieval:** **Agentic / On-Demand**. The agent is instructed that it has access to `.ganglia/memory/MEMORY.md` and should use `grep_search` or `read_file` to recall context when needed. This prevents context bloat while keeping knowledge accessible.
 
 ## 3. Compression & Summarization Strategy
 ...
@@ -51,5 +51,5 @@ To prevent context overflow, Ganglia employs an aggressive summarization strateg
 ## 5. Memory-Tool Integration
 
 *   **`todo_complete`**: Signals the memory system to pack up context.
-*   **`remember`**: Tool for the agent to write facts to `MEMORY.md`.
+*   **`remember`**: Tool for the agent to write facts to `.ganglia/memory/MEMORY.md`.
 *   **`grep_search`**: Search over logs and memory files.

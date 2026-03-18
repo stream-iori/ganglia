@@ -1,49 +1,49 @@
-# Memory & Usage Decoupling (Implemented)
+# Ganglia Context Compression & Memory Architecture (v1.3.0)
 
-> **Status:** Implemented (v1.2.0)
-> **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
+To solve the "amnesia" problem and context window bloat in Ganglia, we have introduced three new core capabilities based on the "Progressive Disclosure" and "Hybrid Search" principles.
 
-## 1. Objective
-Decouple cognitive background tasks (Memory Reflection, Token Tracking) from the primary reasoning loop to ensure high responsiveness and modularity.
+## 1. Core Components
 
-## 2. Event-Driven Architecture
+### `MemoryStore` (Long-term Storage)
+- **Interface:** `work.ganglia.port.internal.memory.MemoryStore`
+- **Implementation:** `work.ganglia.infrastructure.internal.memory.FileSystemMemoryStore`
+- **Purpose:** Stores `MemoryEntry` records as JSON files in `.ganglia/memory/entries/`.
+- **Hybrid Search:** Supports multi-dimensional filtering by keyword (String match), category (Enum), and tags (KV pairs).
+- **Progressive Disclosure:** Maintains a lightweight in-memory index (`MemoryIndexItem`) for fast prompt injection.
 
-The system uses the Vert.x EventBus for all non-critical, auxiliary tasks. Addresses are centralized in `work.ganglia.util.Constants`.
+### `ObservationCompressor` (Real-time Compression)
+- **Interface:** `work.ganglia.port.internal.memory.ObservationCompressor`
+- **Implementation:** `work.ganglia.infrastructure.internal.memory.LLMObservationCompressor`
+- **Purpose:** Intercepts large tool outputs (threshold: 4000 characters) in the kernel loop and uses an LLM to generate a concise summary.
+- **Workflow:** Compressed observations are stored in `MemoryStore` and replaced in the chat history with a summary containing a Recall ID.
 
-### 2.1 Core EventBus Addresses
-| Address | Constant | Description |
-| :--- | :--- | :--- |
-| `ganglia.memory.event` | `ADDRESS_MEMORY_EVENT` | Trigger summarization & journaling. |
-| `ganglia.usage.record` | `ADDRESS_USAGE_RECORD` | Persist actual token consumption. |
-| `ganglia.usage.estimate` | `ADDRESS_USAGE_ESTIMATE` | Real-time usage estimation for UI. |
+### `TimelineLedger` (System Medical Record)
+- **Interface:** `work.ganglia.port.internal.memory.TimelineLedger`
+- **Implementation:** `work.ganglia.infrastructure.internal.memory.MarkdownTimelineLedger`
+- **Purpose:** Automatically records system-critical events, decisions, and refactorings into `.ganglia/memory/TIMELINE.md`.
 
-## 3. Interaction Flow
+## 2. Integration Details
 
-```mermaid
-sequenceDiagram
-    participant Loop as StandardAgentLoop (Kernel)
-    participant EB as EventBus
-    participant Mem as MemoryService (Port)
-    participant Usage as TokenUsageManager (Infra)
+### Kernel Integration
+`StandardToolTask` intercepts successful tool executions. If the output is too long, it:
+1. Calls `ObservationCompressor` to get a summary.
+2. Generates a unique 8-character ID.
+3. Saves the original output and summary as a `MemoryEntry` in `MemoryStore`.
+4. Returns a message to the agent: *"Output was very long and has been compressed. ID: [id]. Summary: [summary]. Use recall_memory tool to view full content."*
 
-    Loop->>EB: publish(ADDRESS_USAGE_RECORD, usage)
-    EB->>Usage: persistUsage(usage)
+### Prompt Integration
+`MemoryContextSource` pulls the 10 most recent memory index items from `MemoryStore` and injects them into the system prompt. This allows the Agent to see what it "knows" without loading full contents.
 
-    Note over Loop: ... executes ReAct cycle ...
+### Recall Tool
+`RecallMemoryTools` provides the `recall_memory(id)` tool, allowing the Agent to fetch the full content of any compressed observation or stored memory on demand.
 
-    Loop->>EB: send(ADDRESS_MEMORY_EVENT, turnData)
-    EB->>Mem: handleReflect(turnData)
-    Mem->>LLM: reflect(turnData)
-    LLM-->>Mem: summary
-    Mem->>FS: appendToDailyLog(summary)
+## 3. Storage Structure
 ```
-
-## 4. Key Components
-
-- **`MemoryService` (Port)**: Acts as the registry for memory-related background listeners.
-- **`TokenUsageManager` (Infrastructure)**: An implementation that tracks costs and quota per session.
-- **`StandardAgentLoop` (Kernel)**: Only responsible for firing these "fire-and-forget" events at specific lifecycle hooks.
-
-## 5. Benefits
-- **Zero Latency Impact**: Memory reflection (which requires an LLM call) happens entirely in the background.
-- **Observability**: External services can subscribe to `ganglia.observations.*` to monitor the agent's internal state in real-time.
+.ganglia/
+└── memory/
+    ├── entries/
+    │   ├── abcdef12.json
+    │   └── ...
+    ├── TIMELINE.md
+    └── MEMORY.md (Standard knowledge base)
+```

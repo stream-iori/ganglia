@@ -74,9 +74,9 @@ public class Scenario1KnowledgeAcquisitionE2EIT {
 
         harness.runScenario(scenario)
             .onComplete(testContext.succeeding(result -> {
-                // Cleanup MEMORY.md if it exists
+                // Cleanup .ganglia/memory/MEMORY.md if it exists
                 try {
-                    Files.deleteIfExists(Path.of("MEMORY.md"));
+                    Files.deleteIfExists(Path.of(".ganglia/memory/MEMORY.md"));
                 } catch (Exception ignore) {}
                 testContext.completeNow();
             }));

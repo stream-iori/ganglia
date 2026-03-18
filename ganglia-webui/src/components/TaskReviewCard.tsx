@@ -11,7 +11,7 @@ const TaskReviewCard: React.FC = () => {
   }
 
   const handleMemorySave = () => {
-    eventBusService.send('START', { prompt: 'Please summarize the learnings from this task and save them to MEMORY.md.' })
+    eventBusService.send('START', { prompt: 'Please summarize the learnings from this task and save them to .ganglia/memory/MEMORY.md.' })
   }
 
   return (

@@ -52,7 +52,7 @@ public class ReActAgentLoopTest {
         DefaultContextOptimizer optimizer = new DefaultContextOptimizer(configManager, configManager, compressor, new TokenCounter());
         
         AgentLoopFactory loopFactory = () -> loop; // cyclic dependency hack for tests
-        AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(loopFactory, tools, null, null, null);
+        AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(loopFactory, tools, null, null, null, null, null);
         
         loop = ReActAgentLoop.builder()
             .vertx(vertx)

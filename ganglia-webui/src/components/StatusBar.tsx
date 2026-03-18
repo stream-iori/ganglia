@@ -118,6 +118,15 @@ const StatusBar: React.FC = () => {
             </span>
           </div>
 
+          {systemStore.mcpCount > 0 && (
+            <div className="flex items-center gap-2 border-l border-slate-800 pl-6 py-1" title="Loaded MCP Servers">
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">MCP</span>
+              <span className="text-[11px] font-mono text-emerald-400 truncate bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-800/50">
+                {systemStore.mcpCount}
+              </span>
+            </div>
+          )}
+
           {showFileSyncTip && (
             <div className="flex items-center gap-2 border-l border-slate-800 pl-6 py-1 animate-in fade-in slide-in-from-left-4">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span>

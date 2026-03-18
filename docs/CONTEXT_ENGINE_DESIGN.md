@@ -13,7 +13,7 @@ Provide a transparent, editable, and layered context construction system. System
 Defines the interface for context origins.
 - **`FileContextSource`**: Markdown files in the project root (e.g., `GANGLIA.md`, `ARCHITECTURE.md`).
 - **`ToDoContextSource`**: Runtime state from the `ToDoList`.
-- **`MemoryContextSource`**: Semantic fragments from `MEMORY.md`.
+- **`MemoryContextSource`**: Semantic fragments from `.ganglia/memory/MEMORY.md`.
 - **`EnvironmentSource`**: System information (OS, Java Version, Directory Structure snapshot).
 - **`SkillContextSource`**: Injects specialized guidelines from active skills.
 - **`ToolContextSource`**: Injects tool definitions and usage instructions.
@@ -50,7 +50,7 @@ These fragments represent the agent's current knowledge of the world and its tas
 | **4. Capability**| 40 | **Skills** | **What are my specialties?** | `SkillContextSource` |
 | **5. Context** | 50 | **Environment** | **Where am I?** (System, path, structure) | `EnvironmentSource` |
 | | 51 | **Current Plan** | **What is the goal?** (ToDo list) | `ToDoContextSource` |
-| | 60 | **Memory** | **What have I learned?** (MEMORY.md) | `MemoryContextSource` |
+| | 60 | **Memory** | **What have I learned?** (.ganglia/memory/MEMORY.md) | `MemoryContextSource` |
 
 ## 4. Implementation Detail: Token Pruning
 The `StandardPromptEngine` applies a **bottom-up pruning** strategy when total tokens exceed the model's window:
