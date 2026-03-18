@@ -1,68 +1,68 @@
-# Ganglia SWE-bench 评估模块
+# Ganglia SWE-bench Evaluation Module
 
-`ganglia-swe-bench` 是 Ganglia 框架的官方评估组件，专门用于在 [SWE-bench](https://www.swebench.com/) (Software Engineering Benchmark) 数据集上测试 Agent 的工程解决能力。它提供了一个隔离的 Docker 沙箱环境，让 Agent 能够尝试修复真实的 GitHub Issue，并自动验证修复结果。
+`ganglia-swe-bench` is the official evaluation component of the Ganglia framework, specifically designed to test Agent engineering capabilities on the [SWE-bench](https://www.swebench.com/) (Software Engineering Benchmark) dataset. It provides an isolated Docker sandbox environment where Agents can attempt to fix real-world GitHub Issues and automatically verify the results.
 
-## 1. 核心作用
+## 1. Core Features
 
-*   **自动化测试环境**：通过 Testcontainers 集成 Docker，为每个任务动态创建隔离的 Python/Git 环境。
-*   **端到端评估**：模拟从读取 Issue 描述到定位代码、修改 Bug、运行测试的完整工程链路。
-*   **轨迹记录 (Trajectory Log)**：详细记录 Agent 的每一步推理和工具调用，生成的日志位于 `target/e2e-logs/` 下。
-*   **精准验证**：使用数据集提供的 `FAIL_TO_PASS` 测试用例，在 Agent 完成修复后自动应用官方测试补丁进行最终验收。
+*   **Automated Test Environment**: Integrates Docker via Testcontainers to dynamically create isolated Python/Git environments for each task.
+*   **End-to-End Evaluation**: Simulates the complete engineering workflow, from reading Issue descriptions to locating code, fixing bugs, and running tests.
+*   **Trajectory Logging**: Records every reasoning step and tool call made by the Agent. Logs are generated in `target/e2e-logs/`.
+*   **Precise Verification**: Uses the `FAIL_TO_PASS` test cases provided by the dataset. After the Agent completes a fix, official test patches are applied for final acceptance.
 
-## 2. 环境准备
+## 2. Prerequisites
 
-在运行评估之前，请确保您的开发环境满足以下要求：
+Before running the evaluation, ensure your development environment meets the following requirements:
 
-### 2.1 Docker 镜像
-评估模块依赖预构建的 Docker 镜像作为沙箱基础。目前主要支持 `astropy` 相关的任务：
+### 2.1 Docker Image
+The evaluation module relies on pre-built Docker images as the sandbox base. Currently, it primarily supports `astropy` related tasks:
 ```bash
-# 在项目根目录下执行
+# Execute from the project root
 docker build -t astropy-base -f ganglia-swe-bench/docker/Dockerfile.astropy-base ganglia-swe-bench/docker
 ```
 
-### 2.2 数据集下载
-需要下载 SWE-bench Lite 的子集作为评估输入。
+### 2.2 Dataset Download
+A subset of SWE-bench Lite needs to be downloaded as evaluation input.
 ```bash
-# 建议在虚拟环境中安装依赖
+# Recommendation: Install dependencies in a virtual environment
 python3 -m venv venv
 source venv/bin/activate
 uv pip install datasets
 python3 ganglia-swe-bench/download_dataset.py
 ```
-这将在 `ganglia-swe-bench/target/` 下生成 `swe_bench_lite_subset.jsonl` 文件。
+This will generate the `swe_bench_lite_subset.jsonl` file under `ganglia-swe-bench/target/`.
 
-### 2.3 配置文件
-确保 `.ganglia/config.json` 中配置了有效的 LLM API Key (OpenAI 兼容接口)。
+### 2.3 Configuration
+Ensure that a valid LLM API Key (OpenAI-compatible interface) is configured in `.ganglia/config.json`.
 
-## 3. 运行评估方式
+## 3. Running the Evaluation
 
-使用 Maven 执行评估器主类：
+Execute the evaluator main class using Maven:
 
 ```bash
 mvn exec:java -Dexec.mainClass="work.ganglia.swebench.SWEBenchEvaluator" -pl ganglia-swe-bench
 ```
 
-### 运行参数说明：
-*   默认运行 `ganglia-swe-bench/target/swe_bench_lite_subset.jsonl` 中的前 5 个任务。
-*   评估器会依次为每个任务启动容器、克隆代码、运行 Agent。
+### Execution Parameters:
+*   By default, it runs the first 5 tasks from `ganglia-swe-bench/target/swe_bench_lite_subset.jsonl`.
+*   The evaluator will sequentially start containers, clone code, and run the Agent for each task.
 
-## 4. 验证方式
+## 4. Verification Workflow
 
-评估器通过以下步骤判定任务是否成功：
+The evaluator determines task success through the following steps:
 
-1.  **Agent 运行阶段**：Agent 在沙箱中拥有 `run_shell_command`、`read_file`、`replace_in_file` 等权限。它必须自主决定如何修改代码。
-2.  **验收阶段 (Validation)**：
-    *   **应用测试补丁**：评估器会将数据集中的 `test_patch` (官方验证测试) 应用到 Agent 修改后的代码上。
-    *   **针对性测试**：评估器根据任务元数据中的 `FAIL_TO_PASS` 字段，运行那些原本应该失败但现在应该通过的测试用例。
-3.  **判定标准**：
-    *   **RESOLVED**：所有 `FAIL_TO_PASS` 列表中的测试均运行成功 (PASSED)。
-    *   **FAILED**：任何一个测试失败，或 Agent 在达到最大迭代次数前未给出最终答案。
+1.  **Agent Execution Phase**: The Agent is granted permissions such as `run_shell_command`, `read_file`, and `replace_in_file` within the sandbox. It must autonomously decide how to modify the code.
+2.  **Acceptance Phase (Validation)**:
+    *   **Apply Test Patch**: The evaluator applies the `test_patch` (official verification tests) from the dataset to the Agent's modified code.
+    *   **Targeted Testing**: Based on the `FAIL_TO_PASS` field in the task metadata, the evaluator runs specific test cases that were previously failing but are now expected to pass.
+3.  **Determination Criteria**:
+    *   **RESOLVED**: All tests in the `FAIL_TO_PASS` list run successfully (PASSED).
+    *   **FAILED**: Any test fails, or the Agent fails to provide a final answer before reaching the maximum iteration limit.
 
-## 5. 目录结构
+## 5. Directory Structure
 
-*   `docker/`: 包含各种语言/项目的基础 Dockerfile。
+*   `docker/`: Contains base Dockerfiles for various languages/projects.
 *   `src/main/java/.../swebench/`: 
-    *   `SWEBenchEvaluator`: 评估主循环。
-    *   `SandboxManager`: Docker 容器全生命周期管理。
-    *   `tools/`: 适配 Docker 环境的专属工具集 (DockerBashTools, etc.)。
-*   `download_dataset.py`: 数据集准备脚本。
+    *   `SWEBenchEvaluator`: Main evaluation loop.
+    *   `SandboxManager`: Lifecycle management for Docker containers.
+    *   `tools/`: Specialized toolsets adapted for the Docker environment (DockerBashTools, etc.).
+*   `download_dataset.py`: Script for dataset preparation.
