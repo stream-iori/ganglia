@@ -71,3 +71,5 @@ config.json
 
 brainstorm/
 learning/
+.specify/
+specs/
