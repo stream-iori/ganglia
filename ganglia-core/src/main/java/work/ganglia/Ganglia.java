@@ -23,6 +23,7 @@ import java.util.List;
  * A container for the bootstrapped Ganglia core components.
  */
 public record Ganglia(
+    Vertx vertx,
     ModelGateway modelGateway,
     ToolExecutor toolExecutor,
     SessionManager sessionManager,
@@ -39,7 +40,19 @@ public record Ganglia(
         if (mcpRegistry != null) {
             mcpRegistry.close();
         }
+        if (vertx != null) {
+            vertx.close();
+        }
     }
+    /**
+     * Initializes the Ganglia framework with default configuration and a new Vertx instance.
+     *
+     * @return A future that completes with the initialized Ganglia instance.
+     */
+    public static Future<Ganglia> bootstrap() {
+        return bootstrap(Vertx.vertx());
+    }
+
     /**
      * Initializes the Ganglia framework with default configuration.
      *
@@ -48,6 +61,16 @@ public record Ganglia(
      */
     public static Future<Ganglia> bootstrap(Vertx vertx) {
         return bootstrap(vertx, BootstrapOptions.defaultOptions());
+    }
+
+    /**
+     * Initializes the Ganglia framework with specific options and a new Vertx instance.
+     *
+     * @param options Initialization options.
+     * @return A future that completes with the initialized Ganglia instance.
+     */
+    public static Future<Ganglia> bootstrap(BootstrapOptions options) {
+        return bootstrap(Vertx.vertx(), options);
     }
 
     /**
@@ -71,18 +94,6 @@ public record Ganglia(
             .withExtraContextSources(contexts);
 
         return new GangliaKernel(vertx, finalOptions).init();
-    }
-
-    /**
-     * Legacy bootstrap method for backward compatibility.
-     */
-    @Deprecated
-    public static Future<Ganglia> bootstrap(Vertx vertx, String configPath, JsonObject overrideConfig, ModelGateway gateway) {
-        BootstrapOptions options = BootstrapOptions.defaultOptions()
-            .withConfigPath(configPath)
-            .withOverrideConfig(overrideConfig)
-            .withModelGateway(gateway);
-        return bootstrap(vertx, options);
     }
 }
 
