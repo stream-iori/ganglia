@@ -1,6 +1,5 @@
 package work.ganglia.kernel.todo;
 
-import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import org.junit.jupiter.api.Test;
@@ -19,7 +18,7 @@ class ToDoContextSourceTest {
     @Test
     void testLayeredToDoFragments(VertxTestContext testContext) {
         ToDoContextSource source = new ToDoContextSource();
-        
+
         ToDoList toDoList = ToDoList.empty()
             .addTask("Task 1")
             .addTask("Task 2")

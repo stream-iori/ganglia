@@ -2,7 +2,6 @@ package work.ganglia;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
 import work.ganglia.config.ConfigManager;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.kernel.AgentEnv;
@@ -37,13 +36,10 @@ public record Ganglia(
      * Shuts down the Ganglia instance and all its components, including MCP servers.
      */
     public void shutdown() {
-        if (mcpRegistry != null) {
-            mcpRegistry.close();
-        }
-        if (vertx != null) {
-            vertx.close();
-        }
+        if (mcpRegistry != null) mcpRegistry.close();
+        vertx.close();
     }
+
     /**
      * Initializes the Ganglia framework with default configuration and a new Vertx instance.
      *

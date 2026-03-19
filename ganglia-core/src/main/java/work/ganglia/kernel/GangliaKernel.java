@@ -234,7 +234,7 @@ public class GangliaKernel {
         ReActAgentLoop primaryAgentLoop = (ReActAgentLoop) finalLoopFactory.createLoop();
 
         int mcpCount = mcpRegistry != null && mcpRegistry.toolSets() != null ? mcpRegistry.toolSets().size() : 0;
-        return Future.succeededFuture(new Ganglia(modelGateway, toolExecutor, sessionManager, primaryAgentLoop, configManager, env, mcpCount, mcpRegistry));
+        return Future.succeededFuture(new Ganglia(vertx, modelGateway, toolExecutor, sessionManager, primaryAgentLoop, configManager, env, mcpCount, mcpRegistry));
     }
 
     private record InitContext(SkillService skillService, LongTermMemory longTermMemory) {}

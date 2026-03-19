@@ -17,14 +17,12 @@ public class ClaudeDemo {
     private static final Logger logger = LoggerFactory.getLogger(ClaudeDemo.class);
 
     public static void main(String[] args) {
-        Vertx vertx = Vertx.vertx();
-
-        Ganglia.bootstrap(vertx)
+        Ganglia.bootstrap()
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
-                DemoUtil.gracefulShutdown(vertx);
             })
             .onSuccess(ganglia -> {
+                Vertx vertx = ganglia.vertx();
                 TerminalUI ui = TerminalUI.create(vertx);
                 String sessionId = "claude-demo-" + UUID.randomUUID().toString().substring(0, 8);
 

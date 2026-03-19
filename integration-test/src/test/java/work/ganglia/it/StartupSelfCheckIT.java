@@ -27,7 +27,7 @@ public class StartupSelfCheckIT {
             .withProjectRoot(projectRoot)
             .withOverrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)));
 
-         CodingAgentBuilder.bootstrap(vertx, options)
+         CodingAgentBuilder.bootstrap(options)
             .onComplete(testContext.succeeding(ganglia -> {
                 testContext.verify(() -> {
                     assertTrue(Files.exists(tempDir.resolve(".ganglia/skills")));
@@ -35,6 +35,7 @@ public class StartupSelfCheckIT {
                     assertTrue(Files.exists(tempDir.resolve(".ganglia/state")));
                     assertTrue(Files.exists(tempDir.resolve(".ganglia/logs")));
                     assertTrue(Files.exists(tempDir.resolve(".ganglia/memory/MEMORY.md")));
+                    ganglia.shutdown();
                     testContext.completeNow();
                 });
             }));

@@ -12,15 +12,13 @@ import java.util.UUID;
 public class ToDoWorkflowDemo {
 
     public static void main(String[] args) {
-        Vertx vertx = Vertx.vertx();
-
-        // 1. Bootstrap core logic using Ganglia
-        Ganglia.bootstrap(vertx)
+        // 1. Bootstrap core logic using Ganglia (zero-args uses a default Vertx instance)
+        Ganglia.bootstrap()
             .onFailure(err -> {
                 System.err.println("Bootstrap failed: " + err.getMessage());
-                vertx.close();
             })
             .onSuccess(ganglia -> {
+                Vertx vertx = ganglia.vertx();
                 // 2. Setup UI for streaming feedback
                 TerminalUI ui = TerminalUI.create(vertx);
 

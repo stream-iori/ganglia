@@ -25,6 +25,20 @@ import java.util.List;
 public class CodingAgentBuilder {
 
     /**
+     * Bootstraps a Ganglia instance with all coding tools and default options.
+     */
+    public static Future<Ganglia> bootstrap() {
+        return bootstrap(Vertx.vertx(), BootstrapOptions.defaultOptions());
+    }
+
+    /**
+     * Bootstraps a Ganglia instance with all coding tools and specific options.
+     */
+    public static Future<Ganglia> bootstrap(BootstrapOptions options) {
+        return bootstrap(Vertx.vertx(), options);
+    }
+
+    /**
      * Bootstraps a Ganglia instance with all coding tools and context sources.
      */
     public static Future<Ganglia> bootstrap(Vertx vertx, BootstrapOptions baseOptions) {
