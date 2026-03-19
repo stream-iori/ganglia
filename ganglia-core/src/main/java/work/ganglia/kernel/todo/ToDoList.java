@@ -72,4 +72,29 @@ public record ToDoList(List<ToDoItem> items) {
         }
         return sb.toString();
     }
+
+    /**
+     * Provides a summarized view of the plan by hiding detailed results of completed tasks,
+     * while keeping the active (TODO/IN_PROGRESS) tasks fully visible.
+     */
+    public String toSummarizedString() {
+        if (items.isEmpty()) return "No tasks.";
+        StringBuilder sb = new StringBuilder("ToDo List (Summarized):\n");
+        long doneCount = items.stream().filter(item -> item.status() == TaskStatus.DONE).count();
+        long totalCount = items.size();
+
+        if (doneCount > 0) {
+            sb.append(String.format("... (%d/%d tasks completed, details hidden to save tokens) ...\n", doneCount, totalCount));
+        }
+
+        for (ToDoItem item : items) {
+            if (item.status() != TaskStatus.DONE) {
+                sb.append(String.format("[%s] %s: %s\n",
+                    item.status() == TaskStatus.IN_PROGRESS ? "/" : " ",
+                    item.id(),
+                    item.description()));
+            }
+        }
+        return sb.toString();
+    }
 }

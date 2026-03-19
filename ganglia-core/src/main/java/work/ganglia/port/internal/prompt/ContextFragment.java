@@ -27,7 +27,7 @@ public record ContextFragment(
 
     // --- PRUNABLE LAYERS (Dynamic State - The "World") ---
     public static final int PRIORITY_SKILLS = 40;
+    public static final int PRIORITY_PLAN = 49;
     public static final int PRIORITY_ENVIRONMENT = 50;
-    public static final int PRIORITY_PLAN = 51;
     public static final int PRIORITY_MEMORY = 60;
 }
