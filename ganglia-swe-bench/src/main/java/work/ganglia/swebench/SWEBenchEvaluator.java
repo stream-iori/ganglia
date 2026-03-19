@@ -1,36 +1,16 @@
 package work.ganglia.swebench;
 
 import io.vertx.core.Vertx;
-import work.ganglia.config.model.ModelConfig;
-import work.ganglia.infrastructure.external.llm.OpenAIModelGateway;
-import work.ganglia.kernel.AgentEnv;
-import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
-import work.ganglia.kernel.loop.DefaultObservationDispatcher;
-import work.ganglia.kernel.loop.ReActAgentLoop;
-import java.util.List;
-import work.ganglia.port.chat.SessionContext;
-import work.ganglia.port.external.llm.ModelOptions;
-import work.ganglia.infrastructure.internal.state.DefaultSessionManager;
-import work.ganglia.kernel.task.DefaultAgentTaskFactory;
-import work.ganglia.kernel.task.AgentTaskFactory;
-import work.ganglia.port.internal.memory.ContextCompressor;
-import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
-import work.ganglia.swebench.config.MinimalConfigManager;
-import work.ganglia.swebench.prompt.MinimalPromptEngine;
-import work.ganglia.swebench.state.InMemoryStateEngine;
-import work.ganglia.swebench.state.InMemoryLogManager;
 import work.ganglia.swebench.tools.DockerBashTools;
 import work.ganglia.swebench.tools.DockerFileSystemTools;
 import work.ganglia.swebench.tools.DockerFileEditTools;
-import work.ganglia.swebench.tools.SWEBenchToolExecutor;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
-import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class SWEBenchEvaluator {
@@ -58,85 +38,43 @@ public class SWEBenchEvaluator {
             sandbox.startSandbox();
             sandbox.setupTaskEnvironment(task);
 
-            // 1. Setup Infrastructure
-            MinimalConfigManager config = new MinimalConfigManager(vertx);
-            ModelConfig primaryModel = config.getGangliaConfig().getModel("primary");
+            // 1. Setup Bootstrap Options with Sandbox Tools and Observer
+            work.ganglia.BootstrapOptions options = work.ganglia.BootstrapOptions.defaultOptions()
+                .withObservers(List.of(trajectoryLogger))
+                .withExtraToolSets(List.of(
+                    new DockerBashTools(vertx, sandbox),
+                    new DockerFileSystemTools(vertx, sandbox),
+                    new DockerFileEditTools(vertx, sandbox)
+                ));
 
-            OpenAIModelGateway model = new OpenAIModelGateway(vertx, io.vertx.ext.web.client.WebClient.create(vertx), primaryModel.apiKey(), primaryModel.baseUrl());
+            // 2. Bootstrap Ganglia with Coding Capabilities
+            // This injects Persona, Mandates, Workflow, and standard Coding tools.
+            // Note: Docker tools will override local ones because they are in 'extraToolSets'.
+            work.ganglia.Ganglia ganglia = work.ganglia.coding.CodingAgentBuilder.bootstrap(vertx, options)
+                .toCompletionStage().toCompletableFuture().get();
 
-            SWEBenchToolExecutor toolExecutor = new SWEBenchToolExecutor(trajectoryLogger);
-            toolExecutor.addToolSet(new DockerBashTools(vertx, sandbox));
-            toolExecutor.addToolSet(new DockerFileSystemTools(vertx, sandbox));
-            toolExecutor.addToolSet(new DockerFileEditTools(vertx, sandbox));
+            log.info("Ganglia Coding Agent bootstrapped for SWE-bench task.");
 
-            MinimalPromptEngine promptEngine = new MinimalPromptEngine(toolExecutor);
-            ContextCompressor compressor = new DefaultContextCompressor(model, config);
-            DefaultSessionManager sessionManager = new DefaultSessionManager(new InMemoryStateEngine(), new InMemoryLogManager(), config);
-
-            AgentEnv env = AgentEnv.builder()
-                .vertx(vertx)
-                .modelGateway(model)
-                .sessionManager(sessionManager)
-                .promptEngine(promptEngine)
-                .configProvider(config)
-                .modelConfig(config)
-                .compressor(compressor)
-                .dispatcher(new DefaultObservationDispatcher(vertx))
-                .faultTolerancePolicy(new ConsecutiveFailurePolicy())
-                .contextOptimizer(new DefaultContextOptimizer(config, config, compressor, new TokenCounter()))
-                .build();
-
-            // Create a minimal AgentTaskFactory without sub-agents or skills
-            AgentTaskFactory taskFactory = new DefaultAgentTaskFactory(
-                () -> ReActAgentLoop.builder()
-                        .vertx(env.vertx())
-                        .dispatcher(env.dispatcher())
-                        .sessionManager(env.sessionManager())
-                        .configProvider(env.configProvider())
-                        .contextOptimizer(env.contextOptimizer())
-                        .promptEngine(env.promptEngine())
-                        .modelGateway(env.modelGateway())
-                        .taskFactory(env.taskFactory())
-                        .faultTolerancePolicy(env.faultTolerancePolicy())
-                        .build(),
-                toolExecutor, null, null, null
-            );
-            env.setTaskFactory(taskFactory);
-
-            ReActAgentLoop loop = ReActAgentLoop.builder()
-                .vertx(env.vertx())
-                .dispatcher(env.dispatcher())
-                .sessionManager(env.sessionManager())
-                .configProvider(env.configProvider())
-                .contextOptimizer(env.contextOptimizer())
-                .promptEngine(env.promptEngine())
-                .modelGateway(env.modelGateway())
-                .taskFactory(env.taskFactory())
-                .faultTolerancePolicy(env.faultTolerancePolicy())
-                .build();
-
-            // 2. Run Agent
-            Map<String, Object> metadata = new HashMap<>();
-            metadata.put("problem_statement", task.getProblemStatement());
-            metadata.put("instance_id", task.getInstanceId());
-
-            ModelOptions options = new ModelOptions(config.getTemperature(), config.getMaxTokens(), config.getModel(), config.isStream());
-            SessionContext initialContext = new SessionContext(
-                task.getInstanceId(),
-                Collections.emptyList(),
-                null,
-                metadata,
-                Collections.emptyList(),
-                options
-            );
-
+            // 3. Run Agent
+            String problemStatement = task.getProblemStatement();
             log.info("Launching Agent for task {}...", task.getInstanceId());
-            String result = loop.run(task.getProblemStatement(), initialContext).toCompletionStage().toCompletableFuture().get();
+
+            String result = ganglia.sessionManager().getSession(task.getInstanceId())
+                .compose(context -> {
+                    // Inject problem metadata via functional update
+                    Map<String, Object> newMetadata = new HashMap<>(context.metadata());
+                    newMetadata.put("problem_statement", problemStatement);
+                    newMetadata.put("instance_id", task.getInstanceId());
+                    
+                    work.ganglia.port.chat.SessionContext evolvedContext = context.withMetadata(newMetadata);
+                    return ganglia.agentLoop().run(problemStatement, evolvedContext);
+                })
+                .toCompletionStage().toCompletableFuture().get();
 
             log.info("Agent finished with result: {}", result);
             trajectoryLogger.logAction("agent_final", result);
 
-            // 3. Evaluate Result
+            // 4. Evaluate Result
             log.info("Applying test patch and evaluating...");
             sandbox.getContainer().copyFileToContainer(
                     org.testcontainers.images.builder.Transferable.of(task.getTestPatch().getBytes()),
@@ -183,7 +121,7 @@ public class SWEBenchEvaluator {
         Vertx vertx = Vertx.vertx();
         SWEBenchEvaluator evaluator = new SWEBenchEvaluator(vertx);
 
-        Path datasetPath = Path.of("ganglia-swe-bench/target/swe_bench_lite_subset.jsonl");
+        Path datasetPath = Path.of("ganglia-swe-bench/swe_bench_lite_subset.jsonl");
         if (datasetPath.toFile().exists()) {
             evaluator.evaluate(datasetPath);
         } else {

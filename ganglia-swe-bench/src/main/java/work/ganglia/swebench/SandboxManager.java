@@ -7,6 +7,8 @@ import org.testcontainers.images.builder.Transferable;
 import org.testcontainers.utility.DockerImageName;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class SandboxManager implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(SandboxManager.class);
@@ -17,7 +19,9 @@ public class SandboxManager implements AutoCloseable {
         String homeDir = System.getProperty("user.home");
         String currentDir = System.getProperty("user.dir");
         String pipCacheHost = homeDir + "/.cache/pip";
-        String gitMirrorsHost = currentDir + "/.ganglia/cache/git_mirrors";
+
+        // Robust discovery of git_mirrors
+        String gitMirrorsHost = findGitMirrorsPath(currentDir);
 
         container = new GenericContainer<>(DockerImageName.parse("astropy-base"))
                 .withCommand("tail", "-f", "/dev/null") // Keep container running
@@ -44,9 +48,22 @@ public class SandboxManager implements AutoCloseable {
             container.withEnv("all_proxy", allProxy);
         }
 
-        log.info("Starting Docker Sandbox with proxy: {}, all_proxy: {}", httpsProxy, allProxy);
+        log.info("Starting Docker Sandbox with git_mirrors from: {}", gitMirrorsHost);
         container.start();
         log.info("Sandbox started with all dependencies pre-installed.");
+    }
+
+    private String findGitMirrorsPath(String startDir) {
+        Path path = Path.of(startDir);
+        while (path != null) {
+            Path candidate = path.resolve(".ganglia/cache/git_mirrors");
+            if (Files.isDirectory(candidate)) {
+                return candidate.toAbsolutePath().toString();
+            }
+            path = path.getParent();
+        }
+        // Fallback to default if not found
+        return startDir + "/.ganglia/cache/git_mirrors";
     }
 
     public void setupTaskEnvironment(SWEBenchTask task) throws Exception {
@@ -56,17 +73,16 @@ public class SandboxManager implements AutoCloseable {
         String mirrorPath = "/git_mirrors/" + repoName;
         String repoUrl = "https://github.com/" + task.getRepo() + ".git";
 
-        // 1. Ensure mirror exists and is updated on the host-side (executed inside container via mount)
-        log.info("Checking/Updating git mirror for {}...", task.getRepo());
+        // 1. Ensure mirror exists on the host-side (executed inside container via mount)
+        log.info("Checking git mirror for {}...", task.getRepo());
 
         // Use a simpler approach without nested bash -c to avoid quoting hell
         String checkResult = exec("ls", "-d", mirrorPath);
-        if (checkResult.contains("No such file or directory")) {
-            log.info("Mirror not found, cloning...");
+        if (checkResult == null || checkResult.isBlank() || checkResult.contains("No such file or directory")) {
+            log.info("Mirror not found in /git_mirrors, cloning into {}...", mirrorPath);
             exec("git", "clone", "--mirror", repoUrl, mirrorPath);
         } else {
-            log.info("Mirror found, fetching updates...");
-            execInDir(mirrorPath, "git", "fetch", "--all");
+            log.info("Mirror found at {}, reusing existing objects.", mirrorPath);
         }
 
         // 2. Clone using reference

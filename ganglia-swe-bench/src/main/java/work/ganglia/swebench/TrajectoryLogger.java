@@ -4,6 +4,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import work.ganglia.kernel.loop.AgentLoopObserver;
+import work.ganglia.port.external.tool.ObservationType;
+import work.ganglia.port.internal.state.TokenUsage;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,7 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TrajectoryLogger {
+public class TrajectoryLogger implements AgentLoopObserver {
     private static final Logger log = LoggerFactory.getLogger(TrajectoryLogger.class);
     private static final ObjectMapper mapper = new ObjectMapper().enable(SerializationFeature.INDENT_OUTPUT);
 
@@ -27,21 +30,31 @@ public class TrajectoryLogger {
         this.logFile = new File(logDir, instanceId + "_trajectory.json");
     }
 
-    public void logAction(String role, String content) {
+    @Override
+    public void onObservation(String sessionId, ObservationType type, String content, Map<String, Object> data) {
         Map<String, Object> entry = new HashMap<>();
-        entry.put("role", role);
-        entry.put("content", content);
+        entry.put("type", type.name());
+        entry.put("content", content != null && content.length() > 4000 ? content.substring(0, 4000) + "...(truncated)" : content);
+        if (data != null) entry.put("data", data);
         entry.put("timestamp", System.currentTimeMillis());
         trajectory.add(entry);
         save();
     }
 
-    public void logToolCall(String toolName, Map<String, Object> args, String result) {
+    @Override
+    public void onUsageRecorded(String sessionId, TokenUsage usage) {
         Map<String, Object> entry = new HashMap<>();
-        entry.put("role", "tool");
-        entry.put("toolName", toolName);
-        entry.put("args", args);
-        entry.put("result", result != null && result.length() > 2000 ? result.substring(0, 2000) + "...(truncated)" : result);
+        entry.put("type", "TOKEN_USAGE");
+        entry.put("usage", usage);
+        entry.put("timestamp", System.currentTimeMillis());
+        trajectory.add(entry);
+        save();
+    }
+
+    public void logAction(String role, String content) {
+        Map<String, Object> entry = new HashMap<>();
+        entry.put("role", role);
+        entry.put("content", content);
         entry.put("timestamp", System.currentTimeMillis());
         trajectory.add(entry);
         save();
