@@ -1,5 +1,8 @@
 # PromptEngine 与 ContextSource 解耦架构设计
 
+> **Status:** In Development
+> **Version:** 0.1.5
+
 > **状态:** 已归档
 > **版本:** 1.1.0
 > **相关:** [Architecture](ARCHITECTURE.md), [Context Engine Design](CONTEXT_ENGINE_DESIGN.md), [Prompt Engine Refactoring](PROMPT_ENGINE_REFACTORING_DESIGN.md)

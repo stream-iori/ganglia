@@ -1,4 +1,7 @@
-> **Status:** Implemented (v1.5.0)
+> **Status:** Implemented
+> **Status:** In Development
+> **Version:** 0.1.5
+
 > **Package:** `work.ganglia.port.internal.memory` / `work.ganglia.infrastructure.internal.memory`
 > **Philosophy:** "Memory as Code". Transparent, user-controlled, file-based, and tiered.
 

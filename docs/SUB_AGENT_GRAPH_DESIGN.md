@@ -1,6 +1,8 @@
-# Ganglia Sub-Agent Graph Orchestration (Implemented)
+# Ganglia Sub-Agent Graph Orchestration
 
-> **Status:** Implemented (v1.2.0)
+> **Status:** In Development
+> **Version:** 0.1.5
+
 > **Module:** `ganglia-core`
 > **Package:** `work.ganglia.kernel.task` (TaskGraphTask)
 > **Related:** [Sub-Agent Design](SUB_AGENT_DESIGN.md)

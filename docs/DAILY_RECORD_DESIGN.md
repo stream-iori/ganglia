@@ -1,6 +1,8 @@
-# Ganglia Daily Record Architecture (Implemented)
+# Ganglia Daily Record Architecture
 
-> **Status:** Implemented (v1.2.0)
+> **Status:** In Development
+> **Version:** 0.1.5
+
 > **Module:** `ganglia-core`
 > **Related:** [Memory Architecture](MEMORY_ARCHITECTURE.md), [Context Engine](CONTEXT_ENGINE_DESIGN.md)
 

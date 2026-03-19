@@ -1,6 +1,8 @@
-# Ganglia Session Management (Implemented)
+# Ganglia Session Management
 
-> **Status:** Implemented (v1.2.0)
+> **Status:** In Development
+> **Version:** 0.1.5
+
 > **Package:** `work.ganglia.port.internal.state` (Contract) / `work.ganglia.infrastructure.internal.state` (Impl)
 > **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 

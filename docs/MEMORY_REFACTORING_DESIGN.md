@@ -1,4 +1,7 @@
-# Ganglia Context Compression & Memory Architecture (v1.3.0)
+# Ganglia Context Compression & Memory Architecture
+
+> **Status:** In Development
+> **Version:** 0.1.5
 
 To solve the "amnesia" problem and context window bloat in Ganglia, we have introduced three new core capabilities based on the "Progressive Disclosure" and "Hybrid Search" principles.
 

@@ -1,6 +1,8 @@
 # 状态演进设计 (State Evolution & Immutability)
 
-> **Status:** Implemented (v1.2.0)
+> **Status:** In Development
+> **Version:** 0.1.5
+
 > **Package:** `work.ganglia.port.chat` (Models)
 > **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 

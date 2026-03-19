@@ -1,6 +1,8 @@
-# Prompt Engine Architecture (Implemented)
+# Prompt Engine Architecture
 
-> **Status:** Implemented (v1.2.0)
+> **Status:** In Development
+> **Version:** 0.1.5
+
 > **Package:** `work.ganglia.port.internal.prompt` (Contract) / `work.ganglia.infrastructure.internal.prompt` (Impl)
 > **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 

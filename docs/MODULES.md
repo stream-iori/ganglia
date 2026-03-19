@@ -1,6 +1,8 @@
 # Ganglia Module Decomposition
 
-> **Status:** Implemented (v1.2.0)
+> **Status:** In Development
+> **Version:** 0.1.5
+
 > **Base:** Java 17, Vert.x 5.0.6
 
 This document describes the implemented module structure of the Ganglia system, following the Hexagonal architecture.

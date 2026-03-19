@@ -18,7 +18,7 @@
 - **Single Control Loop (ReAct):** A powerful, flat reasoning loop inspired by modern coding agents (e.g., Claude Code), designed for iterative problem-solving and tool execution.
 - **Hexagonal Architecture:** Complete decoupling of core reasoning (Kernel) from model providers and technical implementations (Infrastructure), ensuring high testability and platform independence.
 - **Aspect-Oriented Hooks:** A unified `AgentInterceptor` pipeline allowing for transparent context enrichment, security validation, and post-turn reflection without cluttering core logic.
-- **Advanced Memory Subsystem (v1.3 logic):**
+- **Advanced Memory Subsystem:**
     - **MemoryStore:** Hybrid search (text + metadata) for long-term knowledge retrieval.
     - **Observation Compression:** Real-time, LLM-powered summarization of large tool outputs (>4000 chars) to prevent context window bloat.
     - **Progressive Disclosure:** Automatic injection of memory indexes into prompts, allowing agents to recall full details on demand using unique IDs.

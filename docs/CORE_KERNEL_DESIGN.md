@@ -1,7 +1,9 @@
-# Ganglia Core Kernel Architecture (Implemented)
+# Ganglia Core Kernel Architecture
+
+> **Status:** In Development
+> **Version:** 0.1.5
 
 > **Module:** `ganglia-core`
-> **Status:** Implemented (v1.2.0)
 > **Package:** `work.ganglia.kernel`
 
 This document outlines the detailed design for the Core Kernel module, emphasizing its isolation within the Hexagonal architecture.

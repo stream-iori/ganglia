@@ -1,7 +1,7 @@
 # Ganglia Architecture Documentation
 
-> **Status:** Implemented
-> **Version:** 1.5.0
+> **Status:** In Development
+> **Version:** 0.1.5
 
 ## 1. System Overview
 

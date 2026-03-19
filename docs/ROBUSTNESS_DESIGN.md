@@ -1,6 +1,8 @@
 # Ganglia Robustness Design
 
-> **Status:** Initial Design
+> **Status:** In Development
+> **Version:** 0.1.5
+
 > **Module:** `ganglia-core`
 > **Related:** [Architecture](ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 
