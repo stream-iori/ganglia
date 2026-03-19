@@ -188,13 +188,7 @@ public class WebUIVerticle extends AbstractVerticle {
         Router router = Router.router(vertx);
 
         router.route().handler(CorsHandler.create()
-            .addOrigins(List.of(
-                "http://localhost:5173", "http://127.0.0.1:5173", "http://[::1]:5173",
-                "http://localhost:4173", "http://127.0.0.1:4173", "http://[::1]:4173",
-                "http://localhost:8080", "http://127.0.0.1:8080", "http://[::1]:8080",
-                "http://localhost:3000", "http://127.0.0.1:3000", "http://[::1]:3000",
-                "http://localhost:5174", "http://127.0.0.1:5174", "http://[::1]:5174"
-            ))
+            .addOriginWithRegex("^https?://(localhost|127\\.0\\.0\\.1|\\[::1\\]|0\\.0\\.0\\.0)(:\\d+)?$")
             .allowedMethod(HttpMethod.GET)
             .allowedMethod(HttpMethod.POST)
             .allowedMethod(HttpMethod.OPTIONS)
