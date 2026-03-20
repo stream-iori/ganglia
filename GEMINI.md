@@ -29,7 +29,7 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for
 - **Interaction:** `InteractionTools` (`ask_selection`) for human-in-the-loop flows.
 - **Workflow:** `ToDoTools` for managing agent-led plans and task status.
 - **Memory:** `KnowledgeBaseTools`, **`RecallMemoryTools`** (fetch compressed observations).
-- **Search:** `grep_search`, `glob`, and `web_fetch`.
+- **Search:** `grep_search` and `web_fetch`.
 
 ### 3.3 Memory & State
 - **Three-Tier Memory:** Turns (ephemeral), Sessions (compressed via `ContextCompressor`), and Long-term (`.ganglia/memory/MEMORY.md` & Daily Logs).

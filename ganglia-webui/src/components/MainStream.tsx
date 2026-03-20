@@ -60,7 +60,7 @@ const MainStream: React.FC = () => {
       !logStore.events.find((e) => e.type === 'TOOL_RESULT' && (e.data as any).toolCallId === (lastEvent.data as any).toolCallId)
     ) {
       const name = (lastEvent.data as any).toolName
-      if (['read_file', 'glob', 'list_directory'].includes(name)) return 'Agent is reading files...'
+      if (['read_file', 'list_directory'].includes(name)) return 'Agent is reading files...'
       if (name === 'run_shell_command') return 'Agent is executing a command...'
       if (['write_file', 'replace'].includes(name)) return 'Agent is writing code...'
       return `Agent is using ${name}...`

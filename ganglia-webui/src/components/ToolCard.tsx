@@ -53,7 +53,7 @@ const ToolCard: React.FC<ToolCardProps> = ({ event, allEvents }) => {
       const cmd = command?.trim() || ''
       return /^(ls|pwd|whoami|cat|git status|git branch|echo|mkdir|rm)(\s|$)/.test(cmd)
     }
-    return ['list_directory', 'read_file', 'glob'].includes(toolName)
+    return ['list_directory', 'read_file'].includes(toolName)
   }, [toolName, command])
 
   const [isExpanded, setIsExpanded] = useState(!isMiniCommand)

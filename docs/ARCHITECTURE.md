@@ -25,7 +25,7 @@ The core design philosophy follows a **Hexagonal (Ports & Adapters)** architectu
     - Decouples event generation (Tools/Gateways) from transport/UI logic.
 
 4.  **Tool-First Navigation:**
-    - The agent explores codebases using tools (`grep`, `glob`, `read`) rather than relying purely on pre-computed embeddings.
+    - The agent explores codebases using tools (`grep`, `list`, `read`) rather than relying purely on pre-computed embeddings.
 
 5.  **Memory as Code:**
     - Memory is stored in **Markdown files** (`.ganglia/memory/MEMORY.md`, Daily Records).

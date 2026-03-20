@@ -32,8 +32,6 @@ public class DockerFileSystemTools implements ToolSet {
                 "{ \"type\": \"object\", \"properties\": { \"path\": { \"type\": \"string\" } }, \"required\": [\"path\"] }"),
             new ToolDefinition("grep_search", "Search for a pattern in files inside Docker",
                 "{ \"type\": \"object\", \"properties\": { \"path\": { \"type\": \"string\" }, \"pattern\": { \"type\": \"string\" }, \"include\": { \"type\": \"string\" } }, \"required\": [\"path\", \"pattern\"] }"),
-            new ToolDefinition("glob", "Find files matching a pattern inside Docker",
-                "{ \"type\": \"object\", \"properties\": { \"path\": { \"type\": \"string\" }, \"pattern\": { \"type\": \"string\" } }, \"required\": [\"path\", \"pattern\"] }"),
             new ToolDefinition("read_files", "Read multiple files at once inside Docker",
                 "{ \"type\": \"object\", \"properties\": { \"paths\": { \"type\": \"array\", \"items\": { \"type\": \"string\" } }, \"limit_per_file\": { \"type\": \"integer\", \"default\": 300 } }, \"required\": [\"paths\"] }")
         );
@@ -62,14 +60,6 @@ public class DockerFileSystemTools implements ToolSet {
                             grepCmd += "--include=" + include + " ";
                         }
                         output = sandbox.exec(grepCmd + "'" + pattern.replace("'", "'\\''") + "' " + path);
-                        break;
-                    case "glob":
-                        String globPattern = (String) args.get("pattern");
-                        String findPattern = globPattern.replace("**/", "");
-                        String findCmd = "find " + path +
-                            " -type d \\( -name .git -o -name node_modules -o -name __pycache__ -o -name target -o -name venv -o -name .venv \\) -prune" +
-                            " -o -type f -name '" + findPattern.replace("'", "'\\''") + "' -print";
-                        output = sandbox.exec(findCmd);
                         break;
                     case "read_files":
                         List<String> paths = (List<String>) args.get("paths");

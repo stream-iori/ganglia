@@ -36,8 +36,8 @@ public class ToolContextSource implements ContextSource {
 
         List<String> toolNames = tools.stream().map(ToolDefinition::name).collect(Collectors.toList());
 
-        if (toolNames.contains("list_directory") || toolNames.contains("glob")) {
-            guidelines.append("- **Discovery First**: Before reading or modifying files, use `list_directory` or `glob` to confirm paths and understand structure.\n");
+        if (toolNames.contains("list_directory")) {
+            guidelines.append("- **Discovery First**: Before reading or modifying files, use `list_directory` to confirm paths and understand structure.\n");
         }
 
         if (toolNames.contains("read_file") || toolNames.contains("vertx_read")) {

@@ -65,14 +65,14 @@ public class CodeDiscoveryIT {
         String content = "public class DiscoveryTest { public void hello() { System.out.println(\"SECRET_CODE_123\"); } }";
         vertx.fileSystem().writeFileBlocking(testFile, Buffer.buffer(content));
 
-        // 1. Mock glob discovery
-        ToolCall globCall = new ToolCall("c1", "glob", Map.of("path", sharedTempDir.toString(), "pattern", "**/*.java"));
+        // 1. Mock list discovery
+        ToolCall listCall = new ToolCall("c1", "list_directory", Map.of("path", sharedTempDir.toString()));
 
         // 2. Mock grep search
         ToolCall grepCall = new ToolCall("c2", "grep_search", Map.of("path", sharedTempDir.toString(), "pattern", "SECRET_CODE_123"));
 
         when(mockModel.chatStream(any(ChatRequest.class), any()))
-            .thenReturn(Future.succeededFuture(new ModelResponse("Finding files...", List.of(globCall), new TokenUsage(1, 1))))
+            .thenReturn(Future.succeededFuture(new ModelResponse("Listing files...", List.of(listCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Searching code...", List.of(grepCall), new TokenUsage(1, 1))))
             .thenReturn(Future.succeededFuture(new ModelResponse("Found the secret code in discovery_test.java", Collections.emptyList(), new TokenUsage(1, 1))));
 

@@ -17,7 +17,7 @@ public class CodingWorkflowSource implements WorkflowContextSource {
 
             ### 1. Research
             - **Goal**: Systematically map the codebase and validate all assumptions before proposing changes.
-            - **Actions**: Use `grep_search`, `glob`, and `list_directory` to understand file structures and existing patterns. Use `read_file` to validate assumptions.
+            - **Actions**: Use `grep_search` and `list_directory` to understand file structures and existing patterns. Use `read_file` to validate assumptions.
             - **Confirmation**: ALWAYS confirm the failure state by empirically reproducing reported issues (e.g., via a test case) before fixing.
 
             ### 2. Strategy

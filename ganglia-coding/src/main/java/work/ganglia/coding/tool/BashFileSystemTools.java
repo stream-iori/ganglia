@@ -81,17 +81,6 @@ public class BashFileSystemTools implements ToolSet {
                   "required": ["path", "pattern"]
                 }
                 """),
-            new ToolDefinition("glob", "Find files matching a pattern",
-                """
-                {
-                  "type": "object",
-                  "properties": {
-                    "path": { "type": "string", "description": "The base directory to start search" },
-                    "pattern": { "type": "string", "description": "The glob pattern (e.g. **/*.java)" }
-                  },
-                  "required": ["path", "pattern"]
-                }
-                """),
             new ToolDefinition("read_files", "Read multiple files at once",
                 """
                 {
@@ -122,7 +111,6 @@ public class BashFileSystemTools implements ToolSet {
                 case "read_file" -> cat(args);
                 case "read_files" -> readFiles(args);
                 case "grep_search" -> grepSearch(args);
-                case "glob" -> glob(args);
                 default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
             };
         } catch (SecurityException | IllegalArgumentException e) {
@@ -228,39 +216,6 @@ public class BashFileSystemTools implements ToolSet {
             command.add("--include=" + include);
         }
         return execute("grep_search", command, DEFAULT_TIMEOUT_MS);
-    }
-
-    private Future<ToolInvokeResult> glob(Map<String, Object> args) {
-        String rawPath = (String) args.get("path");
-        String pattern = (String) args.get("pattern");
-
-        if (rawPath.contains("*") || rawPath.contains("?") || rawPath.contains("[")) {
-            return Future.succeededFuture(ToolInvokeResult.error(
-                "Invalid path: '" + rawPath + "'. The 'path' argument must be a literal base directory. " +
-                "Place your glob patterns in the 'pattern' argument instead."));
-        }
-
-        String path = sanitizer.sanitize(rawPath);
-
-        // Convert simple glob to find command
-        String findPattern = pattern.replace("**/", "");
-        List<String> command = List.of(
-            "find", path,
-            "-type", "d",
-            "(", "-name", ".git", "-o", "-name", "node_modules", "-o", "-name", "__pycache__",
-            "-o", "-name", "target", "-o", "-name", "venv", "-o", "-name", ".venv", ")",
-            "-prune", "-o",
-            "-type", "f", "-name", findPattern, "-print"
-        );
-
-        return vertx.fileSystem().props(path)
-            .compose(props -> {
-                if (!props.isDirectory()) {
-                    return Future.succeededFuture(ToolInvokeResult.error("Path is not a directory: " + path));
-                }
-                return execute("glob", command, DEFAULT_TIMEOUT_MS);
-            })
-            .recover(err -> Future.succeededFuture(ToolInvokeResult.error("Error accessing path: " + err.getMessage())));
     }
 
     private Future<ToolInvokeResult> execute(String toolName, List<String> commandWithArgs, long timeoutMs) {

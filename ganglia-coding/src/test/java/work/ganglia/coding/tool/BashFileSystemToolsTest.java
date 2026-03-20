@@ -57,19 +57,19 @@ public class BashFileSystemToolsTest {
     }
 
     @Test
-    void testGlob(Vertx vertx, VertxTestContext testContext) throws Exception {
-        Files.createDirectories(tempDir.resolve("subdir"));
-        Files.writeString(tempDir.resolve("a.java"), "java");
-        Files.writeString(tempDir.resolve("subdir/b.java"), "java");
-        Files.writeString(tempDir.resolve("c.txt"), "text");
+    void testReadFilesBatch(Vertx vertx, VertxTestContext testContext) throws Exception {
+        Path f1 = tempDir.resolve("a.txt");
+        Files.writeString(f1, "Content A");
+        Path f2 = tempDir.resolve("b.txt");
+        Files.writeString(f2, "Content B\nLine 2");
 
-        tools.execute(new ToolCall("id", "glob", Map.of("path", tempDir.toString(), "pattern", "**/*.java")), null, null)
+        tools.execute("read_files", Map.of("paths", List.of(f1.toString(), f2.toString())), null, null)
             .onComplete(testContext.succeeding(res -> {
                 testContext.verify(() -> {
                     assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
-                    assertTrue(res.output().contains("a.java"));
-                    assertTrue(res.output().contains("subdir/b.java"));
-                    assertFalse(res.output().contains("c.txt"));
+                    assertTrue(res.output().contains("Content A"));
+                    assertTrue(res.output().contains("Content B"));
+                    assertTrue(res.output().contains("Line 2"));
                     testContext.completeNow();
                 });
             }));
@@ -106,25 +106,6 @@ public class BashFileSystemToolsTest {
                     for (String s : notContains) {
                         assertFalse(res.output().contains(s), "Output should NOT contain: " + s);
                     }
-                    testContext.completeNow();
-                });
-            }));
-    }
-
-    @Test
-    void testReadFilesBatch(Vertx vertx, VertxTestContext testContext) throws Exception {
-        Path f1 = tempDir.resolve("a.txt");
-        Files.writeString(f1, "Content A");
-        Path f2 = tempDir.resolve("b.txt");
-        Files.writeString(f2, "Content B\nLine 2");
-
-        tools.execute("read_files", Map.of("paths", List.of(f1.toString(), f2.toString())), null, null)
-            .onComplete(testContext.succeeding(res -> {
-                testContext.verify(() -> {
-                    assertEquals(ToolInvokeResult.Status.SUCCESS, res.status());
-                    assertTrue(res.output().contains("Content A"));
-                    assertTrue(res.output().contains("Content B"));
-                    assertTrue(res.output().contains("Line 2"));
                     testContext.completeNow();
                 });
             }));

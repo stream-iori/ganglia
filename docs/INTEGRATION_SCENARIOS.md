@@ -37,7 +37,7 @@
 **Description**: Request user choice before executing sensitive operations (like shell commands).
 *   **Input**: "Search for log files and delete the largest one."
 *   **Expected Behavior**:
-    1. `list_directory` or `glob` to locate files.
+    1. `list_directory` to locate files.
     2. Call `ask_selection` to let user confirm which file to delete.
     3. After user selection, execute `run_shell_command` for cleanup.
 *   **Verification**: `OUTPUT_CONTAINS` expectation in `Scenario4UserInteractionE2EIT` after resume.
@@ -46,7 +46,7 @@
 **Description**: Efficiently investigate the codebase using standard engineering tools.
 *   **Input**: "Find all Markdown files in the 'docs' directory, search for the word 'Phase' in them, and read the plan."
 *   **Expected Behavior**:
-    1. Call `glob` matching `docs/*.md`.
+    1. Call `list_directory` or `grep_search` to discover files.
     2. Call `grep_search` to find "Phase" in matched files.
     3. Call `read_file` to read `docs/plan.md`.
 *   **Verification**: Agent can精准 locate content from discovery to precision and finally read the full text.
