@@ -214,7 +214,16 @@ public class BashFileSystemTools implements ToolSet {
         String pattern = (String) args.get("pattern");
         String include = (String) args.get("include");
 
-        List<String> command = new ArrayList<>(List.of("grep", "-rnE", pattern, path));
+        List<String> command = new ArrayList<>(List.of(
+            "grep", "-rnE",
+            "--exclude-dir=.git",
+            "--exclude-dir=node_modules",
+            "--exclude-dir=target",
+            "--exclude-dir=venv",
+            "--exclude-dir=.venv",
+            "--exclude-dir=__pycache__",
+            pattern, path
+        ));
         if (include != null && !include.isEmpty()) {
             command.add("--include=" + include);
         }
@@ -235,7 +244,14 @@ public class BashFileSystemTools implements ToolSet {
 
         // Convert simple glob to find command
         String findPattern = pattern.replace("**/", "");
-        List<String> command = List.of("find", path, "-name", findPattern);
+        List<String> command = List.of(
+            "find", path,
+            "-type", "d",
+            "(", "-name", ".git", "-o", "-name", "node_modules", "-o", "-name", "__pycache__",
+            "-o", "-name", "target", "-o", "-name", "venv", "-o", "-name", ".venv", ")",
+            "-prune", "-o",
+            "-type", "f", "-name", findPattern, "-print"
+        );
 
         return vertx.fileSystem().props(path)
             .compose(props -> {
