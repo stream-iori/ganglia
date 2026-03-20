@@ -4,7 +4,6 @@ import { useSystemStore } from '../stores/system'
 import type { ServerEvent, AskUserData } from '../types'
 import ReactMarkdown from 'react-markdown'
 import Prism from 'prismjs'
-import 'prismjs/themes/prism-tomorrow.css'
 import 'prismjs/components/prism-diff'
 
 interface AskUserFormProps {
@@ -43,7 +42,7 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
             <p className="text-slate-100 text-base mb-6 leading-relaxed">{event.data.question}</p>
 
             {event.data.diffContext && (
-              <div className="mb-8 border border-slate-700/50 rounded-lg overflow-hidden bg-[#0d1117]">
+              <div className="mb-8 border border-slate-700/50 rounded-lg overflow-hidden bg-slate-900">
                 <div className="bg-slate-800/50 px-4 py-2 border-b border-slate-700/50 flex items-center justify-between">
                   <span className="text-xs font-mono text-slate-400">Context / Diff</span>
                 </div>

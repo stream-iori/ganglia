@@ -5,7 +5,6 @@ import { eventBusService } from '../services/eventbus'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import Prism from 'prismjs'
 import PlanSidebar from './PlanSidebar'
-import 'prismjs/themes/prism-tomorrow.css'
 import 'prismjs/components/prism-java'
 import 'prismjs/components/prism-javascript'
 import 'prismjs/components/prism-typescript'
@@ -208,7 +207,7 @@ const Inspector: React.FC = () => {
         )}
 
         {systemStore.inspectorMode === 'CODE' && (
-          <div className="flex-1 flex flex-col min-h-0 bg-[#1d1f21]">
+          <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
             {!systemStore.inspectFile ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                 <div className="text-3xl mb-4 opacity-20">📄</div>
@@ -235,7 +234,7 @@ const Inspector: React.FC = () => {
         )}
 
         {systemStore.inspectorMode === 'DIFF' && (
-          <div className="flex-1 flex flex-col min-h-0 bg-[#1d1f21]">
+          <div className="flex-1 flex flex-col min-h-0 bg-slate-900">
             {!systemStore.inspectDiff ? (
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
                 <div className="text-3xl mb-4 opacity-20">📝</div>
