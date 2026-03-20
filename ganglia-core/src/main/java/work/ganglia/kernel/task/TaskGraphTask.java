@@ -33,6 +33,11 @@ public class TaskGraphTask implements AgentTask {
     }
 
     @Override
+    public ToolCall getToolCall() {
+        return call;
+    }
+
+    @Override
     public Future<AgentTaskResult> execute(SessionContext context, ExecutionContext executionContext) {
         // Check recursion
         Object levelObj = context.metadata().getOrDefault("sub_agent_level", 0);

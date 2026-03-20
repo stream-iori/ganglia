@@ -42,6 +42,10 @@ public class ObservationCompressionHook implements AgentInterceptor {
             return Future.succeededFuture(result);
         }
 
+        if (call == null) {
+            return Future.succeededFuture(result);
+        }
+
         if ("recall_memory".equals(call.toolName())) {
             return Future.succeededFuture(result);
         }

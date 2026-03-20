@@ -36,6 +36,11 @@ public class SkillTask implements AgentTask {
     }
 
     @Override
+    public ToolCall getToolCall() {
+        return call;
+    }
+
+    @Override
     public Future<AgentTaskResult> execute(SessionContext context, ExecutionContext executionContext) {
         String toolName = call.toolName();
 

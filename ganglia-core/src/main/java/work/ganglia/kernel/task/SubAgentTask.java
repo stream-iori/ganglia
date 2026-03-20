@@ -35,6 +35,9 @@ public class SubAgentTask implements AgentTask {
     public String name() { return call.toolName(); }
 
     @Override
+    public ToolCall getToolCall() { return call; }
+
+    @Override
     public Future<AgentTaskResult> execute(SessionContext parentContext, ExecutionContext executionContext) {
         String task = (String) call.arguments().get("task");
         String persona = (String) call.arguments().getOrDefault("persona", "GENERAL");
