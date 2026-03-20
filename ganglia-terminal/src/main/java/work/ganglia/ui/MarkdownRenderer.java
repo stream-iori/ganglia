@@ -1,23 +1,19 @@
 package work.ganglia.ui;
 
-import com.vladsch.flexmark.ast.*;
-import com.vladsch.flexmark.parser.Parser;
-import com.vladsch.flexmark.util.ast.Node;
-import com.vladsch.flexmark.util.ast.Visitor;
-import com.vladsch.flexmark.util.data.MutableDataSet;
+import org.commonmark.node.*;
+import org.commonmark.parser.Parser;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
 /**
- * A simple Markdown to ANSI renderer using Flexmark.
+ * A simple Markdown to ANSI renderer using CommonMark.
  */
 public class MarkdownRenderer {
 
     private final Parser parser;
 
     public MarkdownRenderer() {
-        MutableDataSet options = new MutableDataSet();
-        this.parser = Parser.builder(options).build();
+        this.parser = Parser.builder().build();
     }
 
     public String render(String markdown) {
@@ -29,30 +25,48 @@ public class MarkdownRenderer {
     }
 
     private void renderNode(Node node, AttributedStringBuilder sb, AttributedStyle style) {
-        if (node instanceof Text) {
-            sb.style(style).append(node.getChars().toString());
+        if (node instanceof Text text) {
+            sb.style(style).append(text.getLiteral());
+        } else if (node instanceof SoftLineBreak) {
+            sb.append("\n");
+        } else if (node instanceof HardLineBreak) {
+            sb.append("\n");
         } else if (node instanceof StrongEmphasis) {
             renderChildren(node, sb, style.bold());
         } else if (node instanceof Emphasis) {
             renderChildren(node, sb, style.italic());
-        } else if (node instanceof Code) {
+        } else if (node instanceof Code code) {
             sb.style(style.foreground(AttributedStyle.YELLOW).background(AttributedStyle.BLACK + 8))
               .append(" ")
-              .append(node.getChildren().iterator().next().getChars().toString())
+              .append(code.getLiteral())
               .append(" ");
-        } else if (node instanceof FencedCodeBlock) {
+        } else if (node instanceof FencedCodeBlock fenced) {
             sb.append("\n");
             sb.style(style.foreground(AttributedStyle.BRIGHT + AttributedStyle.YELLOW))
               .append("--- Code Block ---")
               .append("\n");
             sb.style(style.foreground(AttributedStyle.WHITE))
-              .append(((FencedCodeBlock) node).getContentChars().toString());
+              .append(fenced.getLiteral());
             sb.style(style.foreground(AttributedStyle.BRIGHT + AttributedStyle.YELLOW))
               .append("------------------")
               .append("\n");
-        } else if (node instanceof Heading) {
+        } else if (node instanceof IndentedCodeBlock indented) {
             sb.append("\n");
-            int level = ((Heading) node).getLevel();
+            sb.style(style.foreground(AttributedStyle.BRIGHT + AttributedStyle.YELLOW))
+              .append("--- Code Block ---")
+              .append("\n");
+            sb.style(style.foreground(AttributedStyle.WHITE))
+              .append(indented.getLiteral());
+            sb.style(style.foreground(AttributedStyle.BRIGHT + AttributedStyle.YELLOW))
+              .append("------------------")
+              .append("\n");
+        } else if (node instanceof HtmlBlock htmlBlock) {
+            sb.style(style).append(htmlBlock.getLiteral());
+        } else if (node instanceof HtmlInline htmlInline) {
+            sb.style(style).append(htmlInline.getLiteral());
+        } else if (node instanceof Heading heading) {
+            sb.append("\n");
+            int level = heading.getLevel();
             AttributedStyle headingStyle = style.bold().foreground(AttributedStyle.CYAN);
             if (level == 1) headingStyle = headingStyle.underline();
             sb.style(headingStyle);
@@ -60,8 +74,8 @@ public class MarkdownRenderer {
             sb.append("\n");
         } else if (node instanceof BulletList) {
             renderChildren(node, sb, style);
-        } else if (node instanceof BulletListItem) {
-            sb.style(style).append("  • ");
+        } else if (node instanceof ListItem && node.getParent() instanceof BulletList) {
+            sb.style(style).append("  \u2022 ");
             renderChildren(node, sb, style);
             sb.append("\n");
         } else if (node instanceof Paragraph) {
@@ -73,8 +87,10 @@ public class MarkdownRenderer {
     }
 
     private void renderChildren(Node node, AttributedStringBuilder sb, AttributedStyle style) {
-        for (Node child : node.getChildren()) {
+        Node child = node.getFirstChild();
+        while (child != null) {
             renderNode(child, sb, style);
+            child = child.getNext();
         }
     }
 }

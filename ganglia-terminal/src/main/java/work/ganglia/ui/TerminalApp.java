@@ -68,8 +68,10 @@ public class TerminalApp implements AutoCloseable {
     private final StatusBar statusBar;
     private final EventRenderer eventRenderer;
     private final String sessionId;
+    private final DetailView detailView;
     private final AtomicReference<AgentSignal> currentSignal = new AtomicReference<>();
     private volatile boolean running = true;
+    private volatile boolean detailViewRequested = false;
 
     public TerminalApp(Vertx vertx, Ganglia ganglia, Terminal terminal) {
         this.vertx = vertx;
@@ -82,6 +84,7 @@ public class TerminalApp implements AutoCloseable {
         this.statusBar = new StatusBar(terminal);
         MarkdownRenderer mdRenderer = new MarkdownRenderer();
         this.eventRenderer = new EventRenderer(terminal, mdRenderer, statusBar);
+        this.detailView = new DetailView(terminal);
 
         this.reader = LineReaderBuilder.builder()
                 .terminal(terminal)
@@ -92,13 +95,29 @@ public class TerminalApp implements AutoCloseable {
         // Enable auto-menu for tab completion dropdown
         reader.option(LineReader.Option.AUTO_MENU, true);
 
-        // Bind Ctrl+O to toggle expand/collapse last response
+        // Bind Ctrl+O to expand collapsed response.
+        // Sets a flag and exits readLine via SEND_BREAK so the expand
+        // happens outside of JLine (no display state corruption).
         reader.getWidgets().put("expand-response", () -> {
-            eventRenderer.toggleLastResponse();
+            if (eventRenderer.canToggle()) {
+                eventRenderer.requestToggle();
+                throw new UserInterruptException("");
+            }
             return true;
         });
         reader.getKeyMaps().get("main").bind(
                 new Reference("expand-response"), KeyMap.ctrl('O'));
+
+        // Bind Ctrl+E to open detail view for last tool card
+        reader.getWidgets().put("detail-view", () -> {
+            if (eventRenderer.getLastToolCard() != null) {
+                detailViewRequested = true;
+                throw new UserInterruptException("");
+            }
+            return true;
+        });
+        reader.getKeyMaps().get("main").bind(
+                new Reference("detail-view"), KeyMap.ctrl('E'));
 
         // Subscribe to observation events
         String address = "ganglia.observations." + sessionId;
@@ -145,13 +164,14 @@ public class TerminalApp implements AutoCloseable {
         String modelText = "Model:   " + model + " (" + provider + ")";
         String sessionText = "Session: " + sessionId;
         String ctrlCText = "Ctrl+C    Interrupt current turn";
-        String ctrlOText = "Ctrl+O    Toggle expand/collapse response";
+        String ctrlOText = "Ctrl+O    Expand collapsed response";
+        String ctrlEText = "Ctrl+E    View last tool output";
         String ctrlDText = "Ctrl+D    Exit";
         String helpText = "/help     List commands";
 
         int innerWidth = Math.max(Math.max(modelText.length(), sessionText.length()),
                 Math.max(Math.max(ctrlCText.length(), ctrlOText.length()),
-                        Math.max(helpText.length(), titleText.length())));
+                        Math.max(Math.max(ctrlEText.length(), helpText.length()), titleText.length())));
         innerWidth = Math.max(innerWidth, 40); // minimum width
 
         writer.println();
@@ -170,6 +190,7 @@ public class TerminalApp implements AutoCloseable {
         // Shortcuts
         writer.println(boxContent(cyan, dim, ctrlCText, innerWidth));
         writer.println(boxContent(cyan, dim, ctrlOText, innerWidth));
+        writer.println(boxContent(cyan, dim, ctrlEText, innerWidth));
         writer.println(boxContent(cyan, dim, ctrlDText, innerWidth));
         writer.println(boxContent(cyan, dim, helpText, innerWidth));
         // Bottom border
@@ -222,6 +243,24 @@ public class TerminalApp implements AutoCloseable {
                 try {
                     line = reader.readLine(buildPrompt());
                 } catch (UserInterruptException e) {
+                    // Ctrl+O toggle fires UserInterruptException to exit readLine cleanly
+                    if (eventRenderer.consumeToggleRequest()) {
+                        writer.print("\033[1A\r\033[2K");
+                        eventRenderer.toggleLastResponseInPlace();
+                        // Re-establish scroll region + status bar in case
+                        // expanded content scrolled beyond the visible area.
+                        statusBar.enable();
+                        continue;
+                    }
+                    // Ctrl+E detail view
+                    if (consumeDetailViewRequest()) {
+                        writer.print("\033[1A\r\033[2K");
+                        statusBar.disable();
+                        detailView.show(eventRenderer.getLastToolCard());
+                        statusBar.enable();
+                        statusBar.setIdle();
+                        continue;
+                    }
                     handleCtrlC();
                     continue;
                 } catch (EndOfFileException e) {
@@ -271,7 +310,7 @@ public class TerminalApp implements AutoCloseable {
                         .toAnsi());
                 writer.println("  /help     List available commands");
                 writer.println("  /clear    Clear the screen");
-                writer.println("  /expand   Toggle expand/collapse response");
+                writer.println("  /expand   Expand collapsed response");
                 writer.println("  /exit     Exit Ganglia");
                 writer.println();
                 writer.println(new AttributedStringBuilder()
@@ -279,7 +318,8 @@ public class TerminalApp implements AutoCloseable {
                         .append("Keyboard shortcuts:")
                         .toAnsi());
                 writer.println("  Ctrl+C    Interrupt current turn");
-                writer.println("  Ctrl+O    Toggle expand/collapse response");
+                writer.println("  Ctrl+O    Expand collapsed response");
+                writer.println("  Ctrl+E    View last tool output");
                 writer.println("  Ctrl+D    Exit");
                 writer.println();
                 writer.flush();
@@ -293,7 +333,7 @@ public class TerminalApp implements AutoCloseable {
                 return true;
             }
             case "/expand" -> {
-                eventRenderer.toggleLastResponse();
+                eventRenderer.toggleLastResponseInPlace();
                 return true;
             }
             case "/exit" -> {
@@ -306,6 +346,14 @@ public class TerminalApp implements AutoCloseable {
                 return true;
             }
         }
+    }
+
+    private boolean consumeDetailViewRequest() {
+        if (detailViewRequested) {
+            detailViewRequested = false;
+            return true;
+        }
+        return false;
     }
 
     private void handleCtrlC() {

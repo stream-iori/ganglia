@@ -283,7 +283,12 @@ public class ReActAgentLoop implements AgentLoop {
         if (index >= tasks.size()) return Future.succeededFuture(currentContext);
 
         AgentTask task = tasks.get(index);
-        publishObservation(currentContext.sessionId(), ObservationType.TOOL_STARTED, task.name(), Map.of("toolCallId", task.id()));
+        Map<String, Object> toolData = new HashMap<>();
+        toolData.put("toolCallId", task.id());
+        if (task.getToolCall() != null && task.getToolCall().arguments() != null) {
+            toolData.putAll(task.getToolCall().arguments());
+        }
+        publishObservation(currentContext.sessionId(), ObservationType.TOOL_STARTED, task.name(), toolData);
 
         final SessionContext originalContext = currentContext;
         ExecutionContext execContext = new ExecutionContext() {

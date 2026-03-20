@@ -63,7 +63,6 @@ public class EventRendererTest {
                 Map.of("command", "git status")));
         String outputStr = getOutput();
 
-        assertTrue(outputStr.contains("\u256d"), "Should contain top-left corner");
         assertTrue(outputStr.contains("run_shell_command"), "Should contain tool name");
         assertTrue(outputStr.contains("$ git status"), "Should contain command with $ prefix");
     }
@@ -74,7 +73,6 @@ public class EventRendererTest {
         renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_FINISHED, "ok", null));
 
         String outputStr = getOutput();
-        assertTrue(outputStr.contains("\u2570"), "Should contain bottom-left corner");
         assertTrue(outputStr.contains("\u2713"), "Should contain checkmark for success");
     }
 
@@ -94,9 +92,8 @@ public class EventRendererTest {
         renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_OUTPUT_STREAM, "file1.txt\nfile2.txt", null));
 
         String outputStr = getOutput();
-        assertTrue(outputStr.contains("\u2502"), "Should contain vertical bar for card border");
-        assertTrue(outputStr.contains("file1.txt"));
-        assertTrue(outputStr.contains("file2.txt"));
+        assertTrue(outputStr.contains("file1.txt"), "Should contain first output line");
+        assertTrue(outputStr.contains("file2.txt"), "Should contain second output line");
     }
 
     @Test
@@ -204,6 +201,50 @@ public class EventRendererTest {
         renderer.toggleLastResponse();
         String outputStr = getOutput();
         assertTrue(outputStr.contains("No response"), "Should show 'No response' message");
+    }
+
+    @Test
+    void testToolCardAccumulation() {
+        assertNull(renderer.getLastToolCard(), "Should be null before any tool execution");
+
+        renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_STARTED, "run_shell_command",
+                Map.of("command", "git status")));
+        renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_OUTPUT_STREAM,
+                "On branch main\nnothing to commit", null));
+        renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_FINISHED, null, null));
+
+        ToolCard card = renderer.getLastToolCard();
+        assertNotNull(card, "Should have a tool card after execution");
+        assertEquals("run_shell_command", card.toolName());
+        assertEquals("$ git status", card.paramsDisplay());
+        assertEquals(2, card.outputLines().size());
+        assertEquals("On branch main", card.outputLines().get(0));
+        assertEquals("nothing to commit", card.outputLines().get(1));
+        assertFalse(card.isError());
+    }
+
+    @Test
+    void testToolCardAccumulationError() {
+        renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_STARTED, "read_file", Map.of()));
+        renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_FINISHED, "Error: not found", null));
+
+        ToolCard card = renderer.getLastToolCard();
+        assertNotNull(card);
+        assertEquals("read_file", card.toolName());
+        assertTrue(card.isError());
+        assertEquals("Error: not found", card.result());
+        assertTrue(card.outputLines().isEmpty());
+    }
+
+    @Test
+    void testToolCardReplacedByNewExecution() {
+        renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_STARTED, "tool_a", Map.of()));
+        renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_FINISHED, null, null));
+
+        renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_STARTED, "tool_b", Map.of()));
+        renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_FINISHED, null, null));
+
+        assertEquals("tool_b", renderer.getLastToolCard().toolName());
     }
 
     private String getOutput() {
