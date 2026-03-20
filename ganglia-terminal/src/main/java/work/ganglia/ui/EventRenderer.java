@@ -6,6 +6,7 @@ import org.jline.utils.AttributedStyle;
 import work.ganglia.port.external.tool.ObservationEvent;
 
 import java.io.PrintWriter;
+import java.util.Map;
 
 /**
  * Thin dispatch layer that routes ObservationEvents to specialized renderers.
@@ -20,6 +21,7 @@ public class EventRenderer {
     private final StatusBar statusBar;
     private final ToolCardRenderer toolCard;
     private final ResponseRenderer response;
+    private TaskPanelRenderer taskPanel;
 
     private final StringBuilder accumulatedTokens = new StringBuilder();
 
@@ -29,7 +31,11 @@ public class EventRenderer {
         this.markdownRenderer = markdownRenderer;
         this.statusBar = statusBar;
         this.toolCard = new ToolCardRenderer(writer, statusBar);
-        this.response = new ResponseRenderer(terminal, markdownRenderer);
+        this.response = new ResponseRenderer(terminal, markdownRenderer, statusBar);
+    }
+
+    public void setTaskPanel(TaskPanelRenderer taskPanel) {
+        this.taskPanel = taskPanel;
     }
 
     /**
@@ -44,6 +50,7 @@ public class EventRenderer {
             case TOOL_STARTED -> toolCard.start(event);
             case TOOL_OUTPUT_STREAM -> toolCard.appendOutput(event);
             case TOOL_FINISHED -> toolCard.finish(event);
+            case PLAN_UPDATED -> handlePlanUpdated(event);
             case ERROR -> handleError(event);
             case TURN_FINISHED -> handleTurnFinished();
             default -> {}
@@ -54,50 +61,83 @@ public class EventRenderer {
         accumulatedTokens.setLength(0);
         response.resetForNewTurn();
         statusBar.setThinking();
+        if (taskPanel != null) {
+            taskPanel.onTurnStarted();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void handlePlanUpdated(ObservationEvent event) {
+        if (taskPanel == null) return;
+        Map<String, Object> data = event.data();
+        if (data != null && data.containsKey("plan")) {
+            taskPanel.updatePlanFromData(data.get("plan"));
+            statusBar.recalculateLayout();
+        }
     }
 
     private void handleTokenReceived(ObservationEvent event) {
-        if (event.content() != null) {
-            accumulatedTokens.append(event.content());
-            writer.print("\r\033[2K");
-            writer.print("Generating... (" + accumulatedTokens.length() + " chars)");
-            writer.flush();
+        synchronized (statusBar.terminalWriteLock) {
+            if (event.content() != null) {
+                accumulatedTokens.append(event.content());
+                writer.print(String.format("\033[%d;1H\033[2K", statusBar.getScrollBottom()));
+                writer.print("Generating... (" + accumulatedTokens.length() + " chars)");
+                statusBar.parkCursorAtInput();
+                writer.flush();
+            }
         }
     }
 
     private void handleReasoningStarted() {
-        statusBar.setThinking();
-        writer.println(new AttributedStringBuilder()
-                .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN).italic())
-                .append("Thinking...")
-                .toAnsi());
-        writer.flush();
+        synchronized (statusBar.terminalWriteLock) {
+            statusBar.setThinking();
+            // Move to scroll region before writing
+            writer.print(String.format("\033[%d;1H", statusBar.getScrollBottom()));
+            writer.println();
+            writer.println(new AttributedStringBuilder()
+                    .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN).italic())
+                    .append("  Thinking...")
+                    .toAnsi());
+            writer.println();
+            statusBar.parkCursorAtInput();
+            writer.flush();
+        }
     }
 
     private void handleReasoningFinished() {
-        writer.print("\r\033[2K");
-        if (accumulatedTokens.length() > 0) {
-            response.render(accumulatedTokens.toString(), false);
+        synchronized (statusBar.terminalWriteLock) {
+            writer.print(String.format("\033[%d;1H\033[2K", statusBar.getScrollBottom()));
+            if (accumulatedTokens.length() > 0) {
+                response.render(accumulatedTokens.toString(), false);
+            }
+            statusBar.parkCursorAtInput();
+            writer.flush();
         }
-        writer.flush();
     }
 
     private void handleError(ObservationEvent event) {
-        writer.println();
-        writer.print(markdownRenderer.render("### ERROR\n" + event.content()));
-        writer.flush();
-        statusBar.setIdle();
+        synchronized (statusBar.terminalWriteLock) {
+            writer.print(String.format("\033[%d;1H", statusBar.getScrollBottom()));
+            writer.println();
+            writer.print(markdownRenderer.render("### ERROR\n" + event.content()));
+            statusBar.setIdle();
+            statusBar.parkCursorAtInput();
+            writer.flush();
+        }
     }
 
     private void handleTurnFinished() {
-        writer.print("\r\033[2K");
-        String content = accumulatedTokens.toString();
-        if (!content.isEmpty() && !response.isResponseRendered()) {
-            response.render(content, false);
+        synchronized (statusBar.terminalWriteLock) {
+            writer.print(String.format("\033[%d;1H\033[2K", statusBar.getScrollBottom()));
+            String content = accumulatedTokens.toString();
+            if (!content.isEmpty() && !response.isResponseRendered()) {
+                response.render(content, false);
+            }
+            writer.println();
+            statusBar.setIdle();
+            statusBar.parkCursorAtInput();
+            writer.flush();
         }
-        writer.println();
-        writer.flush();
-        statusBar.setIdle();
     }
 
     // ── Delegate methods (preserve public API for TerminalApp & tests) ───

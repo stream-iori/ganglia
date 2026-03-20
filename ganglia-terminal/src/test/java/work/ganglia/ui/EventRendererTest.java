@@ -8,8 +8,13 @@ import org.junit.jupiter.api.Test;
 import work.ganglia.port.external.tool.ObservationEvent;
 import work.ganglia.port.external.tool.ObservationType;
 
+import work.ganglia.kernel.todo.TaskStatus;
+import work.ganglia.kernel.todo.ToDoItem;
+import work.ganglia.kernel.todo.ToDoList;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -245,6 +250,37 @@ public class EventRendererTest {
         renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_FINISHED, null, null));
 
         assertEquals("tool_b", renderer.getLastToolCard().toolName());
+    }
+
+    @Test
+    void testPlanUpdatedDispatchesToTaskPanel() {
+        TaskPanelRenderer taskPanel = new TaskPanelRenderer();
+        renderer.setTaskPanel(taskPanel);
+
+        ToDoList plan = new ToDoList(List.of(
+                new ToDoItem("1", "Test task", TaskStatus.IN_PROGRESS)
+        ));
+        renderer.render(ObservationEvent.of("s1", ObservationType.PLAN_UPDATED, "Task added",
+                Map.of("plan", plan)));
+
+        assertNotNull(taskPanel.getCurrentPlan());
+        assertEquals(1, taskPanel.getCurrentPlan().items().size());
+    }
+
+    @Test
+    void testPlanUpdatedWithNullTaskPanelIsNoop() {
+        // No taskPanel set — should not throw
+        renderer.render(ObservationEvent.of("s1", ObservationType.PLAN_UPDATED, "Task added",
+                Map.of("plan", ToDoList.empty())));
+    }
+
+    @Test
+    void testTurnStartedCallsTaskPanelOnTurnStarted() {
+        TaskPanelRenderer taskPanel = new TaskPanelRenderer();
+        renderer.setTaskPanel(taskPanel);
+
+        renderer.render(ObservationEvent.of("s1", ObservationType.TURN_STARTED, null, null));
+        // Just verify no exception; onTurnStarted records the time
     }
 
     private String getOutput() {

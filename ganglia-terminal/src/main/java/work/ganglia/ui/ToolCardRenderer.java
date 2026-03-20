@@ -28,10 +28,11 @@ public class ToolCardRenderer {
     private String currentToolName;
     private long toolStartTime;
     private boolean insideToolCard;
-    private final Object spinnerLock = new Object();
     private Timer spinnerTimer;
     private int spinnerFrame;
     private String toolLinePrefix = "";
+    /** Absolute row of the last line written in the scroll region (for spinner redraws). */
+    private int lastWrittenRow;
 
     // Accumulation fields for DetailView
     private List<String> pendingOutputLines;
@@ -52,6 +53,11 @@ public class ToolCardRenderer {
         statusBar.setExecutingTool(toolName);
 
         String params = formatToolParams(event);
+        // Truncate params to prevent uncontrolled wrapping in the scroll region
+        int maxParamLen = Math.max(20, statusBar.getCols() - toolName.length() - 12);
+        if (params.length() > maxParamLen) {
+            params = params.substring(0, maxParamLen - 3) + "...";
+        }
         this.pendingParams = params;
         toolLinePrefix = new AttributedStringBuilder()
                 .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN).bold())
@@ -60,9 +66,12 @@ public class ToolCardRenderer {
                 .append(params.isEmpty() ? "" : "  " + params)
                 .toAnsi();
 
-        synchronized (spinnerLock) {
+        synchronized (statusBar.terminalWriteLock) {
+            writer.print(String.format("\033[%d;1H", statusBar.getScrollBottom()));
             writer.println();
             writer.print(toolLinePrefix);
+            lastWrittenRow = statusBar.getScrollBottom();
+            statusBar.parkCursorAtInput();
             writer.flush();
         }
         startSpinner();
@@ -75,7 +84,8 @@ public class ToolCardRenderer {
             if (pendingOutputLines != null) {
                 Collections.addAll(pendingOutputLines, lines);
             }
-            synchronized (spinnerLock) {
+            synchronized (statusBar.terminalWriteLock) {
+                writer.print(String.format("\033[%d;1H", statusBar.getScrollBottom()));
                 writer.println();
                 for (String line : lines) {
                     writer.println(new AttributedStringBuilder()
@@ -83,6 +93,8 @@ public class ToolCardRenderer {
                             .append("    " + line)
                             .toAnsi());
                 }
+                lastWrittenRow = statusBar.getScrollBottom();
+                statusBar.parkCursorAtInput();
                 writer.flush();
             }
         }
@@ -102,7 +114,7 @@ public class ToolCardRenderer {
         boolean isError = event.content() != null && event.content().startsWith("Error:");
 
         if (isError) {
-            writer.print("\r\033[2K");
+            writer.print(String.format("\033[%d;1H\033[2K", lastWrittenRow));
             writer.println(new AttributedStringBuilder()
                     .append(toolLinePrefix + "  ")
                     .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))
@@ -110,13 +122,14 @@ public class ToolCardRenderer {
                     .append("  " + (event.content() != null ? event.content() : ""))
                     .toAnsi());
         } else {
-            writer.print("\r\033[2K");
+            writer.print(String.format("\033[%d;1H\033[2K", lastWrittenRow));
             writer.println(new AttributedStringBuilder()
                     .append(toolLinePrefix + "  ")
                     .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN))
                     .append("\u2713 " + timeStr)
                     .toAnsi());
         }
+        statusBar.parkCursorAtInput();
         writer.flush();
 
         this.lastCard = new ToolCard(
@@ -142,19 +155,19 @@ public class ToolCardRenderer {
     // ── Spinner animation ────────────────────────────────────────────────
 
     private void startSpinner() {
-        synchronized (spinnerLock) {
+        synchronized (statusBar.terminalWriteLock) {
             spinnerFrame = 0;
             spinnerTimer = new Timer("tool-spinner", true);
             spinnerTimer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
-                    synchronized (spinnerLock) {
+                    synchronized (statusBar.terminalWriteLock) {
                         if (spinnerTimer == null) return;
                         long elapsed = System.currentTimeMillis() - toolStartTime;
                         String time = formatDuration(elapsed);
                         String frame = SPINNER[spinnerFrame % SPINNER.length];
                         spinnerFrame++;
-                        writer.print("\r\033[2K");
+                        writer.print(String.format("\033[%d;1H\033[2K", lastWrittenRow));
                         writer.print(new AttributedStringBuilder()
                                 .append(toolLinePrefix + "  ")
                                 .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW))
@@ -162,6 +175,7 @@ public class ToolCardRenderer {
                                 .style(AttributedStyle.DEFAULT.faint())
                                 .append(time)
                                 .toAnsi());
+                        statusBar.parkCursorAtInput();
                         writer.flush();
                     }
                 }
@@ -170,7 +184,7 @@ public class ToolCardRenderer {
     }
 
     private void stopSpinner() {
-        synchronized (spinnerLock) {
+        synchronized (statusBar.terminalWriteLock) {
             if (spinnerTimer != null) {
                 spinnerTimer.cancel();
                 spinnerTimer = null;
@@ -193,6 +207,7 @@ public class ToolCardRenderer {
                     .append("  \u2713 Done")
                     .toAnsi());
         }
+        statusBar.parkCursorAtInput();
         writer.flush();
     }
 

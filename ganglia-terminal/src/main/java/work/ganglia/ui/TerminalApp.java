@@ -67,6 +67,7 @@ public class TerminalApp implements AutoCloseable {
     private final PrintWriter writer;
     private final StatusBar statusBar;
     private final EventRenderer eventRenderer;
+    private final TaskPanelRenderer taskPanel;
     private final String sessionId;
     private final DetailView detailView;
     private final AtomicReference<AgentSignal> currentSignal = new AtomicReference<>();
@@ -80,10 +81,12 @@ public class TerminalApp implements AutoCloseable {
         this.writer = terminal.writer();
         this.sessionId = "interactive-" + UUID.randomUUID().toString().substring(0, 8);
 
-        int width = terminal.getWidth() > 0 ? terminal.getWidth() : 80;
+        this.taskPanel = new TaskPanelRenderer();
         this.statusBar = new StatusBar(terminal);
+        this.statusBar.setTaskPanel(taskPanel);
         MarkdownRenderer mdRenderer = new MarkdownRenderer();
         this.eventRenderer = new EventRenderer(terminal, mdRenderer, statusBar);
+        this.eventRenderer.setTaskPanel(taskPanel);
         this.detailView = new DetailView(terminal);
 
         this.reader = LineReaderBuilder.builder()
@@ -92,8 +95,26 @@ public class TerminalApp implements AutoCloseable {
                 .completer(new SlashCommandCompleter())
                 .build();
 
-        // Enable auto-menu for tab completion dropdown
+        // Enable vertical dropdown menu for completion
         reader.option(LineReader.Option.AUTO_MENU, true);
+        reader.option(LineReader.Option.AUTO_LIST, true);
+        reader.option(LineReader.Option.AUTO_MENU_LIST, true);
+        reader.option(LineReader.Option.GROUP, true);
+        reader.option(LineReader.Option.AUTO_GROUP, true);
+        reader.option(LineReader.Option.GROUP_PERSIST, true);
+        reader.setVariable(LineReader.MENU_LIST_MAX, 10);
+
+        // Auto-trigger completion when '/' is typed at the beginning of the line
+        reader.getWidgets().put("slash-auto-complete", () -> {
+            reader.getBuffer().write('/');
+            // Only trigger completion if '/' is the first character
+            if (reader.getBuffer().toString().equals("/")) {
+                reader.callWidget(LineReader.MENU_EXPAND_OR_COMPLETE);
+            }
+            return true;
+        });
+        reader.getKeyMaps().get("main").bind(
+                new Reference("slash-auto-complete"), "/");
 
         // Bind Ctrl+O to expand collapsed response.
         // Sets a flag and exits readLine via SEND_BREAK so the expand
@@ -233,32 +254,46 @@ public class TerminalApp implements AutoCloseable {
      * Should be called from a dedicated thread, not the Vert.x event loop.
      */
     public void run() {
-        printBanner();
+        // Enable status bar first so the scroll region is established.
+        // All subsequent output is confined to the scroll region and
+        // cannot overflow into the reserved area (input box + status).
         statusBar.enable();
         statusBar.setIdle();
+        printBanner();
+        // Add breathing room between the banner and the input box.
+        // One INPUT_BOX_HEIGHT of space keeps them visually separate.
+        for (int i = 0; i < StatusBar.INPUT_BOX_HEIGHT; i++) {
+            writer.println();
+        }
+        writer.flush();
+        taskPanel.startElapsedTimer(() -> statusBar.refresh());
 
         try {
             while (running) {
+                // Show cursor and position at the input row for readLine
+                showCursor();
+                moveToInputRow();
+
                 String line;
                 try {
                     line = reader.readLine(buildPrompt());
                 } catch (UserInterruptException e) {
                     // Ctrl+O toggle fires UserInterruptException to exit readLine cleanly
                     if (eventRenderer.consumeToggleRequest()) {
-                        writer.print("\033[1A\r\033[2K");
+                        moveToScrollBottom();
                         eventRenderer.toggleLastResponseInPlace();
                         // Re-establish scroll region + status bar in case
                         // expanded content scrolled beyond the visible area.
                         statusBar.enable();
+                        statusBar.recalculateLayout();
                         continue;
                     }
                     // Ctrl+E detail view
                     if (consumeDetailViewRequest()) {
-                        writer.print("\033[1A\r\033[2K");
                         statusBar.disable();
                         detailView.show(eventRenderer.getLastToolCard());
                         statusBar.enable();
-                        statusBar.setIdle();
+                        statusBar.recalculateLayout();
                         continue;
                     }
                     handleCtrlC();
@@ -266,6 +301,9 @@ public class TerminalApp implements AutoCloseable {
                 } catch (EndOfFileException e) {
                     break;
                 }
+
+                // After readLine, move cursor back to scroll region for content output
+                moveToScrollBottom();
 
                 if (line == null || line.equalsIgnoreCase("exit") || line.equalsIgnoreCase("quit")) {
                     break;
@@ -282,15 +320,80 @@ public class TerminalApp implements AutoCloseable {
                     }
                 }
 
+                // Echo the user's input into the scroll region so it stays visible
+                echoUserInput(line);
                 executeTurn(line);
             }
         } finally {
+            showCursor();
+            taskPanel.stopElapsedTimer();
             statusBar.disable();
+        }
+    }
+
+    /**
+     * Moves the cursor to the input row inside the reserved bottom panel.
+     */
+    private void moveToInputRow() {
+        if ("dumb".equals(terminal.getType())) return;
+        int inputRow = statusBar.getInputRow();
+        writer.print(String.format("\033[%d;1H\033[2K", inputRow));
+        writer.flush();
+    }
+
+    /**
+     * Echoes the user's input into the scroll region with the same prompt style,
+     * so it remains visible after the input box is repainted.
+     */
+    private void echoUserInput(String input) {
+        if ("dumb".equals(terminal.getType())) return;
+        synchronized (statusBar.terminalWriteLock) {
+            writer.print(String.format("\033[%d;1H", statusBar.getScrollBottom()));
+            writer.println();
+            // Light gray background (256-color 237), bright white prompt text
+            writer.println(new AttributedStringBuilder()
+                    .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.WHITE).bold().background(237))
+                    .append("  \u276f " + input + "  ")
+                    .toAnsi());
+            writer.flush();
+        }
+    }
+
+    /**
+     * Moves the cursor to the bottom of the scroll region so content output
+     * appends correctly within the scrollable area.
+     */
+    private void moveToScrollBottom() {
+        if ("dumb".equals(terminal.getType())) return;
+        int scrollBottom = statusBar.getScrollBottom();
+        writer.print(String.format("\033[%d;1H", scrollBottom));
+        writer.flush();
+    }
+
+    /**
+     * Hides the terminal cursor (used during turn execution).
+     */
+    private void hideCursor() {
+        if (!"dumb".equals(terminal.getType())) {
+            writer.print("\033[?25l");
+            writer.flush();
+        }
+    }
+
+    /**
+     * Shows the terminal cursor (used before readLine).
+     */
+    private void showCursor() {
+        if (!"dumb".equals(terminal.getType())) {
+            writer.print("\033[?25h");
+            writer.flush();
         }
     }
 
     private String buildPrompt() {
         return new AttributedStringBuilder()
+                .style(AttributedStyle.DEFAULT)
+                .append("  ")
                 .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW).bold())
                 .append("\u276f ")
                 .style(AttributedStyle.DEFAULT)
@@ -330,6 +433,7 @@ public class TerminalApp implements AutoCloseable {
                 writer.flush();
                 // Re-setup scroll region after clear
                 statusBar.enable();
+                statusBar.recalculateLayout();
                 return true;
             }
             case "/expand" -> {
@@ -370,6 +474,8 @@ public class TerminalApp implements AutoCloseable {
     }
 
     private void executeTurn(String input) {
+        moveToInputRow();
+
         CompletableFuture<Void> turnDone = new CompletableFuture<>();
         AgentSignal signal = new AgentSignal();
         currentSignal.set(signal);
@@ -423,6 +529,7 @@ public class TerminalApp implements AutoCloseable {
     @Override
     public void close() throws Exception {
         running = false;
+        showCursor();
         statusBar.disable();
         if (terminal != null) {
             terminal.close();

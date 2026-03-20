@@ -72,7 +72,8 @@ public class SlashCommandCompleterTest {
         completer.complete(null, parsedLine("/"), candidates);
 
         for (Candidate c : candidates) {
-            assertEquals("Commands", c.group(), "All candidates should have 'Commands' group");
+            assertNotNull(c.group(), "All candidates should have a group");
+            assertFalse(c.group().isEmpty(), "Group should not be empty");
             assertNotNull(c.descr(), "All candidates should have a description");
         }
     }

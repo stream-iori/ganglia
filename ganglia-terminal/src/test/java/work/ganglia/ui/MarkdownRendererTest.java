@@ -20,7 +20,10 @@ public class MarkdownRendererTest {
             arguments("# Title", List.of("\u001B[4;36;1mTitle"), "Headers should have ANSI colors and underline"),
             arguments("**bold**", List.of("\u001B[1mbold"), "Bold should have ANSI bold code"),
             arguments("*italic*", List.of("\u001B[3mitalic"), "Italic should have ANSI italic code"),
-            arguments("```java\nint x = 1;\n```", List.of("--- Code Block ---", "int x = 1;"), "Code blocks should have delimiters")
+            arguments("```java\nint x = 1;\n```", List.of("java", "int x = 1;"), "Code blocks should show language and code"),
+            arguments("- [ ] todo\n- [x] done", List.of("\u2610", "todo", "\u2611", "done"), "Checkboxes should render with ballot box symbols"),
+            arguments("## Sub", List.of("## Sub"), "H2 should show ## prefix"),
+            arguments("1. first\n2. second", List.of("1. ", "first", "2. ", "second"), "Ordered lists should show numbers")
         );
     }
 

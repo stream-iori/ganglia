@@ -13,10 +13,10 @@ import java.util.List;
 public class SlashCommandCompleter implements Completer {
 
     private static final List<CommandDef> COMMANDS = List.of(
-            new CommandDef("/help", "List available commands"),
-            new CommandDef("/clear", "Clear the screen"),
-            new CommandDef("/expand", "Toggle expand/collapse response"),
-            new CommandDef("/exit", "Exit Ganglia")
+            new CommandDef("/help",   "List available commands", "Info"),
+            new CommandDef("/expand", "Toggle expand/collapse",  "Display"),
+            new CommandDef("/clear",  "Clear the screen",        "Session"),
+            new CommandDef("/exit",   "Exit Ganglia",            "Session")
     );
 
     @Override
@@ -27,10 +27,11 @@ public class SlashCommandCompleter implements Completer {
         }
         for (CommandDef cmd : COMMANDS) {
             if (cmd.name.startsWith(word)) {
-                candidates.add(new Candidate(cmd.name, cmd.name, "Commands", cmd.description, null, null, true));
+                candidates.add(new Candidate(
+                        cmd.name, cmd.name, cmd.group, cmd.description, null, null, true));
             }
         }
     }
 
-    private record CommandDef(String name, String description) {}
+    private record CommandDef(String name, String description, String group) {}
 }

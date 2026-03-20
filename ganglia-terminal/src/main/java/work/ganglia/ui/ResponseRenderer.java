@@ -21,6 +21,7 @@ public class ResponseRenderer {
     private final Terminal terminal;
     private final PrintWriter writer;
     private final MarkdownRenderer markdownRenderer;
+    private final StatusBar statusBar;
 
     private String lastRenderedResponse = null;
     private boolean lastResponseExpanded = false;
@@ -28,10 +29,11 @@ public class ResponseRenderer {
     private boolean responseRendered = false;
     private volatile boolean toggleRequested = false;
 
-    public ResponseRenderer(Terminal terminal, MarkdownRenderer markdownRenderer) {
+    public ResponseRenderer(Terminal terminal, MarkdownRenderer markdownRenderer, StatusBar statusBar) {
         this.terminal = terminal;
         this.writer = terminal.writer();
         this.markdownRenderer = markdownRenderer;
+        this.statusBar = statusBar;
     }
 
     /**
@@ -49,15 +51,17 @@ public class ResponseRenderer {
      * Renders response content with a green dot prefix to the terminal.
      */
     public void render(String content, boolean full) {
-        List<String> lines = buildResponseLines(content, full);
-        if (lines.isEmpty()) return;
-        for (String line : lines) {
-            writer.println(line);
+        synchronized (statusBar.terminalWriteLock) {
+            List<String> lines = buildResponseLines(content, full);
+            if (lines.isEmpty()) return;
+            for (String line : lines) {
+                writer.println(line);
+            }
+            lastRenderedResponse = content;
+            lastResponseExpanded = full;
+            lastResponseLineCount = lines.size();
+            responseRendered = true;
         }
-        lastRenderedResponse = content;
-        lastResponseExpanded = full;
-        lastResponseLineCount = lines.size();
-        responseRendered = true;
     }
 
     /**
@@ -85,41 +89,43 @@ public class ResponseRenderer {
     public void toggleInPlace() {
         if (lastRenderedResponse == null) return;
 
-        boolean newExpanded = !lastResponseExpanded;
-        List<String> newLines = buildResponseLines(lastRenderedResponse, newExpanded);
-        if (newLines.isEmpty()) return;
+        synchronized (statusBar.terminalWriteLock) {
+            boolean newExpanded = !lastResponseExpanded;
+            List<String> newLines = buildResponseLines(lastRenderedResponse, newExpanded);
+            if (newLines.isEmpty()) return;
 
-        int oldTotal = lastResponseLineCount + 1; // +1 for blank line after content
-        int newTotal = newLines.size() + 1;
+            int oldTotal = lastResponseLineCount + 1; // +1 for blank line after content
+            int newTotal = newLines.size() + 1;
 
-        // Cap upward movement to visible rows so the cursor doesn't overshoot.
-        int visibleRows = terminal.getHeight();
-        int moveUp = (visibleRows > 0) ? Math.min(oldTotal, visibleRows - 1) : oldTotal;
+            // Cap upward movement to visible rows within the scroll region only.
+            int visibleRows = terminal.getHeight() - statusBar.getReservedRows();
+            int moveUp = (visibleRows > 0) ? Math.min(oldTotal, visibleRows - 1) : oldTotal;
 
-        writer.print("\033[2K");
-        writer.print(String.format("\033[%dA\r", moveUp));
-
-        for (String line : newLines) {
             writer.print("\033[2K");
-            writer.println(line);
-        }
-        writer.print("\033[2K");
-        writer.println();
+            writer.print(String.format("\033[%dA\r", moveUp));
 
-        // Clear only the stale lines that remain visible below the new content.
-        // staleLines = (visible old lines) - (new lines) = (moveUp + 1) - newTotal
-        int staleLines = moveUp + 1 - newTotal;
-        if (staleLines > 0) {
-            for (int i = 0; i < staleLines; i++) {
-                writer.print("\033[2K\n");
+            for (String line : newLines) {
+                writer.print("\033[2K");
+                writer.println(line);
             }
-            writer.print(String.format("\033[%dA", staleLines));
+            writer.print("\033[2K");
+            writer.println();
+
+            // Clear only the stale lines that remain visible below the new content.
+            // staleLines = (visible old lines) - (new lines) = (moveUp + 1) - newTotal
+            int staleLines = moveUp + 1 - newTotal;
+            if (staleLines > 0) {
+                for (int i = 0; i < staleLines; i++) {
+                    writer.print("\033[2K\n");
+                }
+                writer.print(String.format("\033[%dA", staleLines));
+            }
+
+            writer.flush();
+
+            lastResponseExpanded = newExpanded;
+            lastResponseLineCount = newLines.size();
         }
-
-        writer.flush();
-
-        lastResponseExpanded = newExpanded;
-        lastResponseLineCount = newLines.size();
     }
 
     public void requestToggle() {
