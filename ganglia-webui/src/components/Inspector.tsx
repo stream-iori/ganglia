@@ -102,7 +102,7 @@ const Inspector: React.FC = () => {
                   onClick={() => systemStore.toggleInspector(systemStore.inspectorToolCallId, mode)}
                   className={cn(
                     'px-2 py-0.5 text-[10px] rounded transition-colors',
-                    systemStore.inspectorMode === mode ? 'bg-slate-700 text-white' : 'text-slate-500 hover:text-slate-300'
+                    systemStore.inspectorMode === mode ? 'bg-slate-700 text-slate-50' : 'text-slate-500 hover:text-slate-300'
                   )}
                 >
                   {mode === 'TERMINAL' ? 'Terminal' : mode === 'CODE' ? 'Code' : mode === 'DIFF' ? 'Diff' : 'Plan'}
@@ -138,7 +138,7 @@ const Inspector: React.FC = () => {
               </svg>
             </button>
           )}
-          <button onClick={() => systemStore.closeInspector()} className="text-slate-500 hover:text-white transition-colors p-1">
+          <button onClick={() => systemStore.closeInspector()} className="text-slate-500 hover:text-slate-50 transition-colors p-1">
             <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>

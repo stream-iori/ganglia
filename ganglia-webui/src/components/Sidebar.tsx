@@ -25,7 +25,7 @@ const Sidebar: React.FC = () => {
     <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-full border-r border-slate-800 shrink-0">
       <div className="p-4 border-b border-slate-800 flex justify-between items-start">
         <div>
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
+          <h1 className="text-xl font-bold text-slate-50 flex items-center gap-2">
             <span className="text-emerald-500 font-mono">⚛</span> Ganglia
           </h1>
           <div className="mt-2 text-[10px] flex items-center gap-2 uppercase tracking-tighter font-bold">

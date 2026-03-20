@@ -21,6 +21,7 @@ interface SystemState {
   fileTreeUpdatedAt: number
   activeAskId: string | null
   mcpCount: number
+  theme: 'light' | 'dark'
 
   // Actions
   setStatus: (status: ConnectionStatus) => void
@@ -35,10 +36,11 @@ interface SystemState {
   addContextToPrompt: (path: string) => void
   clearPendingContext: () => void
   getModifiedPaths: () => Set<string>
+  setTheme: (theme: 'light' | 'dark') => void
 }
 
 const getInitialSession = () => {
-  if (typeof window === 'undefined') return { sessionId: 'test', sessionHistory: ['test'] }
+  if (typeof window === 'undefined') return { sessionId: 'test', sessionHistory: ['test'], theme: 'dark' as const }
   const savedId = localStorage.getItem('ganglia_session_id')
   const sessionId = savedId || Math.random().toString(36).substring(2, 10)
   if (!savedId) localStorage.setItem('ganglia_session_id', sessionId)
@@ -48,7 +50,10 @@ const getInitialSession = () => {
   if (!sessionHistory.includes(sessionId)) sessionHistory.unshift(sessionId)
   localStorage.setItem('ganglia_session_history', JSON.stringify(sessionHistory))
 
-  return { sessionId, sessionHistory }
+  const savedTheme = localStorage.getItem('ganglia_theme')
+  const theme: 'light' | 'dark' = savedTheme === 'light' ? 'light' : 'dark'
+
+  return { sessionId, sessionHistory, theme }
 }
 
 export const useSystemStore = create<SystemState>((set, get) => {
@@ -69,6 +74,7 @@ export const useSystemStore = create<SystemState>((set, get) => {
     fileTreeUpdatedAt: 0,
     activeAskId: null,
     mcpCount: 0,
+    theme: initial.theme,
 
     setStatus: (status) => set({ status }),
     setSessionId: (id) => {
@@ -105,6 +111,15 @@ export const useSystemStore = create<SystemState>((set, get) => {
     closeInspector: () => set({ isInspectorOpen: false }),
     addContextToPrompt: (path) => set({ pendingContextPath: path }),
     clearPendingContext: () => set({ pendingContextPath: null }),
+    setTheme: (theme) => {
+      localStorage.setItem('ganglia_theme', theme)
+      if (theme === 'light') {
+        document.documentElement.classList.remove('dark')
+      } else {
+        document.documentElement.classList.add('dark')
+      }
+      set({ theme })
+    },
     getModifiedPaths: () => {
       const logStore = useLogStore.getState()
       const paths = new Set<string>()

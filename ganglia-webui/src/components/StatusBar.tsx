@@ -3,6 +3,7 @@ import { useSystemStore, AgentPhase } from '../stores/system'
 import { useLogStore } from '../stores/log'
 import { eventBusService } from '../services/eventbus'
 import { cn } from '../lib/utils'
+import ThemeToggle from './ThemeToggle'
 
 const StatusBar: React.FC = () => {
   const systemStore = useSystemStore()
@@ -135,18 +136,21 @@ const StatusBar: React.FC = () => {
           )}
         </div>
 
-        <button
-          onClick={stopAgent}
-          className={cn(
-            'flex items-center gap-2 px-3 py-1 rounded border transition-all active:scale-95 group',
-            isAgentBusy
-              ? 'border-rose-500/80 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse'
-              : 'border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 text-rose-500/70'
-          )}
-        >
-          <div className="w-2 h-2 bg-rose-500 rounded-sm group-hover:scale-110 transition-transform"></div>
-          <span className="text-[10px] font-bold uppercase tracking-wider">Stop Agent</span>
-        </button>
+        <div className="flex items-center gap-4">
+          <ThemeToggle />
+          <button
+            onClick={stopAgent}
+            className={cn(
+              'flex items-center gap-2 px-3 py-1 rounded border transition-all active:scale-95 group',
+              isAgentBusy
+                ? 'border-rose-500/80 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse'
+                : 'border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 text-rose-500/70'
+            )}
+          >
+            <div className="w-2 h-2 bg-rose-500 rounded-sm group-hover:scale-110 transition-transform"></div>
+            <span className="text-[10px] font-bold uppercase tracking-wider">Stop Agent</span>
+          </button>
+        </div>
       </div>
     </>
   )
