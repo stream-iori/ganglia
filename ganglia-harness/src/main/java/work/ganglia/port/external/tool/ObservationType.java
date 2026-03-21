@@ -23,6 +23,9 @@ public enum ObservationType {
   /** A tool execution has finished. */
   TOOL_FINISHED,
 
+  /** A tool requires user interaction. */
+  USER_INTERACTION_REQUIRED,
+
   /** The turn has completed. */
   TURN_FINISHED,
 

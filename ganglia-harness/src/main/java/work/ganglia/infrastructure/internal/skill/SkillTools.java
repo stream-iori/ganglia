@@ -87,17 +87,23 @@ public class SkillTools implements ToolSet {
     }
 
     if (!confirmed) {
-      return Future.succeededFuture(
-          ToolInvokeResult.interrupt(
-              "Requesting activation of skill: "
-                  + skill.name()
-                  + " ("
-                  + skill.id()
-                  + ")\n"
-                  + "Description: "
-                  + skill.description()
-                  + "\n"
-                  + "Proceed with activation? (yes/no)"));
+      String prompt =
+          "Requesting activation of skill: "
+              + skill.name()
+              + " ("
+              + skill.id()
+              + ")\n"
+              + "Description: "
+              + skill.description()
+              + "\n"
+              + "Proceed with activation? (yes/no)";
+
+      Map<String, Object> metadata = new java.util.HashMap<>();
+      metadata.put("question", prompt);
+      metadata.put("type", "choice");
+      metadata.put("options", java.util.List.of("yes", "no"));
+
+      return Future.succeededFuture(ToolInvokeResult.interrupt(prompt, metadata));
     }
 
     return skillRuntime

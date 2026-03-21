@@ -1,5 +1,6 @@
 package work.ganglia.infrastructure.external.tool.model;
 
+import java.util.Map;
 import work.ganglia.port.chat.SessionContext;
 
 /** Represents the structured result of a tool invocation. */
@@ -8,7 +9,8 @@ public record ToolInvokeResult(
     Status status,
     ToolErrorResult errorDetails,
     SessionContext modifiedContext, // Optional: if the tool modified the session state
-    String diff // Optional: unified diff of changes
+    String diff, // Optional: unified diff of changes
+    Map<String, Object> data // Optional: structured data payload
     ) {
   public enum Status {
     SUCCESS, // Tool executed and returned successfully
@@ -18,26 +20,30 @@ public record ToolInvokeResult(
   }
 
   public static ToolInvokeResult success(String output) {
-    return new ToolInvokeResult(output, Status.SUCCESS, null, null, null);
+    return new ToolInvokeResult(output, Status.SUCCESS, null, null, null, null);
   }
 
   public static ToolInvokeResult success(String output, String diff) {
-    return new ToolInvokeResult(output, Status.SUCCESS, null, null, diff);
+    return new ToolInvokeResult(output, Status.SUCCESS, null, null, diff, null);
   }
 
   public static ToolInvokeResult success(String output, SessionContext modifiedContext) {
-    return new ToolInvokeResult(output, Status.SUCCESS, null, modifiedContext, null);
+    return new ToolInvokeResult(output, Status.SUCCESS, null, modifiedContext, null, null);
   }
 
   public static ToolInvokeResult interrupt(String prompt) {
-    return new ToolInvokeResult(prompt, Status.INTERRUPT, null, null, null);
+    return new ToolInvokeResult(prompt, Status.INTERRUPT, null, null, null, null);
+  }
+
+  public static ToolInvokeResult interrupt(String prompt, Map<String, Object> data) {
+    return new ToolInvokeResult(prompt, Status.INTERRUPT, null, null, null, data);
   }
 
   public static ToolInvokeResult error(String message) {
-    return new ToolInvokeResult(message, Status.ERROR, null, null, null);
+    return new ToolInvokeResult(message, Status.ERROR, null, null, null, null);
   }
 
   public static ToolInvokeResult exception(ToolErrorResult details) {
-    return new ToolInvokeResult(details.message(), Status.EXCEPTION, details, null, null);
+    return new ToolInvokeResult(details.message(), Status.EXCEPTION, details, null, null, null);
   }
 }

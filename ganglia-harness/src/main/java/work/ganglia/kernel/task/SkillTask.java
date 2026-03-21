@@ -65,7 +65,10 @@ public class SkillTask implements AgentTask {
                         case INTERRUPT -> AgentTaskResult.Status.INTERRUPT;
                       };
                   return new AgentTaskResult(
-                      status, invokeResult.output(), invokeResult.modifiedContext());
+                      status,
+                      invokeResult.output(),
+                      invokeResult.modifiedContext(),
+                      invokeResult.data());
                 });
       }
     }
@@ -104,17 +107,23 @@ public class SkillTask implements AgentTask {
     }
 
     if (!confirmed) {
-      return Future.succeededFuture(
-          AgentTaskResult.interrupt(
-              "Requesting activation of skill: "
-                  + skill.name()
-                  + " ("
-                  + skill.id()
-                  + ")\\n"
-                  + "Description: "
-                  + skill.description()
-                  + "\\n"
-                  + "Proceed with activation? (yes/no)"));
+      String prompt =
+          "Requesting activation of skill: "
+              + skill.name()
+              + " ("
+              + skill.id()
+              + ")\\n"
+              + "Description: "
+              + skill.description()
+              + "\\n"
+              + "Proceed with activation? (yes/no)";
+
+      Map<String, Object> metadata = new java.util.HashMap<>();
+      metadata.put("question", prompt.replace("\\n", "\n"));
+      metadata.put("type", "choice");
+      metadata.put("options", java.util.List.of("yes", "no"));
+
+      return Future.succeededFuture(AgentTaskResult.interrupt(prompt, metadata));
     }
 
     return skillRuntime

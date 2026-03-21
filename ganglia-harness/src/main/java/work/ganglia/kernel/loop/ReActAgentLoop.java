@@ -405,6 +405,7 @@ public class ReActAgentLoop implements AgentLoop {
                               new AgentTaskResult(
                                   AgentTaskResult.Status.EXCEPTION,
                                   "Execution error: " + err.getMessage(),
+                                  null,
                                   null)))
                   .compose(
                       rawResult -> {
@@ -414,7 +415,8 @@ public class ReActAgentLoop implements AgentLoop {
                                 convertStatus(rawResult.status()),
                                 null,
                                 rawResult.modifiedContext(),
-                                "");
+                                "",
+                                rawResult.data());
                         return pipeline
                             .executePostToolExecute(hookedCall, toolResult, originalContext)
                             .map(
@@ -422,7 +424,8 @@ public class ReActAgentLoop implements AgentLoop {
                                     new AgentTaskResult(
                                         convertStatusBack(hookedResult.status()),
                                         hookedResult.output(),
-                                        hookedResult.modifiedContext()));
+                                        hookedResult.modifiedContext(),
+                                        hookedResult.data()));
                       });
             })
         .recover(
@@ -432,6 +435,7 @@ public class ReActAgentLoop implements AgentLoop {
                   new AgentTaskResult(
                       AgentTaskResult.Status.ERROR,
                       "Hook execution blocked/failed: " + err.getMessage(),
+                      null,
                       null));
             })
         .compose(
@@ -439,11 +443,15 @@ public class ReActAgentLoop implements AgentLoop {
               Map<String, Object> resData = Map.of("toolCallId", task.id());
               switch (result.status()) {
                 case INTERRUPT -> {
+                  Map<String, Object> interruptData = new java.util.HashMap<>(resData);
+                  if (result.data() != null) {
+                    interruptData.putAll(result.data());
+                  }
                   publishObservation(
                       originalContext.sessionId(),
-                      ObservationType.TOOL_FINISHED,
+                      ObservationType.USER_INTERACTION_REQUIRED,
                       "Interrupted: " + result.output(),
-                      resData);
+                      interruptData);
                   Message interruptMsg =
                       Message.tool(task.id(), task.name(), "INTERRUPTED: " + result.output());
                   SessionContext interruptedContext =

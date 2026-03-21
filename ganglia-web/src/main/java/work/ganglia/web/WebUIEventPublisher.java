@@ -138,6 +138,27 @@ public class WebUIEventPublisher implements AgentLoopObserver {
             new ServerEvent.ToolResultData(
                 toolCallId, exitCode, summary, fullOutput, isError, null));
       }
+      case USER_INTERACTION_REQUIRED -> {
+        String askId = "ask-" + System.currentTimeMillis();
+        String question =
+            data != null && data.containsKey("question")
+                ? data.get("question").toString()
+                : content;
+
+        java.util.List<ServerEvent.AskOption> frontendOptions = new java.util.ArrayList<>();
+        if (data != null && data.containsKey("options")) {
+          @SuppressWarnings("unchecked")
+          java.util.List<String> rawOptions = (java.util.List<String>) data.get("options");
+          for (String opt : rawOptions) {
+            frontendOptions.add(new ServerEvent.AskOption(opt, opt, opt));
+          }
+        }
+
+        publish(
+            sessionId,
+            EventType.ASK_USER,
+            new ServerEvent.AskUserData(askId, question, frontendOptions, null));
+      }
       case TURN_FINISHED -> {
         if (content != null && !content.isBlank()) {
           publish(sessionId, EventType.AGENT_MESSAGE, new ServerEvent.AgentMessageData(content));

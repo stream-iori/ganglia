@@ -46,7 +46,10 @@ public class StandardToolTask implements AgentTask {
                     case INTERRUPT -> AgentTaskResult.Status.INTERRUPT;
                   };
               return new AgentTaskResult(
-                  status, invokeResult.output(), invokeResult.modifiedContext());
+                  status,
+                  invokeResult.output(),
+                  invokeResult.modifiedContext(),
+                  invokeResult.data());
             });
   }
 }

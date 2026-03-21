@@ -57,21 +57,26 @@ public class InteractionTools implements ToolSet {
     String question = (String) args.get("question");
     String type = (String) args.get("type");
 
+    Map<String, Object> data = new java.util.HashMap<>();
+    data.put("question", question);
+    data.put("type", type);
+
     if ("choice".equals(type)) {
       List<String> options = (List<String>) args.get("options");
       if (options == null || options.isEmpty()) {
         return Future.succeededFuture(
             ToolInvokeResult.error("Options are required for 'choice' interaction type"));
       }
+      data.put("options", options);
       StringBuilder sb = new StringBuilder(question).append("\n\n");
       for (int i = 0; i < options.size(); i++) {
         sb.append(i + 1).append(". ").append(options.get(i)).append("\n");
       }
       sb.append("\nPlease select an option (number or text):");
-      return Future.succeededFuture(ToolInvokeResult.interrupt(sb.toString()));
+      return Future.succeededFuture(ToolInvokeResult.interrupt(sb.toString(), data));
     } else {
       // Default to text (free-form input)
-      return Future.succeededFuture(ToolInvokeResult.interrupt(question));
+      return Future.succeededFuture(ToolInvokeResult.interrupt(question, data));
     }
   }
 }

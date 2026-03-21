@@ -21,6 +21,15 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
     });
   };
 
+  const [textInput, setTextInput] = React.useState('');
+
+  const submitText = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (textInput.trim()) {
+      selectOption(textInput.trim());
+    }
+  };
+
   const diffMarkdown = useMemo(() => {
     if (!event.data.diffContext) return '';
     return `\`\`\`diff\n${event.data.diffContext}\n\`\`\``;
@@ -90,24 +99,44 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
               </div>
             )}
 
-            <div
-              className={`grid gap-4 mt-auto ${event.data.options.length > 3 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}
-            >
-              {event.data.options.map((option) => (
+            {!event.data.options || event.data.options.length === 0 ? (
+              <form onSubmit={submitText} className="flex gap-3 mt-auto">
+                <input
+                  type="text"
+                  value={textInput}
+                  onChange={(e) => setTextInput(e.target.value)}
+                  placeholder="Type your response..."
+                  className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                  autoFocus
+                />
                 <button
-                  key={option.value}
-                  onClick={() => selectOption(option.value)}
-                  className="flex flex-col items-start p-5 rounded-xl border border-slate-700 bg-slate-800/50 hover:border-emerald-500/50 hover:bg-slate-800 transition-all text-left group"
+                  type="submit"
+                  disabled={!textInput.trim()}
+                  className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:hover:bg-emerald-600 text-white font-semibold rounded-lg transition-colors"
                 >
-                  <span className="text-base font-semibold text-slate-200 group-hover:text-emerald-400">
-                    {option.label}
-                  </span>
-                  <span className="text-sm text-slate-400 mt-1 leading-relaxed">
-                    {option.description}
-                  </span>
+                  Submit
                 </button>
-              ))}
-            </div>
+              </form>
+            ) : (
+              <div
+                className={`grid gap-4 mt-auto ${event.data.options.length > 3 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}
+              >
+                {event.data.options.map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => selectOption(option.value)}
+                    className="flex flex-col items-start p-5 rounded-xl border border-slate-700 bg-slate-800/50 hover:border-emerald-500/50 hover:bg-slate-800 transition-all text-left group"
+                  >
+                    <span className="text-base font-semibold text-slate-200 group-hover:text-emerald-400">
+                      {option.label}
+                    </span>
+                    <span className="text-sm text-slate-400 mt-1 leading-relaxed">
+                      {option.description}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

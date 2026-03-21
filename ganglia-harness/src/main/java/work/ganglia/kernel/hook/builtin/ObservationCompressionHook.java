@@ -90,7 +90,8 @@ public class ObservationCompressionHook implements AgentInterceptor {
                             result.status(),
                             result.errorDetails(),
                             result.modifiedContext(),
-                            result.diff());
+                            result.diff(),
+                            result.data());
                       });
             })
         .recover(

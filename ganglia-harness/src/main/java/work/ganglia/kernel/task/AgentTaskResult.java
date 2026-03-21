@@ -1,9 +1,11 @@
 package work.ganglia.kernel.task;
 
+import java.util.Map;
 import work.ganglia.port.chat.SessionContext;
 
 /** Represents the result of executing a AgentTask task. */
-public record AgentTaskResult(Status status, String output, SessionContext modifiedContext) {
+public record AgentTaskResult(
+    Status status, String output, SessionContext modifiedContext, Map<String, Object> data) {
 
   public enum Status {
     SUCCESS,
@@ -13,18 +15,22 @@ public record AgentTaskResult(Status status, String output, SessionContext modif
   }
 
   public static AgentTaskResult success(String output) {
-    return new AgentTaskResult(Status.SUCCESS, output, null);
+    return new AgentTaskResult(Status.SUCCESS, output, null, null);
   }
 
   public static AgentTaskResult success(String output, SessionContext modifiedContext) {
-    return new AgentTaskResult(Status.SUCCESS, output, modifiedContext);
+    return new AgentTaskResult(Status.SUCCESS, output, modifiedContext, null);
   }
 
   public static AgentTaskResult error(String error) {
-    return new AgentTaskResult(Status.ERROR, error, null);
+    return new AgentTaskResult(Status.ERROR, error, null, null);
   }
 
   public static AgentTaskResult interrupt(String message) {
-    return new AgentTaskResult(Status.INTERRUPT, message, null);
+    return new AgentTaskResult(Status.INTERRUPT, message, null, null);
+  }
+
+  public static AgentTaskResult interrupt(String message, Map<String, Object> data) {
+    return new AgentTaskResult(Status.INTERRUPT, message, null, data);
   }
 }

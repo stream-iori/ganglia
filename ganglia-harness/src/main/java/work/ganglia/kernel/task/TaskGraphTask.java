@@ -79,7 +79,12 @@ public class TaskGraphTask implements AgentTask {
     }
     sb.append("\\nDo you approve this execution plan? (y/n)");
 
-    return Future.succeededFuture(AgentTaskResult.interrupt(sb.toString()));
+    Map<String, Object> metadata = new java.util.HashMap<>();
+    metadata.put("question", sb.toString().replace("\\n", "\n"));
+    metadata.put("type", "choice");
+    metadata.put("options", java.util.List.of("yes", "no"));
+
+    return Future.succeededFuture(AgentTaskResult.interrupt(sb.toString(), metadata));
   }
 
   private Future<AgentTaskResult> executeGraph(SessionContext context) {
