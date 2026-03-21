@@ -126,11 +126,11 @@ describe('System Store', () => {
   it('should reload on session switch', () => {
     const store = useSystemStore.getState();
     const reloadSpy = vi.fn();
-    // @ts-expect-error - Testing invalid phase transition
+
     const oldLocation = window.location;
-    // @ts-expect-error - Testing invalid phase transition
-    delete window.location;
-    // @ts-expect-error - Testing invalid phase transition
+
+    delete (window /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any).location;
+
     window.location = { ...oldLocation, reload: reloadSpy };
 
     store.switchSession('other');
@@ -138,7 +138,7 @@ describe('System Store', () => {
     expect(reloadSpy).toHaveBeenCalled();
 
     // Restore
-    // @ts-expect-error - Testing invalid phase transition
+
     window.location = oldLocation;
   });
 });

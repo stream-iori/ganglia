@@ -5,6 +5,8 @@ import type {
   FileContentData,
   FileTreeNode,
   TokenData,
+  ThoughtData,
+  AgentMessageData,
 } from '../types';
 
 interface LogState {
@@ -43,7 +45,7 @@ export const useLogStore = create<LogState>((set) => ({
           if (
             lastEvent &&
             lastEvent.type === 'THOUGHT' &&
-            (lastEvent.data as unknown).content === '...'
+            (lastEvent.data as ThoughtData).content === '...'
           ) {
             role = 'thought';
           } else {
@@ -64,7 +66,7 @@ export const useLogStore = create<LogState>((set) => ({
 
       if (event.type === 'THOUGHT') {
         if (!newState.thoughtStartTime) newState.thoughtStartTime = Date.now();
-        if ((event.data as unknown).content !== '...') {
+        if ((event.data as ThoughtData).content !== '...') {
           newState.streamingThought = '';
         }
       } else if (
@@ -80,10 +82,10 @@ export const useLogStore = create<LogState>((set) => ({
           if (lastThoughtIdx !== -1) {
             const lastThought = {
               ...newEvents[lastThoughtIdx],
-              data: { ...newEvents[lastThoughtIdx].data },
+              data: { ...(newEvents[lastThoughtIdx].data as ThoughtData) },
             };
-            if (!(lastThought.data as unknown).durationMs) {
-              (lastThought.data as unknown).durationMs = Date.now() - newState.thoughtStartTime;
+            if (!(lastThought.data as ThoughtData).durationMs) {
+              (lastThought.data as ThoughtData).durationMs = Date.now() - newState.thoughtStartTime;
               newEvents[lastThoughtIdx] = lastThought;
             }
           }
@@ -103,7 +105,7 @@ export const useLogStore = create<LogState>((set) => ({
       }
 
       const isThoughtPlaceholder = (e: ServerEvent) =>
-        e && e.type === 'THOUGHT' && String((e.data as unknown).content).trim() === '...';
+        e && e.type === 'THOUGHT' && String((e.data as ThoughtData).content).trim() === '...';
 
       // We only want to replace the `...` placeholder with the real THOUGHT event.
       // We DO NOT want to delete a real THOUGHT event just because an AGENT_MESSAGE arrived.
@@ -129,9 +131,9 @@ export const useLogStore = create<LogState>((set) => ({
 
         // Deduplication for exact same content between THOUGHT and AGENT_MESSAGE (a backend quirk)
         if (event.type === 'AGENT_MESSAGE') {
-          const content = (event.data as unknown).content;
+          const content = (event.data as AgentMessageData).content;
           const sameContentIdx = newEvents.findLastIndex(
-            (e: ServerEvent) => e.type === 'THOUGHT' && (e.data as unknown).content === content,
+            (e: ServerEvent) => e.type === 'THOUGHT' && (e.data as ThoughtData).content === content,
           );
           if (sameContentIdx !== -1) {
             // Upgrade THOUGHT to AGENT_MESSAGE if identical

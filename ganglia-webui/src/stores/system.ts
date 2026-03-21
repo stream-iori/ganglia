@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { useLogStore } from './log';
+import type { ToolStartData } from '../types';
 
 export type ConnectionStatus = 'CONNECTED' | 'DISCONNECTED' | 'RECONNECTING';
 export type InspectorMode = 'TERMINAL' | 'CODE' | 'DIFF' | 'PLAN';
@@ -132,7 +133,7 @@ export const useSystemStore = create<SystemState>((set, get) => {
       const paths = new Set<string>();
       logStore.events.forEach((event) => {
         if (event.type === 'TOOL_START') {
-          const { toolName, command } = event.data as unknown;
+          const { toolName, command } = event.data as ToolStartData;
           if (['write_file', 'replace', 'read_file'].includes(toolName)) {
             const path = command?.split(' ')[0]?.replace(/['"]/g, '');
             if (path && path.includes('.')) {

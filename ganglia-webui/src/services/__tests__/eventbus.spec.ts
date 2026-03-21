@@ -61,11 +61,13 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
     useLogStore.setState({ events: [], activeToolCalls: {} });
 
     originalWebSocket = window.WebSocket;
-    (window as unknown).WebSocket = MockWebSocket;
+    (window /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any).WebSocket =
+      MockWebSocket;
   });
 
   afterEach(() => {
-    (window as unknown).WebSocket = originalWebSocket;
+    (window /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any).WebSocket =
+      originalWebSocket;
     MockWebSocket.lastInstance = null;
     eventBusService.close();
   });
@@ -96,7 +98,10 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
     const logState = useLogStore.getState();
     expect(logState.events).toHaveLength(1);
     expect(logState.events[0].type).toBe('THOUGHT');
-    expect((logState.events[0].data as unknown).content).toBe('Test Thinking');
+    expect(
+      (logState.events[0].data /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any)
+        .content,
+    ).toBe('Test Thinking');
   });
 
   it('should update fileTreeUpdatedAt on FILE_TREE event', async () => {
@@ -128,7 +133,7 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
       eventId: 'start-1',
       type: 'TOOL_START',
       data: { toolCallId, toolName: 'bash', command: 'ls' },
-    } as unknown);
+    } /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any);
 
     MockWebSocket.lastInstance?.simulateMessage({
       jsonrpc: '2.0',
@@ -148,14 +153,17 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
 
     const sendPromise = eventBusService.send('LIST_FILES', {});
 
-    const lastId = (eventBusService as unknown).requestCounter;
+    const lastId = (
+      eventBusService /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any
+    ).requestCounter;
     MockWebSocket.lastInstance?.simulateMessage({
       jsonrpc: '2.0',
       id: lastId,
       result: { status: 'ok' },
     });
 
-    const result = await sendPromise;
+    const result =
+      (await sendPromise) /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any;
     expect(result.status).toBe('ok');
   });
 });

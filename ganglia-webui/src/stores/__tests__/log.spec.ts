@@ -67,7 +67,9 @@ describe('Log Store', () => {
   it('should clear events', () => {
     const store = useLogStore.getState();
     useLogStore.setState({
-      events: [{ eventId: '1' } as unknown],
+      events: [
+        { eventId: '1' } /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
+      ],
       activeToolCalls: { '1': [] },
     });
 
@@ -83,7 +85,9 @@ describe('Log Store', () => {
       eventId: 'user-1',
       timestamp: Date.now(),
       type: 'USER_MESSAGE',
-      data: { content: 'who are you' } as unknown,
+      data: {
+        content: 'who are you',
+      } /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
     };
 
     store.addEvent(event);
@@ -100,7 +104,7 @@ describe('Log Store', () => {
       eventId: 'p1',
       timestamp: Date.now(),
       type: 'THOUGHT',
-      data: { content: '...' } as unknown,
+      data: { content: '...' } /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
     });
     expect(useLogStore.getState().events).toHaveLength(1);
 
@@ -109,12 +113,17 @@ describe('Log Store', () => {
       eventId: 't1',
       timestamp: Date.now(),
       type: 'THOUGHT',
-      data: { content: 'I am thinking about it' } as unknown,
+      data: {
+        content: 'I am thinking about it',
+      } /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
     });
 
     const state = useLogStore.getState();
     expect(state.events).toHaveLength(1);
-    expect((state.events[0]?.data as unknown).content).toBe('I am thinking about it');
+    expect(
+      (state.events[0]?.data /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any)
+        .content,
+    ).toBe('I am thinking about it');
   });
 
   it('should deduplicate THOUGHT and AGENT_MESSAGE with same content', () => {
@@ -126,14 +135,14 @@ describe('Log Store', () => {
       eventId: 't1',
       timestamp: Date.now(),
       type: 'THOUGHT',
-      data: { content } as unknown,
+      data: { content } /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
     });
 
     store.addEvent({
       eventId: 'a1',
       timestamp: Date.now(),
       type: 'AGENT_MESSAGE',
-      data: { content } as unknown,
+      data: { content } /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
     });
 
     const state = useLogStore.getState();
@@ -149,7 +158,9 @@ describe('Log Store', () => {
       eventId: 't1',
       timestamp: Date.now(),
       type: 'THOUGHT',
-      data: { content: 'Processing...' } as unknown,
+      data: {
+        content: 'Processing...',
+      } /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
     });
 
     expect(useLogStore.getState().thoughtStartTime).toBeDefined();
@@ -159,11 +170,16 @@ describe('Log Store', () => {
       eventId: 'a1',
       timestamp: Date.now(),
       type: 'AGENT_MESSAGE',
-      data: { content: 'hello' } as unknown,
+      data: {
+        content: 'hello',
+      } /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any,
     });
 
     const state = useLogStore.getState();
     const thought = state.events.find((e) => e.eventId === 't1');
-    expect((thought?.data as unknown).durationMs).toBeDefined();
+    expect(
+      (thought?.data /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any)
+        .durationMs,
+    ).toBeDefined();
   });
 });

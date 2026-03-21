@@ -38,6 +38,7 @@ export interface InitConfigData {
 
 export interface ThoughtData {
   content: string;
+  durationMs?: number;
 }
 
 export interface UserMessageData {
@@ -65,10 +66,18 @@ export interface AskOption {
   description: string;
 }
 
+export interface AskUserQuestion {
+  question: string;
+  header: string;
+  type: 'choice' | 'text' | 'yesno';
+  options: AskOption[];
+  multiSelect?: boolean;
+  placeholder?: string;
+}
+
 export interface AskUserData {
   askId: string;
-  question: string;
-  options: AskOption[];
+  questions: AskUserQuestion[];
   diffContext?: string; // Optional diff patch string
 }
 
@@ -144,7 +153,7 @@ export interface StartParams {
 }
 export interface RespondAskParams {
   askId: string;
-  selectedOption: string;
+  answers: (string | string[])[];
 }
 export interface CancelParams {}
 export interface RetryParams {}

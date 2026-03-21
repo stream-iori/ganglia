@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useSystemStore, AgentPhase } from '../stores/system';
 import { useLogStore } from '../stores/log';
 import { eventBusService } from '../services/eventbus';
+import type { AgentMessageData } from '../types';
 import { cn } from '../lib/utils';
 import ThemeToggle from './ThemeToggle';
 
@@ -35,7 +36,7 @@ const StatusBar: React.FC = () => {
       newPhase = 'PLANNING';
     } else if (
       lastEvent.type === 'AGENT_MESSAGE' &&
-      (lastEvent.data.content || '').includes('Task completed')
+      ((lastEvent.data as AgentMessageData).content || '').includes('Task completed')
     ) {
       newPhase = 'REVIEWING';
     }

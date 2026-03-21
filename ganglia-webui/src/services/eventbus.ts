@@ -14,6 +14,7 @@ import type {
   SyncParams,
   ListFilesParams,
   InitConfigData,
+  ToDoList,
 } from '../types';
 
 type PendingRequest = {
@@ -88,7 +89,7 @@ class EventBusService {
             ],
           });
         } else if (msg.method === 'START' || msg.method === 'RETRY') {
-          const params = msg.params as StartParams;
+          const params = msg.params as unknown as StartParams;
           const prompt = (params.prompt || 'Retry last prompt').toLowerCase();
           this.respond(msg.id!, { status: 'started' });
 
@@ -147,7 +148,7 @@ class EventBusService {
           });
           this.respond(msg.id!, { status: 'ok' });
         } else if (msg.method === 'READ_FILE') {
-          const params = msg.params as ReadFileParams;
+          const params = msg.params as unknown as ReadFileParams;
           if (params.path === 'WORKSPACE_DIFF_VIRTUAL_PATH') {
             this.notify('server_event', {
               eventId: 'diff-1',
@@ -559,7 +560,7 @@ class EventBusService {
 
     if (event.type === 'PLAN_UPDATED') {
       const planStore = usePlanStore.getState();
-      const planData = event.data as { plan?: unknown };
+      const planData = event.data as { plan?: ToDoList };
       if (planData && planData.plan) {
         planStore.setPlan(planData.plan);
       }

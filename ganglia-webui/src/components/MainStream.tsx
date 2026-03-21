@@ -3,12 +3,14 @@ import { eventBusService } from '../services/eventbus';
 import { useLogStore } from '../stores/log';
 import { useSystemStore } from '../stores/system';
 import type {
+  ServerEvent,
   ToolResultData,
   ToolStartData,
   UserMessageData,
   ThoughtData,
   AgentMessageData,
   SystemErrorData,
+  AskUserData,
 } from '../types';
 import ThoughtCard from './ThoughtCard';
 import ToolCard from './ToolCard';
@@ -120,7 +122,7 @@ const MainStream: React.FC = () => {
         return false;
       if (
         e.type === 'THOUGHT' &&
-        (e.data as unknown).content === '...' &&
+        (e.data as ThoughtData).content === '...' &&
         logStore.streamingThought
       )
         return false;
@@ -164,7 +166,7 @@ const MainStream: React.FC = () => {
               (() => {
                 const thoughtData = event.data as ThoughtData;
                 const content = thoughtData.content;
-                const durationMs = (thoughtData as unknown).durationMs;
+                const durationMs = (thoughtData as ThoughtData).durationMs;
                 if (content === '...' && logStore.streamingThought) return null;
                 return <ThoughtCard content={content} durationMs={durationMs} />;
               })()}
@@ -188,7 +190,7 @@ const MainStream: React.FC = () => {
 
             {event.type === 'ASK_USER' && (
               <div className="ml-2">
-                <AskUserForm event={event as unknown} />
+                <AskUserForm event={event as ServerEvent<AskUserData>} />
               </div>
             )}
 
