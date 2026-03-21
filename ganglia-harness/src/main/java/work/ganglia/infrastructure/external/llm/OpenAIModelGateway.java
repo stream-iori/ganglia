@@ -310,7 +310,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
       function.put("description", tool.description());
     }
     if (tool.jsonSchema() != null && !tool.jsonSchema().isEmpty()) {
-      function.put("parameters", new JsonObject(tool.jsonSchema()));
+      function.put("parameters", new JsonObject(JsonSanitizer.sanitize(tool.jsonSchema())));
     }
     obj.put("function", function);
     return obj;

@@ -394,6 +394,10 @@ public class ReActAgentLoop implements AgentLoop {
           }
         };
 
+    if (task.getToolCall() == null) {
+      return Future.failedFuture(new RuntimeException("AgentTask has no ToolCall: " + task.name()));
+    }
+
     return pipeline
         .executePreToolExecute(task.getToolCall(), currentContext)
         .compose(

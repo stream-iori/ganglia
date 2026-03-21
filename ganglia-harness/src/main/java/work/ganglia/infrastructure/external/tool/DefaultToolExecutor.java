@@ -20,7 +20,7 @@ import work.ganglia.port.external.tool.ToolSet;
 public class DefaultToolExecutor implements ToolExecutor {
   private static final Logger log = LoggerFactory.getLogger(DefaultToolExecutor.class);
 
-  private final List<ToolSet> builtInToolSets = new ArrayList<>();
+  private final List<ToolSet> toolSets = new ArrayList<>();
   private final ToolCallValidator validator = new ToolCallValidator();
 
   public DefaultToolExecutor(ToolsFactory factory) {
@@ -28,12 +28,9 @@ public class DefaultToolExecutor implements ToolExecutor {
   }
 
   public DefaultToolExecutor(ToolsFactory factory, List<ToolSet> extraToolSets) {
-    // Add standard core toolsets
-    builtInToolSets.add(factory.getInteractionTools());
-
-    // Add extra toolsets (e.g., from ganglia-coding)
+    // Add extra toolsets (core built-ins and custom ones)
     if (extraToolSets != null) {
-      builtInToolSets.addAll(extraToolSets);
+      this.toolSets.addAll(extraToolSets);
     }
   }
 
@@ -57,8 +54,8 @@ public class DefaultToolExecutor implements ToolExecutor {
       }
     }
 
-    // 2. Try built-in and extra tools
-    for (ToolSet ts : builtInToolSets) {
+    // 2. Try tools
+    for (ToolSet ts : toolSets) {
       if (hasTool(ts, toolName)) {
         log.debug("Found tool {} in toolset: {}", toolName, ts.getClass().getSimpleName());
         return ts.execute(toolCall, context, executionContext)
@@ -92,13 +89,15 @@ public class DefaultToolExecutor implements ToolExecutor {
 
   @Override
   public List<ToolDefinition> getAvailableTools(SessionContext context) {
-    List<ToolDefinition> tools = new ArrayList<>();
+    java.util.Map<String, ToolDefinition> tools = new java.util.LinkedHashMap<>();
 
-    for (ToolSet ts : builtInToolSets) {
-      tools.addAll(ts.getDefinitions());
+    for (ToolSet ts : toolSets) {
+      for (ToolDefinition d : ts.getDefinitions()) {
+        tools.put(d.name(), d);
+      }
     }
 
-    return tools;
+    return new ArrayList<>(tools.values());
   }
 
   private boolean hasTool(ToolSet ts, String toolName) {

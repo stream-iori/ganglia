@@ -27,6 +27,8 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
       askId: event.data.askId,
       answers: answersArray,
     });
+    // Optimistically close the modal
+    useSystemStore.setState({ activeAskId: null });
   };
 
   if (isActive) {

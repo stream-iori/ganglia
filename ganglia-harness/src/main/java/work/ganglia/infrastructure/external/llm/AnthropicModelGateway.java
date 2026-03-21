@@ -314,7 +314,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
       obj.put("description", tool.description());
     }
     if (tool.jsonSchema() != null && !tool.jsonSchema().isEmpty()) {
-      obj.put("input_schema", new JsonObject(tool.jsonSchema()));
+      obj.put("input_schema", new JsonObject(JsonSanitizer.sanitize(tool.jsonSchema())));
     } else {
       obj.put(
           "input_schema",

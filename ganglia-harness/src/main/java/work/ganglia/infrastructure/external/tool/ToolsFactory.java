@@ -7,7 +7,6 @@ import work.ganglia.port.internal.memory.LongTermMemory;
 /** Factory for creating and managing built-in core tool sets. */
 public class ToolsFactory {
   private final Vertx vertx;
-  private final InteractionTools interactionTools;
 
   public ToolsFactory(
       Vertx vertx,
@@ -15,10 +14,5 @@ public class ToolsFactory {
       LongTermMemory longTermMemory,
       String projectRoot) {
     this.vertx = vertx;
-    this.interactionTools = new InteractionTools(vertx);
-  }
-
-  public InteractionTools getInteractionTools() {
-    return interactionTools;
   }
 }
