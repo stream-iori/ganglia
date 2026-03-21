@@ -35,10 +35,15 @@ else
   echo "[WARNING] npm is NOT installed. You will need it for Node.js development."
 fi
 
-if [ -d "/Users/stream/.sdkman/candidates/java/17-zulu" ]; then
-  echo "[OK] Java 17 (Zulu) found at expected location."
+if command -v java &> /dev/null; then
+  JAVA_VERSION=$(java -version 2>&1 | head -n 1 | cut -d '"' -f 2 | cut -d '.' -f 1)
+  if [ "$JAVA_VERSION" = "17" ]; then
+    echo "[OK] Java 17 is installed."
+  else
+    echo "[WARNING] Java version is not 17 (found $JAVA_VERSION). Ganglia requires Java 17."
+  fi
 else
-  echo "[WARNING] Java 17 (Zulu) NOT found at expected location. Ensure JAVA_HOME is set correctly."
+  echo "[WARNING] Java is NOT installed. You will need Java 17 for development."
 fi
 
 echo "--- Project setup complete! ---"

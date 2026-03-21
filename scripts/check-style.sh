@@ -12,12 +12,6 @@ cd "$PROJECT_ROOT"
 # --- JAVA CHECKS (Spotless & Checkstyle) ---
 echo "--- Running Java Style Checks (Spotless & Checkstyle) ---"
 if command -v mvn &> /dev/null; then
-  # Try to use Java 17 if available via SDKMAN (as discovered in the environment)
-  if [ -d "/Users/stream/.sdkman/candidates/java/17-zulu" ]; then
-    export JAVA_HOME="/Users/stream/.sdkman/candidates/java/17-zulu"
-    export PATH="$JAVA_HOME/bin:$PATH"
-  fi
-  
   mvn spotless:check checkstyle:check
 else
   echo "WARNING: Maven not found, skipping Java style checks."
