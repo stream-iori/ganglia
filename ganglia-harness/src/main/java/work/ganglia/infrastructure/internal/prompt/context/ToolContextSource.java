@@ -57,7 +57,7 @@ public class ToolContextSource implements ContextSource {
 
     if (toolNames.contains("ask_selection")) {
       guidelines.append(
-          "- **Clarify Early**: If a user request is ambiguous, use `ask_selection` immediately instead of guessing.\n");
+          "- **Mandatory User Interaction**: You MUST use `ask_selection` whenever you need to present choices or ask for clarification. DO NOT just output options as text; using the tool is the ONLY way to trigger the rich interactive UI for the user.\n");
     }
 
     List<ContextFragment> fragments = new ArrayList<>();

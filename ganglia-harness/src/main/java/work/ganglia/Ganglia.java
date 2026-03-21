@@ -5,6 +5,7 @@ import io.vertx.core.Vertx;
 import java.util.ArrayList;
 import java.util.List;
 import work.ganglia.config.ConfigManager;
+import work.ganglia.infrastructure.external.tool.InteractionTools;
 import work.ganglia.infrastructure.external.tool.KnowledgeBaseTools;
 import work.ganglia.kernel.AgentEnv;
 import work.ganglia.kernel.GangliaKernel;
@@ -75,6 +76,7 @@ public record Ganglia(
     List<ToolSetProvider> providers = new ArrayList<>(options.extraToolSetProviders());
     providers.add((v, compressor, memory, root) -> new ToDoTools(v, compressor));
     providers.add((v, compressor, memory, root) -> new KnowledgeBaseTools(v, memory));
+    providers.add((v, compressor, memory, root) -> new InteractionTools(v));
 
     List<ContextSource> contexts = new ArrayList<>(options.extraContextSources());
     contexts.add(new ToDoContextSource());

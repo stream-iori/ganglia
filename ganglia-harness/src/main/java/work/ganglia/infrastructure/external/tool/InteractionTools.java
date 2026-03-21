@@ -22,13 +22,13 @@ public class InteractionTools implements ToolSet {
     return List.of(
         new ToolDefinition(
             "ask_selection",
-            "Ask the user for input or a selection from a list to clarify requirements or resolve ambiguity.",
+            "Mandatory tool for all user interactions. Use this whenever you need to present choices, ask for clarification, or request confirmation. Using this tool is the ONLY way to trigger the interactive UI buttons/modals for the user.",
             """
                 {
                   "type": "object",
                   "properties": {
                     "question": { "type": "string", "description": "The question or prompt to show to the user" },
-                    "type": { "type": "string", "enum": ["text", "choice"], "description": "The type of interaction requested" },
+                    "type": { "type": "string", "enum": ["text", "choice"], "description": "The type of interaction requested. Use 'choice' for clickable buttons." },
                     "options": {
                       "type": "array",
                       "items": { "type": "string" },
