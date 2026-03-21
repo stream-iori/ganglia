@@ -68,7 +68,7 @@ _run-coverage:
     mvn test -pl ganglia-core,ganglia-web,ganglia-terminal
 
 _print-coverage:
-    python3 scripts/print_coverage.py
+    python3 scripts/print-coverage.py
 
 # --- Build & Deploy ---
 
