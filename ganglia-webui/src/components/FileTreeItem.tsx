@@ -14,7 +14,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({ node, depth }) => {
 
   const isHighlighted = useMemo(() => {
     return node.type === 'file' && systemStore.getModifiedPaths().has(node.path);
-  }, [node, systemStore.getModifiedPaths]);
+  }, [node, systemStore]);
 
   const toggle = () => {
     if (node.type === 'directory') {

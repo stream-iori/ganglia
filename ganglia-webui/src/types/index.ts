@@ -107,14 +107,14 @@ export interface TtyData {
   isError: boolean;
 }
 
-export interface ServerEvent<T = any> {
+export interface ServerEvent<T = unknown> {
   eventId: string;
   timestamp: number;
   type: EventType;
   data: T;
 }
 
-export interface JsonRpcRequest<T = any> {
+export interface JsonRpcRequest<T = unknown> {
   jsonrpc: '2.0';
   method: string;
   params: T & { sessionId: string };
@@ -124,18 +124,18 @@ export interface JsonRpcRequest<T = any> {
 export interface JsonRpcResponse {
   jsonrpc: '2.0';
   id: string | number;
-  result?: any;
+  result?: unknown;
   error?: {
     code: number;
     message: string;
-    data?: any;
+    data?: unknown;
   };
 }
 
 export interface JsonRpcNotification {
   jsonrpc: '2.0';
   method: string;
-  params: any;
+  params: unknown;
 }
 
 export interface SyncParams {}

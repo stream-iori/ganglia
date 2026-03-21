@@ -10,7 +10,7 @@ class MockWebSocket {
   onopen: (() => void) | null = null;
   onclose: (() => void) | null = null;
   onmessage: ((event: { data: string }) => void) | null = null;
-  onerror: ((error: any) => void) | null = null;
+  onerror: ((error: unknown) => void) | null = null;
 
   constructor(url: string) {
     this.url = url;
@@ -43,7 +43,7 @@ class MockWebSocket {
     if (this.onclose) this.onclose();
   }
 
-  simulateMessage(obj: any) {
+  simulateMessage(obj: unknown) {
     if (this.onmessage) {
       this.onmessage({ data: JSON.stringify(obj) });
     }
@@ -53,7 +53,7 @@ class MockWebSocket {
 }
 
 describe('EventBus Service (WebSocket/JSON-RPC)', () => {
-  let originalWebSocket: any;
+  let originalWebSocket: unknown;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -61,11 +61,11 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
     useLogStore.setState({ events: [], activeToolCalls: {} });
 
     originalWebSocket = window.WebSocket;
-    (window as any).WebSocket = MockWebSocket;
+    (window as unknown).WebSocket = MockWebSocket;
   });
 
   afterEach(() => {
-    (window as any).WebSocket = originalWebSocket;
+    (window as unknown).WebSocket = originalWebSocket;
     MockWebSocket.lastInstance = null;
     eventBusService.close();
   });
@@ -96,7 +96,7 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
     const logState = useLogStore.getState();
     expect(logState.events).toHaveLength(1);
     expect(logState.events[0].type).toBe('THOUGHT');
-    expect((logState.events[0].data as any).content).toBe('Test Thinking');
+    expect((logState.events[0].data as unknown).content).toBe('Test Thinking');
   });
 
   it('should update fileTreeUpdatedAt on FILE_TREE event', async () => {
@@ -128,7 +128,7 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
       eventId: 'start-1',
       type: 'TOOL_START',
       data: { toolCallId, toolName: 'bash', command: 'ls' },
-    } as any);
+    } as unknown);
 
     MockWebSocket.lastInstance?.simulateMessage({
       jsonrpc: '2.0',
@@ -148,7 +148,7 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
 
     const sendPromise = eventBusService.send('LIST_FILES', {});
 
-    const lastId = (eventBusService as any).requestCounter;
+    const lastId = (eventBusService as unknown).requestCounter;
     MockWebSocket.lastInstance?.simulateMessage({
       jsonrpc: '2.0',
       id: lastId,

@@ -67,7 +67,7 @@ describe('Log Store', () => {
   it('should clear events', () => {
     const store = useLogStore.getState();
     useLogStore.setState({
-      events: [{ eventId: '1' } as any],
+      events: [{ eventId: '1' } as unknown],
       activeToolCalls: { '1': [] },
     });
 
@@ -83,7 +83,7 @@ describe('Log Store', () => {
       eventId: 'user-1',
       timestamp: Date.now(),
       type: 'USER_MESSAGE',
-      data: { content: 'who are you' } as any,
+      data: { content: 'who are you' } as unknown,
     };
 
     store.addEvent(event);
@@ -100,7 +100,7 @@ describe('Log Store', () => {
       eventId: 'p1',
       timestamp: Date.now(),
       type: 'THOUGHT',
-      data: { content: '...' } as any,
+      data: { content: '...' } as unknown,
     });
     expect(useLogStore.getState().events).toHaveLength(1);
 
@@ -109,12 +109,12 @@ describe('Log Store', () => {
       eventId: 't1',
       timestamp: Date.now(),
       type: 'THOUGHT',
-      data: { content: 'I am thinking about it' } as any,
+      data: { content: 'I am thinking about it' } as unknown,
     });
 
     const state = useLogStore.getState();
     expect(state.events).toHaveLength(1);
-    expect((state.events[0]?.data as any).content).toBe('I am thinking about it');
+    expect((state.events[0]?.data as unknown).content).toBe('I am thinking about it');
   });
 
   it('should deduplicate THOUGHT and AGENT_MESSAGE with same content', () => {
@@ -126,14 +126,14 @@ describe('Log Store', () => {
       eventId: 't1',
       timestamp: Date.now(),
       type: 'THOUGHT',
-      data: { content } as any,
+      data: { content } as unknown,
     });
 
     store.addEvent({
       eventId: 'a1',
       timestamp: Date.now(),
       type: 'AGENT_MESSAGE',
-      data: { content } as any,
+      data: { content } as unknown,
     });
 
     const state = useLogStore.getState();
@@ -149,7 +149,7 @@ describe('Log Store', () => {
       eventId: 't1',
       timestamp: Date.now(),
       type: 'THOUGHT',
-      data: { content: 'Processing...' } as any,
+      data: { content: 'Processing...' } as unknown,
     });
 
     expect(useLogStore.getState().thoughtStartTime).toBeDefined();
@@ -159,11 +159,11 @@ describe('Log Store', () => {
       eventId: 'a1',
       timestamp: Date.now(),
       type: 'AGENT_MESSAGE',
-      data: { content: 'hello' } as any,
+      data: { content: 'hello' } as unknown,
     });
 
     const state = useLogStore.getState();
     const thought = state.events.find((e) => e.eventId === 't1');
-    expect((thought?.data as any).durationMs).toBeDefined();
+    expect((thought?.data as unknown).durationMs).toBeDefined();
   });
 });

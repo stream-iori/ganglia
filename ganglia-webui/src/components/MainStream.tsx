@@ -2,6 +2,14 @@ import React, { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { eventBusService } from '../services/eventbus';
 import { useLogStore } from '../stores/log';
 import { useSystemStore } from '../stores/system';
+import type {
+  ToolResultData,
+  ToolStartData,
+  UserMessageData,
+  ThoughtData,
+  AgentMessageData,
+  SystemErrorData,
+} from '../types';
 import ThoughtCard from './ThoughtCard';
 import ToolCard from './ToolCard';
 import AgentMessage from './AgentMessage';
@@ -51,7 +59,7 @@ const MainStream: React.FC = () => {
       );
       systemStore.clearPendingContext();
     }
-  }, [systemStore.pendingContextPath, systemStore.clearPendingContext]);
+  }, [systemStore]);
 
   const isBlocked = useMemo(() => !!systemStore.activeAskId, [systemStore.activeAskId]);
 
@@ -62,10 +70,10 @@ const MainStream: React.FC = () => {
       !logStore.events.find(
         (e) =>
           e.type === 'TOOL_RESULT' &&
-          (e.data as any).toolCallId === (lastEvent.data as any).toolCallId,
+          (e.data as ToolResultData).toolCallId === (lastEvent.data as ToolStartData).toolCallId,
       )
     ) {
-      const name = (lastEvent.data as any).toolName;
+      const name = (lastEvent.data as ToolStartData).toolName;
       if (['read_file', 'list_directory'].includes(name)) return 'Agent is reading files...';
       if (name === 'run_shell_command') return 'Agent is executing a command...';
       if (['write_file', 'replace'].includes(name)) return 'Agent is writing code...';
@@ -110,7 +118,11 @@ const MainStream: React.FC = () => {
         ].includes(e.type)
       )
         return false;
-      if (e.type === 'THOUGHT' && (e.data as any).content === '...' && logStore.streamingThought)
+      if (
+        e.type === 'THOUGHT' &&
+        (e.data as unknown).content === '...' &&
+        logStore.streamingThought
+      )
         return false;
       return true;
     });
@@ -121,7 +133,7 @@ const MainStream: React.FC = () => {
         return (
           <div key={event.eventId} className="flex justify-end my-4">
             <div className="bg-slate-800 text-slate-100 px-4 py-2 rounded-2xl rounded-tr-none max-w-[80%] shadow-md border border-slate-700/50">
-              {(event.data as any).content}
+              {(event.data as UserMessageData).content}
             </div>
           </div>
         );
@@ -150,21 +162,22 @@ const MainStream: React.FC = () => {
           <div className="relative -mt-1.5">
             {event.type === 'THOUGHT' &&
               (() => {
-                const content = (event.data as any).content;
-                const durationMs = (event.data as any).durationMs;
+                const thoughtData = event.data as ThoughtData;
+                const content = thoughtData.content;
+                const durationMs = (thoughtData as unknown).durationMs;
                 if (content === '...' && logStore.streamingThought) return null;
                 return <ThoughtCard content={content} durationMs={durationMs} />;
               })()}
 
             {event.type === 'TOOL_START' && (
               <div className="ml-2">
-                <ToolCard event={event as any} allEvents={logStore.events} />
+                <ToolCard event={event as ServerEvent<ToolStartData>} allEvents={logStore.events} />
               </div>
             )}
 
             {event.type === 'AGENT_MESSAGE' &&
               (() => {
-                const content = (event.data as any).content;
+                const content = (event.data as AgentMessageData).content;
                 return (
                   <div className="ml-2 mt-2">
                     <AgentMessage content={content} />
@@ -175,13 +188,13 @@ const MainStream: React.FC = () => {
 
             {event.type === 'ASK_USER' && (
               <div className="ml-2">
-                <AskUserForm event={event as any} />
+                <AskUserForm event={event as unknown} />
               </div>
             )}
 
             {event.type === 'SYSTEM_ERROR' &&
               (() => {
-                const data = event.data as any;
+                const data = event.data as SystemErrorData;
                 return (
                   <div className="ml-2 bg-rose-950/20 border border-rose-500/50 p-4 rounded-lg text-rose-200 text-xs shadow-lg mt-2">
                     <div className="font-bold mb-1 uppercase tracking-tight flex items-center justify-between">

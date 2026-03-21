@@ -53,7 +53,14 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
                 <div className="p-4 overflow-x-auto prose prose-invert prose-sm max-w-none prose-pre:m-0 prose-pre:bg-transparent prose-pre:p-0">
                   <ReactMarkdown
                     components={{
-                      code({ node, inline, className, children, ...props }: any) {
+                      code({
+                        inline,
+                        className,
+                        children,
+                        ...props
+                      }: React.ComponentPropsWithoutRef<'code'> & {
+                        inline?: boolean;
+                      }) {
                         const match = /language-(\w+)/.exec(className || '');
                         const lang = match ? match[1] : '';
                         if (!inline && lang) {
@@ -113,7 +120,7 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
         <span className="text-amber-500/50 text-xs">⚠️ Historical Ask</span>
       </div>
       <div className="p-4">
-        <p className="text-slate-400 text-xs italic mb-2">"{event.data.question}"</p>
+        <p className="text-slate-400 text-xs italic mb-2">&quot;{event.data.question}&quot;</p>
         {event.data.diffContext && (
           <div className="text-[10px] font-mono text-slate-500 line-clamp-3 bg-black/30 p-2 rounded">
             {event.data.diffContext}

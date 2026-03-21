@@ -43,7 +43,7 @@ export const useLogStore = create<LogState>((set) => ({
           if (
             lastEvent &&
             lastEvent.type === 'THOUGHT' &&
-            (lastEvent.data as any).content === '...'
+            (lastEvent.data as unknown).content === '...'
           ) {
             role = 'thought';
           } else {
@@ -64,7 +64,7 @@ export const useLogStore = create<LogState>((set) => ({
 
       if (event.type === 'THOUGHT') {
         if (!newState.thoughtStartTime) newState.thoughtStartTime = Date.now();
-        if ((event.data as any).content !== '...') {
+        if ((event.data as unknown).content !== '...') {
           newState.streamingThought = '';
         }
       } else if (
@@ -82,8 +82,8 @@ export const useLogStore = create<LogState>((set) => ({
               ...newEvents[lastThoughtIdx],
               data: { ...newEvents[lastThoughtIdx].data },
             };
-            if (!(lastThought.data as any).durationMs) {
-              (lastThought.data as any).durationMs = Date.now() - newState.thoughtStartTime;
+            if (!(lastThought.data as unknown).durationMs) {
+              (lastThought.data as unknown).durationMs = Date.now() - newState.thoughtStartTime;
               newEvents[lastThoughtIdx] = lastThought;
             }
           }
@@ -103,7 +103,7 @@ export const useLogStore = create<LogState>((set) => ({
       }
 
       const isThoughtPlaceholder = (e: ServerEvent) =>
-        e && e.type === 'THOUGHT' && String((e.data as any).content).trim() === '...';
+        e && e.type === 'THOUGHT' && String((e.data as unknown).content).trim() === '...';
 
       // We only want to replace the `...` placeholder with the real THOUGHT event.
       // We DO NOT want to delete a real THOUGHT event just because an AGENT_MESSAGE arrived.
@@ -129,9 +129,9 @@ export const useLogStore = create<LogState>((set) => ({
 
         // Deduplication for exact same content between THOUGHT and AGENT_MESSAGE (a backend quirk)
         if (event.type === 'AGENT_MESSAGE') {
-          const content = (event.data as any).content;
+          const content = (event.data as unknown).content;
           const sameContentIdx = newEvents.findLastIndex(
-            (e: ServerEvent) => e.type === 'THOUGHT' && (e.data as any).content === content,
+            (e: ServerEvent) => e.type === 'THOUGHT' && (e.data as unknown).content === content,
           );
           if (sameContentIdx !== -1) {
             // Upgrade THOUGHT to AGENT_MESSAGE if identical

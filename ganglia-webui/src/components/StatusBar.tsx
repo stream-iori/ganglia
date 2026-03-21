@@ -43,7 +43,7 @@ const StatusBar: React.FC = () => {
     if (systemStore.currentPhase !== newPhase) {
       systemStore.setPhase(newPhase);
     }
-  }, [logStore.events, isAgentBusy, systemStore.currentPhase, systemStore.setPhase]);
+  }, [logStore.events, isAgentBusy, systemStore]);
 
   useEffect(() => {
     if (systemStore.fileTreeUpdatedAt > 0) {

@@ -16,16 +16,20 @@ import type {
   InitConfigData,
 } from '../types';
 
+type PendingRequest = {
+  resolve: (value: unknown) => void;
+  reject: (reason: unknown) => void;
+};
+
 class EventBusService {
   private ws: WebSocket | null = null;
   private url: string = 'ws://' + window.location.host + '/ws';
-  private reconnectTimer: any;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private retryCount: number = 0;
   private maxRetryCount: number = 10;
   private isManualClosed: boolean = false;
   private requestCounter: number = 0;
-  private pendingRequests: Map<string | number, { resolve: Function; reject: Function }> =
-    new Map();
+  private pendingRequests: Map<string | number, PendingRequest> = new Map();
 
   constructor() {
     if (import.meta.env.DEV) {
@@ -41,13 +45,13 @@ class EventBusService {
 
   private setupMockMode() {
     console.warn('RUNNING IN MOCK MODE - No backend required');
-    // @ts-ignore
+    // @ts-expect-error Mocking global WebSocket for demo purposes
     window.WebSocket = class MockWebSocket {
       static OPEN = 1;
       readyState = 1;
-      onopen: any;
-      onmessage: any;
-      private activeIntervals: any[] = [];
+      onopen: (() => void) | null = null;
+      onmessage: ((ev: { data: string }) => void) | null = null;
+      private activeIntervals: ReturnType<typeof setInterval>[] = [];
 
       constructor() {
         setTimeout(() => this.onopen && this.onopen(), 100);
@@ -59,7 +63,7 @@ class EventBusService {
       }
 
       send(data: string) {
-        const msg: JsonRpcRequest = JSON.parse(data);
+        const msg: JsonRpcRequest<Record<string, unknown>> = JSON.parse(data);
         console.log('[MockWS] Received:', msg);
 
         if (msg.method === 'SYNC') {
@@ -93,7 +97,7 @@ class EventBusService {
           } else if (prompt.includes('file change') || prompt.includes('watch')) {
             this.simulateFileTreeChange();
           } else if (prompt.includes('ls') || prompt.includes('run')) {
-            this.simulateToolExecution(prompt);
+            this.simulateToolExecution();
           } else if (prompt.includes('plan') || prompt.includes('todo')) {
             this.simulatePlanUpdate();
           } else if (prompt.includes('diff') || prompt.includes('ask')) {
@@ -255,7 +259,7 @@ class EventBusService {
         this.activeIntervals.push(interval);
       }
 
-      private simulateToolExecution(_command: string) {
+      private simulateToolExecution() {
         const toolCallId = 'tool-' + Date.now();
         console.log('[MockWS] Executing tool with ID:', toolCallId);
         this.notify('server_event', {
@@ -386,11 +390,11 @@ class EventBusService {
         }, 1000);
       }
 
-      respond(id: string | number, result: any) {
+      respond(id: string | number, result: unknown) {
         const response: JsonRpcResponse = { jsonrpc: '2.0', id, result };
         setTimeout(() => this.onmessage && this.onmessage({ data: JSON.stringify(response) }), 100);
       }
-      notify(method: string, params: any) {
+      notify(method: string, params: unknown) {
         const notification: JsonRpcNotification = { jsonrpc: '2.0', method, params };
         setTimeout(
           () => this.onmessage && this.onmessage({ data: JSON.stringify(notification) }),
@@ -416,11 +420,12 @@ class EventBusService {
 
       // Request history sync
       this.send('SYNC', {})
-        .then((reply: any) => {
-          if (reply && reply.history) {
+        .then((reply: unknown) => {
+          const syncReply = reply as { history?: ServerEvent[] };
+          if (syncReply && syncReply.history) {
             const logStore = useLogStore.getState();
             logStore.clear();
-            const history = reply.history as ServerEvent[];
+            const history = syncReply.history;
             history.forEach((event: ServerEvent) => logStore.addEvent(event));
 
             if (!logStore.fileTree) {
@@ -487,19 +492,21 @@ class EventBusService {
     this.retryCount++;
     const delay = Math.min(1000 * Math.pow(2, this.retryCount), 30000);
 
-    clearTimeout(this.reconnectTimer);
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+    }
     this.reconnectTimer = setTimeout(() => {
       this.connect();
     }, delay);
   }
 
-  send(action: 'SYNC', payload: SyncParams): Promise<any>;
-  send(action: 'LIST_FILES', payload: ListFilesParams): Promise<any>;
-  send(action: 'START', payload: StartParams): Promise<any>;
-  send(action: 'RESPOND_ASK', payload: RespondAskParams): Promise<any>;
-  send(action: 'READ_FILE', payload: ReadFileParams): Promise<any>;
-  send(action: 'CANCEL' | 'RETRY', payload: {}): Promise<any>;
-  send(action: ClientAction, payload: any): Promise<any> {
+  send(action: 'SYNC', payload: SyncParams): Promise<unknown>;
+  send(action: 'LIST_FILES', payload: ListFilesParams): Promise<unknown>;
+  send(action: 'START', payload: StartParams): Promise<unknown>;
+  send(action: 'RESPOND_ASK', payload: RespondAskParams): Promise<unknown>;
+  send(action: 'READ_FILE', payload: ReadFileParams): Promise<unknown>;
+  send(action: 'CANCEL' | 'RETRY', payload: Record<string, never>): Promise<unknown>;
+  send(action: ClientAction, payload: unknown): Promise<unknown> {
     return new Promise((resolve, reject) => {
       const systemStore = useSystemStore.getState();
       if (systemStore.status !== 'CONNECTED' || !this.ws || this.ws.readyState !== WebSocket.OPEN) {
@@ -512,11 +519,11 @@ class EventBusService {
 
       // Merge sessionId into params
       const params = {
-        ...payload,
+        ...(payload as Record<string, unknown>),
         sessionId: systemStore.sessionId,
       };
 
-      const request: JsonRpcRequest = {
+      const request: JsonRpcRequest<Record<string, unknown>> = {
         jsonrpc: '2.0',
         method: action,
         params,
@@ -546,13 +553,15 @@ class EventBusService {
     }
 
     if (event.type === 'ASK_USER') {
-      useSystemStore.setState({ activeAskId: event.data.askId });
+      const askData = event.data as { askId: string };
+      useSystemStore.setState({ activeAskId: askData.askId });
     }
 
     if (event.type === 'PLAN_UPDATED') {
       const planStore = usePlanStore.getState();
-      if (event.data && event.data.plan) {
-        planStore.setPlan(event.data.plan);
+      const planData = event.data as { plan?: unknown };
+      if (planData && planData.plan) {
+        planStore.setPlan(planData.plan);
       }
     }
 

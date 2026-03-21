@@ -50,11 +50,11 @@ const AgentMessage: React.FC<AgentMessageProps> = ({ content }) => {
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
             components={{
-              code({ node, inline, className, children, ...props }: any) {
+              code({ className, children, ...props }: React.ComponentPropsWithoutRef<'code'>) {
                 const match = /language-(\w+)/.exec(className || '');
                 const lang = match ? match[1] : '';
 
-                if (!inline && lang) {
+                if (lang) {
                   const grammar = Prism.languages[lang] || Prism.languages.text;
                   const highlighted = Prism.highlight(
                     String(children).replace(/\n$/, ''),

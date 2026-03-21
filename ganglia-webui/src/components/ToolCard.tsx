@@ -64,7 +64,7 @@ const ToolCard: React.FC<ToolCardProps> = ({ event, allEvents }) => {
   const [executionTime, setExecutionTime] = useState(0);
 
   useEffect(() => {
-    let interval: any = null;
+    let interval: ReturnType<typeof setInterval> | null = null;
 
     if (isRunning) {
       const start = Date.now();
