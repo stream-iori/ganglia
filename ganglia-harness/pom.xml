@@ -8,7 +8,7 @@
     <version>0.1.5</version>
   </parent>
 
-  <artifactId>ganglia-core</artifactId>
+  <artifactId>ganglia-harness</artifactId>
 
   <dependencies>
     <dependency>

@@ -19,7 +19,7 @@ just backend                  # Start WebUIDemo on port 8080
 just frontend                 # Vite dev server on port 5173
 
 # Tests
-just test-backend             # Unit tests: mvn test -pl ganglia-core,ganglia-web,ganglia-terminal
+just test-backend             # Unit tests: mvn test -pl ganglia-harness,ganglia-web,ganglia-terminal
 just test-it                  # Integration tests: mvn verify -pl integration-test
 just test-it-one AgentLoopIT  # Single IT: mvn verify -Dit.test=AgentLoopIT -pl integration-test
 just test-frontend            # Frontend: cd ganglia-webui && npx vitest run
@@ -34,7 +34,7 @@ Ganglia is a Java 17 agent framework on Vert.x 5.0.6 using **Hexagonal (Ports & 
 
 |       Module        |                                                                  Purpose                                                                   |
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
-| `ganglia-core`      | Kernel (reasoning loop, task scheduling), Ports (domain models, interfaces), Infrastructure (LLM gateways, memory, state, prompts, skills) |
+| `ganglia-harness`   | Kernel (reasoning loop, task scheduling), Ports (domain models, interfaces), Infrastructure (LLM gateways, memory, state, prompts, skills) |
 | `ganglia-coding`    | Coding tools: BashTools, FileEditTools, WebFetchTools                                                                                      |
 | `ganglia-web`       | WebSocket server + JSON-RPC 2.0 endpoint (WebUIVerticle)                                                                                   |
 | `ganglia-terminal`  | JLine 3 TUI with Flexmark Markdown rendering                                                                                               |

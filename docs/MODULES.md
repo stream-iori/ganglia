@@ -7,7 +7,7 @@
 
 This document describes the implemented module structure of the Ganglia system, following the Hexagonal architecture.
 
-## 1. Core Framework (Module: `ganglia-core`)
+## 1. Core Framework (Module: `ganglia-harness`)
 
 **Responsibility:** Orchestration of the Reasoning Loop, technical implementations, and domain port definitions.
 

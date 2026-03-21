@@ -65,6 +65,17 @@ public class TrajectoryLogger implements AgentLoopObserver {
     save();
   }
 
+  public void logToolCall(String name, Map<String, String> args, String result) {
+    Map<String, Object> entry = new HashMap<>();
+    entry.put("type", "TOOL_CALL");
+    entry.put("name", name);
+    entry.put("arguments", args);
+    entry.put("result", result);
+    entry.put("timestamp", System.currentTimeMillis());
+    trajectory.add(entry);
+    save();
+  }
+
   private void save() {
     try {
       mapper.writeValue(logFile, trajectory);

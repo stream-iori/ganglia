@@ -17,7 +17,7 @@
     <!-- Ganglia Core -->
     <dependency>
       <groupId>work.ganglia</groupId>
-      <artifactId>ganglia-core</artifactId>
+      <artifactId>ganglia-harness</artifactId>
     </dependency>
     <dependency>
       <groupId>work.ganglia</groupId>

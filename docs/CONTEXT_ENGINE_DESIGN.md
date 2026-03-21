@@ -3,7 +3,7 @@
 > **Status:** In Development
 > **Version:** 0.1.5
 >
-> **Module**: `ganglia-core` (Prompt Enhancement)
+> **Module**: `ganglia-harness` (Prompt Enhancement)
 > **Related**: [Architecture](ARCHITECTURE.md), [Core Guidelines](CORE_GUIDELINES_DESIGN.md)
 
 ## 1. Objective

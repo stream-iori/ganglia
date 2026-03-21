@@ -8,7 +8,7 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>ganglia-core</module>
+    <module>ganglia-harness</module>
     <module>ganglia-coding</module>
     <module>ganglia-web</module>
     <module>ganglia-terminal</module>
@@ -55,7 +55,7 @@
       </dependency>
       <dependency>
         <groupId>work.ganglia</groupId>
-        <artifactId>ganglia-core</artifactId>
+        <artifactId>ganglia-harness</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

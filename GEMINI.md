@@ -59,7 +59,7 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for
 ## 4. Directory Structure
 
 - `pom.xml`: Parent POM.
-- `ganglia-core/`:
+- `ganglia-harness/`:
   - `kernel/`: Core reasoning and task execution.
   - `port/`: Domain interfaces and data models (chat, internal, external).
   - `infrastructure/`: Technical implementations (LLM gateways, state persistence, tool implementations).

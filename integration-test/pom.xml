@@ -13,7 +13,7 @@
   <dependencies>
     <dependency>
       <groupId>work.ganglia</groupId>
-      <artifactId>ganglia-core</artifactId>
+      <artifactId>ganglia-harness</artifactId>
     </dependency>
     <dependency>
       <groupId>work.ganglia</groupId>
@@ -33,7 +33,7 @@
     <!-- Test dependencies -->
     <dependency>
       <groupId>work.ganglia</groupId>
-      <artifactId>ganglia-core</artifactId>
+      <artifactId>ganglia-harness</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>

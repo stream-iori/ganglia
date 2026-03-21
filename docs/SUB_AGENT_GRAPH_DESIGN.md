@@ -3,7 +3,7 @@
 > **Status:** In Development
 > **Version:** 0.1.5
 >
-> **Module:** `ganglia-core`
+> **Module:** `ganglia-harness`
 > **Package:** `work.ganglia.kernel.task` (TaskGraphTask)
 > **Related:** [Sub-Agent Design](SUB_AGENT_DESIGN.md)
 
