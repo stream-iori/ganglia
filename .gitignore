@@ -65,10 +65,12 @@ local.properties
 # SDKMAN!
 .sdkmanrc
 
+# Project
 config.json
 .gemini/
 .ganglia/
 
+# Personal
 brainstorm/
 learning/
 .specify/
