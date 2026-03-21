@@ -28,15 +28,17 @@ public class Scenario4UserInteractionE2EIT {
 
   @Test
   void testInteractionAndResume(Vertx vertx, VertxTestContext testContext) {
-    ToolCall askCall =
-        new ToolCall(
-            "c1",
-            "ask_selection",
-            Map.of(
-                "header", "Choice",
-                "question", "Which file to delete?",
-                "type", "choice",
-                "options", List.of("file1.txt (Size: 10KB)", "file2.txt (Size: 20KB)")));
+    Map<String, Object> question =
+        Map.of(
+            "header", "Choice",
+            "question", "Which file to delete?",
+            "type", "choice",
+            "options",
+                List.of(
+                    Map.of("label", "file1.txt", "value", "file1.txt", "description", "10KB"),
+                    Map.of("label", "file2.txt", "value", "file2.txt", "description", "20KB")));
+
+    ToolCall askCall = new ToolCall("c1", "ask_selection", Map.of("questions", List.of(question)));
 
     TestScenario scenario =
         new TestScenario(
@@ -50,7 +52,8 @@ public class Scenario4UserInteractionE2EIT {
                     new TokenUsage(1, 1)),
                 new ModelResponse(
                     "Deleting file2.txt...", Collections.emptyList(), new TokenUsage(1, 1))),
-            List.of(new TestScenario.InteractiveStep("file2.txt", "Which file to delete?")),
+            List.of(
+                new TestScenario.InteractiveStep("file2.txt", "- Which file to delete? (choice)")),
             List.of(new TestScenario.Expectation("OUTPUT_CONTAINS", "Deleting file2.txt")));
 
     harness
