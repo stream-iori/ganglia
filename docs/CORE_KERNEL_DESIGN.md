@@ -2,7 +2,7 @@
 
 > **Status:** In Development
 > **Version:** 0.1.5
-
+>
 > **Module:** `ganglia-core`
 > **Package:** `work.ganglia.kernel`
 

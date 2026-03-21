@@ -2,7 +2,7 @@
 
 > **Status:** In Development
 > **Version:** 0.1.5
-
+>
 > **Base:** Java 17, Vert.x 5.0.6
 
 This document describes the implemented module structure of the Ganglia system, following the Hexagonal architecture.
@@ -12,17 +12,20 @@ This document describes the implemented module structure of the Ganglia system, 
 **Responsibility:** Orchestration of the Reasoning Loop, technical implementations, and domain port definitions.
 
 ### 1.1 Kernel (`work.ganglia.kernel`)
+
 - **Reasoning Loop**: `StandardAgentLoop` (Thought -> Task -> Observation).
 - **Task System**: `Schedulable` abstraction and concrete task types (`ToolTask`, `SubAgentTask`, `SkillTask`).
 - **Scheduling**: `SchedulableFactory` for mapping intents to execution.
 - **Observation**: `DefaultObservationDispatcher` for unified event routing.
 
 ### 1.2 Port Layer (`work.ganglia.port`)
+
 - **Chat Domain**: `Message`, `Role`, `Turn`, `SessionContext`.
 - **Internal Contract**: `MemoryService`, `PromptEngine`, `SessionManager`, `StateEngine`, `SkillService`, `ExecutionContext`, `ObservationDispatcher`.
 - **External Contract**: `ModelGateway`, `ToolSet`.
 
 ### 1.3 Infrastructure Layer (`work.ganglia.infrastructure`)
+
 - **LLM Integration**: Native OpenAI and Anthropic protocol implementations using Vert.x `WebClient`.
 - **Tooling**: `BashTools`, `FileEditTools`, `ToDoTools`.
 - **Cognitive Impl**: `StandardPromptEngine`, `ContextCompressor`.
@@ -59,3 +62,4 @@ This document describes the implemented module structure of the Ganglia system, 
 - **LLM Protocols**: Native HTTP/SSE implementation (No SDKs).
 - **UI & Rendering**: JLine 3, Vue 3, Flexmark.
 - **Testing**: JUnit 5, Mockito, Vertx-JUnit5.
+

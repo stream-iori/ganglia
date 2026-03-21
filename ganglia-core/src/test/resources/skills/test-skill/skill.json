@@ -1,21 +1,17 @@
 {
-  "id": "test-skill",
-  "version": "1.0.0",
-  "name": "Test Skill",
-  "description": "A skill for testing",
-  "author": "Test Author",
-  "prompts": [
-    {
-      "id": "test-prompt",
-      "path": "prompts/best_practices.md",
-      "priority": 5
-    }
-  ],
-  "tools": [
-    "me.stream.ganglia.tools.TestTool"
-  ],
-  "activationTriggers": {
-    "filePatterns": ["*.test"],
-    "keywords": ["testme"]
+  "id" : "test-skill",
+  "version" : "1.0.0",
+  "name" : "Test Skill",
+  "description" : "A skill for testing",
+  "author" : "Test Author",
+  "prompts" : [ {
+    "id" : "test-prompt",
+    "path" : "prompts/best_practices.md",
+    "priority" : 5
+  } ],
+  "tools" : [ "me.stream.ganglia.tools.TestTool" ],
+  "activationTriggers" : {
+    "filePatterns" : [ "*.test" ],
+    "keywords" : [ "testme" ]
   }
 }

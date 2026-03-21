@@ -1,44 +1,44 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>work.ganglia</groupId>
-        <artifactId>ganglia-parent</artifactId>
-        <version>0.1.5</version>
-    </parent>
+  <parent>
+    <groupId>work.ganglia</groupId>
+    <artifactId>ganglia-parent</artifactId>
+    <version>0.1.5</version>
+  </parent>
 
-    <artifactId>ganglia-example</artifactId>
+  <artifactId>ganglia-example</artifactId>
 
-    <dependencies>
-        <dependency>
-            <groupId>work.ganglia</groupId>
-            <artifactId>ganglia-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>work.ganglia</groupId>
-            <artifactId>ganglia-coding</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>work.ganglia</groupId>
-            <artifactId>ganglia-web</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>work.ganglia</groupId>
-            <artifactId>ganglia-terminal</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.vertx</groupId>
-            <artifactId>vertx-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j2-impl</artifactId>
-        </dependency>
-    </dependencies>
+  <dependencies>
+    <dependency>
+      <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-coding</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-web</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-terminal</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j2-impl</artifactId>
+    </dependency>
+  </dependencies>
 </project>

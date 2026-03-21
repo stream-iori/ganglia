@@ -11,28 +11,23 @@ The core design philosophy follows a **Hexagonal (Ports & Adapters)** architectu
 
 ## 2. Core Design Principles
 
-1.  **Single Control Loop (The "ReAct" Loop):**
-    - Avoid complex graphs or state machines for the core reasoning.
-    - Use a flat message history processed by a single main loop.
-    - Flow: `Input -> [Thought -> Tool -> Observation] * N -> Answer`.
-
-2.  **Hexagonal Decoupling:**
-    - The **Kernel** (Reasoning) is isolated from **Infrastructure** (LLM, Storage).
-    - All dependencies flow inward towards the Kernel and the Domain Port layer.
-
-3.  **Unified Observation Stream:**
-    - All system activities (macro loop events and micro streaming tokens/TTY) are unified into a single EventBus-driven pipeline.
-    - Decouples event generation (Tools/Gateways) from transport/UI logic.
-
-4.  **Tool-First Navigation:**
-    - The agent explores codebases using tools (`grep`, `list`, `read`) rather than relying purely on pre-computed embeddings.
-
-5.  **Memory as Code:**
-    - Memory is stored in **Markdown files** (`.ganglia/memory/MEMORY.md`, Daily Records).
-    - It is transparent, editable, and version-controlled.
-
-6.  **Startup Self-Check:**
-    - The system automatically validates and initializes the necessary directory structure (`.ganglia/skills`, `memory`, `state`, `logs`, etc.) and configuration at bootstrap.
+1. **Single Control Loop (The "ReAct" Loop):**
+   - Avoid complex graphs or state machines for the core reasoning.
+   - Use a flat message history processed by a single main loop.
+   - Flow: `Input -> [Thought -> Tool -> Observation] * N -> Answer`.
+2. **Hexagonal Decoupling:**
+   - The **Kernel** (Reasoning) is isolated from **Infrastructure** (LLM, Storage).
+   - All dependencies flow inward towards the Kernel and the Domain Port layer.
+3. **Unified Observation Stream:**
+   - All system activities (macro loop events and micro streaming tokens/TTY) are unified into a single EventBus-driven pipeline.
+   - Decouples event generation (Tools/Gateways) from transport/UI logic.
+4. **Tool-First Navigation:**
+   - The agent explores codebases using tools (`grep`, `list`, `read`) rather than relying purely on pre-computed embeddings.
+5. **Memory as Code:**
+   - Memory is stored in **Markdown files** (`.ganglia/memory/MEMORY.md`, Daily Records).
+   - It is transparent, editable, and version-controlled.
+6. **Startup Self-Check:**
+   - The system automatically validates and initializes the necessary directory structure (`.ganglia/skills`, `memory`, `state`, `logs`, etc.) and configuration at bootstrap.
 
 ## 3. Logical Architecture (Hexagonal)
 
@@ -97,19 +92,19 @@ graph TD
 ## 4. The Memory System
 
 - **Three-Tier Architecture:**
-    - **Short-Term (Turn):** Raw interaction details.
-    - **Medium-Term (Session):** Managed via rolling compression.
-    - **Daily Journal:** Cross-session summaries in `.ganglia/memory/daily-*.md`.
-    - **Long-Term (Project):** `.ganglia/memory/MEMORY.md`.
+  - **Short-Term (Turn):** Raw interaction details.
+  - **Medium-Term (Session):** Managed via rolling compression.
+  - **Daily Journal:** Cross-session summaries in `.ganglia/memory/daily-*.md`.
+  - **Long-Term (Project):** `.ganglia/memory/MEMORY.md`.
 - **Deduplication & Timeline:** The system preserves a literal timeline of thoughts and tool calls, calculating and displaying execution/reasoning duration for every step.
 
 ## 5. Human-in-the-Loop & Steering
 
 Ganglia supports an asynchronous **"Steering & Abort"** mechanism:
 
-1.  **Soft Steering:** Users can inject new instructions into a session queue at any time. The Kernel checks this between reasoning steps.
-2.  **Hard Abort:** An `AgentSignal` provides **active cancellation**. It allows for immediate termination of network calls (HTTP stream reset), tool executions, and token publishing, ensuring the UI stops instantly.
-3.  **Interrupts:** Sensitive tools (like `ask_selection`) can pause the loop to await explicit user input via modal forms.
+1. **Soft Steering:** Users can inject new instructions into a session queue at any time. The Kernel checks this between reasoning steps.
+2. **Hard Abort:** An `AgentSignal` provides **active cancellation**. It allows for immediate termination of network calls (HTTP stream reset), tool executions, and token publishing, ensuring the UI stops instantly.
+3. **Interrupts:** Sensitive tools (like `ask_selection`) can pause the loop to await explicit user input via modal forms.
 
 ## 6. WebUI Observation & Control (The 3x3 Matrix)
 
@@ -127,3 +122,4 @@ Starting from v1.5.0, the WebUI is built with **React 18 + TypeScript + shadcn/u
 - **UI:** React 18, Vite, Tailwind CSS, Zustand, shadcn/ui
 - **Monitoring:** JDK WatchService (Recursive native hooks)
 - **Testing:** JUnit 5, Mockito, JaCoCo, Vitest + RTL (WebUI)
+

@@ -2,16 +2,18 @@
 
 > **Status:** In Development
 > **Version:** 0.1.5
-
+>
 > **Package:** `work.ganglia.port.internal.state` (Contract) / `work.ganglia.infrastructure.internal.state` (Impl)
 > **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 
 ## 1. Introduction
+
 The `SessionManager` provides a high-level API for managing the lifecycle of agent sessions. It abstracts the complexities of state persistence, turn tracking, and context initialization, allowing clients to interact with the agent through stable session identifiers.
 
 ## 2. Core Concepts
 
 ### 2.1 `SessionContext` (Review)
+
 The `SessionContext` is the immutable state of a session at a specific point in time. It contains:
 - `sessionId`: Unique identifier.
 - `previousTurns`: History of completed turns.
@@ -20,6 +22,7 @@ The `SessionContext` is the immutable state of a session at a specific point in 
 - `activeSkillIds`: Skills currently enabled.
 
 ### 2.2 `Turn` (Review)
+
 A `Turn` represents a single User-Agent interaction. It tracks:
 - `userMessage`: The initial input.
 - `steps`: Intermediate thoughts and tool calls.
@@ -56,11 +59,13 @@ public interface SessionManager {
 ## 4. Implementation Details
 
 ### 4.1 `DefaultSessionManager`
+
 - **Dependency:** Uses `StateEngine` for physical persistence (JSON files).
 - **Caching:** May implement a basic in-memory cache for active sessions to reduce I/O during the Reasoning Loop.
 - **Initialization:** Ensures that new sessions are initialized with the default `ModelOptions` and an empty `ToDoList`.
 
 ### 4.2 Turn Lifecycle Management
+
 The `SessionManager` should provide helpers to transition between turns:
 1. **Start Turn:** Move `currentTurn` to `previousTurns` (if exists) and create a new `currentTurn`.
 2. **Update Turn:** Append steps (thoughts/tool calls) to the `currentTurn`.
@@ -86,6 +91,7 @@ sequenceDiagram
     SM->>State: saveSession(updatedContext)
     Loop-->>Client: Final Response
 ```
+
 ## 6. Client-side Session Tracking & History
 
 While the backend is the source of truth for session content, the WebUI manages session persistence and switching:
@@ -94,5 +100,6 @@ While the backend is the source of truth for session content, the WebUI manages 
 3.  **Bootstrap Sync**: Upon switching or reloading, the UI sends a JSON-RPC `SYNC` request to the backend to hydrate the message stream and retrieve the full execution history.
 
 ## 7. Integration with `Main`
+
 ...
 The `Main` class (or its equivalent in `example`) will use the `SessionManager` to manage the lifecycle of the user interaction, rather than manually instantiating `SessionContext`.

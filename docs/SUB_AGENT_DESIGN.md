@@ -2,12 +2,13 @@
 
 > **Status:** In Development
 > **Version:** 0.1.5
-
+>
 > **Module:** `ganglia-core`
 > **Package:** `work.ganglia.kernel.task` (SubAgentTask)
 > **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 
 ## 1. Objective
+
 To enable complex task decomposition by allowing a primary Orchestrator Agent to delegate specialized sub-tasks to transient, focused "Sub-Agents" (Clones). This reduces primary context window pressure and enables expert-level execution.
 
 ## 2. Core Implementation Logic
@@ -15,16 +16,19 @@ To enable complex task decomposition by allowing a primary Orchestrator Agent to
 Sub-Agents are implemented as a first-class `Schedulable` task type (`SubAgentTask`), decoupling their execution from the parent loop.
 
 ### 2.1 Delegation Mechanism
+
 - **Trigger**: The Orchestrator calls the `call_sub_agent` tool.
 - **Scheduling**: `SchedulableFactory` creates a `SubAgentTask`.
 - **Execution**: The task instantiates a fresh `StandardAgentLoop` with a scoped context.
 
 ### 2.2 Context Scoping (Isolation)
+
 To maintain focus, Sub-Agents use `ContextScoper` (in `work.ganglia.infrastructure.external.tool.subagent`):
 - **Selective Injection**: Only mandatory mandates (from `GANGLIA.md`) and the specific sub-task are provided.
 - **Clean Slate**: They do not inherit the full conversation history of the parent.
 
 ### 2.3 Result Consolidation
+
 Once the Specialist finishes its loop, the final report is returned to the Orchestrator as a tool observation. Recursion is limited to one level by default.
 
 ## 3. Conceptual Sequence
@@ -46,5 +50,7 @@ sequenceDiagram
 ```
 
 ## 4. Key Components
-1.  **`SubAgentTask`**: The Schedulable entry point in the Kernel.
-2.  **`DefaultGraphExecutor`**: Infrastructure used when multiple sub-agents are orchestrated in a DAG.
+
+1. **`SubAgentTask`**: The Schedulable entry point in the Kernel.
+2. **`DefaultGraphExecutor`**: Infrastructure used when multiple sub-agents are orchestrated in a DAG.
+

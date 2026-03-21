@@ -32,16 +32,16 @@ Ganglia is a Java 17 agent framework on Vert.x 5.0.6 using **Hexagonal (Ports & 
 
 ### Module Layout
 
-| Module | Purpose |
-|---|---|
-| `ganglia-core` | Kernel (reasoning loop, task scheduling), Ports (domain models, interfaces), Infrastructure (LLM gateways, memory, state, prompts, skills) |
-| `ganglia-coding` | Coding tools: BashTools, FileEditTools, WebFetchTools |
-| `ganglia-web` | WebSocket server + JSON-RPC 2.0 endpoint (WebUIVerticle) |
-| `ganglia-terminal` | JLine 3 TUI with Flexmark Markdown rendering |
-| `ganglia-webui` | React 18 + TypeScript + Vite frontend (shadcn/ui, Zustand) |
-| `ganglia-example` | Demo apps (WebUIDemo, AutonomousAgentDemo, etc.) |
-| `ganglia-swe-bench` | SWE-bench evaluation harness |
-| `integration-test` | E2E tests with mock LLM responses via E2ETestHarness |
+|       Module        |                                                                  Purpose                                                                   |
+|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| `ganglia-core`      | Kernel (reasoning loop, task scheduling), Ports (domain models, interfaces), Infrastructure (LLM gateways, memory, state, prompts, skills) |
+| `ganglia-coding`    | Coding tools: BashTools, FileEditTools, WebFetchTools                                                                                      |
+| `ganglia-web`       | WebSocket server + JSON-RPC 2.0 endpoint (WebUIVerticle)                                                                                   |
+| `ganglia-terminal`  | JLine 3 TUI with Flexmark Markdown rendering                                                                                               |
+| `ganglia-webui`     | React 18 + TypeScript + Vite frontend (shadcn/ui, Zustand)                                                                                 |
+| `ganglia-example`   | Demo apps (WebUIDemo, AutonomousAgentDemo, etc.)                                                                                           |
+| `ganglia-swe-bench` | SWE-bench evaluation harness                                                                                                               |
+| `integration-test`  | E2E tests with mock LLM responses via E2ETestHarness                                                                                       |
 
 ### Four Hexagonal Layers
 
@@ -84,3 +84,4 @@ Auto-created at startup: `config.json`, `state/`, `memory/`, `skills/`, `logs/`,
 - Testing: JUnit 5 + `@ExtendWith(VertxExtension.class)`, Mockito, Google Jimfs for filesystem isolation
 - Integration tests use `E2ETestHarness` for deterministic mock-LLM scenarios
 - LLM requests must enforce timeouts (default 60s); retries handled by `RetryingModelGateway`
+
