@@ -41,6 +41,43 @@ public class JsonSanitizer {
     // 3. Basic cleanup of common LLM errors (e.g., trailing commas in objects/arrays)
     cleaned = cleaned.replaceAll(",\\s*([}\\]])", "$1");
 
+    // 4. Escape raw control characters inside string literals
+    cleaned = escapeControlCharsInStrings(cleaned);
+
     return cleaned;
+  }
+
+  /**
+   * Robustly escapes raw control characters (like newlines) that appear inside double-quoted
+   * strings in a JSON-like string.
+   */
+  private static String escapeControlCharsInStrings(String input) {
+    StringBuilder sb = new StringBuilder();
+    boolean inString = false;
+    boolean escaped = false;
+    for (int i = 0; i < input.length(); i++) {
+      char c = input.charAt(i);
+      if (c == '"' && !escaped) {
+        inString = !inString;
+      }
+
+      if (inString) {
+        switch (c) {
+          case '\n' -> sb.append("\\n");
+          case '\r' -> sb.append("\\r");
+          case '\t' -> sb.append("\\t");
+          default -> sb.append(c);
+        }
+      } else {
+        sb.append(c);
+      }
+
+      if (c == '\\' && !escaped) {
+        escaped = true;
+      } else {
+        escaped = false;
+      }
+    }
+    return sb.toString();
   }
 }
