@@ -1,30 +1,30 @@
-import React, { useMemo } from 'react'
-import { eventBusService } from '../services/eventbus'
-import { useSystemStore } from '../stores/system'
-import type { ServerEvent, AskUserData } from '../types'
-import ReactMarkdown from 'react-markdown'
-import Prism from 'prismjs'
-import 'prismjs/components/prism-diff'
+import React, { useMemo } from 'react';
+import { eventBusService } from '../services/eventbus';
+import { useSystemStore } from '../stores/system';
+import type { ServerEvent, AskUserData } from '../types';
+import ReactMarkdown from 'react-markdown';
+import Prism from 'prismjs';
+import 'prismjs/components/prism-diff';
 
 interface AskUserFormProps {
-  event: ServerEvent<AskUserData>
+  event: ServerEvent<AskUserData>;
 }
 
 const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
-  const systemStore = useSystemStore()
-  const isActive = systemStore.activeAskId === event.data.askId
+  const systemStore = useSystemStore();
+  const isActive = systemStore.activeAskId === event.data.askId;
 
   const selectOption = (optionValue: string) => {
     eventBusService.send('RESPOND_ASK', {
       askId: event.data.askId,
       selectedOption: optionValue,
-    })
-  }
+    });
+  };
 
   const diffMarkdown = useMemo(() => {
-    if (!event.data.diffContext) return ''
-    return `\`\`\`diff\n${event.data.diffContext}\n\`\`\``
-  }, [event.data.diffContext])
+    if (!event.data.diffContext) return '';
+    return `\`\`\`diff\n${event.data.diffContext}\n\`\`\``;
+  }, [event.data.diffContext]);
 
   if (isActive) {
     return (
@@ -33,8 +33,12 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
           <div className="bg-amber-500/10 px-8 py-5 border-b border-amber-500/20 flex items-center gap-4 flex-shrink-0">
             <span className="text-amber-500 text-3xl">⚠️</span>
             <div>
-              <h3 className="text-lg font-bold text-amber-500 uppercase tracking-tight">Authorization Required</h3>
-              <p className="text-sm text-slate-400 mt-0.5">The agent needs your decision to continue.</p>
+              <h3 className="text-lg font-bold text-amber-500 uppercase tracking-tight">
+                Authorization Required
+              </h3>
+              <p className="text-sm text-slate-400 mt-0.5">
+                The agent needs your decision to continue.
+              </p>
             </div>
           </div>
 
@@ -50,19 +54,27 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
                   <ReactMarkdown
                     components={{
                       code({ node, inline, className, children, ...props }: any) {
-                        const match = /language-(\w+)/.exec(className || '')
-                        const lang = match ? match[1] : ''
+                        const match = /language-(\w+)/.exec(className || '');
+                        const lang = match ? match[1] : '';
                         if (!inline && lang) {
-                          const grammar = Prism.languages[lang] || Prism.languages.text
-                          const highlighted = Prism.highlight(String(children).replace(/\n$/, ''), grammar, lang)
+                          const grammar = Prism.languages[lang] || Prism.languages.text;
+                          const highlighted = Prism.highlight(
+                            String(children).replace(/\n$/, ''),
+                            grammar,
+                            lang,
+                          );
                           return (
                             <pre className={className}>
                               <code {...props} dangerouslySetInnerHTML={{ __html: highlighted }} />
                             </pre>
-                          )
+                          );
                         }
-                        return <code className={className} {...props}>{children}</code>
-                      }
+                        return (
+                          <code className={className} {...props}>
+                            {children}
+                          </code>
+                        );
+                      },
                     }}
                   >
                     {diffMarkdown}
@@ -83,14 +95,16 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
                   <span className="text-base font-semibold text-slate-200 group-hover:text-emerald-400">
                     {option.label}
                   </span>
-                  <span className="text-sm text-slate-400 mt-1 leading-relaxed">{option.description}</span>
+                  <span className="text-sm text-slate-400 mt-1 leading-relaxed">
+                    {option.description}
+                  </span>
                 </button>
               ))}
             </div>
           </div>
         </div>
       </div>
-    )
+    );
   }
 
   return (
@@ -107,7 +121,7 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
         )}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default AskUserForm
+export default AskUserForm;

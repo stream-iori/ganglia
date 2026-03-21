@@ -120,43 +120,45 @@
 }
 
 /* Prism Themed Overrides */
-code[class*="language-"],
-pre[class*="language-"] {
-	@apply text-foreground;
-	font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-	text-align: left;
-	white-space: pre;
-	word-spacing: normal;
-	word-break: normal;
-	word-wrap: normal;
-	line-height: 1.5;
-	tab-size: 4;
-	hyphens: none;
+code[class*='language-'],
+pre[class*='language-'] {
+  @apply text-foreground;
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  text-align: left;
+  white-space: pre;
+  word-spacing: normal;
+  word-break: normal;
+  word-wrap: normal;
+  line-height: 1.5;
+  tab-size: 4;
+  hyphens: none;
 }
 
-pre[class*="language-"] {
-	@apply p-4 rounded-lg overflow-auto border border-border;
-    background: rgb(var(--code-bg)) !important;
+pre[class*='language-'] {
+  @apply p-4 rounded-lg overflow-auto border border-border;
+  background: rgb(var(--code-bg)) !important;
 }
 
-:not(pre) > code[class*="language-"] {
-	@apply px-1.5 py-0.5 rounded border border-border;
-    background: rgb(var(--code-bg)) !important;
+:not(pre) > code[class*='language-'] {
+  @apply px-1.5 py-0.5 rounded border border-border;
+  background: rgb(var(--code-bg)) !important;
 }
 
 .token.comment,
 .token.prolog,
 .token.doctype,
 .token.cdata {
-	color: rgb(var(--code-comment));
+  color: rgb(var(--code-comment));
 }
 
 .token.punctuation {
-	color: rgb(var(--code-punctuation));
+  color: rgb(var(--code-punctuation));
 }
 
 .token.namespace {
-	opacity: .7;
+  opacity: 0.7;
 }
 
 .token.property,
@@ -166,7 +168,7 @@ pre[class*="language-"] {
 .token.constant,
 .token.symbol,
 .token.deleted {
-	color: rgb(var(--code-function));
+  color: rgb(var(--code-function));
 }
 
 .token.selector,
@@ -175,7 +177,7 @@ pre[class*="language-"] {
 .token.char,
 .token.builtin,
 .token.inserted {
-	color: rgb(var(--code-string));
+  color: rgb(var(--code-string));
 }
 
 .token.operator,
@@ -183,34 +185,34 @@ pre[class*="language-"] {
 .token.url,
 .language-css .token.string,
 .style .token.string {
-	@apply text-foreground;
+  @apply text-foreground;
 }
 
 .token.atrule,
 .token.attr-value,
 .token.keyword {
-	color: rgb(var(--code-keyword));
+  color: rgb(var(--code-keyword));
 }
 
 .token.function,
 .token.class-name {
-	color: rgb(var(--code-function));
+  color: rgb(var(--code-function));
 }
 
 .token.regex,
 .token.important,
 .token.variable {
-	color: rgb(var(--code-variable));
+  color: rgb(var(--code-variable));
 }
 
 .token.important,
 .token.bold {
-	font-weight: bold;
+  font-weight: bold;
 }
 .token.italic {
-	font-style: italic;
+  font-style: italic;
 }
 
 .token.entity {
-	cursor: help;
+  cursor: help;
 }

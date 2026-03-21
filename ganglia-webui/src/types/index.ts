@@ -1,10 +1,10 @@
-export type EventType = 
-  | 'THOUGHT' 
-  | 'TOOL_START' 
-  | 'TOOL_OUTPUT_STREAM' 
-  | 'TOOL_RESULT' 
-  | 'ASK_USER' 
-  | 'AGENT_MESSAGE' 
+export type EventType =
+  | 'THOUGHT'
+  | 'TOOL_START'
+  | 'TOOL_OUTPUT_STREAM'
+  | 'TOOL_RESULT'
+  | 'ASK_USER'
+  | 'AGENT_MESSAGE'
   | 'SYSTEM_ERROR'
   | 'FILE_CONTENT'
   | 'FILE_TREE'
@@ -139,11 +139,25 @@ export interface JsonRpcNotification {
 }
 
 export interface SyncParams {}
-export interface StartParams { prompt: string }
-export interface RespondAskParams { askId: string, selectedOption: string }
+export interface StartParams {
+  prompt: string;
+}
+export interface RespondAskParams {
+  askId: string;
+  selectedOption: string;
+}
 export interface CancelParams {}
 export interface RetryParams {}
-export interface ReadFileParams { path: string }
+export interface ReadFileParams {
+  path: string;
+}
 export interface ListFilesParams {}
 
-export type ClientAction = 'START' | 'RESPOND_ASK' | 'CANCEL' | 'RETRY' | 'READ_FILE' | 'SYNC' | 'LIST_FILES';
+export type ClientAction =
+  | 'START'
+  | 'RESPOND_ASK'
+  | 'CANCEL'
+  | 'RETRY'
+  | 'READ_FILE'
+  | 'SYNC'
+  | 'LIST_FILES';

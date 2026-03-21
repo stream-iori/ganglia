@@ -1,17 +1,17 @@
 package work.ganglia.coding.prompt;
 
 import io.vertx.core.Future;
+import java.util.List;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.prompt.ContextFragment;
 import work.ganglia.port.internal.prompt.WorkflowContextSource;
 
-import java.util.List;
-
 public class CodingWorkflowSource implements WorkflowContextSource {
 
-    @Override
-    public Future<List<ContextFragment>> getFragments(SessionContext sessionContext) {
-        String workflow = """
+  @Override
+  public Future<List<ContextFragment>> getFragments(SessionContext sessionContext) {
+    String workflow =
+        """
             ## [Primary Workflow: Research-Strategy-Execution]
             You operate using a strictly sequential Research -> Strategy -> Execution lifecycle for all Directives.
 
@@ -31,8 +31,8 @@ public class CodingWorkflowSource implements WorkflowContextSource {
             - **Validate**: Run tests and workspace standards (linting, type-checking) to confirm behavioral correctness and ensure no regressions.
             """;
 
-        return Future.succeededFuture(List.of(
-            ContextFragment.mandatory("Workflow", workflow, ContextFragment.PRIORITY_WORKFLOW)
-        ));
-    }
+    return Future.succeededFuture(
+        List.of(
+            ContextFragment.mandatory("Workflow", workflow, ContextFragment.PRIORITY_WORKFLOW)));
+  }
 }

@@ -1,56 +1,61 @@
 package work.ganglia.example;
 
 import io.vertx.core.Vertx;
-import work.ganglia.Ganglia;
-import work.ganglia.ui.TerminalUI;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.UUID;
+import work.ganglia.Ganglia;
+import work.ganglia.ui.TerminalUI;
 
 /**
- * A demo specifically for verifying Anthropic Claude integration.
- * It ensures the provider is set to 'anthropic' and runs a multi-step task
- * to verify tool execution and streaming reasoning.
+ * A demo specifically for verifying Anthropic Claude integration. It ensures the provider is set to
+ * 'anthropic' and runs a multi-step task to verify tool execution and streaming reasoning.
  */
 public class ClaudeDemo {
-    private static final Logger logger = LoggerFactory.getLogger(ClaudeDemo.class);
+  private static final Logger logger = LoggerFactory.getLogger(ClaudeDemo.class);
 
-    public static void main(String[] args) {
-        Ganglia.bootstrap()
-            .onFailure(err -> {
-                System.err.println("Bootstrap failed: " + err.getMessage());
+  public static void main(String[] args) {
+    Ganglia.bootstrap()
+        .onFailure(
+            err -> {
+              System.err.println("Bootstrap failed: " + err.getMessage());
             })
-            .onSuccess(ganglia -> {
-                Vertx vertx = ganglia.vertx();
-                TerminalUI ui = TerminalUI.create(vertx);
-                String sessionId = "claude-demo-" + UUID.randomUUID().toString().substring(0, 8);
+        .onSuccess(
+            ganglia -> {
+              Vertx vertx = ganglia.vertx();
+              TerminalUI ui = TerminalUI.create(vertx);
+              String sessionId = "claude-demo-" + UUID.randomUUID().toString().substring(0, 8);
 
-                System.out.println("--- Ganglia Claude Integration Demo ---");
-                System.out.println("Session ID: " + sessionId);
-                System.out.println("Note: Ensure ANTHROPIC_API_KEY is set and provider='anthropic' in .ganglia/config.json");
+              System.out.println("--- Ganglia Claude Integration Demo ---");
+              System.out.println("Session ID: " + sessionId);
+              System.out.println(
+                  "Note: Ensure ANTHROPIC_API_KEY is set and provider='anthropic' in .ganglia/config.json");
 
-                ui.listenToStream(sessionId);
+              ui.listenToStream(sessionId);
 
-                String input = "Hello Claude! Can you tell me what operating system you are running on, " +
-                               "and then create a file named 'claude_test.md' with a short poem about neurons?";
+              String input =
+                  "Hello Claude! Can you tell me what operating system you are running on, "
+                      + "and then create a file named 'claude_test.md' with a short poem about neurons?";
 
-                System.out.println("\nUser: " + input);
-                System.out.println("\n--- Agent Reasoning (Claude) ---");
-                System.out.print("Agent: ");
+              System.out.println("\nUser: " + input);
+              System.out.println("\n--- Agent Reasoning (Claude) ---");
+              System.out.print("Agent: ");
 
-                ganglia.sessionManager().getSession(sessionId)
-                    .compose(context -> ganglia.agentLoop().run(input, context))
-                    .onComplete(ar -> {
+              ganglia
+                  .sessionManager()
+                  .getSession(sessionId)
+                  .compose(context -> ganglia.agentLoop().run(input, context))
+                  .onComplete(
+                      ar -> {
                         if (ar.succeeded()) {
-                            System.out.println("\n\n--- Workflow Complete ---");
-                            System.out.println("Final Agent Response: " + ar.result());
+                          System.out.println("\n\n--- Workflow Complete ---");
+                          System.out.println("Final Agent Response: " + ar.result());
                         } else {
-                            System.err.println("\n\nWorkflow Error: " + ar.cause().getMessage());
-                            ar.cause().printStackTrace();
+                          System.err.println("\n\nWorkflow Error: " + ar.cause().getMessage());
+                          ar.cause().printStackTrace();
                         }
                         DemoUtil.gracefulShutdown(vertx);
-                    });
+                      });
             });
-    }
+  }
 }

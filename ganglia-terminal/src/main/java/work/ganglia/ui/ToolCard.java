@@ -3,8 +3,8 @@ package work.ganglia.ui;
 import java.util.List;
 
 /**
- * Immutable snapshot of a completed tool execution,
- * used by {@link DetailView} to display full output.
+ * Immutable snapshot of a completed tool execution, used by {@link DetailView} to display full
+ * output.
  */
 public record ToolCard(
     String toolName,
@@ -12,5 +12,4 @@ public record ToolCard(
     List<String> outputLines,
     String result,
     boolean isError,
-    long durationMs
-) {}
+    long durationMs) {}

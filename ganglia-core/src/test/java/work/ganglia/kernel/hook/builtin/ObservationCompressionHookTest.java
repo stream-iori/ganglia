@@ -1,12 +1,17 @@
 package work.ganglia.kernel.hook.builtin;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+
 import io.vertx.core.Future;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
+import java.util.Collections;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolCall;
@@ -14,83 +19,92 @@ import work.ganglia.port.internal.memory.MemoryStore;
 import work.ganglia.port.internal.memory.ObservationCompressor;
 import work.ganglia.port.internal.memory.model.CompressionContext;
 
-import java.util.Collections;
-import java.util.Map;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
-
 @ExtendWith(VertxExtension.class)
 class ObservationCompressionHookTest {
 
-    private ObservationCompressor compressor;
-    private MemoryStore store;
-    private ObservationCompressionHook hook;
-    private SessionContext context;
+  private ObservationCompressor compressor;
+  private MemoryStore store;
+  private ObservationCompressionHook hook;
+  private SessionContext context;
 
-    @BeforeEach
-    void setUp() {
-        compressor = mock(ObservationCompressor.class);
-        store = mock(MemoryStore.class);
-        hook = new ObservationCompressionHook(compressor, store);
-        context = new SessionContext("test", Collections.emptyList(), null, Collections.emptyMap(), Collections.emptyList(), null);
-    }
+  @BeforeEach
+  void setUp() {
+    compressor = mock(ObservationCompressor.class);
+    store = mock(MemoryStore.class);
+    hook = new ObservationCompressionHook(compressor, store);
+    context =
+        new SessionContext(
+            "test",
+            Collections.emptyList(),
+            null,
+            Collections.emptyMap(),
+            Collections.emptyList(),
+            null);
+  }
 
-    @Test
-    void testCompressionTriggered(VertxTestContext testContext) {
-        String rawOutput = "long output".repeat(100);
-        ToolCall call = new ToolCall("c1", "ls", Map.of());
-        ToolInvokeResult result = ToolInvokeResult.success(rawOutput);
+  @Test
+  void testCompressionTriggered(VertxTestContext testContext) {
+    String rawOutput = "long output".repeat(100);
+    ToolCall call = new ToolCall("c1", "ls", Map.of());
+    ToolInvokeResult result = ToolInvokeResult.success(rawOutput);
 
-        when(compressor.requiresCompression(rawOutput)).thenReturn(true);
-        when(compressor.compress(eq(rawOutput), any(CompressionContext.class)))
-            .thenReturn(Future.succeededFuture("summary"));
-        when(store.store(any())).thenReturn(Future.succeededFuture());
+    when(compressor.requiresCompression(rawOutput)).thenReturn(true);
+    when(compressor.compress(eq(rawOutput), any(CompressionContext.class)))
+        .thenReturn(Future.succeededFuture("summary"));
+    when(store.store(any())).thenReturn(Future.succeededFuture());
 
-        hook.postToolExecute(call, result, context)
-            .onComplete(testContext.succeeding(hookedResult -> {
-                testContext.verify(() -> {
-                    assertTrue(hookedResult.output().contains("compressed"));
-                    assertTrue(hookedResult.output().contains("summary"));
-                    verify(store, times(1)).store(any());
-                    testContext.completeNow();
-                });
-            }));
-    }
+    hook.postToolExecute(call, result, context)
+        .onComplete(
+            testContext.succeeding(
+                hookedResult -> {
+                  testContext.verify(
+                      () -> {
+                        assertTrue(hookedResult.output().contains("compressed"));
+                        assertTrue(hookedResult.output().contains("summary"));
+                        verify(store, times(1)).store(any());
+                        testContext.completeNow();
+                      });
+                }));
+  }
 
-    @Test
-    void testNoCompressionForSmallOutput(VertxTestContext testContext) {
-        String rawOutput = "short";
-        ToolCall call = new ToolCall("c1", "ls", Map.of());
-        ToolInvokeResult result = ToolInvokeResult.success(rawOutput);
+  @Test
+  void testNoCompressionForSmallOutput(VertxTestContext testContext) {
+    String rawOutput = "short";
+    ToolCall call = new ToolCall("c1", "ls", Map.of());
+    ToolInvokeResult result = ToolInvokeResult.success(rawOutput);
 
-        when(compressor.requiresCompression(rawOutput)).thenReturn(false);
+    when(compressor.requiresCompression(rawOutput)).thenReturn(false);
 
-        hook.postToolExecute(call, result, context)
-            .onComplete(testContext.succeeding(hookedResult -> {
-                testContext.verify(() -> {
-                    assertEquals(rawOutput, hookedResult.output());
-                    verify(compressor, never()).compress(anyString(), any());
-                    testContext.completeNow();
-                });
-            }));
-    }
+    hook.postToolExecute(call, result, context)
+        .onComplete(
+            testContext.succeeding(
+                hookedResult -> {
+                  testContext.verify(
+                      () -> {
+                        assertEquals(rawOutput, hookedResult.output());
+                        verify(compressor, never()).compress(anyString(), any());
+                        testContext.completeNow();
+                      });
+                }));
+  }
 
-    @Test
-    void testSkipRecallMemoryTool(VertxTestContext testContext) {
-        String rawOutput = "long content".repeat(100);
-        ToolCall call = new ToolCall("c1", "recall_memory", Map.of("id", "123"));
-        ToolInvokeResult result = ToolInvokeResult.success(rawOutput);
+  @Test
+  void testSkipRecallMemoryTool(VertxTestContext testContext) {
+    String rawOutput = "long content".repeat(100);
+    ToolCall call = new ToolCall("c1", "recall_memory", Map.of("id", "123"));
+    ToolInvokeResult result = ToolInvokeResult.success(rawOutput);
 
-        // Even if it's long, recall_memory should NOT be compressed
-        hook.postToolExecute(call, result, context)
-            .onComplete(testContext.succeeding(hookedResult -> {
-                testContext.verify(() -> {
-                    assertEquals(rawOutput, hookedResult.output());
-                    verify(compressor, never()).requiresCompression(anyString());
-                    testContext.completeNow();
-                });
-            }));
-    }
+    // Even if it's long, recall_memory should NOT be compressed
+    hook.postToolExecute(call, result, context)
+        .onComplete(
+            testContext.succeeding(
+                hookedResult -> {
+                  testContext.verify(
+                      () -> {
+                        assertEquals(rawOutput, hookedResult.output());
+                        verify(compressor, never()).requiresCompression(anyString());
+                        testContext.completeNow();
+                      });
+                }));
+  }
 }

@@ -6,11 +6,11 @@ import work.ganglia.config.ConfigManager;
 
 public class StubConfigManager extends ConfigManager {
 
-    public StubConfigManager(Vertx vertx) {
-        super(vertx, "non-existent-config.json");
-    }
+  public StubConfigManager(Vertx vertx) {
+    super(vertx, "non-existent-config.json");
+  }
 
-    public void setConfig(JsonObject config) {
-        updateConfig(config);
-    }
+  public void setConfig(JsonObject config) {
+    updateConfig(config);
+  }
 }

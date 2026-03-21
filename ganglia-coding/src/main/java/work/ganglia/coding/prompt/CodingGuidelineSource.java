@@ -1,26 +1,26 @@
 package work.ganglia.coding.prompt;
 
 import io.vertx.core.Future;
+import java.util.List;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.prompt.ContextFragment;
 import work.ganglia.port.internal.prompt.GuidelineContextSource;
 
-import java.util.List;
-
 public class CodingGuidelineSource implements GuidelineContextSource {
-    private final String instructionFile;
+  private final String instructionFile;
 
-    public CodingGuidelineSource() {
-        this("GANGLIA.md");
-    }
+  public CodingGuidelineSource() {
+    this("GANGLIA.md");
+  }
 
-    public CodingGuidelineSource(String instructionFile) {
-        this.instructionFile = instructionFile != null ? instructionFile : "GANGLIA.md";
-    }
+  public CodingGuidelineSource(String instructionFile) {
+    this.instructionFile = instructionFile != null ? instructionFile : "GANGLIA.md";
+  }
 
-    @Override
-    public Future<List<ContextFragment>> getFragments(SessionContext sessionContext) {
-        String guidelines = """
+  @Override
+  public Future<List<ContextFragment>> getFragments(SessionContext sessionContext) {
+    String guidelines =
+        """
              ## [Operational Guidelines]
              As a senior software engineer and peer programmer, adhere to these standards:
 
@@ -38,10 +38,12 @@ public class CodingGuidelineSource implements GuidelineContextSource {
              ### Proactiveness
              - **Explain Before Acting**: Provide a concise explanation of intent before executing tools.
              - **Autonomy**: Clarify only if critically underspecified; otherwise, work towards the goal.
-             """.formatted(instructionFile);
+             """
+            .formatted(instructionFile);
 
-        return Future.succeededFuture(List.of(
-            ContextFragment.mandatory("Guidelines", guidelines, ContextFragment.PRIORITY_GUIDELINES)
-        ));
-    }
+    return Future.succeededFuture(
+        List.of(
+            ContextFragment.mandatory(
+                "Guidelines", guidelines, ContextFragment.PRIORITY_GUIDELINES)));
+  }
 }

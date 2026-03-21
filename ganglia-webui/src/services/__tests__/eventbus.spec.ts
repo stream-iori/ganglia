@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { eventBusService } from '../eventbus'
-import { useSystemStore } from '../../stores/system'
-import { useLogStore } from '../../stores/log'
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { eventBusService } from '../eventbus';
+import { useSystemStore } from '../../stores/system';
+import { useLogStore } from '../../stores/log';
 
 class MockWebSocket {
   static OPEN = 1;
@@ -11,7 +11,7 @@ class MockWebSocket {
   onclose: (() => void) | null = null;
   onmessage: ((event: { data: string }) => void) | null = null;
   onerror: ((error: any) => void) | null = null;
-  
+
   constructor(url: string) {
     this.url = url;
     MockWebSocket.lastInstance = this;
@@ -20,7 +20,7 @@ class MockWebSocket {
       if (this.onopen) this.onopen();
     }, 10);
   }
-  
+
   send(data: string) {
     const msg = JSON.parse(data);
     if (msg.method === 'SYNC') {
@@ -30,14 +30,14 @@ class MockWebSocket {
             data: JSON.stringify({
               jsonrpc: '2.0',
               id: msg.id,
-              result: { history: [] }
-            })
+              result: { history: [] },
+            }),
           });
         }
       }, 5);
     }
   }
-  
+
   close() {
     this.readyState = 3; // CLOSED
     if (this.onclose) this.onclose();
@@ -56,106 +56,106 @@ describe('EventBus Service (WebSocket/JSON-RPC)', () => {
   let originalWebSocket: any;
 
   beforeEach(() => {
-    vi.clearAllMocks()
-    useSystemStore.setState({ status: 'DISCONNECTED', fileTreeUpdatedAt: 0 })
-    useLogStore.setState({ events: [], activeToolCalls: {} })
-    
+    vi.clearAllMocks();
+    useSystemStore.setState({ status: 'DISCONNECTED', fileTreeUpdatedAt: 0 });
+    useLogStore.setState({ events: [], activeToolCalls: {} });
+
     originalWebSocket = window.WebSocket;
     (window as any).WebSocket = MockWebSocket;
-  })
+  });
 
   afterEach(() => {
     (window as any).WebSocket = originalWebSocket;
     MockWebSocket.lastInstance = null;
     eventBusService.close();
-  })
+  });
 
   it('should connect and sync history', async () => {
-    eventBusService.connect()
-    
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
-    expect(useSystemStore.getState().status).toBe('CONNECTED')
-    expect(useLogStore.getState().events).toHaveLength(0)
-  })
+    eventBusService.connect();
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(useSystemStore.getState().status).toBe('CONNECTED');
+    expect(useLogStore.getState().events).toHaveLength(0);
+  });
 
   it('should handle server events (notifications)', async () => {
-    eventBusService.connect()
-    await new Promise(resolve => setTimeout(resolve, 20));
-    
+    eventBusService.connect();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
     MockWebSocket.lastInstance?.simulateMessage({
       jsonrpc: '2.0',
       method: 'server_event',
       params: {
         eventId: 'evt-1',
         type: 'THOUGHT',
-        data: { content: 'Test Thinking' }
-      }
-    })
-    
-    const logState = useLogStore.getState()
-    expect(logState.events).toHaveLength(1)
-    expect(logState.events[0].type).toBe('THOUGHT')
-    expect((logState.events[0].data as any).content).toBe('Test Thinking')
-  })
+        data: { content: 'Test Thinking' },
+      },
+    });
+
+    const logState = useLogStore.getState();
+    expect(logState.events).toHaveLength(1);
+    expect(logState.events[0].type).toBe('THOUGHT');
+    expect((logState.events[0].data as any).content).toBe('Test Thinking');
+  });
 
   it('should update fileTreeUpdatedAt on FILE_TREE event', async () => {
-    eventBusService.connect()
-    await new Promise(resolve => setTimeout(resolve, 20));
-    
-    const initialTime = useSystemStore.getState().fileTreeUpdatedAt
-    
+    eventBusService.connect();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const initialTime = useSystemStore.getState().fileTreeUpdatedAt;
+
     MockWebSocket.lastInstance?.simulateMessage({
       jsonrpc: '2.0',
       method: 'server_event',
       params: {
         eventId: 'evt-ft',
         type: 'FILE_TREE',
-        data: { name: 'root', type: 'directory', path: '.', children: [] }
-      }
-    })
-    
-    expect(useSystemStore.getState().fileTreeUpdatedAt).toBeGreaterThan(initialTime)
-  })
+        data: { name: 'root', type: 'directory', path: '.', children: [] },
+      },
+    });
+
+    expect(useSystemStore.getState().fileTreeUpdatedAt).toBeGreaterThan(initialTime);
+  });
 
   it('should handle tty events', async () => {
-    eventBusService.connect()
-    await new Promise(resolve => setTimeout(resolve, 20));
-    
-    const toolCallId = 'call-123'
-    
+    eventBusService.connect();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const toolCallId = 'call-123';
+
     useLogStore.getState().addEvent({
       eventId: 'start-1',
       type: 'TOOL_START',
-      data: { toolCallId, toolName: 'bash', command: 'ls' }
-    } as any)
-    
+      data: { toolCallId, toolName: 'bash', command: 'ls' },
+    } as any);
+
     MockWebSocket.lastInstance?.simulateMessage({
       jsonrpc: '2.0',
       method: 'tty_event',
       params: {
         toolCallId,
-        text: 'hello\n'
-      }
-    })
-    
-    expect(useLogStore.getState().activeToolCalls[toolCallId]).toContain('hello\n')
-  })
+        text: 'hello\n',
+      },
+    });
+
+    expect(useLogStore.getState().activeToolCalls[toolCallId]).toContain('hello\n');
+  });
 
   it('should support promise-based send', async () => {
-    eventBusService.connect()
-    await new Promise(resolve => setTimeout(resolve, 20));
-    
-    const sendPromise = eventBusService.send('LIST_FILES', {})
-    
-    const lastId = (eventBusService as any).requestCounter
+    eventBusService.connect();
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const sendPromise = eventBusService.send('LIST_FILES', {});
+
+    const lastId = (eventBusService as any).requestCounter;
     MockWebSocket.lastInstance?.simulateMessage({
       jsonrpc: '2.0',
       id: lastId,
-      result: { status: 'ok' }
-    })
-    
-    const result = await sendPromise
-    expect(result.status).toBe('ok')
-  })
-})
+      result: { status: 'ok' },
+    });
+
+    const result = await sendPromise;
+    expect(result.status).toBe('ok');
+  });
+});

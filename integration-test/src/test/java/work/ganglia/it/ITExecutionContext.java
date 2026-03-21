@@ -1,44 +1,43 @@
 package work.ganglia.it;
 
-import work.ganglia.port.internal.state.ExecutionContext;
-
 import java.util.ArrayList;
 import java.util.List;
+import work.ganglia.port.internal.state.ExecutionContext;
 
 public class ITExecutionContext implements ExecutionContext {
-    private final String sessionId;
-    private final List<String> streams = new ArrayList<>();
-    private java.util.function.Consumer<String> streamConsumer;
-    private Throwable error;
+  private final String sessionId;
+  private final List<String> streams = new ArrayList<>();
+  private java.util.function.Consumer<String> streamConsumer;
+  private Throwable error;
 
-    public ITExecutionContext(String sessionId) {
-        this.sessionId = sessionId;
-    }
+  public ITExecutionContext(String sessionId) {
+    this.sessionId = sessionId;
+  }
 
-    public ITExecutionContext(String sessionId, java.util.function.Consumer<String> streamConsumer) {
-        this.sessionId = sessionId;
-        this.streamConsumer = streamConsumer;
-    }
+  public ITExecutionContext(String sessionId, java.util.function.Consumer<String> streamConsumer) {
+    this.sessionId = sessionId;
+    this.streamConsumer = streamConsumer;
+  }
 
-    @Override
-    public String sessionId() {
-        return sessionId;
-    }
+  @Override
+  public String sessionId() {
+    return sessionId;
+  }
 
-    @Override
-    public void emitStream(String chunk) {
-        streams.add(chunk);
-        if (streamConsumer != null) {
-            streamConsumer.accept(chunk);
-        }
+  @Override
+  public void emitStream(String chunk) {
+    streams.add(chunk);
+    if (streamConsumer != null) {
+      streamConsumer.accept(chunk);
     }
+  }
 
-    @Override
-    public void emitError(Throwable error) {
-        this.error = error;
-    }
+  @Override
+  public void emitError(Throwable error) {
+    this.error = error;
+  }
 
-    public List<String> getStreams() {
-        return streams;
-    }
+  public List<String> getStreams() {
+    return streams;
+  }
 }

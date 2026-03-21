@@ -1,10 +1,10 @@
-import React from 'react'
-import { Sun, Moon } from 'lucide-react'
-import { useSystemStore } from '../stores/system'
+import React from 'react';
+import { Sun, Moon } from 'lucide-react';
+import { useSystemStore } from '../stores/system';
 
 const ThemeToggle: React.FC = () => {
-  const theme = useSystemStore((state) => state.theme)
-  const setTheme = useSystemStore((state) => state.setTheme)
+  const theme = useSystemStore((state) => state.theme);
+  const setTheme = useSystemStore((state) => state.setTheme);
 
   return (
     <button
@@ -18,7 +18,7 @@ const ThemeToggle: React.FC = () => {
         <Moon size={14} className="group-hover:text-blue-400 transition-colors" />
       )}
     </button>
-  )
-}
+  );
+};
 
-export default ThemeToggle
+export default ThemeToggle;

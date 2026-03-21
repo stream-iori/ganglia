@@ -1,33 +1,33 @@
-import React, { useState, useMemo } from 'react'
-import type { FileTreeNode } from '../types'
-import { useSystemStore } from '../stores/system'
-import { cn } from '../lib/utils'
+import React, { useState, useMemo } from 'react';
+import type { FileTreeNode } from '../types';
+import { useSystemStore } from '../stores/system';
+import { cn } from '../lib/utils';
 
 interface FileTreeItemProps {
-  node: FileTreeNode
-  depth: number
+  node: FileTreeNode;
+  depth: number;
 }
 
 const FileTreeItem: React.FC<FileTreeItemProps> = ({ node, depth }) => {
-  const systemStore = useSystemStore()
-  const [isExpanded, setIsExpanded] = useState(false)
+  const systemStore = useSystemStore();
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const isHighlighted = useMemo(() => {
-    return node.type === 'file' && systemStore.getModifiedPaths().has(node.path)
-  }, [node, systemStore.getModifiedPaths])
+    return node.type === 'file' && systemStore.getModifiedPaths().has(node.path);
+  }, [node, systemStore.getModifiedPaths]);
 
   const toggle = () => {
     if (node.type === 'directory') {
-      setIsExpanded(!isExpanded)
+      setIsExpanded(!isExpanded);
     } else {
-      systemStore.toggleFileInspector(node.path)
+      systemStore.toggleFileInspector(node.path);
     }
-  }
+  };
 
   const addContext = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    systemStore.addContextToPrompt(node.path)
-  }
+    e.stopPropagation();
+    systemStore.addContextToPrompt(node.path);
+  };
 
   return (
     <div className="select-none">
@@ -35,7 +35,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({ node, depth }) => {
         onClick={toggle}
         className={cn(
           'flex items-center gap-2 py-1 px-2 hover:bg-slate-800 rounded cursor-pointer transition-colors group relative',
-          isHighlighted && 'bg-emerald-900/10 hover:bg-emerald-900/30'
+          isHighlighted && 'bg-emerald-900/10 hover:bg-emerald-900/30',
         )}
         style={{ paddingLeft: `${depth * 12 + 8}px` }}
       >
@@ -47,7 +47,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({ node, depth }) => {
           <span
             className={cn(
               'text-slate-500 group-hover:text-slate-300 transition-transform duration-200 text-[10px]',
-              isExpanded && 'rotate-90'
+              isExpanded && 'rotate-90',
             )}
           >
             ▶
@@ -60,7 +60,9 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({ node, depth }) => {
           className={cn(
             'text-xs truncate flex-1',
             node.type === 'directory' && 'font-medium',
-            isHighlighted ? 'text-emerald-400 font-medium' : 'text-slate-400 group-hover:text-slate-300'
+            isHighlighted
+              ? 'text-emerald-400 font-medium'
+              : 'text-slate-400 group-hover:text-slate-300',
           )}
         >
           {node.name}
@@ -72,7 +74,17 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({ node, depth }) => {
             className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-slate-700 rounded text-slate-500 hover:text-emerald-400 transition-all"
             title="Add to context"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <path d="M12 5v14M5 12h14" />
             </svg>
           </button>
@@ -87,7 +99,7 @@ const FileTreeItem: React.FC<FileTreeItemProps> = ({ node, depth }) => {
         </div>
       )}
     </div>
-  )
-}
+  );
+};
 
-export default FileTreeItem
+export default FileTreeItem;

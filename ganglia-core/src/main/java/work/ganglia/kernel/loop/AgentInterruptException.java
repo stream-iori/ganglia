@@ -1,14 +1,14 @@
 package work.ganglia.kernel.loop;
 
 public class AgentInterruptException extends RuntimeException {
-    private final String prompt;
+  private final String prompt;
 
-    public AgentInterruptException(String prompt) {
-        super(prompt);
-        this.prompt = prompt;
-    }
+  public AgentInterruptException(String prompt) {
+    super(prompt);
+    this.prompt = prompt;
+  }
 
-    public String getPrompt() {
-        return prompt;
-    }
+  public String getPrompt() {
+    return prompt;
+  }
 }

@@ -1,5 +1,7 @@
 package work.ganglia.kernel.task;
 
+import java.util.ArrayList;
+import java.util.List;
 import work.ganglia.kernel.loop.AgentLoopFactory;
 import work.ganglia.kernel.subagent.GraphExecutor;
 import work.ganglia.port.chat.SessionContext;
@@ -9,52 +11,53 @@ import work.ganglia.port.external.tool.ToolExecutor;
 import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.skill.SkillService;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * SRP: Factory for creating AgentTask tasks from tool calls.
- * Uses explicit dependencies and AgentLoopFactory.
+ * SRP: Factory for creating AgentTask tasks from tool calls. Uses explicit dependencies and
+ * AgentLoopFactory.
  */
 public class DefaultAgentTaskFactory implements AgentTaskFactory {
 
-    private final AgentLoopFactory loopFactory;
-    private final ToolExecutor standardToolExecutor;
-    private final GraphExecutor graphExecutor; // Nullable
-    private final SkillService skillService;   // Nullable
-    private final SkillRuntime skillRuntime;   // Nullable
+  private final AgentLoopFactory loopFactory;
+  private final ToolExecutor standardToolExecutor;
+  private final GraphExecutor graphExecutor; // Nullable
+  private final SkillService skillService; // Nullable
+  private final SkillRuntime skillRuntime; // Nullable
 
-    public DefaultAgentTaskFactory(AgentLoopFactory loopFactory, ToolExecutor standardToolExecutor, 
-                                   GraphExecutor graphExecutor, SkillService skillService, 
-                                   SkillRuntime skillRuntime) {
-        this.loopFactory = loopFactory;
-        this.standardToolExecutor = standardToolExecutor;
-        this.graphExecutor = graphExecutor;
-        this.skillService = skillService;
-        this.skillRuntime = skillRuntime;
+  public DefaultAgentTaskFactory(
+      AgentLoopFactory loopFactory,
+      ToolExecutor standardToolExecutor,
+      GraphExecutor graphExecutor,
+      SkillService skillService,
+      SkillRuntime skillRuntime) {
+    this.loopFactory = loopFactory;
+    this.standardToolExecutor = standardToolExecutor;
+    this.graphExecutor = graphExecutor;
+    this.skillService = skillService;
+    this.skillRuntime = skillRuntime;
+  }
+
+  @Override
+  public AgentTask create(ToolCall call, SessionContext context) {
+    String toolName = call.toolName();
+
+    if ("call_sub_agent".equals(toolName)) {
+      return new SubAgentTask(call, loopFactory);
+    } else if ("propose_task_graph".equals(toolName) && graphExecutor != null) {
+      return new TaskGraphTask(call, graphExecutor);
+    } else if (isSkillTool(toolName, context)) {
+      return new SkillTask(call, skillService, skillRuntime);
+    } else {
+      return new StandardToolTask(call, standardToolExecutor);
     }
+  }
 
-    @Override
-    public AgentTask create(ToolCall call, SessionContext context) {
-        String toolName = call.toolName();
+  @Override
+  public List<ToolDefinition> getAvailableDefinitions(SessionContext context) {
+    List<ToolDefinition> definitions = new ArrayList<>();
+    definitions.addAll(standardToolExecutor.getAvailableTools(context));
 
-        if ("call_sub_agent".equals(toolName)) {
-            return new SubAgentTask(call, loopFactory);
-        } else if ("propose_task_graph".equals(toolName) && graphExecutor != null) {
-            return new TaskGraphTask(call, graphExecutor);
-        } else if (isSkillTool(toolName, context)) {
-            return new SkillTask(call, skillService, skillRuntime);
-        } else {
-            return new StandardToolTask(call, standardToolExecutor);
-        }
-    }
-
-    @Override
-    public List<ToolDefinition> getAvailableDefinitions(SessionContext context) {
-        List<ToolDefinition> definitions = new ArrayList<>();
-        definitions.addAll(standardToolExecutor.getAvailableTools(context));
-
-        definitions.add(new ToolDefinition(
+    definitions.add(
+        new ToolDefinition(
             "call_sub_agent",
             "Delegate a specific, focused sub-task to a specialized sub-agent. Returns a summary report.",
             """
@@ -67,14 +70,14 @@ public class DefaultAgentTaskFactory implements AgentTaskFactory {
               "required": ["task"]
             }
             """,
-            false
-        ));
+            false));
 
-        if (graphExecutor != null) {
-            definitions.add(new ToolDefinition(
-                "propose_task_graph",
-                "Propose a Directed Acyclic Graph (DAG) of sub-tasks. If 'approved' is false or missing, it will interrupt for user approval. If 'approved' is true, it will execute the graph.",
-                """
+    if (graphExecutor != null) {
+      definitions.add(
+          new ToolDefinition(
+              "propose_task_graph",
+              "Propose a Directed Acyclic Graph (DAG) of sub-tasks. If 'approved' is false or missing, it will interrupt for user approval. If 'approved' is true, it will execute the graph.",
+              """
                 {
                   "type": "object",
                   "properties": {
@@ -100,14 +103,18 @@ public class DefaultAgentTaskFactory implements AgentTaskFactory {
                   "required": ["nodes"]
                 }
                 """,
-                true
-            ));
-        }
+              true));
+    }
 
-        if (skillRuntime != null && skillService != null) {
-            definitions.add(new ToolDefinition("list_available_skills", "List all skills available to be activated", "{}"));
-            definitions.add(new ToolDefinition("activate_skill", "Activate a specific skill by ID to gain its specialized capabilities. This REQUIRES user confirmation unless already confirmed.",
-                """
+    if (skillRuntime != null && skillService != null) {
+      definitions.add(
+          new ToolDefinition(
+              "list_available_skills", "List all skills available to be activated", "{}"));
+      definitions.add(
+          new ToolDefinition(
+              "activate_skill",
+              "Activate a specific skill by ID to gain its specialized capabilities. This REQUIRES user confirmation unless already confirmed.",
+              """
                 {
                   "type": "object",
                   "properties": {
@@ -116,18 +123,21 @@ public class DefaultAgentTaskFactory implements AgentTaskFactory {
                   },
                   "required": ["skillId"]
                 }
-                """, true));
+                """,
+              true));
 
-            skillRuntime.getActiveSkillsTools(context).forEach(ts -> definitions.addAll(ts.getDefinitions()));
-        }
-
-        return definitions;
+      skillRuntime
+          .getActiveSkillsTools(context)
+          .forEach(ts -> definitions.addAll(ts.getDefinitions()));
     }
 
-    private boolean isSkillTool(String toolName, SessionContext context) {
-        if (skillRuntime == null || skillService == null) return false;
-        if ("list_available_skills".equals(toolName) || "activate_skill".equals(toolName)) return true;
-        return skillRuntime.getActiveSkillsTools(context).stream()
-                .anyMatch(ts -> ts.getDefinitions().stream().anyMatch(d -> d.name().equals(toolName)));
-    }
+    return definitions;
+  }
+
+  private boolean isSkillTool(String toolName, SessionContext context) {
+    if (skillRuntime == null || skillService == null) return false;
+    if ("list_available_skills".equals(toolName) || "activate_skill".equals(toolName)) return true;
+    return skillRuntime.getActiveSkillsTools(context).stream()
+        .anyMatch(ts -> ts.getDefinitions().stream().anyMatch(d -> d.name().equals(toolName)));
+  }
 }

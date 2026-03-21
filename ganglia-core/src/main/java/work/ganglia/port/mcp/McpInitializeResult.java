@@ -5,13 +5,7 @@ import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record McpInitializeResult(
-    String protocolVersion,
-    Map<String, Object> capabilities,
-    Implementation serverInfo
-) {
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Implementation(
-        String name,
-        String version
-    ) {}
+    String protocolVersion, Map<String, Object> capabilities, Implementation serverInfo) {
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  public record Implementation(String name, String version) {}
 }

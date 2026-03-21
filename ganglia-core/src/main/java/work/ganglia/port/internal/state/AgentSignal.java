@@ -9,41 +9,38 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * Supports registering callbacks that are executed immediately when an abort is triggered.
  */
 public class AgentSignal {
-    private final AtomicBoolean aborted = new AtomicBoolean(false);
-    private final List<Runnable> callbacks = new ArrayList<>();
+  private final AtomicBoolean aborted = new AtomicBoolean(false);
+  private final List<Runnable> callbacks = new ArrayList<>();
 
-    public AgentSignal() {
-    }
+  public AgentSignal() {}
 
-    /**
-     * Triggers the abort signal and executes all registered callbacks.
-     */
-    public synchronized void abort() {
-        if (aborted.compareAndSet(false, true)) {
-            for (Runnable callback : callbacks) {
-                try {
-                    callback.run();
-                } catch (Exception e) {
-                    // Ignore callback errors during abort to ensure all callbacks are attempted
-                }
-            }
-            callbacks.clear();
+  /** Triggers the abort signal and executes all registered callbacks. */
+  public synchronized void abort() {
+    if (aborted.compareAndSet(false, true)) {
+      for (Runnable callback : callbacks) {
+        try {
+          callback.run();
+        } catch (Exception e) {
+          // Ignore callback errors during abort to ensure all callbacks are attempted
         }
+      }
+      callbacks.clear();
     }
+  }
 
-    /**
-     * Registers a callback to be executed when the signal is aborted.
-     * If the signal is already aborted, the callback is executed immediately.
-     */
-    public synchronized void onAbort(Runnable callback) {
-        if (aborted.get()) {
-            callback.run();
-        } else {
-            callbacks.add(callback);
-        }
+  /**
+   * Registers a callback to be executed when the signal is aborted. If the signal is already
+   * aborted, the callback is executed immediately.
+   */
+  public synchronized void onAbort(Runnable callback) {
+    if (aborted.get()) {
+      callback.run();
+    } else {
+      callbacks.add(callback);
     }
+  }
 
-    public boolean isAborted() {
-        return aborted.get();
-    }
+  public boolean isAborted() {
+    return aborted.get();
+  }
 }

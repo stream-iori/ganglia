@@ -1,99 +1,103 @@
-import React, { useMemo, useRef, useEffect } from 'react'
-import { useSystemStore } from '../stores/system'
-import { useLogStore } from '../stores/log'
-import { eventBusService } from '../services/eventbus'
-import { useVirtualizer } from '@tanstack/react-virtual'
-import Prism from 'prismjs'
-import PlanSidebar from './PlanSidebar'
-import 'prismjs/components/prism-java'
-import 'prismjs/components/prism-javascript'
-import 'prismjs/components/prism-typescript'
-import 'prismjs/components/prism-bash'
-import 'prismjs/components/prism-python'
-import 'prismjs/components/prism-diff'
-import 'prismjs/components/prism-json'
-import { cn } from '../lib/utils'
+import React, { useMemo, useRef, useEffect } from 'react';
+import { useSystemStore } from '../stores/system';
+import { useLogStore } from '../stores/log';
+import { eventBusService } from '../services/eventbus';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import Prism from 'prismjs';
+import PlanSidebar from './PlanSidebar';
+import 'prismjs/components/prism-java';
+import 'prismjs/components/prism-javascript';
+import 'prismjs/components/prism-typescript';
+import 'prismjs/components/prism-bash';
+import 'prismjs/components/prism-python';
+import 'prismjs/components/prism-diff';
+import 'prismjs/components/prism-json';
+import { cn } from '../lib/utils';
 
 const Inspector: React.FC = () => {
-  const systemStore = useSystemStore()
-  const logStore = useLogStore()
+  const systemStore = useSystemStore();
+  const logStore = useLogStore();
 
-  const parentRef = useRef<HTMLDivElement>(null)
+  const parentRef = useRef<HTMLDivElement>(null);
 
   const ttyLines = useMemo(() => {
-    if (!systemStore.inspectorToolCallId) return []
-    const allLines = logStore.activeToolCalls[systemStore.inspectorToolCallId] || []
+    if (!systemStore.inspectorToolCallId) return [];
+    const allLines = logStore.activeToolCalls[systemStore.inspectorToolCallId] || [];
 
-    if (!systemStore.terminalSearchQuery) return allLines
+    if (!systemStore.terminalSearchQuery) return allLines;
 
     try {
-      const regex = new RegExp(systemStore.terminalSearchQuery, 'i')
-      return allLines.filter((line) => regex.test(line))
+      const regex = new RegExp(systemStore.terminalSearchQuery, 'i');
+      return allLines.filter((line) => regex.test(line));
     } catch (e) {
-      return allLines.filter((line) => line.toLowerCase().includes(systemStore.terminalSearchQuery.toLowerCase()))
+      return allLines.filter((line) =>
+        line.toLowerCase().includes(systemStore.terminalSearchQuery.toLowerCase()),
+      );
     }
-  }, [systemStore.inspectorToolCallId, logStore.activeToolCalls, systemStore.terminalSearchQuery])
+  }, [systemStore.inspectorToolCallId, logStore.activeToolCalls, systemStore.terminalSearchQuery]);
 
   const rowVirtualizer = useVirtualizer({
     count: ttyLines.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 20,
     overscan: 10,
-  })
+  });
 
   useEffect(() => {
     if (parentRef.current && systemStore.inspectorMode === 'TERMINAL') {
-      const { scrollTop, scrollHeight, clientHeight } = parentRef.current
-      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50
+      const { scrollTop, scrollHeight, clientHeight } = parentRef.current;
+      const isAtBottom = scrollHeight - scrollTop - clientHeight < 50;
       if (isAtBottom && ttyLines.length > 0) {
-        rowVirtualizer.scrollToIndex(ttyLines.length - 1)
+        rowVirtualizer.scrollToIndex(ttyLines.length - 1);
       }
     }
-  }, [ttyLines.length, systemStore.inspectorMode, rowVirtualizer])
+  }, [ttyLines.length, systemStore.inspectorMode, rowVirtualizer]);
 
   useEffect(() => {
     if (systemStore.inspectFile) {
-      eventBusService.send('READ_FILE', { path: systemStore.inspectFile })
+      eventBusService.send('READ_FILE', { path: systemStore.inspectFile });
     }
-  }, [systemStore.inspectFile])
+  }, [systemStore.inspectFile]);
 
   const currentFile = useMemo(() => {
-    if (!systemStore.inspectFile) return null
-    return logStore.fileCache[systemStore.inspectFile] || null
-  }, [systemStore.inspectFile, logStore.fileCache])
+    if (!systemStore.inspectFile) return null;
+    return logStore.fileCache[systemStore.inspectFile] || null;
+  }, [systemStore.inspectFile, logStore.fileCache]);
 
   const highlightedCode = useMemo(() => {
     if (systemStore.inspectorMode === 'CODE' && currentFile) {
-      const lang = currentFile.language || 'text'
-      const grammar = Prism.languages[lang] || Prism.languages.text
-      return Prism.highlight(currentFile.content, grammar, lang)
+      const lang = currentFile.language || 'text';
+      const grammar = Prism.languages[lang] || Prism.languages.text;
+      return Prism.highlight(currentFile.content, grammar, lang);
     }
-    return ''
-  }, [systemStore.inspectorMode, currentFile])
+    return '';
+  }, [systemStore.inspectorMode, currentFile]);
 
   const highlightedDiff = useMemo(() => {
     if (systemStore.inspectorMode === 'DIFF' && systemStore.inspectDiff) {
-      return Prism.highlight(systemStore.inspectDiff, Prism.languages.diff, 'diff')
+      return Prism.highlight(systemStore.inspectDiff, Prism.languages.diff, 'diff');
     }
-    return ''
-  }, [systemStore.inspectorMode, systemStore.inspectDiff])
+    return '';
+  }, [systemStore.inspectorMode, systemStore.inspectDiff]);
 
   const copyCode = () => {
     if (systemStore.inspectorMode === 'CODE' && currentFile) {
-      navigator.clipboard.writeText(currentFile.content)
+      navigator.clipboard.writeText(currentFile.content);
     } else if (systemStore.inspectorMode === 'DIFF' && systemStore.inspectDiff) {
-      navigator.clipboard.writeText(systemStore.inspectDiff)
+      navigator.clipboard.writeText(systemStore.inspectDiff);
     }
-  }
+  };
 
-  if (!systemStore.isInspectorOpen) return null
+  if (!systemStore.isInspectorOpen) return null;
 
   return (
     <aside className="w-[700px] bg-slate-900 border-l border-slate-800 flex flex-col h-full shadow-2xl animate-in slide-in-from-right duration-300 z-20">
       <div className="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950 shrink-0">
         <div className="flex flex-col flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-1">
-            <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-widest">Inspector</h3>
+            <h3 className="text-xs font-semibold text-slate-200 uppercase tracking-widest">
+              Inspector
+            </h3>
             <div className="flex bg-slate-900 rounded p-0.5 border border-slate-800">
               {(['TERMINAL', 'CODE', 'DIFF', 'PLAN'] as const).map((mode) => (
                 <button
@@ -101,16 +105,25 @@ const Inspector: React.FC = () => {
                   onClick={() => systemStore.toggleInspector(systemStore.inspectorToolCallId, mode)}
                   className={cn(
                     'px-2 py-0.5 text-[10px] rounded transition-colors',
-                    systemStore.inspectorMode === mode ? 'bg-slate-700 text-slate-50' : 'text-slate-500 hover:text-slate-300'
+                    systemStore.inspectorMode === mode
+                      ? 'bg-slate-700 text-slate-50'
+                      : 'text-slate-500 hover:text-slate-300',
                   )}
                 >
-                  {mode === 'TERMINAL' ? 'Terminal' : mode === 'CODE' ? 'Code' : mode === 'DIFF' ? 'Diff' : 'Plan'}
+                  {mode === 'TERMINAL'
+                    ? 'Terminal'
+                    : mode === 'CODE'
+                      ? 'Code'
+                      : mode === 'DIFF'
+                        ? 'Diff'
+                        : 'Plan'}
                 </button>
               ))}
             </div>
           </div>
           <span className="text-[10px] font-mono text-slate-500 truncate block">
-            {systemStore.inspectorMode === 'TERMINAL' && `Target: ${systemStore.inspectorToolCallId}`}
+            {systemStore.inspectorMode === 'TERMINAL' &&
+              `Target: ${systemStore.inspectorToolCallId}`}
             {systemStore.inspectorMode === 'CODE' && `File: ${systemStore.inspectFile}`}
             {systemStore.inspectorMode === 'DIFF' && 'Diff Review'}
             {systemStore.inspectorMode === 'PLAN' && 'Active Task Plan'}
@@ -124,21 +137,59 @@ const Inspector: React.FC = () => {
               className="text-slate-500 hover:text-emerald-400 transition-colors p-1"
               title="Add to context"
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <path d="M12 5v14M5 12h14" />
               </svg>
             </button>
           )}
-          {((systemStore.inspectorMode === 'CODE' && currentFile) || (systemStore.inspectorMode === 'DIFF' && systemStore.inspectDiff)) && (
-            <button onClick={copyCode} className="text-slate-500 hover:text-emerald-400 transition-colors p-1" title="Copy to clipboard">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          {((systemStore.inspectorMode === 'CODE' && currentFile) ||
+            (systemStore.inspectorMode === 'DIFF' && systemStore.inspectDiff)) && (
+            <button
+              onClick={copyCode}
+              className="text-slate-500 hover:text-emerald-400 transition-colors p-1"
+              title="Copy to clipboard"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
             </button>
           )}
-          <button onClick={() => systemStore.closeInspector()} className="text-slate-500 hover:text-slate-50 transition-colors p-1">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <button
+            onClick={() => systemStore.closeInspector()}
+            className="text-slate-500 hover:text-slate-50 transition-colors p-1"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
               <line x1="18" y1="6" x2="6" y2="18"></line>
               <line x1="6" y1="6" x2="18" y2="18"></line>
             </svg>
@@ -151,7 +202,9 @@ const Inspector: React.FC = () => {
           <div className="flex-1 flex flex-col min-h-0">
             <div className="px-4 py-2 border-b border-slate-800 bg-slate-900/50 flex items-center gap-3 shrink-0">
               <div className="relative flex-1">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]">🔍</span>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500 text-[10px]">
+                  🔍
+                </span>
                 <input
                   value={systemStore.terminalSearchQuery}
                   onChange={(e) => useSystemStore.setState({ terminalSearchQuery: e.target.value })}
@@ -168,13 +221,20 @@ const Inspector: React.FC = () => {
                   </button>
                 )}
               </div>
-              <div className="text-[10px] text-slate-500 font-mono whitespace-nowrap">{ttyLines.length} lines</div>
+              <div className="text-[10px] text-slate-500 font-mono whitespace-nowrap">
+                {ttyLines.length} lines
+              </div>
             </div>
 
-            <div ref={parentRef} className="flex-1 w-full overflow-auto p-4 font-mono text-[11px] leading-tight text-slate-300">
+            <div
+              ref={parentRef}
+              className="flex-1 w-full overflow-auto p-4 font-mono text-[11px] leading-tight text-slate-300"
+            >
               {ttyLines.length === 0 ? (
                 <div className="opacity-30 italic p-4 text-center">
-                  {systemStore.terminalSearchQuery ? 'No lines matching search query.' : 'No output recorded for this tool call.'}
+                  {systemStore.terminalSearchQuery
+                    ? 'No lines matching search query.'
+                    : 'No output recorded for this tool call.'}
                 </div>
               ) : (
                 <div
@@ -250,12 +310,10 @@ const Inspector: React.FC = () => {
           </div>
         )}
 
-        {systemStore.inspectorMode === 'PLAN' && (
-          <PlanSidebar />
-        )}
+        {systemStore.inspectorMode === 'PLAN' && <PlanSidebar />}
       </div>
     </aside>
-  )
-}
+  );
+};
 
-export default Inspector
+export default Inspector;

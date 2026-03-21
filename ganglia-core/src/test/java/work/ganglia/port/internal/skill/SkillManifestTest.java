@@ -1,15 +1,16 @@
 package work.ganglia.port.internal.skill;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import io.vertx.core.json.JsonObject;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 class SkillManifestTest {
 
-    @Test
-    void testDeserialization() {
-        String json = """
+  @Test
+  void testDeserialization() {
+    String json =
+        """
         {
           "id": "java-expert",
           "version": "1.0.0",
@@ -33,23 +34,24 @@ class SkillManifestTest {
         }
         """;
 
-        JsonObject jsonObject = new JsonObject(json);
-        SkillManifest manifest = SkillManifest.fromJson(jsonObject);
+    JsonObject jsonObject = new JsonObject(json);
+    SkillManifest manifest = SkillManifest.fromJson(jsonObject);
 
-        assertEquals("java-expert", manifest.id());
-        assertEquals("1.0.0", manifest.version());
-        assertEquals("Java Specialist", manifest.name());
-        assertEquals(1, manifest.prompts().size());
-        assertEquals("java-style", manifest.prompts().get(0).id());
-        assertEquals(1, manifest.tools().size());
-        assertEquals("me.stream.ganglia.tools.JavaTool", manifest.tools().get(0));
-        assertNotNull(manifest.activationTriggers());
-        assertTrue(manifest.activationTriggers().filePatterns().contains("pom.xml"));
-    }
+    assertEquals("java-expert", manifest.id());
+    assertEquals("1.0.0", manifest.version());
+    assertEquals("Java Specialist", manifest.name());
+    assertEquals(1, manifest.prompts().size());
+    assertEquals("java-style", manifest.prompts().get(0).id());
+    assertEquals(1, manifest.tools().size());
+    assertEquals("me.stream.ganglia.tools.JavaTool", manifest.tools().get(0));
+    assertNotNull(manifest.activationTriggers());
+    assertTrue(manifest.activationTriggers().filePatterns().contains("pom.xml"));
+  }
 
-    @Test
-    void testMarkdownParsing() {
-        String md = """
+  @Test
+  void testMarkdownParsing() {
+    String md =
+        """
         ---
         id: git-smart-commit
         name: Git Smart Commit
@@ -60,19 +62,20 @@ class SkillManifestTest {
         Run git status...
         """;
 
-        SkillManifest manifest = SkillManifest.fromMarkdown("git-folder", md);
+    SkillManifest manifest = SkillManifest.fromMarkdown("git-folder", md);
 
-        assertEquals("git-smart-commit", manifest.id());
-        assertEquals("Git Smart Commit", manifest.name());
-        assertEquals("Analyzes staged changes", manifest.description());
-        assertEquals("1.1.0", manifest.version());
-        assertTrue(manifest.instructions().contains("# Instructions"));
-        assertTrue(manifest.instructions().contains("Run git status..."));
-    }
+    assertEquals("git-smart-commit", manifest.id());
+    assertEquals("Git Smart Commit", manifest.name());
+    assertEquals("Analyzes staged changes", manifest.description());
+    assertEquals("1.1.0", manifest.version());
+    assertTrue(manifest.instructions().contains("# Instructions"));
+    assertTrue(manifest.instructions().contains("Run git status..."));
+  }
 
-    @Test
-    void testMarkdownParsingWithImplicitId() {
-        String md = """
+  @Test
+  void testMarkdownParsingWithImplicitId() {
+    String md =
+        """
         ---
         name: Git Smart Commit
         description: Analyzes staged changes
@@ -80,10 +83,10 @@ class SkillManifestTest {
         # Instructions
         """;
 
-        SkillManifest manifest = SkillManifest.fromMarkdown("git-folder", md);
+    SkillManifest manifest = SkillManifest.fromMarkdown("git-folder", md);
 
-        assertEquals("git-folder", manifest.id());
-        assertEquals("Git Smart Commit", manifest.name());
-        assertTrue(manifest.instructions().contains("# Instructions"));
-    }
+    assertEquals("git-folder", manifest.id());
+    assertEquals("Git Smart Commit", manifest.name());
+    assertTrue(manifest.instructions().contains("# Instructions"));
+  }
 }
