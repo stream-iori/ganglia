@@ -22,21 +22,67 @@ public class InteractionTools implements ToolSet {
     return List.of(
         new ToolDefinition(
             "ask_selection",
-            "Mandatory tool for all user interactions. Use this whenever you need to present choices, ask for clarification, or request confirmation. Using this tool is the ONLY way to trigger the interactive UI buttons/modals for the user.",
+            "Ask the user one or more questions to gather preferences, clarify requirements, or make decisions. When using this tool, prefer providing multiple-choice options with detailed descriptions and enable multi-select where appropriate to provide maximum flexibility.",
             """
-                {
-                  "type": "object",
-                  "properties": {
-                    "question": { "type": "string", "description": "The question or prompt to show to the user" },
-                    "type": { "type": "string", "enum": ["text", "choice"], "description": "The type of interaction requested. Use 'choice' for clickable buttons." },
-                    "options": {
-                      "type": "array",
-                      "items": { "type": "string" },
-                      "description": "List of options for selection (required if type is 'choice')"
-                    }
-                  },
-                  "required": ["question", "type"]
-                }
+ {
+     "type": "object",
+     "required": ["questions"],
+     "properties": {
+       "questions": {
+         "type": "array",
+         "minItems": 1,
+         "maxItems": 4,
+         "description": "A list of questions to ask the user to gather preferences, clarify requirements, or make decisions.",
+         "items": {
+           "type": "object",
+           "required": ["question", "header", "type"],
+           "properties": {
+             "question": {
+               "type": "string",
+               "description": "The complete question to ask the user. Should be clear, specific, and end with a question mark."
+             },
+             "header": {
+               "type": "string",
+               "description": "Very short label (max 16 chars) displayed as a chip/tag. Use abbreviations (e.g., 'Auth', 'Config',
+   'Database')."
+             },
+             "type": {
+               "type": "string",
+               "enum": ["choice", "text", "yesno"],
+               "default": "choice",
+               "description": "Question type: 'choice' (multiple-choice), 'text' (free-form), 'yesno' (Yes/No confirmation)."
+             },
+             "options": {
+               "type": "array",
+               "description": "Selectable choices for 'choice' type. Provide 2-4 options. An 'Other' option is automatically added. Not
+   needed for 'text' or 'yesno'.",
+               "items": {
+                 "type": "object",
+                 "required": ["label", "description"],
+                 "properties": {
+                   "label": {
+                     "type": "string",
+                     "description": "Display text for the option (1-5 words)."
+                   },
+                   "description": {
+                     "type": "string",
+                     "description": "Brief explanation of what this option entails."
+                   }
+                 }
+               }
+             },
+             "multiSelect": {
+               "type": "boolean",
+               "description": "If true, allows the user to select multiple options (only for 'choice' type)."
+             },
+             "placeholder": {
+               "type": "string",
+               "description": "Hint text shown in the input field (only for 'text' type)."
+             }
+           }
+         }
+       }
+     }
                 """,
             true));
   }
@@ -54,63 +100,47 @@ public class InteractionTools implements ToolSet {
   }
 
   private Future<ToolInvokeResult> askSelection(Map<String, Object> args) {
-    String question = (String) args.get("question");
-    String type = (String) args.get("type");
+    Object questionsObj = args.get("questions");
+    if (!(questionsObj instanceof List<?> questionsList) || questionsList.isEmpty()) {
+      return Future.succeededFuture(
+          ToolInvokeResult.error("'questions' array is required and cannot be empty."));
+    }
 
-    Map<String, Object> data = new java.util.HashMap<>();
-    data.put("question", question);
-    data.put("type", type);
+    List<Map<String, Object>> questions = new java.util.ArrayList<>();
+    StringBuilder textSummary = new StringBuilder();
 
-    if ("choice".equals(type)) {
-      Object optionsObj = args.get("options");
-      if (optionsObj == null) {
-        return Future.succeededFuture(
-            ToolInvokeResult.error("Options are required for 'choice' interaction type"));
-      }
+    for (Object item : questionsList) {
+      if (item instanceof Map<?, ?> qMap) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> question = (Map<String, Object>) qMap;
+        questions.add(question);
 
-      java.util.List<Map<String, String>> structuredOptions = new java.util.ArrayList<>();
-      if (optionsObj instanceof java.util.List<?> rawOptions) {
-        for (Object opt : rawOptions) {
-          if (opt instanceof String s) {
-            Map<String, String> m = new java.util.HashMap<>();
-            m.put("value", s);
-            m.put("label", s);
-            m.put("description", "");
-            structuredOptions.add(m);
-          } else if (opt instanceof Map<?, ?> m) {
-            Map<String, String> sm = new java.util.HashMap<>();
-            Object v = m.get("value");
-            Object l = m.get("label");
-            Object d = m.get("description");
-            sm.put("value", v != null ? v.toString() : "");
-            sm.put("label", l != null ? l.toString() : sm.get("value"));
-            sm.put("description", d != null ? d.toString() : "");
-            structuredOptions.add(sm);
+        String qText = (String) question.get("question");
+        String type = (String) question.getOrDefault("type", "text");
+        textSummary.append("- ").append(qText).append(" (").append(type).append(")\n");
+
+        if ("choice".equals(type)) {
+          Object opts = question.get("options");
+          if (opts instanceof List<?> optList) {
+            for (int i = 0; i < optList.size(); i++) {
+              Object optItem = optList.get(i);
+              if (optItem instanceof Map<?, ?> optMap) {
+                textSummary.append("  ").append(i + 1).append(". ").append(optMap.get("label"));
+                Object desc = optMap.get("description");
+                if (desc != null && !desc.toString().isEmpty()) {
+                  textSummary.append(" - ").append(desc);
+                }
+                textSummary.append("\n");
+              }
+            }
           }
         }
       }
-
-      if (structuredOptions.isEmpty()) {
-        return Future.succeededFuture(
-            ToolInvokeResult.error("Options list cannot be empty for 'choice' type"));
-      }
-
-      data.put("options", structuredOptions);
-
-      StringBuilder sb = new StringBuilder(question).append("\n\n");
-      for (int i = 0; i < structuredOptions.size(); i++) {
-        Map<String, String> opt = structuredOptions.get(i);
-        sb.append(i + 1).append(". ").append(opt.get("label"));
-        if (!opt.get("description").isEmpty()) {
-          sb.append(" (").append(opt.get("description")).append(")");
-        }
-        sb.append("\n");
-      }
-      sb.append("\nPlease select an option (number or text):");
-      return Future.succeededFuture(ToolInvokeResult.interrupt(sb.toString(), data));
-    } else {
-      // Default to text (free-form input)
-      return Future.succeededFuture(ToolInvokeResult.interrupt(question, data));
     }
+
+    Map<String, Object> data = new java.util.HashMap<>();
+    data.put("questions", questions);
+
+    return Future.succeededFuture(ToolInvokeResult.interrupt(textSummary.toString(), data));
   }
 }

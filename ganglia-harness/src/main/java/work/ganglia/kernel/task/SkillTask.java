@@ -112,16 +112,26 @@ public class SkillTask implements AgentTask {
               + skill.name()
               + " ("
               + skill.id()
-              + ")\\n"
+              + ")\n"
               + "Description: "
               + skill.description()
-              + "\\n"
-              + "Proceed with activation? (yes/no)";
+              + "\n"
+              + "Proceed with activation?";
+
+      Map<String, Object> question = new java.util.HashMap<>();
+      question.put("question", prompt);
+      question.put("header", "Skill Activation");
+      question.put("type", "choice");
+      question.put(
+          "options",
+          java.util.List.of(
+              java.util.Map.of(
+                  "label", "Activate", "value", "yes", "description", "Enable " + skill.name()),
+              java.util.Map.of(
+                  "label", "Cancel", "value", "no", "description", "Stay with current skills")));
 
       Map<String, Object> metadata = new java.util.HashMap<>();
-      metadata.put("question", prompt.replace("\\n", "\n"));
-      metadata.put("type", "choice");
-      metadata.put("options", java.util.List.of("yes", "no"));
+      metadata.put("questions", java.util.List.of(question));
 
       return Future.succeededFuture(AgentTaskResult.interrupt(prompt, metadata));
     }

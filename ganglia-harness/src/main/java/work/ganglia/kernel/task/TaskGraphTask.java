@@ -67,7 +67,7 @@ public class TaskGraphTask implements AgentTask {
     @SuppressWarnings("unchecked")
     List<Map<String, Object>> nodes = (List<Map<String, Object>>) call.arguments().get("nodes");
 
-    StringBuilder sb = new StringBuilder("PROPOSED TASK GRAPH:\\n\\n");
+    StringBuilder sb = new StringBuilder("PROPOSED TASK GRAPH:\n\n");
     for (Map<String, Object> node : nodes) {
       sb.append("- [").append(node.get("id")).append("] ").append(node.get("task"));
       @SuppressWarnings("unchecked")
@@ -75,16 +75,25 @@ public class TaskGraphTask implements AgentTask {
       if (deps != null && !deps.isEmpty()) {
         sb.append(" (Depends on: ").append(String.join(", ", deps)).append(")");
       }
-      sb.append("\\n");
+      sb.append("\n");
     }
-    sb.append("\\nDo you approve this execution plan? (y/n)");
+    String questionText = sb.toString() + "\nDo you approve this execution plan?";
+
+    Map<String, Object> question = new java.util.HashMap<>();
+    question.put("question", questionText);
+    question.put("header", "Task Graph");
+    question.put("type", "choice");
+    question.put(
+        "options",
+        java.util.List.of(
+            java.util.Map.of(
+                "label", "Approve", "value", "yes", "description", "Proceed with execution"),
+            java.util.Map.of("label", "Reject", "value", "no", "description", "Cancel plan")));
 
     Map<String, Object> metadata = new java.util.HashMap<>();
-    metadata.put("question", sb.toString().replace("\\n", "\n"));
-    metadata.put("type", "choice");
-    metadata.put("options", java.util.List.of("yes", "no"));
+    metadata.put("questions", java.util.List.of(question));
 
-    return Future.succeededFuture(AgentTaskResult.interrupt(sb.toString(), metadata));
+    return Future.succeededFuture(AgentTaskResult.interrupt(questionText, metadata));
   }
 
   private Future<AgentTaskResult> executeGraph(SessionContext context) {

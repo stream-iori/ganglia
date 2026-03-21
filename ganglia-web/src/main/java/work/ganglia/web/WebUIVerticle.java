@@ -380,13 +380,43 @@ public class WebUIVerticle extends AbstractVerticle {
   }
 
   private void handleRespondAsk(JsonRpcRequest request, ServerWebSocket ws, String sessionId) {
-    String selectedOption = request.params().getString("selectedOption");
+    JsonArray answers = request.params().getJsonArray("answers");
+    StringBuilder formattedAnswers = new StringBuilder();
+
+    if (answers != null) {
+      if (answers.size() == 1) {
+        // Single answer: just use the raw value
+        Object val = answers.getValue(0);
+        if (val instanceof JsonArray ja) {
+          formattedAnswers.append(
+              String.join(", ", ja.getList().stream().map(Object::toString).toList()));
+        } else {
+          formattedAnswers.append(val != null ? val.toString() : "");
+        }
+      } else {
+        // Multiple answers: format clearly
+        for (int i = 0; i < answers.size(); i++) {
+          formattedAnswers.append("Question ").append(i + 1).append(": ");
+          Object val = answers.getValue(i);
+          if (val instanceof JsonArray ja) {
+            formattedAnswers.append(
+                String.join(", ", ja.getList().stream().map(Object::toString).toList()));
+          } else {
+            formattedAnswers.append(val != null ? val.toString() : "");
+          }
+          if (i < answers.size() - 1) formattedAnswers.append("\n");
+        }
+      }
+    }
+
+    String userInput = formattedAnswers.toString();
+
     sessionManager
         .getSession(sessionId)
         .onComplete(
             res -> {
               if (res.succeeded() && res.result() != null)
-                agentLoop.resume(selectedOption, res.result(), new AgentSignal());
+                agentLoop.resume(userInput, res.result(), new AgentSignal());
             });
     sendRpcResponse(ws, request.id(), new JsonObject().put("status", "resumed"));
   }

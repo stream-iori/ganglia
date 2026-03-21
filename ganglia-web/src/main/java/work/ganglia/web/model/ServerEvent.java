@@ -20,8 +20,15 @@ public record ServerEvent(String eventId, long timestamp, EventType type, Object
       boolean isError,
       String errorType) {}
 
-  public record AskUserData(
-      String askId, String question, List<AskOption> options, String diffContext) {}
+  public record AskUserData(String askId, List<AskUserQuestion> questions, String diffContext) {}
+
+  public record AskUserQuestion(
+      String question,
+      String header,
+      String type,
+      List<AskOption> options,
+      boolean multiSelect,
+      String placeholder) {}
 
   public record AskOption(String value, String label, String description) {}
 
