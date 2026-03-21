@@ -29,6 +29,8 @@ const MainStream: React.FC = () => {
 
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const [hasNewContent, setHasNewContent] = useState(false);
+  const lastEventCountRef = useRef(logStore.events.length);
+  const lastStreamingMsgRef = useRef(logStore.streamingMessage);
 
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
@@ -46,11 +48,20 @@ const MainStream: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!isScrolledToBottom) {
-      setHasNewContent(true);
-    } else {
-      scrollToBottom();
+    const eventsChanged = logStore.events.length > lastEventCountRef.current;
+    const streamingChanged =
+      logStore.streamingMessage !== lastStreamingMsgRef.current && !!logStore.streamingMessage;
+
+    if (eventsChanged || streamingChanged) {
+      if (!isScrolledToBottom) {
+        setHasNewContent(true);
+      } else {
+        scrollToBottom();
+      }
     }
+
+    lastEventCountRef.current = logStore.events.length;
+    lastStreamingMsgRef.current = logStore.streamingMessage;
   }, [logStore.events.length, logStore.streamingMessage, isScrolledToBottom, scrollToBottom]);
 
   useEffect(() => {

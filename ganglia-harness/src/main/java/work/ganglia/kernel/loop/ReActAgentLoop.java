@@ -459,6 +459,14 @@ public class ReActAgentLoop implements AgentLoop {
                       ObservationType.USER_INTERACTION_REQUIRED,
                       "Interrupted: " + result.output(),
                       interruptData);
+
+                  // Also publish TOOL_FINISHED so the UI knows this tool call has paused
+                  publishObservation(
+                      originalContext.sessionId(),
+                      ObservationType.TOOL_FINISHED,
+                      "Paused for user interaction: " + result.output(),
+                      resData);
+
                   Message interruptMsg =
                       Message.tool(task.id(), task.name(), "INTERRUPTED: " + result.output());
                   SessionContext interruptedContext =
