@@ -3,36 +3,26 @@ package work.ganglia.kernel.hook;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import io.vertx.core.Future;
-import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import work.ganglia.BaseGangliaTest;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.internal.hook.AgentInterceptor;
 
-@ExtendWith(VertxExtension.class)
-class InterceptorPipelineTest {
+class InterceptorPipelineTest extends BaseGangliaTest {
 
   private InterceptorPipeline pipeline;
   private SessionContext context;
 
   @BeforeEach
-  void setUp() {
+  void setUpPipeline() {
     pipeline = new InterceptorPipeline();
-    context =
-        new SessionContext(
-            "test-id",
-            Collections.emptyList(),
-            null,
-            Collections.emptyMap(),
-            Collections.emptyList(),
-            null);
+    context = createSessionContext();
   }
 
   @Test

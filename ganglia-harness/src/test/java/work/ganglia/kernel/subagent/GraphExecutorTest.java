@@ -2,77 +2,31 @@ package work.ganglia.kernel.subagent;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.vertx.core.Vertx;
-import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
-import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
-import work.ganglia.infrastructure.internal.state.DefaultSessionManager;
-import work.ganglia.kernel.AgentEnv;
-import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
-import work.ganglia.kernel.loop.DefaultObservationDispatcher;
+import work.ganglia.kernel.BaseKernelTest;
+import work.ganglia.kernel.loop.AgentLoopFactory;
 import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.kernel.task.DefaultAgentTaskFactory;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
-import work.ganglia.port.internal.state.SessionManager;
-import work.ganglia.stubs.*;
 
-@ExtendWith(VertxExtension.class)
-public class GraphExecutorTest {
+public class GraphExecutorTest extends BaseKernelTest {
 
-  private Vertx vertx;
-  private StubModelGateway modelGateway;
-  private StubToolExecutor toolExecutor;
-  private SessionManager sessionManager;
-  private StubPromptEngine promptEngine;
-  private StubConfigManager configManager;
   private DefaultGraphExecutor graphExecutor;
-  private AgentEnv env;
 
   @BeforeEach
-  void setUp(Vertx vertx) {
-    this.vertx = vertx;
-    this.modelGateway = new StubModelGateway();
-    this.toolExecutor = new StubToolExecutor();
-    this.configManager = new StubConfigManager(vertx);
-    this.sessionManager =
-        new DefaultSessionManager(
-            new InMemoryStateEngine(), new InMemoryLogManager(), configManager);
-    this.promptEngine = new StubPromptEngine();
-    DefaultContextCompressor compressor = new DefaultContextCompressor(modelGateway, configManager);
-    DefaultContextOptimizer optimizer =
-        new DefaultContextOptimizer(configManager, configManager, compressor, new TokenCounter());
-
-    final AgentTaskFactory[] taskFactoryRef = new AgentTaskFactory[1];
-
-    work.ganglia.kernel.loop.AgentLoopFactory loopFactory =
-        () ->
-            work.ganglia.kernel.loop.ReActAgentLoop.builder()
-                .vertx(vertx)
-                .dispatcher(new DefaultObservationDispatcher(vertx))
-                .sessionManager(sessionManager)
-                .configProvider(configManager)
-                .contextOptimizer(optimizer)
-                .promptEngine(promptEngine)
-                .modelGateway(modelGateway)
-                .taskFactory(taskFactoryRef[0])
-                .faultTolerancePolicy(new ConsecutiveFailurePolicy())
-                .build();
-
+  void setUpExecutor() {
+    AgentLoopFactory loopFactory = () -> loop;
     this.graphExecutor = new DefaultGraphExecutor(loopFactory);
-
-    taskFactoryRef[0] =
-        new DefaultAgentTaskFactory(loopFactory, toolExecutor, graphExecutor, null, null);
-    graphExecutor.initialize(taskFactoryRef[0]);
+    AgentTaskFactory taskFactory =
+        new DefaultAgentTaskFactory(loopFactory, tools, graphExecutor, null, null);
+    graphExecutor.initialize(taskFactory);
   }
 
   @Test
@@ -86,12 +40,9 @@ public class GraphExecutorTest {
     TaskGraph graph = new TaskGraph(List.of(n1, n2, n3));
 
     // Mock responses for sub-agents
-    modelGateway.addResponse(
-        new ModelResponse("Report from Task 1", Collections.emptyList(), null));
-    modelGateway.addResponse(
-        new ModelResponse("Report from Task 2", Collections.emptyList(), null));
-    modelGateway.addResponse(
-        new ModelResponse("Final Aggregated Report", Collections.emptyList(), null));
+    model.addResponse(new ModelResponse("Report from Task 1", Collections.emptyList(), null));
+    model.addResponse(new ModelResponse("Report from Task 2", Collections.emptyList(), null));
+    model.addResponse(new ModelResponse("Final Aggregated Report", Collections.emptyList(), null));
 
     ModelOptions options = new ModelOptions(0.0, 1024, "test-model", true);
     SessionContext parentContext =

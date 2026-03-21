@@ -2,31 +2,28 @@ package work.ganglia.kernel.loop;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import work.ganglia.BaseGangliaTest;
 import work.ganglia.port.external.tool.ObservationEvent;
 import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.util.Constants;
 
-@ExtendWith(VertxExtension.class)
-public class DefaultObservationDispatcherTest {
+public class DefaultObservationDispatcherTest extends BaseGangliaTest {
 
   private DefaultObservationDispatcher dispatcher;
 
   @BeforeEach
-  void setUp(Vertx vertx) {
+  void setUpDispatcher() {
     dispatcher = new DefaultObservationDispatcher(vertx);
   }
 
   @Test
-  void shouldPublishToBothTopics(Vertx vertx, VertxTestContext testContext) {
+  void shouldPublishToBothTopics(VertxTestContext testContext) {
     String sessionId = "test-session";
     String content = "Hello Token";
     ObservationType type = ObservationType.TOKEN_RECEIVED;
@@ -59,7 +56,7 @@ public class DefaultObservationDispatcherTest {
   }
 
   @Test
-  void shouldHandleMacroEventsViaObserverInterface(Vertx vertx, VertxTestContext testContext) {
+  void shouldHandleMacroEventsViaObserverInterface(VertxTestContext testContext) {
     String sessionId = "macro-session";
     Map<String, Object> data = Map.of("key", "value");
 
