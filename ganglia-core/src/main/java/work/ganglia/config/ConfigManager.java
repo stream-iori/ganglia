@@ -211,6 +211,13 @@ public class ConfigManager implements ModelConfigProvider, AgentConfigProvider, 
             : System.getProperty("user.dir");
     }
 
+    @Override
+    public String getInstructionFile() {
+        return (currentConfig.agent() != null && currentConfig.agent().instructionFile() != null)
+            ? currentConfig.agent().instructionFile()
+            : Constants.FILE_GANGLIA_MD;
+    }
+
     // --- WebUIConfigProvider Implementation ---
 
     @Override

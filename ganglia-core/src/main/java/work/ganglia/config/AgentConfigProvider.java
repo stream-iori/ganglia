@@ -7,4 +7,5 @@ public interface AgentConfigProvider {
     int getMaxIterations();
     double getCompressionThreshold();
     String getProjectRoot();
+    String getInstructionFile();
 }

@@ -61,4 +61,27 @@ public class ContextEngineIT {
                 });
             }));
     }
+
+    @Test
+    void testDynamicInstructionFileInPrompt(Vertx vertx, VertxTestContext testContext) {
+        String customFile = "AGENTS.md";
+        JsonObject configOverride = new JsonObject()
+            .put("agent", new JsonObject().put("instructionFile", customFile));
+        
+        BootstrapOptions options = BootstrapOptions.defaultOptions()
+            .withModelGateway(mockModel)
+            .withOverrideConfig(configOverride);
+
+        CodingAgentBuilder.bootstrap(vertx, options)
+            .compose(g -> {
+                SessionContext context = g.sessionManager().createSession(UUID.randomUUID().toString());
+                return g.env().promptEngine().buildSystemPrompt(context);
+            })
+            .onComplete(testContext.succeeding(prompt -> {
+                testContext.verify(() -> {
+                    assertTrue(prompt.contains(customFile), "Prompt should contain the custom instruction filename: " + customFile);
+                    testContext.completeNow();
+                });
+            }));
+    }
 }

@@ -55,11 +55,21 @@ public class CodingAgentBuilder {
         // 2. Prepare Context Sources
         List<ContextSource> codingSources = new ArrayList<>(baseOptions.extraContextSources());
         MarkdownContextResolver resolver = new MarkdownContextResolver(vertx);
+        
+        // Load config to get instruction file
+        work.ganglia.config.ConfigManager configManager = baseOptions.configPath() != null 
+                ? new work.ganglia.config.ConfigManager(vertx, baseOptions.configPath()) 
+                : new work.ganglia.config.ConfigManager(vertx);
+        if (baseOptions.overrideConfig() != null) {
+            configManager.updateConfig(baseOptions.overrideConfig());
+        }
+        String instructionFile = configManager.getInstructionFile();
+
         codingSources.add(new CodingPersonaContextSource());
         codingSources.add(new CodingMandatesContextSource());
         codingSources.add(new CodingWorkflowSource());
-        codingSources.add(new CodingGuidelineSource());
-        codingSources.add(new FileContextSource(vertx, resolver, Constants.FILE_GANGLIA_MD));
+        codingSources.add(new CodingGuidelineSource(instructionFile));
+        codingSources.add(new FileContextSource(vertx, resolver, instructionFile));
 
         // 3. Assemble final BootstrapOptions
         BootstrapOptions finalOptions = baseOptions
