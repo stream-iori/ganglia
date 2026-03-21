@@ -5,6 +5,7 @@ import AskUserForm from '../AskUserForm';
 import { useSystemStore } from '../../stores/system';
 import { eventBusService } from '../../services/eventbus';
 import type { ServerEvent, AskUserData } from '../../types';
+import { resetStores } from '../../lib/test-utils';
 
 // Mock dependencies
 vi.mock('../../services/eventbus', () => ({
@@ -15,7 +16,7 @@ vi.mock('../../services/eventbus', () => ({
 
 describe('AskUserForm Component', () => {
   beforeEach(() => {
-    useSystemStore.setState({ activeAskId: null });
+    resetStores();
     vi.clearAllMocks();
   });
 

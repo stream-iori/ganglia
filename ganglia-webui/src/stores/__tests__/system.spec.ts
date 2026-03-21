@@ -1,22 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useSystemStore } from '../system';
 import { useLogStore } from '../log';
+import { resetStores } from '../../lib/test-utils';
 
 describe('System Store', () => {
   beforeEach(() => {
-    // Reset Zustand stores
-    useSystemStore.setState({
-      status: 'DISCONNECTED',
-      isInspectorOpen: false,
-      inspectorMode: 'TERMINAL',
-      inspectorToolCallId: null,
-      inspectFile: null,
-      inspectDiff: null,
-      pendingContextPath: null,
-      sessionId: 'test-session',
-      sessionHistory: ['test-session'],
-    });
-    useLogStore.setState({ events: [] });
+    resetStores();
   });
 
   it('should initialize with default state', () => {
@@ -127,18 +116,12 @@ describe('System Store', () => {
     const store = useSystemStore.getState();
     const reloadSpy = vi.fn();
 
-    const oldLocation = window.location;
-
-    delete (window /* eslint-disable-line @typescript-eslint/no-explicit-any */ as any).location;
-
-    window.location = { ...oldLocation, reload: reloadSpy };
+    vi.stubGlobal('location', { ...window.location, reload: reloadSpy });
 
     store.switchSession('other');
     expect(useSystemStore.getState().sessionId).toBe('other');
     expect(reloadSpy).toHaveBeenCalled();
 
-    // Restore
-
-    window.location = oldLocation;
+    vi.unstubAllGlobals();
   });
 });

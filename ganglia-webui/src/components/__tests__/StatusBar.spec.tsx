@@ -3,7 +3,7 @@ import { render, screen, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import StatusBar from '../StatusBar';
 import { useSystemStore } from '../../stores/system';
-import { useLogStore } from '../../stores/log';
+import { resetStores } from '../../lib/test-utils';
 
 // Mock EventBus service
 vi.mock('../../services/eventbus', () => ({
@@ -15,14 +15,7 @@ vi.mock('../../services/eventbus', () => ({
 describe('StatusBar Component', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    useSystemStore.setState({
-      status: 'DISCONNECTED',
-      fileTreeUpdatedAt: 0,
-      workspacePath: 'Loading...',
-      currentPhase: 'IDLE',
-      mcpCount: 0,
-    });
-    useLogStore.setState({ events: [], streamingMessage: '' });
+    resetStores();
   });
 
   it('renders core status when connected', () => {

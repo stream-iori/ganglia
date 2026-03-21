@@ -1,19 +1,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useLogStore } from '../log';
 import type { ServerEvent, ToolStartData } from '../../types';
+import { resetStores } from '../../lib/test-utils';
 
 describe('Log Store', () => {
   beforeEach(() => {
-    // Reset Zustand store
-    useLogStore.setState({
-      events: [],
-      activeToolCalls: {},
-      fileCache: {},
-      fileTree: null,
-      streamingMessage: '',
-      streamingThought: '',
-      thoughtStartTime: null,
-    });
+    resetStores();
   });
 
   it('should add an event', () => {

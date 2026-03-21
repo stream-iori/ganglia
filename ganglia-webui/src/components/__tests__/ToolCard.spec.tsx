@@ -3,13 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import ToolCard from '../ToolCard';
 import type { ServerEvent, ToolStartData, ToolResultData } from '../../types';
-import { useSystemStore } from '../../stores/system';
-import { useLogStore } from '../../stores/log';
+import { resetStores } from '../../lib/test-utils';
 
 describe('ToolCard Component', () => {
   beforeEach(() => {
-    useSystemStore.setState({ isInspectorOpen: false });
-    useLogStore.setState({ activeToolCalls: {} });
+    resetStores();
   });
 
   const startEvent: ServerEvent<ToolStartData> = {

@@ -4,6 +4,7 @@ import '@testing-library/jest-dom';
 import MainStream from '../MainStream';
 import { useLogStore } from '../../stores/log';
 import type { ServerEvent } from '../../types';
+import { resetStores, mockDomProperty } from '../../lib/test-utils';
 
 // Mock scrollIntoView
 window.HTMLElement.prototype.scrollIntoView = vi.fn();
@@ -29,11 +30,7 @@ vi.mock('../AgentMessage', () => ({
 
 describe('MainStream Component', () => {
   beforeEach(() => {
-    useLogStore.setState({
-      events: [],
-      streamingMessage: '',
-      streamingThought: '',
-    });
+    resetStores();
     vi.clearAllMocks();
   });
 
@@ -54,9 +51,9 @@ describe('MainStream Component', () => {
 
     // 2. Scroll up (set isScrolledToBottom to false)
     act(() => {
-      Object.defineProperty(container, 'scrollTop', { value: 0, configurable: true });
-      Object.defineProperty(container, 'scrollHeight', { value: 1000, configurable: true });
-      Object.defineProperty(container, 'clientHeight', { value: 500, configurable: true });
+      mockDomProperty(container as HTMLElement, 'scrollTop', 0);
+      mockDomProperty(container as HTMLElement, 'scrollHeight', 1000);
+      mockDomProperty(container as HTMLElement, 'clientHeight', 500);
       fireEvent.scroll(container!);
     });
 
@@ -80,7 +77,7 @@ describe('MainStream Component', () => {
 
     // 4. Scroll back to bottom
     act(() => {
-      Object.defineProperty(container, 'scrollTop', { value: 500, configurable: true });
+      mockDomProperty(container as HTMLElement, 'scrollTop', 500);
       fireEvent.scroll(container!);
     });
 
