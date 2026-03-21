@@ -43,8 +43,7 @@ public class InteractionTools implements ToolSet {
              },
              "header": {
                "type": "string",
-               "description": "Very short label (max 16 chars) displayed as a chip/tag. Use abbreviations (e.g., 'Auth', 'Config',
-   'Database')."
+               "description": "Very short label (max 16 chars) displayed as a chip/tag. Use abbreviations (e.g., 'Auth', 'Config', 'Database')."
              },
              "type": {
                "type": "string",
@@ -54,8 +53,7 @@ public class InteractionTools implements ToolSet {
              },
              "options": {
                "type": "array",
-               "description": "Selectable choices for 'choice' type. Provide 2-4 options. An 'Other' option is automatically added. Not
-   needed for 'text' or 'yesno'.",
+               "description": "Selectable choices for 'choice' type. Provide 2-4 options. An 'Other' option is automatically added. Not needed for 'text' or 'yesno'.",
                "items": {
                  "type": "object",
                  "required": ["label", "description"],
