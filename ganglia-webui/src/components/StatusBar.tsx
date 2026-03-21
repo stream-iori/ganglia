@@ -115,13 +115,13 @@ const StatusBar: React.FC = () => {
                 systemStore.currentPhase === 'IDLE' &&
                   'bg-slate-800 text-slate-400 border-slate-700',
                 systemStore.currentPhase === 'PLANNING' &&
-                  'bg-blue-900/30 text-blue-400 border-blue-800/50',
+                  'bg-blue-100 text-blue-700 border-blue-300 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800/50',
                 systemStore.currentPhase === 'EXECUTING' &&
-                  'bg-amber-900/30 text-amber-400 border-amber-800/50',
+                  'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800/50',
                 systemStore.currentPhase === 'WAITING' &&
-                  'bg-purple-900/30 text-purple-400 border-purple-800/50',
+                  'bg-purple-100 text-purple-700 border-purple-300 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800/50',
                 systemStore.currentPhase === 'REVIEWING' &&
-                  'bg-emerald-900/30 text-emerald-400 border-emerald-800/50',
+                  'bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800/50',
               )}
             >
               {systemStore.currentPhase}
@@ -148,7 +148,7 @@ const StatusBar: React.FC = () => {
               <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest">
                 MCP
               </span>
-              <span className="text-[11px] font-mono text-emerald-400 truncate bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-800/50">
+              <span className="text-[11px] font-mono text-emerald-700 bg-emerald-100 border-emerald-300 dark:text-emerald-400 truncate dark:bg-emerald-900/30 px-2 py-0.5 rounded border dark:border-emerald-800/50">
                 {systemStore.mcpCount}
               </span>
             </div>
@@ -171,8 +171,8 @@ const StatusBar: React.FC = () => {
             className={cn(
               'flex items-center gap-2 px-3 py-1 rounded border transition-all active:scale-95 group',
               isAgentBusy
-                ? 'border-rose-500/80 bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse'
-                : 'border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10 text-rose-500/70',
+                ? 'border-rose-300 bg-rose-100 hover:bg-rose-200 text-rose-700 dark:border-rose-500/80 dark:bg-rose-500/20 dark:hover:bg-rose-500/30 dark:text-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.3)] animate-pulse'
+                : 'border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-600 dark:border-rose-500/30 dark:bg-rose-500/5 dark:hover:bg-rose-500/10 dark:text-rose-500/70',
             )}
           >
             <div className="w-2 h-2 bg-rose-500 rounded-sm group-hover:scale-110 transition-transform"></div>

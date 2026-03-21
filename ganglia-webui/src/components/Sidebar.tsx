@@ -28,14 +28,14 @@ const Sidebar: React.FC = () => {
       <div className="p-4 border-b border-slate-800 flex justify-between items-start">
         <div>
           <h1 className="text-xl font-bold text-slate-50 flex items-center gap-2">
-            <span className="text-emerald-500 font-mono">⚛</span> Ganglia
+            <span className="text-emerald-600 dark:text-emerald-500 font-mono">⚛</span> Ganglia
           </h1>
           <div className="mt-2 text-[10px] flex items-center gap-2 uppercase tracking-tighter font-bold">
             <span
               className={cn(
                 'w-1.5 h-1.5 rounded-full',
                 systemStore.status === 'CONNECTED' &&
-                  'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]',
+                  'bg-emerald-600 dark:bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]',
                 systemStore.status === 'RECONNECTING' && 'bg-amber-500',
                 systemStore.status === 'DISCONNECTED' && 'bg-rose-500',
               )}
@@ -75,7 +75,7 @@ const Sidebar: React.FC = () => {
           className={cn(
             'flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors border-b-2',
             activeTab === 'FILES'
-              ? 'border-emerald-500 text-emerald-500'
+              ? 'border-emerald-600 text-emerald-600 dark:border-emerald-500 dark:text-emerald-500'
               : 'border-transparent text-slate-500 hover:text-slate-300',
           )}
         >
@@ -86,7 +86,7 @@ const Sidebar: React.FC = () => {
           className={cn(
             'flex-1 py-2 text-[10px] font-bold uppercase tracking-widest transition-colors border-b-2',
             activeTab === 'SESSIONS'
-              ? 'border-emerald-500 text-emerald-500'
+              ? 'border-emerald-600 text-emerald-600 dark:border-emerald-500 dark:text-emerald-500'
               : 'border-transparent text-slate-500 hover:text-slate-300',
           )}
         >
@@ -148,14 +148,14 @@ const Sidebar: React.FC = () => {
                   className={cn(
                     'w-full text-left p-3 rounded border transition-all group flex flex-col gap-1',
                     systemStore.sessionId === id
-                      ? 'bg-emerald-950/20 border-emerald-500/50 text-emerald-400'
+                      ? 'bg-emerald-50 border-emerald-200 text-emerald-700 dark:bg-emerald-950/20 dark:border-emerald-500/50 dark:text-emerald-400'
                       : 'bg-slate-950/50 border-slate-800 hover:border-slate-700 text-slate-400',
                   )}
                 >
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-mono">{id}</span>
                     {systemStore.sessionId === id && (
-                      <span className="text-[8px] bg-emerald-500 text-black px-1 rounded font-bold">
+                      <span className="text-[8px] bg-emerald-600 dark:bg-emerald-500 text-white dark:text-black px-1 rounded font-bold">
                         ACTIVE
                       </span>
                     )}

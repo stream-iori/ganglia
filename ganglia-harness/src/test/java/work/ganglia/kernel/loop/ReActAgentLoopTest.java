@@ -36,6 +36,7 @@ public class ReActAgentLoopTest {
   private StubConfigManager configManager;
   private ReActAgentLoop loop;
   private AgentEnv env;
+  private StubToolExecutor tools;
 
   @BeforeEach
   void setUp(Vertx vertx) {
@@ -47,7 +48,7 @@ public class ReActAgentLoopTest {
             new InMemoryStateEngine(), new InMemoryLogManager(), configManager);
     prompt = new StubPromptEngine();
     DefaultContextCompressor compressor = new DefaultContextCompressor(model, configManager);
-    StubToolExecutor tools = new StubToolExecutor();
+    tools = new StubToolExecutor();
     DefaultContextOptimizer optimizer =
         new DefaultContextOptimizer(configManager, configManager, compressor, new TokenCounter());
 
@@ -106,6 +107,70 @@ public class ReActAgentLoopTest {
                   testContext.verify(
                       () -> {
                         assertTrue(result.contains("said OK"));
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
+  void testAgentInterruptAndResume(VertxTestContext testContext) {
+    // Turn 1: Model calls a tool that requires user input
+    ToolCall call = new ToolCall("c1", "ask_user", Map.of("question", "Do you approve?"));
+    model.addResponse(new ModelResponse("I need your approval.", List.of(call), null));
+
+    // Turn 2: Model gives final answer after tool result
+    model.addResponse(new ModelResponse("Approved. Proceeding.", Collections.emptyList(), null));
+
+    tools.registerHandler(
+        "ask_user",
+        tc ->
+            work.ganglia.infrastructure.external.tool.model.ToolInvokeResult.interrupt(
+                "Pause for input"));
+
+    SessionContext context = sessionManager.createSession(UUID.randomUUID().toString());
+
+    loop.run("Do task", context, new AgentSignal())
+        .onComplete(
+            testContext.succeeding(
+                result1 -> {
+                  testContext.verify(() -> assertTrue(result1.contains("Pause for input")));
+
+                  // Fetch the updated context from memory to simulate a fresh resume request
+                  sessionManager
+                      .getSession(context.sessionId())
+                      .onComplete(
+                          testContext.succeeding(
+                              updatedContext -> {
+                                loop.resume("Yes, I approve", updatedContext, new AgentSignal())
+                                    .onComplete(
+                                        testContext.succeeding(
+                                            result2 -> {
+                                              testContext.verify(
+                                                  () -> {
+                                                    assertTrue(
+                                                        result2.contains("Approved. Proceeding."));
+                                                    testContext.completeNow();
+                                                  });
+                                            }));
+                              }));
+                }));
+  }
+
+  @Test
+  void testAgentStop(VertxTestContext testContext) {
+    SessionContext context = sessionManager.createSession(UUID.randomUUID().toString());
+    AgentSignal signal = new AgentSignal();
+
+    // Abort the signal before running
+    signal.abort();
+
+    loop.run("Do task", context, signal)
+        .onComplete(
+            testContext.failing(
+                err -> {
+                  testContext.verify(
+                      () -> {
+                        assertTrue(err instanceof AgentAbortedException);
                         testContext.completeNow();
                       });
                 }));

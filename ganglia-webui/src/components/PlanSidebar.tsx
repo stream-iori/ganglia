@@ -26,9 +26,9 @@ const PlanSidebar: React.FC = () => {
             className={cn(
               'p-4 rounded-xl border transition-all duration-300 relative overflow-hidden group',
               item.status === 'DONE'
-                ? 'bg-emerald-950/10 border-emerald-900/30 opacity-70'
+                ? 'bg-emerald-50/50 border-emerald-200 opacity-70 dark:bg-emerald-950/10 dark:border-emerald-900/30'
                 : item.status === 'IN_PROGRESS'
-                  ? 'bg-blue-900/10 border-blue-500/30 shadow-[0_0_20px_rgba(59,130,246,0.05)]'
+                  ? 'bg-blue-50 border-blue-200 shadow-[0_0_20px_rgba(59,130,246,0.05)] dark:bg-blue-900/10 dark:border-blue-500/30'
                   : 'bg-slate-900/50 border-slate-800',
             )}
           >
@@ -38,9 +38,9 @@ const PlanSidebar: React.FC = () => {
                 className={cn(
                   'mt-0.5 w-5 h-5 rounded-full flex items-center justify-center shrink-0 border',
                   item.status === 'DONE'
-                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                    ? 'bg-emerald-100 border-emerald-300 text-emerald-600 dark:bg-emerald-500/20 dark:border-emerald-500/50 dark:text-emerald-400'
                     : item.status === 'IN_PROGRESS'
-                      ? 'bg-blue-500/20 border-blue-500/50 text-blue-400 animate-pulse'
+                      ? 'bg-blue-100 border-blue-300 text-blue-600 dark:bg-blue-500/20 dark:border-blue-500/50 dark:text-blue-400 animate-pulse'
                       : 'bg-slate-800 border-slate-700 text-slate-500',
                 )}
               >
@@ -69,9 +69,9 @@ const PlanSidebar: React.FC = () => {
                     className={cn(
                       'text-[10px] font-bold uppercase tracking-widest',
                       item.status === 'DONE'
-                        ? 'text-emerald-500/70'
+                        ? 'text-emerald-700 dark:text-emerald-500/70'
                         : item.status === 'IN_PROGRESS'
-                          ? 'text-blue-400'
+                          ? 'text-blue-700 dark:text-blue-400'
                           : 'text-slate-500',
                     )}
                   >
