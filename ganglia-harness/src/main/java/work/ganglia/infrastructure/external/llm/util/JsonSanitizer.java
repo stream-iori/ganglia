@@ -25,24 +25,34 @@ public class JsonSanitizer {
       cleaned = matcher.group(1).trim();
     }
 
-    // 2. Remove leading/trailing non-JSON characters if it starts with { or [
-    int start = cleaned.indexOf('{');
-    int last = cleaned.lastIndexOf('}');
+    // 2. If it doesn't already look like a JSON object/array, try to find the boundaries.
+    // We check startsWith on the already trimmed string.
+    if (!cleaned.startsWith("{") && !cleaned.startsWith("[")) {
+      int startObj = cleaned.indexOf('{');
+      int startArray = cleaned.indexOf('[');
 
-    if (start == -1) {
-      start = cleaned.indexOf('[');
-      last = cleaned.lastIndexOf(']');
+      int start = -1;
+      if (startObj != -1 && (startArray == -1 || startObj < startArray)) {
+        start = startObj;
+      } else {
+        start = startArray;
+      }
+
+      if (start != -1) {
+        int end =
+            (cleaned.charAt(start) == '{') ? cleaned.lastIndexOf('}') : cleaned.lastIndexOf(']');
+        if (end > start) {
+          cleaned = cleaned.substring(start, end + 1);
+        }
+      }
     }
 
-    if (start != -1 && last != -1 && last > start) {
-      cleaned = cleaned.substring(start, last + 1);
-    }
-
-    // 3. Basic cleanup of common LLM errors (e.g., trailing commas in objects/arrays)
-    cleaned = cleaned.replaceAll(",\\s*([}\\]])", "$1");
-
-    // 4. Escape raw control characters inside string literals
+    // 3. Escape raw control characters inside string literals.
+    // This MUST be done before any other string manipulations that might add/remove quotes.
     cleaned = escapeControlCharsInStrings(cleaned);
+
+    // 4. Basic cleanup of common LLM errors (e.g., trailing commas in objects/arrays)
+    cleaned = cleaned.replaceAll(",\\s*([}\\]])", "$1");
 
     return cleaned;
   }
@@ -66,7 +76,15 @@ public class JsonSanitizer {
           case '\n' -> sb.append("\\n");
           case '\r' -> sb.append("\\r");
           case '\t' -> sb.append("\\t");
-          default -> sb.append(c);
+          case '\b' -> sb.append("\\b");
+          case '\f' -> sb.append("\\f");
+          default -> {
+            if (c < 32) {
+              sb.append(String.format("\\u%04x", (int) c));
+            } else {
+              sb.append(c);
+            }
+          }
         }
       } else {
         sb.append(c);
