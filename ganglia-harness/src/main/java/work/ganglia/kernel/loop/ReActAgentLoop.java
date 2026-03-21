@@ -6,6 +6,7 @@ import io.vertx.core.json.JsonObject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -444,6 +445,8 @@ public class ReActAgentLoop implements AgentLoop {
               switch (result.status()) {
                 case INTERRUPT -> {
                   Map<String, Object> interruptData = new java.util.HashMap<>(resData);
+                  String askId = "ask-" + UUID.randomUUID().toString().substring(0, 8);
+                  interruptData.put("askId", askId);
                   if (result.data() != null) {
                     interruptData.putAll(result.data());
                   }
@@ -459,7 +462,9 @@ public class ReActAgentLoop implements AgentLoop {
                   return cancelRemainingTasks(tasks, index + 1, interruptedContext)
                       .compose(finalCtx -> sessionManager.persist(finalCtx))
                       .compose(
-                          v -> Future.failedFuture(new AgentInterruptException(result.output())));
+                          v ->
+                              Future.failedFuture(
+                                  new AgentInterruptException(result.output(), askId)));
                 }
                 case ERROR, EXCEPTION ->
                     publishObservation(

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { eventBusService } from '../services/eventbus';
 import { useSystemStore } from '../stores/system';
 import type { ServerEvent, AskUserData } from '../types';
@@ -30,11 +30,6 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
     }
   };
 
-  const diffMarkdown = useMemo(() => {
-    if (!event.data.diffContext) return '';
-    return `\`\`\`diff\n${event.data.diffContext}\n\`\`\``;
-  }, [event.data.diffContext]);
-
   if (isActive) {
     return (
       <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -52,49 +47,62 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
           </div>
 
           <div className="p-8 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-800">
-            <p className="text-slate-100 text-base mb-6 leading-relaxed">{event.data.question}</p>
+            <h4 className="text-slate-100 text-lg font-semibold mb-4 leading-relaxed">
+              {event.data.question}
+            </h4>
 
             {event.data.diffContext && (
-              <div className="mb-8 border border-slate-700/50 rounded-lg overflow-hidden bg-slate-900">
-                <div className="bg-slate-800/50 px-4 py-2 border-b border-slate-700/50 flex items-center justify-between">
-                  <span className="text-xs font-mono text-slate-400">Context / Diff</span>
+              <div className="mb-8 border border-slate-700/50 rounded-lg overflow-hidden bg-slate-900/50">
+                <div className="bg-slate-800/30 px-4 py-2 border-b border-slate-700/50 flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                    Details & Context
+                  </span>
                 </div>
-                <div className="p-4 overflow-x-auto prose prose-invert prose-sm max-w-none prose-pre:m-0 prose-pre:bg-transparent prose-pre:p-0">
-                  <ReactMarkdown
-                    components={{
-                      code({
-                        inline,
-                        className,
-                        children,
-                        ...props
-                      }: React.ComponentPropsWithoutRef<'code'> & {
-                        inline?: boolean;
-                      }) {
-                        const match = /language-(\w+)/.exec(className || '');
-                        const lang = match ? match[1] : '';
-                        if (!inline && lang) {
-                          const grammar = Prism.languages[lang] || Prism.languages.text;
-                          const highlighted = Prism.highlight(
-                            String(children).replace(/\n$/, ''),
-                            grammar,
-                            lang,
-                          );
+                <div className="p-5 overflow-x-auto text-sm text-slate-300 leading-relaxed max-h-[300px] overflow-y-auto">
+                  {event.data.diffContext.startsWith('```') ? (
+                    <ReactMarkdown
+                      components={{
+                        code({
+                          inline,
+                          className,
+                          children,
+                          ...props
+                        }: React.ComponentPropsWithoutRef<'code'> & {
+                          inline?: boolean;
+                        }) {
+                          const match = /language-(\w+)/.exec(className || '');
+                          const lang = match ? match[1] : '';
+                          if (!inline && lang) {
+                            const grammar = Prism.languages[lang] || Prism.languages.text;
+                            const highlighted = Prism.highlight(
+                              String(children).replace(/\n$/, ''),
+                              grammar,
+                              lang,
+                            );
+                            return (
+                              <pre className={className}>
+                                <code
+                                  {...props}
+                                  dangerouslySetInnerHTML={{ __html: highlighted }}
+                                />
+                              </pre>
+                            );
+                          }
                           return (
-                            <pre className={className}>
-                              <code {...props} dangerouslySetInnerHTML={{ __html: highlighted }} />
-                            </pre>
+                            <code className={className} {...props}>
+                              {children}
+                            </code>
                           );
-                        }
-                        return (
-                          <code className={className} {...props}>
-                            {children}
-                          </code>
-                        );
-                      },
-                    }}
-                  >
-                    {diffMarkdown}
-                  </ReactMarkdown>
+                        },
+                      }}
+                    >
+                      {event.data.diffContext}
+                    </ReactMarkdown>
+                  ) : (
+                    <div className="whitespace-pre-wrap font-mono text-xs opacity-80">
+                      {event.data.diffContext}
+                    </div>
+                  )}
                 </div>
               </div>
             )}

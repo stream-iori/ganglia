@@ -139,25 +139,59 @@ public class WebUIEventPublisher implements AgentLoopObserver {
                 toolCallId, exitCode, summary, fullOutput, isError, null));
       }
       case USER_INTERACTION_REQUIRED -> {
-        String askId = "ask-" + System.currentTimeMillis();
-        String question =
+        String askId =
+            data != null && data.containsKey("askId")
+                ? data.get("askId").toString()
+                : "ask-" + System.currentTimeMillis();
+        String rawQuestion =
             data != null && data.containsKey("question")
                 ? data.get("question").toString()
                 : content;
 
+        String summary = rawQuestion;
+        String detail = null;
+
+        // If question is very long or contains multiple lines, split it
+        if (rawQuestion.contains("\n")) {
+          int firstLineEnd = rawQuestion.indexOf("\n");
+          summary = rawQuestion.substring(0, firstLineEnd).trim();
+          detail = rawQuestion.substring(firstLineEnd).trim();
+        } else if (rawQuestion.length() > 120) {
+          summary = rawQuestion.substring(0, 117) + "...";
+          detail = rawQuestion;
+        }
+
         java.util.List<ServerEvent.AskOption> frontendOptions = new java.util.ArrayList<>();
         if (data != null && data.containsKey("options")) {
-          @SuppressWarnings("unchecked")
-          java.util.List<String> rawOptions = (java.util.List<String>) data.get("options");
-          for (String opt : rawOptions) {
-            frontendOptions.add(new ServerEvent.AskOption(opt, opt, opt));
+          Object optionsObj = data.get("options");
+          java.util.List<?> rawOptions;
+          if (optionsObj instanceof java.util.List) {
+            rawOptions = (java.util.List<?>) optionsObj;
+          } else if (optionsObj instanceof io.vertx.core.json.JsonArray) {
+            rawOptions = ((io.vertx.core.json.JsonArray) optionsObj).getList();
+          } else {
+            rawOptions = java.util.Collections.emptyList();
+          }
+
+          for (Object opt : rawOptions) {
+            if (opt instanceof String s) {
+              frontendOptions.add(new ServerEvent.AskOption(s, s, ""));
+            } else if (opt instanceof java.util.Map<?, ?> m) {
+              Object valObj = m.get("value");
+              Object labObj = m.get("label");
+              Object descObj = m.get("description");
+              String val = valObj != null ? valObj.toString() : "";
+              String lab = labObj != null ? labObj.toString() : val;
+              String desc = descObj != null ? descObj.toString() : "";
+              frontendOptions.add(new ServerEvent.AskOption(val, lab, desc));
+            }
           }
         }
 
         publish(
             sessionId,
             EventType.ASK_USER,
-            new ServerEvent.AskUserData(askId, question, frontendOptions, null));
+            new ServerEvent.AskUserData(askId, summary, frontendOptions, detail));
       }
       case TURN_FINISHED -> {
         if (content != null && !content.isBlank()) {

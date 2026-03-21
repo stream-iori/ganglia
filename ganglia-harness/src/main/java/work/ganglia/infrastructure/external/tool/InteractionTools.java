@@ -62,15 +62,49 @@ public class InteractionTools implements ToolSet {
     data.put("type", type);
 
     if ("choice".equals(type)) {
-      List<String> options = (List<String>) args.get("options");
-      if (options == null || options.isEmpty()) {
+      Object optionsObj = args.get("options");
+      if (optionsObj == null) {
         return Future.succeededFuture(
             ToolInvokeResult.error("Options are required for 'choice' interaction type"));
       }
-      data.put("options", options);
+
+      java.util.List<Map<String, String>> structuredOptions = new java.util.ArrayList<>();
+      if (optionsObj instanceof java.util.List<?> rawOptions) {
+        for (Object opt : rawOptions) {
+          if (opt instanceof String s) {
+            Map<String, String> m = new java.util.HashMap<>();
+            m.put("value", s);
+            m.put("label", s);
+            m.put("description", "");
+            structuredOptions.add(m);
+          } else if (opt instanceof Map<?, ?> m) {
+            Map<String, String> sm = new java.util.HashMap<>();
+            Object v = m.get("value");
+            Object l = m.get("label");
+            Object d = m.get("description");
+            sm.put("value", v != null ? v.toString() : "");
+            sm.put("label", l != null ? l.toString() : sm.get("value"));
+            sm.put("description", d != null ? d.toString() : "");
+            structuredOptions.add(sm);
+          }
+        }
+      }
+
+      if (structuredOptions.isEmpty()) {
+        return Future.succeededFuture(
+            ToolInvokeResult.error("Options list cannot be empty for 'choice' type"));
+      }
+
+      data.put("options", structuredOptions);
+
       StringBuilder sb = new StringBuilder(question).append("\n\n");
-      for (int i = 0; i < options.size(); i++) {
-        sb.append(i + 1).append(". ").append(options.get(i)).append("\n");
+      for (int i = 0; i < structuredOptions.size(); i++) {
+        Map<String, String> opt = structuredOptions.get(i);
+        sb.append(i + 1).append(". ").append(opt.get("label"));
+        if (!opt.get("description").isEmpty()) {
+          sb.append(" (").append(opt.get("description")).append(")");
+        }
+        sb.append("\n");
       }
       sb.append("\nPlease select an option (number or text):");
       return Future.succeededFuture(ToolInvokeResult.interrupt(sb.toString(), data));
