@@ -30,50 +30,57 @@ public class PathSanitizer {
     }
 
     try {
-      // 1. Resolve real path of the project root
-      Path root = Paths.get(projectRoot).toAbsolutePath().normalize();
+      // 1. Resolve root path
+      Path rootPath = Paths.get(projectRoot).toAbsolutePath().normalize();
+      boolean isVirtual = false;
       try {
-        root = root.toRealPath();
-      } catch (IOException ignored) {
+        rootPath = rootPath.toRealPath();
+      } catch (IOException e) {
+        // If it doesn't exist, it might be a virtual root (e.g., /workspace in Docker)
+        isVirtual = true;
       }
 
-      // 2. Resolve the requested path
+      // 2. Resolve requested path
       Path requested = Paths.get(inputPath);
       if (!requested.isAbsolute()) {
-        requested = root.resolve(inputPath);
+        requested = rootPath.resolve(inputPath);
       }
       requested = requested.normalize();
 
-      Path absoluteRequested;
-      try {
-        absoluteRequested = requested.toRealPath();
-      } catch (IOException e) {
-        // If it doesn't exist, try resolving the real path of the first existing parent
-        Path tempPath = requested;
-        Path parent = tempPath.getParent();
-        Path resolved = null;
-        while (parent != null) {
-          try {
-            Path realParent = parent.toRealPath();
-            resolved = realParent.resolve(parent.relativize(tempPath)).normalize();
-            break;
-          } catch (IOException ignored) {
-            parent = parent.getParent();
+      String absoluteRequestedStr;
+      if (isVirtual) {
+        // For virtual roots, we can only do string/normalization based checks
+        absoluteRequestedStr = requested.toString();
+      } else {
+        try {
+          absoluteRequestedStr = requested.toRealPath().toString();
+        } catch (IOException e) {
+          // If it doesn't exist, try resolving via parents or fallback to normalization
+          Path resolved = null;
+          Path tempPath = requested;
+          Path parent = tempPath.getParent();
+          while (parent != null) {
+            try {
+              Path realParent = parent.toRealPath();
+              resolved = realParent.resolve(parent.relativize(tempPath)).normalize();
+              break;
+            } catch (IOException ignored) {
+              parent = parent.getParent();
+            }
           }
+          absoluteRequestedStr =
+              (resolved != null) ? resolved.toString() : requested.toAbsolutePath().toString();
         }
-        if (resolved == null) {
-          resolved = requested.toAbsolutePath().normalize();
-        }
-        absoluteRequested = resolved;
       }
 
       // 3. Project root check
-      if (!absoluteRequested.startsWith(root)) {
+      String rootStr = rootPath.toString();
+      if (!absoluteRequestedStr.startsWith(rootStr)) {
         throw new SecurityException(
-            "Access denied: Path escapes project root (" + root + "): " + inputPath);
+            "Access denied: Path escapes project root (" + rootStr + "): " + inputPath);
       }
 
-      return absoluteRequested.toString();
+      return absoluteRequestedStr;
     } catch (SecurityException e) {
       throw e;
     } catch (Exception e) {

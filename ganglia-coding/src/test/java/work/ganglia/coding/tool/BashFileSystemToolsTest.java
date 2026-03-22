@@ -19,6 +19,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import work.ganglia.coding.tool.util.LocalCommandExecutor;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.util.PathSanitizer;
 
@@ -34,7 +35,7 @@ public class BashFileSystemToolsTest {
     // Resolve real path to handle macOS symlinks
     Path realTemp = tempDir.toRealPath();
     PathSanitizer sanitizer = new PathSanitizer(realTemp.toString());
-    tools = new BashFileSystemTools(vertx, sanitizer);
+    tools = new BashFileSystemTools(new LocalCommandExecutor(vertx), sanitizer);
   }
 
   @Test

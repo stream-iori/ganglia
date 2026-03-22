@@ -154,7 +154,12 @@ public class GangliaKernel {
     ModelGateway modelGateway = new RetryingModelGateway(rawGateway, vertx);
 
     MemoryStore memoryStore = new FileSystemMemoryStore(vertx, projectRoot);
-    ObservationCompressor observationCompressor = new LLMObservationCompressor(modelGateway, 4000);
+    String compressionModel =
+        configManager.getUtilityModel() != null
+            ? configManager.getUtilityModel()
+            : configManager.getModel();
+    ObservationCompressor observationCompressor =
+        new LLMObservationCompressor(modelGateway, 4000, compressionModel);
     TimelineLedger timelineLedger = new MarkdownTimelineLedger(vertx, projectRoot);
 
     SkillRuntime skillRuntime = new DefaultSkillRuntime(vertx, skillService);

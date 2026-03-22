@@ -1,7 +1,6 @@
 package work.ganglia.infrastructure.external.llm;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -12,8 +11,6 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.infrastructure.external.llm.util.JsonSanitizer;
-import work.ganglia.infrastructure.external.llm.util.SseParser;
-import work.ganglia.infrastructure.external.llm.util.SseWriteStream;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelOptions;
@@ -97,133 +94,84 @@ public class AnthropicModelGateway extends AbstractModelGateway {
         context.sessionId(),
         request.options().modelName(),
         payload.encode());
-    Promise<ModelResponse> promise = Promise.promise();
 
     StringBuilder fullContent = new StringBuilder();
     Map<Integer, ToolCallBuilder> toolCallBuilders = new HashMap<>();
     int[] usage = new int[2]; // [input, output]
 
-    SseParser parser =
-        new SseParser(
-            json -> {
-              if (request.signal().isAborted()) return; // Active cancellation check
-              try {
-                String type = json.getString("type");
-                if (type == null) return;
-
-                switch (type) {
-                  case "message_start":
-                    JsonObject message = json.getJsonObject("message");
-                    if (message != null && message.getJsonObject("usage") != null) {
-                      usage[0] = message.getJsonObject("usage").getInteger("input_tokens", 0);
-                    }
-                    break;
-                  case "content_block_start":
-                    JsonObject block = json.getJsonObject("content_block");
-                    if (block != null && "tool_use".equals(block.getString("type"))) {
-                      int index = json.getInteger("index");
-                      ToolCallBuilder builder =
-                          toolCallBuilders.computeIfAbsent(index, k -> new ToolCallBuilder());
-                      builder.id = block.getString("id");
-                      builder.name = block.getString("name");
-                    }
-                    break;
-                  case "content_block_delta":
-                    JsonObject delta = json.getJsonObject("delta");
-                    if (delta != null) {
-                      String deltaType = delta.getString("type");
-                      if ("text_delta".equals(deltaType)) {
-                        String text = delta.getString("text");
-                        if (text != null && !text.isEmpty()) {
-                          fullContent.append(text);
-                          publishToken(context, text);
-                        }
-                      } else if ("input_json_delta".equals(deltaType)) {
-                        int index = json.getInteger("index");
-                        ToolCallBuilder builder = toolCallBuilders.get(index);
-                        if (builder != null) {
-                          String partialJson = delta.getString("partial_json");
-                          if (partialJson != null) {
-                            builder.arguments.append(partialJson);
-                          }
-                        }
-                      }
-                    }
-                    break;
-                  case "message_delta":
-                    JsonObject msgDelta = json.getJsonObject("delta");
-                    JsonObject msgUsage = json.getJsonObject("usage");
-                    if (msgUsage != null) {
-                      usage[1] = msgUsage.getInteger("output_tokens", 0);
-                    }
-                    break;
-                }
-              } catch (Exception e) {
-                logger.error("Failed to parse Anthropic SSE chunk", e);
-              }
-            },
-            promise::tryFail);
-
-    SseWriteStream writeStream = new SseWriteStream(parser);
-    writeStream.exceptionHandler(promise::tryFail);
-
-    // Active cancellation: fail the promise immediately when abort signal is received
-    request
-        .signal()
-        .onAbort(
-            () -> {
-              promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
-            });
-
-    withSemaphore(
+    return executeStreamingRequest(
+        request,
+        context,
+        payload,
         webClient
             .postAbs(endpoint)
             .putHeader("x-api-key", apiKey)
             .putHeader("anthropic-version", "2023-06-01")
             .putHeader("Content-Type", "application/json")
-            .putHeader("Accept", "text/event-stream")
-            .timeout(timeoutMs)
-            .as(BodyCodec.pipe(writeStream, true))
-            .sendJsonObject(payload)
-            .onSuccess(
-                response -> {
-                  if (request.signal().isAborted()) {
-                    promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
-                    return;
-                  }
-                  if (response.statusCode() >= 400) {
-                    promise.fail(
-                        new LLMException(
-                            "Anthropic Error: " + response.statusCode(),
-                            null,
-                            response.statusCode(),
-                            null,
-                            null));
-                  } else {
-                    try {
-                      List<ToolCall> toolCalls =
-                          toolCallBuilders.values().stream()
-                              .map(ToolCallBuilder::build)
-                              .collect(Collectors.toList());
-                      promise.complete(
-                          new ModelResponse(
-                              fullContent.toString(),
-                              toolCalls,
-                              new TokenUsage(usage[0], usage[1])));
-                    } catch (Exception e) {
-                      promise.fail(wrapException(e));
+            .timeout(timeoutMs),
+        json -> {
+          try {
+            String type = json.getString("type");
+            if (type == null) return;
+
+            switch (type) {
+              case "message_start":
+                JsonObject message = json.getJsonObject("message");
+                if (message != null && message.getJsonObject("usage") != null) {
+                  usage[0] = message.getJsonObject("usage").getInteger("input_tokens", 0);
+                }
+                break;
+              case "content_block_start":
+                JsonObject block = json.getJsonObject("content_block");
+                if (block != null && "tool_use".equals(block.getString("type"))) {
+                  int index = json.getInteger("index");
+                  ToolCallBuilder builder =
+                      toolCallBuilders.computeIfAbsent(index, k -> new ToolCallBuilder());
+                  builder.id = block.getString("id");
+                  builder.name = block.getString("name");
+                }
+                break;
+              case "content_block_delta":
+                JsonObject delta = json.getJsonObject("delta");
+                if (delta != null) {
+                  String deltaType = delta.getString("type");
+                  if ("text_delta".equals(deltaType)) {
+                    String text = delta.getString("text");
+                    if (text != null && !text.isEmpty()) {
+                      fullContent.append(text);
+                      publishToken(context, text);
+                    }
+                  } else if ("input_json_delta".equals(deltaType)) {
+                    int index = json.getInteger("index");
+                    ToolCallBuilder builder = toolCallBuilders.get(index);
+                    if (builder != null) {
+                      String partialJson = delta.getString("partial_json");
+                      if (partialJson != null) {
+                        builder.arguments.append(partialJson);
+                      }
                     }
                   }
-                })
-            .onFailure(
-                err -> {
-                  if (request.signal().isAborted()) {
-                    promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
-                  } else {
-                    promise.tryFail(err);
-                  }
-                }));
-    return promise.future();
+                }
+                break;
+              case "message_delta":
+                JsonObject msgUsage = json.getJsonObject("usage");
+                if (msgUsage != null) {
+                  usage[1] = msgUsage.getInteger("output_tokens", 0);
+                }
+                break;
+            }
+          } catch (Exception e) {
+            logger.error("Failed to parse Anthropic SSE chunk", e);
+          }
+        },
+        () -> {
+          List<ToolCall> toolCalls =
+              toolCallBuilders.values().stream()
+                  .map(ToolCallBuilder::build)
+                  .collect(Collectors.toList());
+          return new ModelResponse(
+              fullContent.toString(), toolCalls, new TokenUsage(usage[0], usage[1]));
+        });
   }
 
   private JsonObject buildPayload(
@@ -355,30 +303,5 @@ public class AnthropicModelGateway extends AbstractModelGateway {
     }
 
     return new ModelResponse(text.toString(), toolCalls, new TokenUsage(inputTokens, outputTokens));
-  }
-
-  private Throwable wrapException(Throwable e) {
-    if (e instanceof LLMException) return e;
-    return new LLMException(e.getMessage(), null, null, null, e);
-  }
-
-  private static class ToolCallBuilder {
-    String id;
-    String name;
-    StringBuilder arguments = new StringBuilder();
-
-    ToolCall build() {
-      String argStr = arguments.toString();
-      Map<String, Object> argsMap = Collections.emptyMap();
-      if (!argStr.isEmpty()) {
-        try {
-          String sanitized = JsonSanitizer.sanitize(argStr);
-          argsMap = new JsonObject(sanitized).getMap();
-        } catch (Exception e) {
-          logger.error("Failed to parse tool call arguments: {}", argStr, e);
-        }
-      }
-      return new ToolCall(id != null ? id : UUID.randomUUID().toString(), name, argsMap);
-    }
   }
 }

@@ -28,6 +28,9 @@ public class StandardPromptEngine implements PromptEngine {
   private final List<ContextSource> sources = new ArrayList<>();
   private final ContextComposer composer;
   private final TokenCounter tokenCounter;
+  private final Vertx vertx;
+  private final MemoryService memoryService;
+  private final SkillRuntime skillRuntime;
   private AgentTaskFactory taskFactory;
 
   public StandardPromptEngine(
@@ -49,23 +52,34 @@ public class StandardPromptEngine implements PromptEngine {
     this.tokenCounter = tokenCounter;
     this.composer = new ContextComposer(this.tokenCounter);
     this.taskFactory = taskFactory;
+    this.vertx = vertx;
+    this.memoryService = memoryService;
+    this.skillRuntime = skillRuntime;
 
-    // Add extra sources (e.g., from ganglia-coding)
     if (extraSources != null) {
       sources.addAll(extraSources);
     }
 
-    // Initialize default core sources if not already provided
+    ensureCoreSources();
+  }
+
+  private void ensureCoreSources() {
     if (sources.stream().noneMatch(s -> s instanceof PersonaContextSource)) {
       sources.add(new PersonaContextSource());
     }
-    sources.add(new EnvironmentSource(vertx));
-    sources.add(new SkillContextSource(skillRuntime));
+    if (sources.stream().noneMatch(s -> s instanceof EnvironmentSource)) {
+      sources.add(new EnvironmentSource(vertx));
+    }
+    if (sources.stream().noneMatch(s -> s instanceof SkillContextSource)) {
+      sources.add(new SkillContextSource(skillRuntime));
+    }
     if (this.taskFactory != null
         && sources.stream().noneMatch(s -> s instanceof ToolContextSource)) {
       sources.add(new ToolContextSource(this.taskFactory));
     }
-    sources.add(new MemoryContextSource(memoryService));
+    if (sources.stream().noneMatch(s -> s instanceof MemoryContextSource)) {
+      sources.add(new MemoryContextSource(memoryService));
+    }
     if (sources.stream().noneMatch(s -> s instanceof SubAgentContextSource)) {
       sources.add(new SubAgentContextSource());
     }
@@ -73,11 +87,7 @@ public class StandardPromptEngine implements PromptEngine {
 
   public void setTaskFactory(AgentTaskFactory taskFactory) {
     this.taskFactory = taskFactory;
-    // Re-add ToolContextSource if it wasn't added during construction
-    boolean hasToolSource = sources.stream().anyMatch(s -> s instanceof ToolContextSource);
-    if (!hasToolSource && taskFactory != null) {
-      sources.add(new ToolContextSource(taskFactory));
-    }
+    ensureCoreSources();
   }
 
   public void addContextSource(ContextSource source) {

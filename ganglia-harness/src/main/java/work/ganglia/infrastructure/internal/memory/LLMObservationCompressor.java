@@ -16,10 +16,17 @@ public class LLMObservationCompressor implements ObservationCompressor {
 
   private final ModelGateway modelGateway;
   private final int thresholdLength; // e.g. 4000 chars
+  private final String modelName;
 
   public LLMObservationCompressor(ModelGateway modelGateway, int thresholdLength) {
+    this(modelGateway, thresholdLength, "gpt-4o-mini");
+  }
+
+  public LLMObservationCompressor(
+      ModelGateway modelGateway, int thresholdLength, String modelName) {
     this.modelGateway = modelGateway;
     this.thresholdLength = thresholdLength;
+    this.modelName = (modelName != null && !modelName.isEmpty()) ? modelName : "gpt-4o-mini";
   }
 
   @Override
@@ -54,7 +61,7 @@ public class LLMObservationCompressor implements ObservationCompressor {
         new ChatRequest(
             List.of(message),
             Collections.emptyList(),
-            new ModelOptions(0.0, 1024, "gpt-4o-mini", false), // Or make model configurable
+            new ModelOptions(0.0, 1024, modelName, false),
             new AgentSignal());
 
     return modelGateway.chat(request).map(ModelResponse::content);

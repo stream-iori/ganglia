@@ -33,11 +33,26 @@ public class InteractionToolsTest {
   static Stream<Arguments> interactionProvider() {
     return Stream.of(
         arguments(
-            Map.of("question", "Details please?", "type", "text"),
+            Map.of(
+                "questions",
+                List.of(Map.of("question", "Details please?", "type", "text", "header", "Test"))),
             List.of("Details please?"),
             "Text input request"),
         arguments(
-            Map.of("question", "Pick one?", "type", "choice", "options", List.of("A", "B")),
+            Map.of(
+                "questions",
+                List.of(
+                    Map.of(
+                        "question",
+                        "Pick one?",
+                        "type",
+                        "choice",
+                        "header",
+                        "Test",
+                        "options",
+                        List.of(
+                            Map.of("label", "A", "description", "Desc A"),
+                            Map.of("label", "B", "description", "Desc B"))))),
             List.of("Pick one?", "1. A", "2. B"),
             "Choice selection request"));
   }
@@ -57,7 +72,11 @@ public class InteractionToolsTest {
                 res -> {
                   testContext.verify(
                       () -> {
-                        assertEquals(ToolInvokeResult.Status.INTERRUPT, res.status());
+                        assertEquals(
+                            ToolInvokeResult.Status.INTERRUPT,
+                            res.status(),
+                            () ->
+                                "Expected INTERRUPT but got " + res.status() + ": " + res.output());
                         for (String expected : expectedSubstrings) {
                           assertTrue(
                               res.output().contains(expected),

@@ -6,19 +6,22 @@ import java.util.ArrayList;
 import java.util.List;
 import work.ganglia.BootstrapOptions;
 import work.ganglia.Ganglia;
-import work.ganglia.coding.prompt.CodingGuidelineSource;
-import work.ganglia.coding.prompt.CodingMandatesContextSource;
-import work.ganglia.coding.prompt.CodingPersonaContextSource;
-import work.ganglia.coding.prompt.CodingWorkflowSource;
-import work.ganglia.coding.tool.*;
+import work.ganglia.coding.tool.BashFileSystemTools;
+import work.ganglia.coding.tool.BashTools;
+import work.ganglia.coding.tool.FileEditTools;
+import work.ganglia.coding.tool.WebFetchTools;
+import work.ganglia.coding.tool.util.LocalCommandExecutor;
 import work.ganglia.infrastructure.internal.prompt.context.FileContextSource;
 import work.ganglia.infrastructure.internal.prompt.context.MarkdownContextResolver;
+import work.ganglia.port.external.tool.CommandExecutor;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.internal.prompt.ContextSource;
 import work.ganglia.util.PathSanitizer;
 
 /**
- * It wraps the core bootstrap process and automatically injects all coding tools and context
+ * SRP: Specialized builder for Coding Agents.
+ *
+ * <p>It wraps the core bootstrap process and automatically injects all coding tools and context
  * sources.
  */
 public class CodingAgentBuilder {
@@ -41,10 +44,16 @@ public class CodingAgentBuilder {
             : System.getProperty("user.dir");
     PathSanitizer sanitizer = new PathSanitizer(projectRoot);
 
+    // 0. Resolve CommandExecutor
+    CommandExecutor commandExecutor = baseOptions.commandExecutor();
+    if (commandExecutor == null) {
+      commandExecutor = new LocalCommandExecutor(vertx);
+    }
+
     // 1. Prepare Tools
     List<ToolSet> codingToolSets = new ArrayList<>(baseOptions.extraToolSets());
-    codingToolSets.add(new BashFileSystemTools(vertx, sanitizer));
-    codingToolSets.add(new BashTools(vertx));
+    codingToolSets.add(new BashFileSystemTools(commandExecutor, sanitizer));
+    codingToolSets.add(new BashTools(commandExecutor));
     codingToolSets.add(new FileEditTools(vertx, sanitizer));
     codingToolSets.add(new WebFetchTools(vertx));
 
@@ -60,21 +69,15 @@ public class CodingAgentBuilder {
     if (baseOptions.overrideConfig() != null) {
       configManager.updateConfig(baseOptions.overrideConfig());
     }
-    String instructionFile = configManager.getInstructionFile();
 
-    codingSources.add(new CodingPersonaContextSource());
-    codingSources.add(new CodingMandatesContextSource());
-    codingSources.add(new CodingWorkflowSource());
-    codingSources.add(new CodingGuidelineSource(instructionFile));
+    String instructionFile = configManager.getConfig().getString("instructionFile", "CODING.md");
+
     codingSources.add(new FileContextSource(vertx, resolver, instructionFile));
 
-    // 3. Assemble final BootstrapOptions
-    BootstrapOptions finalOptions =
-        baseOptions
-            .withProjectRoot(projectRoot)
-            .withExtraToolSets(codingToolSets)
-            .withExtraContextSources(codingSources);
+    // 3. Perform Bootstrap
+    BootstrapOptions options =
+        baseOptions.withExtraToolSets(codingToolSets).withExtraContextSources(codingSources);
 
-    return Ganglia.bootstrap(vertx, finalOptions);
+    return Ganglia.bootstrap(vertx, options);
   }
 }

@@ -15,6 +15,7 @@ import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.util.PathSanitizer;
+import work.ganglia.util.VertxProcess;
 
 /** Tools for surgical file editing (precise replacement) and full file modification. */
 public class FileEditTools implements ToolSet {
@@ -329,39 +330,38 @@ public class FileEditTools implements ToolSet {
               String patchPath = filePath + ".patch." + System.nanoTime();
               return fs.writeFile(patchPath, io.vertx.core.buffer.Buffer.buffer(patch))
                   .compose(
-                      v ->
-                          vertx.executeBlocking(
-                              () -> {
-                                try {
-                                  // patch -u [file] -i [patch_file]
-                                  Process process =
-                                      new ProcessBuilder("patch", "-u", filePath, "-i", patchPath)
-                                          .start();
-                                  String output =
-                                      new String(process.getInputStream().readAllBytes());
-                                  String error =
-                                      new String(process.getErrorStream().readAllBytes());
-                                  int exitCode = process.waitFor();
-
-                                  fs.deleteBlocking(patchPath);
-
-                                  if (exitCode == 0) {
-                                    return ToolInvokeResult.success(
-                                        "SUCCESS: Applied patch to " + rawPath + "\n" + output);
-                                  } else {
-                                    return ToolInvokeResult.error(
-                                        "PATCH_FAILURE: Exit code "
-                                            + exitCode
-                                            + ". "
-                                            + error
-                                            + "\n"
-                                            + output);
-                                  }
-                                } catch (Exception e) {
-                                  fs.deleteBlocking(patchPath);
-                                  return ToolInvokeResult.error("PATCH_ERROR: " + e.getMessage());
-                                }
-                              }));
+                      v -> {
+                        // patch -u [file] -i [patch_file]
+                        List<String> command = List.of("patch", "-u", filePath, "-i", patchPath);
+                        return VertxProcess.execute(vertx, command, 30000, 1024 * 1024)
+                            .compose(
+                                result ->
+                                    fs.delete(patchPath)
+                                        .map(
+                                            v2 -> {
+                                              if (result.exitCode() == 0) {
+                                                return ToolInvokeResult.success(
+                                                    "SUCCESS: Applied patch to "
+                                                        + rawPath
+                                                        + "\n"
+                                                        + result.output());
+                                              } else {
+                                                return ToolInvokeResult.error(
+                                                    "PATCH_FAILURE: Exit code "
+                                                        + result.exitCode()
+                                                        + ". "
+                                                        + result.output());
+                                              }
+                                            }))
+                            .recover(
+                                err ->
+                                    fs.delete(patchPath)
+                                        .compose(
+                                            v2 ->
+                                                Future.succeededFuture(
+                                                    ToolInvokeResult.error(
+                                                        "PATCH_ERROR: " + err.getMessage()))));
+                      });
             });
   }
 
@@ -377,37 +377,34 @@ public class FileEditTools implements ToolSet {
             v -> {
               // Use native diff command for simplicity and reliability on Unix/MacOS
               String command = String.format("diff -u %s %s", oldFilePath, tempNewPath);
-              return vertx.executeBlocking(
-                  () -> {
-                    try {
-                      Process process = new ProcessBuilder("bash", "-c", command).start();
-                      String output = new String(process.getInputStream().readAllBytes());
-                      process.waitFor();
-                      // diff returns 1 if differences are found, which is what we expect
-
-                      // Clean up temp new file
-                      fs.deleteBlocking(tempNewPath);
-
-                      // Basic cleanup of the diff header to use the actual filename
-                      if (output.startsWith("---")) {
-                        String[] lines = output.split("\\n", 3);
-                        if (lines.length >= 2) {
-                          return "--- "
-                              + label
-                              + "\n"
-                              + "+++ "
-                              + label
-                              + "\n"
-                              + (lines.length > 2 ? lines[2] : "");
-                        }
-                      }
-                      return output;
-                    } catch (Exception e) {
-                      logger.warn("Failed to generate diff: {}", e.getMessage());
-                      fs.deleteBlocking(tempNewPath);
-                      return "Diff generation failed: " + e.getMessage();
-                    }
-                  });
+              return VertxProcess.execute(vertx, List.of("bash", "-c", command), 10000, 1024 * 1024)
+                  .compose(
+                      result ->
+                          fs.delete(tempNewPath)
+                              .map(
+                                  v2 -> {
+                                    String output = result.output();
+                                    // Basic cleanup of the diff header to use the actual filename
+                                    if (output.startsWith("---")) {
+                                      String[] lines = output.split("\\n", 3);
+                                      if (lines.length >= 2) {
+                                        return "--- "
+                                            + label
+                                            + "\n"
+                                            + "+++ "
+                                            + label
+                                            + "\n"
+                                            + (lines.length > 2 ? lines[2] : "");
+                                      }
+                                    }
+                                    return output;
+                                  }))
+                  .recover(
+                      err -> {
+                        logger.warn("Failed to generate diff: {}", err.getMessage());
+                        return fs.delete(tempNewPath)
+                            .map(v2 -> "Diff generation failed: " + err.getMessage());
+                      });
             });
   }
 

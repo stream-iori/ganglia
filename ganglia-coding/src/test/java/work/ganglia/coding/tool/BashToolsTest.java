@@ -13,6 +13,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import work.ganglia.coding.tool.util.LocalCommandExecutor;
 import work.ganglia.infrastructure.external.tool.model.ToolErrorResult;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.port.chat.SessionContext;
@@ -26,7 +27,7 @@ class BashToolsTest {
 
   @BeforeEach
   void setUp(Vertx vertx) {
-    tools = new BashTools(vertx);
+    tools = new BashTools(new LocalCommandExecutor(vertx));
     context =
         new SessionContext(
             UUID.randomUUID().toString(),

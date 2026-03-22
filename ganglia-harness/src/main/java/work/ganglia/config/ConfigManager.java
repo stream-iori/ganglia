@@ -157,7 +157,10 @@ public class ConfigManager
   @Override
   public String getUtilityModel() {
     ModelConfig mc = currentConfig.getModel(ConfigKeys.UTILITY);
-    return mc != null ? mc.name() : "gpt-4o-mini";
+    if (mc != null) return mc.name();
+    // Fallback to primary model if utility is not configured
+    ModelConfig primary = currentConfig.getModel(ConfigKeys.PRIMARY);
+    return primary != null ? primary.name() : "gpt-4o-mini";
   }
 
   @Override

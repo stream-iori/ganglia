@@ -23,6 +23,7 @@ ENV PATH="/uv/bin:${PATH}"
 # numpy 1.21.6 is the last 1.x version that is widely compatible
 RUN uv pip install --system --no-cache \
     "setuptools==59.5.0" \
+    "setuptools_scm" \
     "wheel==0.37.1" \
     "pip==21.3.1" \
     "numpy==1.21.6" \

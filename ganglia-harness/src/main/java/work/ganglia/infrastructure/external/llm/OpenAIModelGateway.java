@@ -1,7 +1,6 @@
 package work.ganglia.infrastructure.external.llm;
 
 import io.vertx.core.Future;
-import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
@@ -12,8 +11,6 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.infrastructure.external.llm.util.JsonSanitizer;
-import work.ganglia.infrastructure.external.llm.util.SseParser;
-import work.ganglia.infrastructure.external.llm.util.SseWriteStream;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelOptions;
@@ -101,128 +98,74 @@ public class OpenAIModelGateway extends AbstractModelGateway {
         context.sessionId(),
         request.options().modelName(),
         payload.encode());
-    if (logger.isDebugEnabled()) {
-      logger.debug("[LLM_REQ] Session: {}, Payload: {}", context.sessionId(), payload.encode());
-    }
-    Promise<ModelResponse> promise = Promise.promise();
 
     StringBuilder fullContent = new StringBuilder();
     Map<Integer, ToolCallBuilder> toolCallBuilders = new HashMap<>();
     int[] usage = new int[2]; // [prompt, completion]
 
-    SseParser parser =
-        new SseParser(
-            json -> {
-              if (request.signal().isAborted()) return; // Active cancellation check
-              try {
-                JsonArray choices = json.getJsonArray("choices");
-                if (choices != null && !choices.isEmpty()) {
-                  JsonObject choice = choices.getJsonObject(0);
-                  JsonObject delta = choice.getJsonObject("delta");
-                  if (delta != null) {
-                    String content = delta.getString("content");
-                    if (content != null && !content.isEmpty()) {
-                      fullContent.append(content);
-                      publishToken(context, content);
-                    }
-
-                    JsonArray toolCalls = delta.getJsonArray("tool_calls");
-                    if (toolCalls != null) {
-                      for (int i = 0; i < toolCalls.size(); i++) {
-                        JsonObject tcDelta = toolCalls.getJsonObject(i);
-                        int index = tcDelta.getInteger("index");
-                        ToolCallBuilder builder =
-                            toolCallBuilders.computeIfAbsent(index, k -> new ToolCallBuilder());
-
-                        String id = tcDelta.getString("id");
-                        if (id != null) builder.id = id;
-
-                        JsonObject function = tcDelta.getJsonObject("function");
-                        if (function != null) {
-                          String name = function.getString("name");
-                          if (name != null) builder.name = name;
-
-                          String arguments = function.getString("arguments");
-                          if (arguments != null) builder.arguments.append(arguments);
-                        }
-                      }
-                    }
-                  }
-                }
-
-                JsonObject usageObj = json.getJsonObject("usage");
-                if (usageObj != null) {
-                  usage[0] = usageObj.getInteger("prompt_tokens", usage[0]);
-                  usage[1] = usageObj.getInteger("completion_tokens", usage[1]);
-                }
-              } catch (Exception e) {
-                logger.error("Failed to parse SSE JSON chunk", e);
-              }
-            },
-            promise::tryFail);
-
-    SseWriteStream writeStream = new SseWriteStream(parser);
-    writeStream.exceptionHandler(promise::tryFail);
-
-    // Active cancellation: fail the promise immediately when abort signal is received
-    request
-        .signal()
-        .onAbort(
-            () -> {
-              promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
-            });
-
-    withSemaphore(
+    return executeStreamingRequest(
+        request,
+        context,
+        payload,
         webClient
             .postAbs(endpoint)
             .putHeader("Authorization", "Bearer " + apiKey)
             .putHeader("Content-Type", "application/json")
-            .putHeader("Accept", "text/event-stream")
-            .timeout(timeoutMs)
-            .as(BodyCodec.pipe(writeStream, true))
-            .sendJsonObject(payload)
-            .onSuccess(
-                response -> {
-                  if (request.signal().isAborted()) {
-                    promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
-                    return;
-                  }
-                  if (response.statusCode() >= 400) {
-                    String errorBody = response.bodyAsString();
-                    logger.error(
-                        "[LLM_ERROR] Status: {}, Body: {}", response.statusCode(), errorBody);
-                    promise.fail(
-                        new LLMException(
-                            "LLM Error: " + response.statusCode() + " " + response.statusMessage(),
-                            null,
-                            response.statusCode(),
-                            errorBody,
-                            null));
-                  } else {
-                    try {
-                      List<ToolCall> toolCalls =
-                          toolCallBuilders.values().stream()
-                              .map(ToolCallBuilder::build)
-                              .collect(Collectors.toList());
-                      promise.complete(
-                          new ModelResponse(
-                              fullContent.toString(),
-                              toolCalls,
-                              new TokenUsage(usage[0], usage[1])));
-                    } catch (Exception e) {
-                      promise.fail(wrapException(e));
+            .timeout(timeoutMs),
+        json -> {
+          try {
+            JsonArray choices = json.getJsonArray("choices");
+            if (choices != null && !choices.isEmpty()) {
+              JsonObject choice = choices.getJsonObject(0);
+              JsonObject delta = choice.getJsonObject("delta");
+              if (delta != null) {
+                String content = delta.getString("content");
+                if (content != null && !content.isEmpty()) {
+                  fullContent.append(content);
+                  publishToken(context, content);
+                }
+
+                JsonArray toolCalls = delta.getJsonArray("tool_calls");
+                if (toolCalls != null) {
+                  for (int i = 0; i < toolCalls.size(); i++) {
+                    JsonObject tcDelta = toolCalls.getJsonObject(i);
+                    int index = tcDelta.getInteger("index");
+                    ToolCallBuilder builder =
+                        toolCallBuilders.computeIfAbsent(index, k -> new ToolCallBuilder());
+
+                    String id = tcDelta.getString("id");
+                    if (id != null) builder.id = id;
+
+                    JsonObject function = tcDelta.getJsonObject("function");
+                    if (function != null) {
+                      String name = function.getString("name");
+                      if (name != null) builder.name = name;
+
+                      String arguments = function.getString("arguments");
+                      if (arguments != null) builder.arguments.append(arguments);
                     }
                   }
-                })
-            .onFailure(
-                err -> {
-                  if (request.signal().isAborted()) {
-                    promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
-                  } else {
-                    promise.tryFail(err);
-                  }
-                }));
-    return promise.future();
+                }
+              }
+            }
+
+            JsonObject usageObj = json.getJsonObject("usage");
+            if (usageObj != null) {
+              usage[0] = usageObj.getInteger("prompt_tokens", usage[0]);
+              usage[1] = usageObj.getInteger("completion_tokens", usage[1]);
+            }
+          } catch (Exception e) {
+            logger.error("Failed to parse SSE JSON chunk", e);
+          }
+        },
+        () -> {
+          List<ToolCall> toolCalls =
+              toolCallBuilders.values().stream()
+                  .map(ToolCallBuilder::build)
+                  .collect(Collectors.toList());
+          return new ModelResponse(
+              fullContent.toString(), toolCalls, new TokenUsage(usage[0], usage[1]));
+        });
   }
 
   private JsonObject buildPayload(
@@ -363,32 +306,6 @@ public class OpenAIModelGateway extends AbstractModelGateway {
     } catch (Exception e) {
       logger.error("Failed to decode arguments: {}", json, e);
       return Collections.emptyMap();
-    }
-  }
-
-  private Throwable wrapException(Throwable e) {
-    if (e instanceof LLMException) return e;
-    return new LLMException(e.getMessage(), null, null, null, e);
-  }
-
-  private static class ToolCallBuilder {
-    String id;
-    String name;
-    StringBuilder arguments = new StringBuilder();
-
-    ToolCall build() {
-      String argStr = arguments.toString();
-      Map<String, Object> argsMap = Collections.emptyMap();
-      if (!argStr.isEmpty()) {
-        try {
-          String sanitized = JsonSanitizer.sanitize(argStr);
-          argsMap = new JsonObject(sanitized).getMap();
-        } catch (Exception e) {
-          logger.error("Failed to parse tool call arguments: {}", argStr, e);
-        }
-      }
-      return new ToolCall(
-          id != null ? id : "call_" + UUID.randomUUID().toString().substring(0, 8), name, argsMap);
     }
   }
 }

@@ -1,40 +1,33 @@
 package work.ganglia.coding.tool;
 
 import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.infrastructure.external.tool.model.ToolErrorResult;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.external.tool.CommandExecutor;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.util.PathSanitizer;
+import work.ganglia.util.VertxProcess;
 
 /** Built-in tools for local filesystem operations using native system commands. */
 public class BashFileSystemTools implements ToolSet {
   private static final Logger log = LoggerFactory.getLogger(BashFileSystemTools.class);
-  private static final long MAX_OUTPUT_SIZE = 64 * 1024; // 64KB
-  private static final long DEFAULT_TIMEOUT_MS = 60000; // 60 seconds
 
-  private final Vertx vertx;
+  private final CommandExecutor commandExecutor;
   private final PathSanitizer sanitizer;
 
-  public BashFileSystemTools(Vertx vertx) {
-    this(vertx, new PathSanitizer());
+  public BashFileSystemTools(CommandExecutor commandExecutor) {
+    this(commandExecutor, new PathSanitizer());
   }
 
-  public BashFileSystemTools(Vertx vertx, PathSanitizer sanitizer) {
-    this.vertx = vertx;
+  public BashFileSystemTools(CommandExecutor commandExecutor, PathSanitizer sanitizer) {
+    this.commandExecutor = commandExecutor;
     this.sanitizer = sanitizer;
   }
 
@@ -130,7 +123,7 @@ public class BashFileSystemTools implements ToolSet {
 
   private Future<ToolInvokeResult> ls(Map<String, Object> args) {
     String path = sanitizer.sanitize((String) args.get("path"));
-    return execute("ls", List.of("ls", "-F", path), DEFAULT_TIMEOUT_MS);
+    return execute("list_directory", "ls -F " + PathSanitizer.escapeShellArg(path));
   }
 
   public Future<ToolInvokeResult> cat(Map<String, Object> args) {
@@ -144,6 +137,10 @@ public class BashFileSystemTools implements ToolSet {
     String script =
         """
             file=%s
+            if [ ! -f "$file" ]; then
+              echo "File not found: $file" >&2
+              exit 1
+            fi
             offset=%d
             limit=%d
             total=$(wc -l < "$file" | tr -d ' ')
@@ -162,21 +159,7 @@ public class BashFileSystemTools implements ToolSet {
             """
             .formatted(escapedPath, offset, limit);
 
-    return vertx
-        .fileSystem()
-        .exists(safePath)
-        .compose(
-            exists -> {
-              if (!exists) {
-                return Future.succeededFuture(
-                    ToolInvokeResult.error("File not found: " + safePath));
-              }
-              return execute("read_file", List.of("bash", "-c", script), DEFAULT_TIMEOUT_MS);
-            })
-        .recover(
-            err ->
-                Future.succeededFuture(
-                    ToolInvokeResult.error("Error reading file: " + err.getMessage())));
+    return execute("read_file", script);
   }
 
   private Future<ToolInvokeResult> readFiles(Map<String, Object> args) {
@@ -201,8 +184,8 @@ public class BashFileSystemTools implements ToolSet {
             for f in "${files[@]}"; do
               echo "--- FILE: $f ---"
               if [ -f "$f" ]; then
-                head -n "$limit" "$f"
                 total=$(wc -l < "$f" | tr -d ' ')
+                head -n "$limit" "$f"
                 if [ "$total" -gt "$limit" ]; then
                   echo ""
                   echo "--- [TRUNCATED: $limit of $total lines shown. Use 'read_file' for full content.] ---"
@@ -215,7 +198,7 @@ public class BashFileSystemTools implements ToolSet {
             """
             .formatted(limitPerFile, escapedPaths);
 
-    return execute("read_files", List.of("bash", "-c", script), DEFAULT_TIMEOUT_MS);
+    return execute("read_files", script);
   }
 
   private Future<ToolInvokeResult> grepSearch(Map<String, Object> args) {
@@ -223,118 +206,50 @@ public class BashFileSystemTools implements ToolSet {
     String pattern = (String) args.get("pattern");
     String include = (String) args.get("include");
 
-    List<String> command =
-        new ArrayList<>(
-            List.of(
-                "grep",
-                "-rnE",
-                "--exclude-dir=.git",
-                "--exclude-dir=node_modules",
-                "--exclude-dir=target",
-                "--exclude-dir=venv",
-                "--exclude-dir=.venv",
-                "--exclude-dir=__pycache__",
-                pattern,
-                path));
+    StringBuilder sb = new StringBuilder("grep -rnE ");
+    sb.append("--exclude-dir=.git ")
+        .append("--exclude-dir=node_modules ")
+        .append("--exclude-dir=target ")
+        .append("--exclude-dir=venv ")
+        .append("--exclude-dir=.venv ")
+        .append("--exclude-dir=__pycache__ ");
+
     if (include != null && !include.isEmpty()) {
-      command.add("--include=" + include);
+      sb.append("--include=").append(PathSanitizer.escapeShellArg(include)).append(" ");
     }
-    return execute("grep_search", command, DEFAULT_TIMEOUT_MS);
+
+    sb.append(PathSanitizer.escapeShellArg(pattern)).append(" ");
+    sb.append(PathSanitizer.escapeShellArg(path));
+
+    return execute("grep_search", sb.toString());
   }
 
-  private Future<ToolInvokeResult> execute(
-      String toolName, List<String> commandWithArgs, long timeoutMs) {
-    log.debug("[FS_EXEC] Tool: {}, Command: {}", toolName, commandWithArgs);
-    return vertx.executeBlocking(
-        () -> {
-          Process process = null;
-          try {
-            ProcessBuilder pb = new ProcessBuilder(commandWithArgs);
-            pb.redirectErrorStream(true);
-            process = pb.start();
+  private Future<ToolInvokeResult> execute(String toolName, String command) {
+    log.debug("[FS_EXEC] Tool: {}, Command: {}", toolName, command);
 
-            final Process p = process;
-            final ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            final boolean[] limitExceeded = {false};
-
-            Thread readerThread =
-                new Thread(
-                    () -> {
-                      try (InputStream is = p.getInputStream()) {
-                        byte[] buffer = new byte[8192];
-                        int n;
-                        while ((n = is.read(buffer)) != -1) {
-                          if (baos.size() + n > MAX_OUTPUT_SIZE) {
-                            limitExceeded[0] = true;
-                            int remaining = (int) (MAX_OUTPUT_SIZE - baos.size());
-                            if (remaining > 0) {
-                              baos.write(buffer, 0, remaining);
-                            }
-                            break;
-                          }
-                          baos.write(buffer, 0, n);
-                        }
-                      } catch (IOException ignored) {
-                      }
-                    });
-            readerThread.setDaemon(true);
-            readerThread.start();
-
-            boolean finished = p.waitFor(timeoutMs, TimeUnit.MILLISECONDS);
-            if (!finished) {
-              log.error("[FS_TIMEOUT] Command timed out: {}", toolName);
-              p.destroyForcibly();
-            }
-
-            // Wait for reader to catch up and exit
-            readerThread.join(1000);
-            String partialOutput = baos.toString(StandardCharsets.UTF_8);
-
-            if (limitExceeded[0]) {
-              log.warn("[FS_LIMIT] Output size exceeded for: {}", toolName);
-              p.destroyForcibly();
-              return ToolInvokeResult.exception(
-                  new ToolErrorResult(
-                      toolName,
-                      ToolErrorResult.ErrorType.SIZE_LIMIT_EXCEEDED,
-                      "Output size exceeded limit of " + (MAX_OUTPUT_SIZE / 1024) + "KB",
-                      null,
-                      partialOutput));
-            }
-
-            if (!finished) {
-              return ToolInvokeResult.exception(
-                  new ToolErrorResult(
-                      toolName,
-                      ToolErrorResult.ErrorType.TIMEOUT,
-                      "Command timed out after " + timeoutMs + "ms",
-                      null,
-                      partialOutput));
-            }
-
-            int exitCode = p.exitValue();
-            if (exitCode != 0) {
-              log.debug("[FS_FAIL] Exit code: {}, Tool: {}", exitCode, toolName);
-              return ToolInvokeResult.error(
-                  "Command failed with exit code " + exitCode + ": " + partialOutput);
-            }
-
-            log.debug("[FS_SUCCESS] Tool: {}", toolName);
-            return ToolInvokeResult.success(partialOutput);
-          } catch (Exception e) {
-            log.error("[FS_ERROR] Exception for tool: {}", toolName, e);
-            return ToolInvokeResult.exception(
-                new ToolErrorResult(
-                    toolName,
-                    ToolErrorResult.ErrorType.UNKNOWN,
-                    "Execution error: " + e.getMessage(),
-                    null,
-                    ""));
-          } finally {
-            if (process != null && process.isAlive()) {
-              process.destroyForcibly();
-            }
-          }
-        });
+    return commandExecutor
+        .execute(command, null, null)
+        .map(
+            result -> {
+              if (result.exitCode() != 0) {
+                return ToolInvokeResult.error(
+                    "Command failed with exit code " + result.exitCode() + ": " + result.output());
+              }
+              return ToolInvokeResult.success(result.output());
+            })
+        .recover(
+            err -> {
+              if (err instanceof VertxProcess.ExecutionException ee) {
+                String msg = ee.getMessage();
+                ToolErrorResult.ErrorType type =
+                    msg.contains("Output size limit exceeded")
+                        ? ToolErrorResult.ErrorType.SIZE_LIMIT_EXCEEDED
+                        : ToolErrorResult.ErrorType.TIMEOUT;
+                return Future.succeededFuture(
+                    ToolInvokeResult.exception(
+                        new ToolErrorResult(toolName, type, msg, null, ee.getPartialOutput())));
+              }
+              return Future.succeededFuture(ToolInvokeResult.error(err.getMessage()));
+            });
   }
 }

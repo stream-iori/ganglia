@@ -215,6 +215,7 @@
                 <exclude>**/node_modules/**</exclude>
                 <exclude>**/target/**</exclude>
                 <exclude>**/venv/**</exclude>
+                <exclude>**/.ganglia/**</exclude>
               </excludes>
               <flexmark/>
             </markdown>
@@ -227,6 +228,7 @@
                 <exclude>**/target/**</exclude>
                 <exclude>**/venv/**</exclude>
                 <exclude>**/tsconfig*.json</exclude>
+                <exclude>**/.ganglia/**</exclude>
               </excludes>
               <jackson/>
             </json>
@@ -239,6 +241,7 @@
                 <exclude>**/node_modules/**</exclude>
                 <exclude>**/target/**</exclude>
                 <exclude>**/venv/**</exclude>
+                <exclude>**/.ganglia/**</exclude>
               </excludes>
               <jackson/>
             </yaml>

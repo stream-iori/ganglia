@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import work.ganglia.kernel.loop.AgentLoopObserver;
 import work.ganglia.port.external.llm.ModelGateway;
+import work.ganglia.port.external.tool.CommandExecutor;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.external.tool.ToolSetProvider;
 import work.ganglia.port.internal.prompt.ContextSource;
@@ -18,7 +19,8 @@ public record BootstrapOptions(
     String projectRoot,
     List<ToolSet> extraToolSets,
     List<ToolSetProvider> extraToolSetProviders,
-    List<ContextSource> extraContextSources) {
+    List<ContextSource> extraContextSources,
+    CommandExecutor commandExecutor) {
   public static BootstrapOptions defaultOptions() {
     return new BootstrapOptions(
         null,
@@ -28,7 +30,8 @@ public record BootstrapOptions(
         null,
         Collections.emptyList(),
         Collections.emptyList(),
-        Collections.emptyList());
+        Collections.emptyList(),
+        null);
   }
 
   public BootstrapOptions withConfigPath(String path) {
@@ -40,7 +43,8 @@ public record BootstrapOptions(
         projectRoot,
         extraToolSets,
         extraToolSetProviders,
-        extraContextSources);
+        extraContextSources,
+        commandExecutor);
   }
 
   public BootstrapOptions withOverrideConfig(JsonObject config) {
@@ -52,7 +56,8 @@ public record BootstrapOptions(
         projectRoot,
         extraToolSets,
         extraToolSetProviders,
-        extraContextSources);
+        extraContextSources,
+        commandExecutor);
   }
 
   public BootstrapOptions withModelGateway(ModelGateway gateway) {
@@ -64,7 +69,8 @@ public record BootstrapOptions(
         projectRoot,
         extraToolSets,
         extraToolSetProviders,
-        extraContextSources);
+        extraContextSources,
+        commandExecutor);
   }
 
   public BootstrapOptions withObservers(List<AgentLoopObserver> observers) {
@@ -76,7 +82,8 @@ public record BootstrapOptions(
         projectRoot,
         extraToolSets,
         extraToolSetProviders,
-        extraContextSources);
+        extraContextSources,
+        commandExecutor);
   }
 
   public BootstrapOptions withProjectRoot(String root) {
@@ -88,7 +95,8 @@ public record BootstrapOptions(
         root,
         extraToolSets,
         extraToolSetProviders,
-        extraContextSources);
+        extraContextSources,
+        commandExecutor);
   }
 
   public BootstrapOptions withExtraToolSets(List<ToolSet> toolSets) {
@@ -100,7 +108,8 @@ public record BootstrapOptions(
         projectRoot,
         toolSets,
         extraToolSetProviders,
-        extraContextSources);
+        extraContextSources,
+        commandExecutor);
   }
 
   public BootstrapOptions withExtraToolSetProviders(List<ToolSetProvider> toolSetProviders) {
@@ -112,7 +121,8 @@ public record BootstrapOptions(
         projectRoot,
         extraToolSets,
         toolSetProviders,
-        extraContextSources);
+        extraContextSources,
+        commandExecutor);
   }
 
   public BootstrapOptions withExtraContextSources(List<ContextSource> contextSources) {
@@ -124,6 +134,20 @@ public record BootstrapOptions(
         projectRoot,
         extraToolSets,
         extraToolSetProviders,
-        contextSources);
+        contextSources,
+        commandExecutor);
+  }
+
+  public BootstrapOptions withCommandExecutor(CommandExecutor executor) {
+    return new BootstrapOptions(
+        configPath,
+        overrideConfig,
+        modelGatewayOverride,
+        extraObservers,
+        projectRoot,
+        extraToolSets,
+        extraToolSetProviders,
+        extraContextSources,
+        executor);
   }
 }
