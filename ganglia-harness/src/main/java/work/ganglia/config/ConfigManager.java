@@ -1,13 +1,8 @@
 package work.ganglia.config;
 
-import io.vertx.config.ConfigRetriever;
-import io.vertx.config.ConfigRetrieverOptions;
-import io.vertx.config.ConfigStoreOptions;
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -19,7 +14,10 @@ import work.ganglia.config.model.GangliaConfig;
 import work.ganglia.config.model.ModelConfig;
 import work.ganglia.util.Constants;
 
-/** SRP: Manages configuration retrieval, watching, and multi-domain provider implementation. */
+/**
+ * SRP: Acts as the central registry for configuration state. Implements multi-domain provider
+ * interfaces and handles JSON deep-merging.
+ */
 public class ConfigManager
     implements ModelConfigProvider,
         AgentConfigProvider,
@@ -28,9 +26,7 @@ public class ConfigManager
   private static final Logger logger = LoggerFactory.getLogger(ConfigManager.class);
   private static final String DEFAULT_CONFIG_FILE = Constants.DEFAULT_CONFIG_FILE;
 
-  private final Vertx vertx;
-  private final ConfigRetriever retriever;
-  private final String configPath;
+  private final ConfigLoader loader;
   private JsonObject currentJson;
   private GangliaConfig currentConfig;
   private final List<Consumer<GangliaConfig>> listeners = new ArrayList<>();
@@ -40,74 +36,36 @@ public class ConfigManager
   }
 
   public ConfigManager(Vertx vertx, String configPath) {
-    this.vertx = vertx;
-    this.configPath = resolveConfigPath(vertx, configPath);
-
-    ConfigStoreOptions fileStore =
-        new ConfigStoreOptions()
-            .setType("file")
-            .setOptional(true)
-            .setConfig(new JsonObject().put("path", this.configPath));
-
-    ConfigRetrieverOptions options =
-        new ConfigRetrieverOptions().addStore(fileStore).setScanPeriod(2000);
-
-    this.retriever = ConfigRetriever.create(vertx, options);
+    this.loader = new ConfigLoader(vertx, configPath);
     this.currentJson = DefaultConfigFactory.create();
 
-    try {
-      if (vertx.fileSystem().existsBlocking(this.configPath)) {
-        JsonObject fileConfig = vertx.fileSystem().readFileBlocking(this.configPath).toJsonObject();
-        this.currentJson.mergeIn(fileConfig, true);
-        logger.debug("Initial configuration loaded from {}", this.configPath);
-      }
-    } catch (Exception e) {
-      logger.warn(
-          "No initial configuration file found or failed to load at {}. Using defaults.",
-          this.configPath);
+    // Initial load (sync/blocking part for immediate access)
+    JsonObject fileConfig = loader.readInitialBlocking();
+    if (!fileConfig.isEmpty()) {
+      this.currentJson.mergeIn(fileConfig, true);
+      logger.debug("Initial configuration loaded from {}", loader.getConfigPath());
     }
     this.currentConfig = this.currentJson.mapTo(GangliaConfig.class);
   }
 
-  private String resolveConfigPath(Vertx vertx, String path) {
-    if (vertx.fileSystem().existsBlocking(path)) {
-      return path;
-    }
-    Path current = Paths.get("").toAbsolutePath();
-    while (current != null) {
-      Path candidate = current.resolve(path);
-      if (vertx.fileSystem().existsBlocking(candidate.toString())) {
-        return candidate.toString();
-      }
-      current = current.getParent();
-    }
-    return path;
-  }
-
+  /**
+   * Initializes the config manager, delegating to the loader to start watching and fetch the full
+   * config.
+   *
+   * @return A future that completes when the initial configuration is fully loaded.
+   */
   public Future<Void> init() {
-    return ensureConfigExists()
-        .compose(v -> retriever.getConfig())
+    return loader
+        .load()
         .map(
             config -> {
               updateConfig(config);
-              retriever.listen(
-                  change -> {
+              loader.listen(
+                  newConfig -> {
                     logger.info("Configuration changed, updating...");
-                    updateConfig(change.getNewConfiguration());
+                    updateConfig(newConfig);
                   });
               return null;
-            });
-  }
-
-  private Future<Void> ensureConfigExists() {
-    return work.ganglia.util.FileSystemUtil.ensureFileWithDefault(
-            vertx, this.configPath, DefaultConfigFactory.create().toBuffer())
-        .onFailure(
-            err -> {
-              logger.error(
-                  "Critical error: Unable to create configuration file at {}. Reason: {}",
-                  this.configPath,
-                  err.getMessage());
             });
   }
 
@@ -129,6 +87,10 @@ public class ConfigManager
         base.put(key, value);
       }
     }
+  }
+
+  public String getConfigPath() {
+    return loader.getConfigPath();
   }
 
   public synchronized GangliaConfig getGangliaConfig() {
