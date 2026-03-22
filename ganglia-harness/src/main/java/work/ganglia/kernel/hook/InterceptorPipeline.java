@@ -91,10 +91,14 @@ public class InterceptorPipeline {
                           err -> {
                             // Fire-and-forget logic: Catch errors here so one failing hook
                             // doesn't stop subsequent postTurn hooks.
+                            String hookName = hook.getClass().getSimpleName();
+                            if (hookName.isEmpty()) {
+                              hookName = hook.getClass().getName();
+                            }
                             log.warn(
-                                "Interceptor {} failed during postTurn, but continuing",
-                                hook.getClass().getSimpleName(),
-                                err);
+                                "Interceptor [{}] failed during postTurn, but continuing. Error: {}",
+                                hookName,
+                                err.getMessage());
                             return Future.succeededFuture();
                           }));
     }

@@ -57,7 +57,11 @@ public class DefaultToolExecutor implements ToolExecutor {
     // 2. Try tools
     for (ToolSet ts : toolSets) {
       if (hasTool(ts, toolName)) {
-        log.debug("Found tool {} in toolset: {}", toolName, ts.getClass().getSimpleName());
+        String toolSetName = ts.getClass().getSimpleName();
+        if (toolSetName.isEmpty()) {
+          toolSetName = ts.getClass().getName();
+        }
+        log.debug("Found tool {} in toolset: {}", toolName, toolSetName);
         return ts.execute(toolCall, context, executionContext)
             .onSuccess(
                 res ->
