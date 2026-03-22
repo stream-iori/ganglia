@@ -1,7 +1,7 @@
 # Ganglia Architecture Documentation
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.6
 
 ## 1. System Overview
 
@@ -26,8 +26,9 @@ The core design philosophy follows a **Hexagonal (Ports & Adapters)** architectu
 5. **Memory as Code:**
    - Memory is stored in **Markdown files** (`.ganglia/memory/MEMORY.md`, Daily Records).
    - It is transparent, editable, and version-controlled.
-6. **Startup Self-Check:**
+6. **Startup Self-Check & Configuration (v1.4.0):**
    - The system automatically validates and initializes the necessary directory structure (`.ganglia/skills`, `memory`, `state`, `logs`, etc.) and configuration at bootstrap.
+   - **ConfigLoader** handles recursive file resolution and Vert.x-based hot-reloading (IO), while **ConfigManager** maintains the state and provides domain-specific interfaces (SRP).
 
 ## 3. Logical Architecture (Hexagonal)
 
@@ -84,6 +85,9 @@ graph TD
 
 ### 3.3 The Infrastructure Layer ("The Hands")
 
+- **Configuration Engine (v1.4.0):**
+  - `ConfigLoader`: Responsible for file path resolution, ensuring default config files exist, and initializing the Vert.x `ConfigRetriever` for watching.
+  - `ConfigManager`: Implements multi-domain providers (`ModelConfigProvider`, `AgentConfigProvider`, etc.) and provides a clean, DRY API for the Kernel to access settings.
 - **Native LLM Gateways:** Implements protocols via Vert.x `WebClient`. Supports explicit timeouts and broadened retry logic for connection resets.
 - **MCP Client:** Implements the Model Context Protocol. Allows Ganglia to dynamically load tools from external MCP servers (configured via `.ganglia/.mcp.json`).
 - **Event Consumers:** `WebUIEventPublisher` and `TraceManager` are decoupled from the loop; they simply consume the unified observation stream and forward it to WebSockets or Files.

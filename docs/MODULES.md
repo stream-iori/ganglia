@@ -1,11 +1,7 @@
 # Ganglia Module Decomposition
 
 > **Status:** In Development
-> **Version:** 0.1.5
->
-> **Base:** Java 17, Vert.x 5.0.6
-
-This document describes the implemented module structure of the Ganglia system, following the Hexagonal architecture.
+> **Version:** 0.1.6
 
 ## 1. Core Framework (Module: `ganglia-harness`)
 
@@ -14,6 +10,7 @@ This document describes the implemented module structure of the Ganglia system, 
 ### 1.1 Kernel (`work.ganglia.kernel`)
 
 - **Reasoning Loop**: `StandardAgentLoop` (Thought -> Task -> Observation).
+- **Dependency Assembly (v1.4.0)**: `GangliaKernel` handles the decoupled assembly of loops and factories using late-binding via `AgentEnv`.
 - **Task System**: `Schedulable` abstraction and concrete task types (`ToolTask`, `SubAgentTask`, `SkillTask`).
 - **Scheduling**: `SchedulableFactory` for mapping intents to execution.
 - **Observation**: `DefaultObservationDispatcher` for unified event routing.
@@ -21,11 +18,12 @@ This document describes the implemented module structure of the Ganglia system, 
 ### 1.2 Port Layer (`work.ganglia.port`)
 
 - **Chat Domain**: `Message`, `Role`, `Turn`, `SessionContext`.
-- **Internal Contract**: `MemoryService`, `PromptEngine`, `SessionManager`, `StateEngine`, `SkillService`, `ExecutionContext`, `ObservationDispatcher`.
+- **Internal Contract**: `MemoryService`, `PromptEngine`, `SessionManager`, `StateEngine`, `SkillService`, `ExecutionContext`, `ObservationDispatcher`, `ModelConfigProvider`.
 - **External Contract**: `ModelGateway`, `ToolSet`.
 
 ### 1.3 Infrastructure Layer (`work.ganglia.infrastructure`)
 
+- **Configuration (v1.4.0)**: `ConfigLoader` (IO/Watcher) and `ConfigManager` (State/Registry).
 - **LLM Integration**: Native OpenAI and Anthropic protocol implementations using Vert.x `WebClient`.
 - **Tooling**: `BashTools`, `FileEditTools`, `ToDoTools`.
 - **Cognitive Impl**: `StandardPromptEngine`, `ContextCompressor`.

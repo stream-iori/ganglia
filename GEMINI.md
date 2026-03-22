@@ -1,6 +1,6 @@
 # Ganglia Project Context
 
-**Status:** Core Implemented (v1.3.0 - Context Compression & Memory Refactoring)
+**Status:** Core Implemented (v1.4.0 - Assembly Refactoring & Config SRP)
 
 ## 1. Project Overview
 
@@ -21,6 +21,7 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for
 ### 3.1 Reasoning & Orchestration
 
 - **Kernel Loop:** `StandardAgentLoop` (in `work.ganglia.kernel.loop`) handles iterative reasoning and sequential task execution.
+- **Dependency Assembly (v1.4.0):** `GangliaKernel` uses an improved late-binding assembly pattern (DIP) to resolve circular dependencies between loops and task factories without hacky proxies.
 - **Task Scheduling:** `SchedulableFactory` maps LLM tool calls to executable `Schedulable` tasks (Standard Tools, Sub-Agents, Skills, DAGs).
 - **Hierarchical Context:** `StandardPromptEngine` with `ContextComposer` stacks five layers: **Kernel** (Persona/Mandates), **Process** (Workflow), **Rule** (Guidelines/Tools), **Capability** (Skills), and **Context** (Env/Plan/Memory).
 - **Sub-Agents:** `SubAgentTask` for transient delegation and `GraphExecutor` for DAG-based execution.
@@ -46,12 +47,18 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for
 - **Daily Journal:** `DailyRecordManager` persists cross-session accomplishments to `.ganglia/memory/daily-*.md`.
 - **Persistence:** `FileStateEngine` ensures session continuity across restarts via JSON serialization.
 
-### 3.4 Skill System
+### 3.4 Configuration & Bootstrapping (v1.4.0)
+
+- **SRP Configuration:** `ConfigLoader` handles file IO and watchers, while `ConfigManager` acts as the pure registry and multi-domain provider.
+- **DRY Accessors:** Functional helpers eliminate boilerplate for safe nested configuration retrieval.
+- **Recursive Resolution:** Configuration files are automatically resolved across parent directories for workspace flexibility.
+
+### 3.5 Skill System
 
 - **Dynamic Loading:** `FileSystemSkillLoader` and `JarSkillLoader` for script/JAR skills.
 - **Expertise Injection:** Skills inject domain-specific prompts and tools into the active context via `SkillTask`.
 
-### 3.5 Testing & Verification
+### 3.6 Testing & Verification
 
 - **E2E Simulation:** `E2ETestHarness` allows for declarative scenario testing without real LLM costs.
 - **Deterministic Assertions:** Verify output, file existence, and memory state within mock-driven loops.
@@ -64,7 +71,7 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for
   - `port/`: Domain interfaces and data models (chat, internal, external).
   - `infrastructure/`: Technical implementations (LLM gateways, state persistence, tool implementations).
   - `api/`: External entry points (WebUI Verticle).
-  - `config/` & `util/`: Shared configuration and utilities.
+  - `config/` & `util/`: Shared configuration (`ConfigLoader`, `ConfigManager`) and utilities.
 - `ganglia-terminal/`: Decoupled UI layer using JLine 3 and Markdown rendering.
 - `ganglia-webui/`: Modern Vue 3 based web interface.
 - `ganglia-swe-bench/`: SWE-bench evaluation module with Docker sandboxing.
