@@ -30,7 +30,9 @@ public class DailyContextSource implements ContextSource {
         .exists(filePath)
         .compose(
             exists -> {
-              if (!exists) return Future.succeededFuture(Collections.emptyList());
+              if (!exists) {
+                return Future.succeededFuture(Collections.emptyList());
+              }
               return vertx
                   .fileSystem()
                   .readFile(filePath)

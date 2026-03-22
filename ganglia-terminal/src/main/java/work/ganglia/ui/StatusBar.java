@@ -183,7 +183,9 @@ public class StatusBar {
   // ── Rendering ───────────────────────────────────────────────────────
 
   void refresh() {
-    if (!enabled || isDumb()) return;
+    if (!enabled || isDumb()) {
+      return;
+    }
 
     synchronized (terminalWriteLock) {
       int rows = getRows();

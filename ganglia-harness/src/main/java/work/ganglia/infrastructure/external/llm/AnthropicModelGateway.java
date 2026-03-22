@@ -75,7 +75,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
                   }
                   if (response.statusCode() >= 400) {
                     return Future.failedFuture(
-                        new LLMException(
+                        new LlmException(
                             "Anthropic Error: " + response.statusMessage(),
                             null,
                             response.statusCode(),
@@ -283,7 +283,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
   private ModelResponse toModelResponse(JsonObject json) {
     JsonArray content = json.getJsonArray("content");
     if (content == null) {
-      throw new LLMException("No content returned from Anthropic");
+      throw new LlmException("No content returned from Anthropic");
     }
 
     StringBuilder text = new StringBuilder();

@@ -2,7 +2,7 @@ package work.ganglia.port.internal.prompt;
 
 import io.vertx.core.Future;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.port.external.llm.LLMRequest;
+import work.ganglia.port.external.llm.LlmRequest;
 
 public interface PromptEngine {
 
@@ -17,5 +17,5 @@ public interface PromptEngine {
    * @param iteration The current iteration in the Standard loop.
    * @return A Future containing the fully prepared LlmRequest.
    */
-  Future<LLMRequest> prepareRequest(SessionContext context, int iteration);
+  Future<LlmRequest> prepareRequest(SessionContext context, int iteration);
 }

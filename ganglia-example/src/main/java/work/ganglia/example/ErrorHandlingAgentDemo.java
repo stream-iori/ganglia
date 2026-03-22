@@ -6,7 +6,7 @@ import java.util.UUID;
 import work.ganglia.Ganglia;
 import work.ganglia.port.chat.Role;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.ui.TerminalUI;
+import work.ganglia.ui.TerminalUi;
 
 /**
  * A demo showcasing how the Standard loop handles tool errors (e.g., file not found). The agent is
@@ -26,7 +26,7 @@ public class ErrorHandlingAgentDemo {
             })
         .onSuccess(
             ganglia -> {
-              TerminalUI ui = TerminalUI.create(vertx);
+              TerminalUi ui = TerminalUi.create(vertx);
               String sessionId = "error-demo-" + UUID.randomUUID().toString().substring(0, 8);
 
               System.out.println("--- Ganglia Error Handling Standard Demo ---");

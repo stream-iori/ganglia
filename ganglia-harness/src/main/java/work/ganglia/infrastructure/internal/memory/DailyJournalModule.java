@@ -33,7 +33,9 @@ public class DailyJournalModule implements MemoryModule {
   @Override
   public Future<Void> onEvent(MemoryEvent event) {
     if (event.type() == MemoryEvent.EventType.TURN_COMPLETED) {
-      if (event.turn() == null) return Future.succeededFuture();
+      if (event.turn() == null) {
+        return Future.succeededFuture();
+      }
 
       return compressor
           .reflect(event.turn())

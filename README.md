@@ -33,7 +33,7 @@
 
 Ganglia is organized into four clean hexagonal layers:
 
-1. **API / Adapter Layer**: Entry points like `WebUIVerticle` (WebSockets) and `TerminalUI` (Console).
+1. **API / Adapter Layer**: Entry points like `WebUiVerticle` (WebSockets) and `TerminalUI` (Console).
 2. **Kernel Layer**: The heart of the reasoning loop, task scheduling, interceptor pipeline, and state evolution.
 3. **Port Layer**: Domain models (`Message`, `Turn`, `Context`, `MemoryEntry`) and strict service interfaces.
 4. **Infrastructure Layer**: Technical implementations (LLM Gateways, File System, Memory Persistence).

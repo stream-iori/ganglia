@@ -104,7 +104,7 @@ public class MemoryRefactorIT {
                       new TokenUsage(1, 1)));
             });
 
-    // Mock the LLM call used for compression itself (LLMObservationCompressor)
+    // Mock the LLM call used for compression itself (LlmObservationCompressor)
     when(mockModel.chat(any()))
         .thenReturn(
             Future.succeededFuture(

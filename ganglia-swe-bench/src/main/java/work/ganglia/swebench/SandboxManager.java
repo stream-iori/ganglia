@@ -53,7 +53,7 @@ public class SandboxManager implements AutoCloseable {
     log.info("Sandbox started. Working directory is /workspace");
   }
 
-  public void setupTaskEnvironment(SWEBenchTask task) throws Exception {
+  public void setupTaskEnvironment(SweBenchTask task) throws Exception {
     log.info("Finalizing task environment in sandbox...");
     String repoDir = "/workspace/repo";
 

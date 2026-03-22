@@ -40,7 +40,7 @@
 **Responsibility:** Modern browser-based control center.
 - **Frontend**: Vue 3 + Vite + Tailwind CSS. Implements the 3x3 Interaction Matrix.
 - **Advanced Features**: Multi-session history management, terminal log filtering, integrated Diff review, and reactive workspace file tree.
-- **Backend API**: `WebUIVerticle` (in `ganglia-web`) providing a native WebSocket server with JSON-RPC 2.0 protocol support and recursive file system monitoring.
+- **Backend API**: `WebUiVerticle` (in `ganglia-web`) providing a native WebSocket server with JSON-RPC 2.0 protocol support and recursive file system monitoring.
 
 ## 4. Integration Testing (Module: `integration-test`)
 
@@ -51,7 +51,7 @@
 ## 5. SWE-bench Module (Module: `ganglia-swe-bench`)
 
 **Responsibility:** Automated evaluation on software engineering benchmarks.
-- **SWEBenchEvaluator**: Driver for benchmark execution.
+- **SweBenchEvaluator**: Driver for benchmark execution.
 - **Sandbox**: Docker-based execution environments.
 
 ## 6. Technology Stack Summary

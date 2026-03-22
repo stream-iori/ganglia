@@ -18,7 +18,7 @@ To solve the "amnesia" problem and context window bloat in Ganglia, we have intr
 ### `ObservationCompressor` (Real-time Compression)
 
 - **Interface:** `work.ganglia.port.internal.memory.ObservationCompressor`
-- **Implementation:** `work.ganglia.infrastructure.internal.memory.LLMObservationCompressor`
+- **Implementation:** `work.ganglia.infrastructure.internal.memory.LlmObservationCompressor`
 - **Purpose:** Intercepts large tool outputs (threshold: 4000 characters) in the kernel loop and uses an LLM to generate a concise summary.
 - **Workflow:** Compressed observations are stored in `MemoryStore` and replaced in the chat history with a summary containing a Recall ID.
 

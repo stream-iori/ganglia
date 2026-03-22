@@ -3,7 +3,7 @@ package work.ganglia.example;
 import io.vertx.core.Vertx;
 import java.util.UUID;
 import work.ganglia.Ganglia;
-import work.ganglia.ui.TerminalUI;
+import work.ganglia.ui.TerminalUi;
 
 /**
  * A demo showcasing the autonomous Standard (Reasoning and Acting) loop. The agent receives a
@@ -22,7 +22,7 @@ public class AutonomousAgentDemo {
             })
         .onSuccess(
             ganglia -> {
-              TerminalUI ui = TerminalUI.create(vertx);
+              TerminalUi ui = TerminalUi.create(vertx);
               String sessionId = "agent-demo-" + UUID.randomUUID().toString().substring(0, 8);
 
               System.out.println("--- Ganglia Autonomous Standard Demo ---");

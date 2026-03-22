@@ -23,8 +23,8 @@ public class WebUIProtocolTest {
   @DisplayName("Should handle JSON-RPC SYNC request over WebSocket")
   void shouldHandleSyncRpc(Vertx vertx, VertxTestContext testContext) {
     int port = 8890;
-    WebUIVerticle verticle =
-        new WebUIVerticle(port, mock(AgentLoop.class), mock(SessionManager.class), 0);
+    WebUiVerticle verticle =
+        new WebUiVerticle(port, mock(AgentLoop.class), mock(SessionManager.class), 0);
 
     vertx
         .deployVerticle(verticle)
@@ -87,8 +87,8 @@ public class WebUIProtocolTest {
   @DisplayName("Should handle JSON-RPC LIST_FILES request over WebSocket")
   void shouldHandleListFilesRpc(Vertx vertx, VertxTestContext testContext) {
     int port = 8891;
-    WebUIVerticle verticle =
-        new WebUIVerticle(port, mock(AgentLoop.class), mock(SessionManager.class), 0);
+    WebUiVerticle verticle =
+        new WebUiVerticle(port, mock(AgentLoop.class), mock(SessionManager.class), 0);
 
     vertx
         .deployVerticle(verticle)

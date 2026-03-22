@@ -13,9 +13,9 @@
 ### Task 1: Fix AvoidStarImport Violations
 
 **Files:**
-- Modify: `ganglia-web/src/main/java/work/ganglia/web/WebUIVerticle.java`
+- Modify: `ganglia-web/src/main/java/work/ganglia/web/WebUiVerticle.java`
 - Modify: `ganglia-harness/src/main/java/work/ganglia/kernel/subagent/ContextScoper.java`
-- Modify: `ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/OpenAIModelGateway.java`
+- Modify: `ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/OpenAiModelGateway.java`
 - Modify: `ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/AnthropicModelGateway.java`
 - Modify: `ganglia-harness/src/main/java/work/ganglia/kernel/todo/ToDoTools.java`
 - Modify: `ganglia-harness/src/main/java/work/ganglia/infrastructure/mcp/VertxMcpClient.java`

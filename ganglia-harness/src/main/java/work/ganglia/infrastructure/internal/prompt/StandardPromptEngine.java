@@ -13,7 +13,7 @@ import work.ganglia.port.chat.*;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.llm.*;
-import work.ganglia.port.external.llm.LLMRequest;
+import work.ganglia.port.external.llm.LlmRequest;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.tool.*;
 import work.ganglia.port.internal.memory.MemoryService;
@@ -116,7 +116,7 @@ public class StandardPromptEngine implements PromptEngine {
   }
 
   @Override
-  public Future<LLMRequest> prepareRequest(SessionContext context, int iteration) {
+  public Future<LlmRequest> prepareRequest(SessionContext context, int iteration) {
     return buildSystemPrompt(context)
         .map(
             systemPromptContent -> {
@@ -150,7 +150,7 @@ public class StandardPromptEngine implements PromptEngine {
                       ? taskFactory.getAvailableDefinitions(context)
                       : Collections.emptyList();
 
-              return new LLMRequest(modelHistory, tools, currentOptions);
+              return new LlmRequest(modelHistory, tools, currentOptions);
             });
   }
 

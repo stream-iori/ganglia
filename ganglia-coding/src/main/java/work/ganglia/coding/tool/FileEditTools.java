@@ -304,7 +304,9 @@ public class FileEditTools implements ToolSet {
                                   .recover(
                                       err -> {
                                         logger.error("Failed to write file: {}", filePath, err);
-                                        if (oldBuffer != null) fs.delete(tempOldPath);
+                                        if (oldBuffer != null) {
+                                          fs.delete(tempOldPath);
+                                        }
                                         return Future.succeededFuture(
                                             ToolInvokeResult.error(
                                                 "FS_ERROR: " + err.getMessage()));

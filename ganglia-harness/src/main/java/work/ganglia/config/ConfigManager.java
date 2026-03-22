@@ -21,7 +21,7 @@ import work.ganglia.util.Constants;
 public class ConfigManager
     implements ModelConfigProvider,
         AgentConfigProvider,
-        WebUIConfigProvider,
+        WebUiConfigProvider,
         ObservabilityConfigProvider {
   private static final Logger logger = LoggerFactory.getLogger(ConfigManager.class);
   private static final String DEFAULT_CONFIG_FILE = Constants.DEFAULT_CONFIG_FILE;
@@ -188,15 +188,15 @@ public class ConfigManager
         : Constants.FILE_GANGLIA_MD;
   }
 
-  // --- WebUIConfigProvider Implementation ---
+  // --- WebUiConfigProvider Implementation ---
 
   @Override
-  public boolean isWebUIEnabled() {
+  public boolean isWebUiEnabled() {
     return currentConfig.webui() != null && currentConfig.webui().enabled();
   }
 
   @Override
-  public int getWebUIPort() {
+  public int getWebUiPort() {
     return currentConfig.webui() != null ? currentConfig.webui().port() : 8080;
   }
 

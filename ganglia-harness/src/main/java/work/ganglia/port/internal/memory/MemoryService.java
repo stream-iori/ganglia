@@ -100,13 +100,20 @@ public class MemoryService {
   }
 
   private boolean isShutdownError(Throwable err) {
-    if (err == null) return false;
-    if (err instanceof RejectedExecutionException) return true;
-    if (err instanceof CompletionException && err.getCause() instanceof RejectedExecutionException)
+    if (err == null) {
+      return false;
+    }
+    if (err instanceof RejectedExecutionException) {
       return true;
+    }
+    if (err instanceof CompletionException
+        && err.getCause() instanceof RejectedExecutionException) {
+      return true;
+    }
     if (err.getMessage() != null
-        && err.getMessage().contains("rejected from java.util.concurrent.ThreadPoolExecutor"))
+        && err.getMessage().contains("rejected from java.util.concurrent.ThreadPoolExecutor")) {
       return true;
+    }
     return isShutdownError(err.getCause());
   }
 }

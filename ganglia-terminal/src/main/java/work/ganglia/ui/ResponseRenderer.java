@@ -165,7 +165,9 @@ public class ResponseRenderer {
     while (lastNonEmpty >= 0 && lines.get(lastNonEmpty).trim().isEmpty()) {
       lastNonEmpty--;
     }
-    if (lastNonEmpty < 0) return List.of();
+    if (lastNonEmpty < 0) {
+      return List.of();
+    }
     List<String> trimmedLines = lines.subList(0, lastNonEmpty + 1);
 
     boolean truncated = !full && trimmedLines.size() > MAX_PREVIEW_LINES;
@@ -237,8 +239,12 @@ public class ResponseRenderer {
     while (i < line.length()) {
       if (line.charAt(i) == '\033' && i + 1 < line.length() && line.charAt(i + 1) == '[') {
         int end = i + 2;
-        while (end < line.length() && line.charAt(end) != 'm') end++;
-        if (end < line.length()) end++;
+        while (end < line.length() && line.charAt(end) != 'm') {
+          end++;
+        }
+        if (end < line.length()) {
+          end++;
+        }
         current.append(line, i, end);
         i = end;
       } else {

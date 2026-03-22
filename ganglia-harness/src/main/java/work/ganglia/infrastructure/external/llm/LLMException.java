@@ -3,21 +3,21 @@ package work.ganglia.infrastructure.external.llm;
 import java.util.Optional;
 
 /** A structured exception thrown when an error occurs during LLM interaction. */
-public class LLMException extends RuntimeException {
+public class LlmException extends RuntimeException {
 
   private final String errorCode;
   private final Integer httpStatusCode;
   private final String requestId;
 
-  public LLMException(String message) {
+  public LlmException(String message) {
     this(message, null, null, null, null);
   }
 
-  public LLMException(String message, String errorCode) {
+  public LlmException(String message, String errorCode) {
     this(message, errorCode, null, null, null);
   }
 
-  public LLMException(
+  public LlmException(
       String message, String errorCode, Integer httpStatusCode, String requestId, Throwable cause) {
     super(message, cause);
     this.errorCode = errorCode;

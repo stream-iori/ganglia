@@ -36,7 +36,7 @@ Ganglia is a Java 17 agent framework on Vert.x 5.0.6 using **Hexagonal (Ports & 
 |---------------------|--------------------------------------------------------------------------------------------------------------------------------------------|
 | `ganglia-harness`   | Kernel (reasoning loop, task scheduling), Ports (domain models, interfaces), Infrastructure (LLM gateways, memory, state, prompts, skills) |
 | `ganglia-coding`    | Coding tools: BashTools, FileEditTools, WebFetchTools                                                                                      |
-| `ganglia-web`       | WebSocket server + JSON-RPC 2.0 endpoint (WebUIVerticle)                                                                                   |
+| `ganglia-web`       | WebSocket server + JSON-RPC 2.0 endpoint (WebUiVerticle)                                                                                   |
 | `ganglia-terminal`  | JLine 3 TUI with Flexmark Markdown rendering                                                                                               |
 | `ganglia-webui`     | React 18 + TypeScript + Vite frontend (shadcn/ui, Zustand)                                                                                 |
 | `ganglia-example`   | Demo apps (WebUIDemo, AutonomousAgentDemo, etc.)                                                                                           |
@@ -45,10 +45,10 @@ Ganglia is a Java 17 agent framework on Vert.x 5.0.6 using **Hexagonal (Ports & 
 
 ### Four Hexagonal Layers
 
-1. **API / Adapter**: Entry points — `WebUIVerticle` (WebSockets), `TerminalUI` (console)
+1. **API / Adapter**: Entry points — `WebUiVerticle` (WebSockets), `TerminalUI` (console)
 2. **Kernel**: `StandardAgentLoop` (ReAct), `SchedulableFactory` (maps tool calls to tasks), `AgentTaskFactory`
 3. **Port**: Domain models (`Message`, `Turn`, `SessionContext`) + service interfaces (`ModelGateway`, `ToolSet`, `MemoryService`, `PromptEngine`, `SessionManager`)
-4. **Infrastructure**: Implementations — `OpenAIModelGateway`, `AnthropicModelGateway`, `RetryingModelGateway`, `FileStateEngine`, `StandardPromptEngine`, tool implementations
+4. **Infrastructure**: Implementations — `OpenAiModelGateway`, `AnthropicModelGateway`, `RetryingModelGateway`, `FileStateEngine`, `StandardPromptEngine`, tool implementations
 
 ### Package Structure (`work.ganglia.*`)
 

@@ -14,7 +14,7 @@ To ensure Ganglia remains stable, responsive, and recoverable in the face of LLM
 
 ### 2.1 Structured Exception Mapping
 
-The `ModelGateway` abstracts provider-specific errors into a unified `LLMException` hierarchy.
+The `ModelGateway` abstracts provider-specific errors into a unified `LlmException` hierarchy.
 
 ### 2.2 Explicit Timeouts
 

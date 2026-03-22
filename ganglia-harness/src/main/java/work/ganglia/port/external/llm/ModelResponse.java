@@ -7,6 +7,8 @@ import work.ganglia.port.internal.state.TokenUsage;
 
 public record ModelResponse(String content, List<ToolCall> toolCalls, TokenUsage usage) {
   public ModelResponse {
-    if (toolCalls == null) toolCalls = Collections.emptyList();
+    if (toolCalls == null) {
+      toolCalls = Collections.emptyList();
+    }
   }
 }

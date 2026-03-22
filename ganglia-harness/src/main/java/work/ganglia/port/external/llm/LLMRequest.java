@@ -5,5 +5,5 @@ import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.tool.ToolDefinition;
 
 /** Encapsulates all data required for an LLM request. */
-public record LLMRequest(
+public record LlmRequest(
     List<Message> messages, List<ToolDefinition> tools, ModelOptions options) {}

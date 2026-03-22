@@ -24,18 +24,18 @@ import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.port.internal.state.TokenUsage;
 
-public class OpenAIModelGateway extends AbstractModelGateway {
-  private static final Logger logger = LoggerFactory.getLogger(OpenAIModelGateway.class);
+public class OpenAiModelGateway extends AbstractModelGateway {
+  private static final Logger logger = LoggerFactory.getLogger(OpenAiModelGateway.class);
   private static final Logger llmLogger = LoggerFactory.getLogger("LLM_LOG");
   private final WebClient webClient;
   private final GatewayConfig config;
   private final String endpoint;
 
-  public OpenAIModelGateway(Vertx vertx, WebClient webClient, String apiKey, String baseUrl) {
+  public OpenAiModelGateway(Vertx vertx, WebClient webClient, String apiKey, String baseUrl) {
     this(vertx, webClient, new GatewayConfig(apiKey, baseUrl, 60000));
   }
 
-  public OpenAIModelGateway(Vertx vertx, WebClient webClient, GatewayConfig config) {
+  public OpenAiModelGateway(Vertx vertx, WebClient webClient, GatewayConfig config) {
     super(vertx);
     this.webClient = webClient;
     this.config = config;
@@ -48,7 +48,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                 : baseUrl + "/chat/completions");
   }
 
-  public OpenAIModelGateway(
+  public OpenAiModelGateway(
       Vertx vertx, WebClient webClient, String apiKey, String baseUrl, int timeoutMs) {
     this(vertx, webClient, new GatewayConfig(apiKey, baseUrl, timeoutMs));
   }
@@ -82,7 +82,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                     logger.error(
                         "[LLM_ERROR] Status: {}, Body: {}", response.statusCode(), errorBody);
                     return Future.failedFuture(
-                        new LLMException(
+                        new LlmException(
                             "LLM Error: " + response.statusCode() + " " + response.statusMessage(),
                             null,
                             response.statusCode(),
@@ -276,7 +276,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
   private ModelResponse toModelResponse(JsonObject json) {
     JsonArray choices = json.getJsonArray("choices");
     if (choices == null || choices.isEmpty()) {
-      throw new LLMException("No choices returned from OpenAI");
+      throw new LlmException("No choices returned from OpenAI");
     }
 
     JsonObject choice = choices.getJsonObject(0);

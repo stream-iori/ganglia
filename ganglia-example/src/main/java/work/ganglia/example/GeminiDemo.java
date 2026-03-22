@@ -5,7 +5,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.Ganglia;
-import work.ganglia.ui.TerminalUI;
+import work.ganglia.ui.TerminalUi;
 
 /**
  * A demo specifically for verifying Google Gemini integration. It ensures the provider is set to
@@ -23,7 +23,7 @@ public class GeminiDemo {
         .onSuccess(
             ganglia -> {
               Vertx vertx = ganglia.vertx();
-              TerminalUI ui = TerminalUI.create(vertx);
+              TerminalUi ui = TerminalUi.create(vertx);
               String sessionId = "gemini-demo-" + UUID.randomUUID().toString().substring(0, 8);
 
               System.out.println("--- Ganglia Gemini Integration Demo ---");

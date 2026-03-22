@@ -107,8 +107,8 @@ public class RetryingModelGateway implements ModelGateway {
       return true;
     }
 
-    if (err instanceof LLMException) {
-      LLMException le = (LLMException) err;
+    if (err instanceof LlmException) {
+      LlmException le = (LlmException) err;
       int status = le.httpStatusCode().orElse(0);
       return status == 429 || (status >= 500 && status < 600);
     }

@@ -15,7 +15,9 @@ public class TokenCounter {
   }
 
   public int count(String text) {
-    if (text == null || text.isEmpty()) return 0;
+    if (text == null || text.isEmpty()) {
+      return 0;
+    }
     return encoding.countTokens(text);
   }
 }

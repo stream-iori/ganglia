@@ -20,7 +20,7 @@ import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
 import work.ganglia.infrastructure.internal.memory.FileSystemDailyRecordManager;
 import work.ganglia.infrastructure.internal.memory.FileSystemLongTermMemory;
 import work.ganglia.infrastructure.internal.memory.FileSystemMemoryStore;
-import work.ganglia.infrastructure.internal.memory.LLMObservationCompressor;
+import work.ganglia.infrastructure.internal.memory.LlmObservationCompressor;
 import work.ganglia.infrastructure.internal.memory.LongTermKnowledgeModule;
 import work.ganglia.infrastructure.internal.memory.MarkdownTimelineLedger;
 import work.ganglia.infrastructure.internal.memory.MemoryContextSource;
@@ -175,7 +175,7 @@ public class GangliaKernel {
             ? configManager.getUtilityModel()
             : configManager.getModel();
     ObservationCompressor observationCompressor =
-        new LLMObservationCompressor(modelGateway, 4000, compressionModel);
+        new LlmObservationCompressor(modelGateway, 4000, compressionModel);
     TimelineLedger timelineLedger = new MarkdownTimelineLedger(vertx, projectRoot);
 
     SkillRuntime skillRuntime = new DefaultSkillRuntime(vertx, skillService);

@@ -12,17 +12,17 @@ import work.ganglia.port.internal.memory.ObservationCompressor;
 import work.ganglia.port.internal.memory.model.CompressionContext;
 import work.ganglia.port.internal.state.AgentSignal;
 
-public class LLMObservationCompressor implements ObservationCompressor {
+public class LlmObservationCompressor implements ObservationCompressor {
 
   private final ModelGateway modelGateway;
   private final int thresholdLength; // e.g. 4000 chars
   private final String modelName;
 
-  public LLMObservationCompressor(ModelGateway modelGateway, int thresholdLength) {
+  public LlmObservationCompressor(ModelGateway modelGateway, int thresholdLength) {
     this(modelGateway, thresholdLength, "gpt-4o-mini");
   }
 
-  public LLMObservationCompressor(
+  public LlmObservationCompressor(
       ModelGateway modelGateway, int thresholdLength, String modelName) {
     this.modelGateway = modelGateway;
     this.thresholdLength = thresholdLength;

@@ -16,11 +16,11 @@ import work.ganglia.web.model.ServerEvent;
 import work.ganglia.web.model.TtyEvent;
 
 /** Publishes Agent Loop observations to the WebUI via EventBus. */
-public class WebUIEventPublisher implements AgentLoopObserver {
-  private static final Logger logger = LoggerFactory.getLogger(WebUIEventPublisher.class);
+public class WebUiEventPublisher implements AgentLoopObserver {
+  private static final Logger logger = LoggerFactory.getLogger(WebUiEventPublisher.class);
   private final Vertx vertx;
 
-  public WebUIEventPublisher(Vertx vertx) {
+  public WebUiEventPublisher(Vertx vertx) {
     this.vertx = vertx;
     setupConsumer();
   }

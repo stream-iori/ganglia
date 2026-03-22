@@ -39,7 +39,7 @@ The system is organized into four primary hexagonal layers.
 ```mermaid
 graph TD
     subgraph API ["1. API / Adapter Layer"]
-        WebUI["WebUIVerticle (WebSocket / JSON-RPC 2.0)"]
+        WebUI["WebUiVerticle (WebSocket / JSON-RPC 2.0)"]
         TUI["TerminalUI (Standalone Module)"]
         Demos["Example Applications"]
     end
@@ -60,7 +60,7 @@ graph TD
         Gateways["Native LLM Gateways (OpenAI, Anthropic Protocols)"]
         Tools["Standard Tool Implementations (Bash, FS)"]
         MCP["MCP Client (Stdio / SSE)"]
-        Observability["TraceManager & WebUIEventPublisher (Event Consumers)"]
+        Observability["TraceManager & WebUiEventPublisher (Event Consumers)"]
         Vertx["Vert.x Core (EventBus, WebClient)"]
     end
 
@@ -90,7 +90,7 @@ graph TD
   - `ConfigManager`: Implements multi-domain providers (`ModelConfigProvider`, `AgentConfigProvider`, etc.) and provides a clean, DRY API for the Kernel to access settings.
 - **Native LLM Gateways:** Implements protocols via Vert.x `WebClient`. Supports explicit timeouts and broadened retry logic for connection resets.
 - **MCP Client:** Implements the Model Context Protocol. Allows Ganglia to dynamically load tools from external MCP servers (configured via `.ganglia/.mcp.json`).
-- **Event Consumers:** `WebUIEventPublisher` and `TraceManager` are decoupled from the loop; they simply consume the unified observation stream and forward it to WebSockets or Files.
+- **Event Consumers:** `WebUiEventPublisher` and `TraceManager` are decoupled from the loop; they simply consume the unified observation stream and forward it to WebSockets or Files.
 - **Persistence:** Unified via `FileSystemUtil`, ensuring standard structures like `.ganglia/config.json`, `.mcp.json`, and session state folders exist.
 
 ## 4. The Memory System

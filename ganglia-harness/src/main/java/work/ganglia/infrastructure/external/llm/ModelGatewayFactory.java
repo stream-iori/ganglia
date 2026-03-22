@@ -60,17 +60,21 @@ public class ModelGatewayFactory {
 
   private static ModelGateway createOpenAI(Vertx vertx, WebClient webClient, ModelConfig config) {
     String baseUrl = config.baseUrl();
-    if (baseUrl == null || baseUrl.isEmpty()) baseUrl = "https://api.openai.com/v1";
+    if (baseUrl == null || baseUrl.isEmpty()) {
+      baseUrl = "https://api.openai.com/v1";
+    }
     logger.info("Initializing OpenAI provider (Base URL: {})", baseUrl);
     GatewayConfig gatewayConfig =
         new GatewayConfig(config.apiKey(), baseUrl, config.getTimeoutOrDefault());
-    return new OpenAIModelGateway(vertx, webClient, gatewayConfig);
+    return new OpenAiModelGateway(vertx, webClient, gatewayConfig);
   }
 
   private static ModelGateway createAnthropic(
       Vertx vertx, WebClient webClient, ModelConfig config) {
     String baseUrl = config.baseUrl();
-    if (baseUrl == null || baseUrl.isEmpty()) baseUrl = "https://api.anthropic.com";
+    if (baseUrl == null || baseUrl.isEmpty()) {
+      baseUrl = "https://api.anthropic.com";
+    }
     logger.info("Initializing Anthropic provider (Base URL: {})", baseUrl);
     GatewayConfig gatewayConfig =
         new GatewayConfig(config.apiKey(), baseUrl, config.getTimeoutOrDefault());
@@ -79,11 +83,12 @@ public class ModelGatewayFactory {
 
   private static ModelGateway createGemini(Vertx vertx, WebClient webClient, ModelConfig config) {
     String baseUrl = config.baseUrl();
-    if (baseUrl == null || baseUrl.isEmpty())
+    if (baseUrl == null || baseUrl.isEmpty()) {
       baseUrl = "https://generativelanguage.googleapis.com/v1beta/openai";
+    }
     logger.info("Initializing Gemini provider via OpenAI compatibility (Base URL: {})", baseUrl);
     GatewayConfig gatewayConfig =
         new GatewayConfig(config.apiKey(), baseUrl, config.getTimeoutOrDefault());
-    return new OpenAIModelGateway(vertx, webClient, gatewayConfig);
+    return new OpenAiModelGateway(vertx, webClient, gatewayConfig);
   }
 }

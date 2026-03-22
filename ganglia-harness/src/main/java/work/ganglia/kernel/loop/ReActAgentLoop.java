@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.config.AgentConfigProvider;
-import work.ganglia.infrastructure.external.llm.LLMException;
+import work.ganglia.infrastructure.external.llm.LlmException;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.kernel.hook.InterceptorPipeline;
 import work.ganglia.kernel.task.AgentTask;
@@ -159,7 +159,9 @@ public class ReActAgentLoop implements AgentLoop {
   }
 
   private Future<String> runLoop(SessionContext currentContext, AgentSignal signal) {
-    if (signal.isAborted()) return Future.failedFuture(new AgentAbortedException());
+    if (signal.isAborted()) {
+      return Future.failedFuture(new AgentAbortedException());
+    }
 
     int iteration = currentContext.getIterationCount();
     int maxIterations = configProvider.getMaxIterations();
@@ -189,7 +191,7 @@ public class ReActAgentLoop implements AgentLoop {
                             contextForReasoning.sessionId(),
                             err);
                         Map<String, Object> errorData = new HashMap<>();
-                        if (err instanceof LLMException llmErr) {
+                        if (err instanceof LlmException llmErr) {
                           llmErr.errorCode().ifPresent(code -> errorData.put("errorCode", code));
                           llmErr
                               .httpStatusCode()
@@ -207,7 +209,9 @@ public class ReActAgentLoop implements AgentLoop {
   }
 
   private Future<ModelResponse> reason(SessionContext context, AgentSignal signal) {
-    if (signal.isAborted()) return Future.failedFuture(new AgentAbortedException());
+    if (signal.isAborted()) {
+      return Future.failedFuture(new AgentAbortedException());
+    }
 
     int iteration = context.getIterationCount();
     publishObservation(context.sessionId(), ObservationType.REASONING_STARTED, null);
@@ -216,7 +220,9 @@ public class ReActAgentLoop implements AgentLoop {
         .prepareRequest(context, iteration)
         .compose(
             promptRequest -> {
-              if (signal.isAborted()) return Future.failedFuture(new AgentAbortedException());
+              if (signal.isAborted()) {
+                return Future.failedFuture(new AgentAbortedException());
+              }
 
               ChatRequest chatRequest =
                   new ChatRequest(
@@ -255,7 +261,9 @@ public class ReActAgentLoop implements AgentLoop {
 
   private Future<String> handleDecision(
       ModelResponse response, SessionContext currentContext, AgentSignal signal) {
-    if (signal.isAborted()) return Future.failedFuture(new AgentAbortedException());
+    if (signal.isAborted()) {
+      return Future.failedFuture(new AgentAbortedException());
+    }
 
     String content = response.content();
     List<ToolCall> toolCalls = response.toolCalls();
@@ -296,8 +304,12 @@ public class ReActAgentLoop implements AgentLoop {
 
   private Future<SessionContext> executeTasksSequentially(
       List<AgentTask> tasks, int index, SessionContext currentContext, AgentSignal signal) {
-    if (signal.isAborted()) return Future.failedFuture(new AgentAbortedException());
-    if (index >= tasks.size()) return Future.succeededFuture(currentContext);
+    if (signal.isAborted()) {
+      return Future.failedFuture(new AgentAbortedException());
+    }
+    if (index >= tasks.size()) {
+      return Future.succeededFuture(currentContext);
+    }
 
     AgentTask task = tasks.get(index);
     Map<String, Object> toolData = new HashMap<>();
@@ -412,7 +424,9 @@ public class ReActAgentLoop implements AgentLoop {
 
   private Future<SessionContext> cancelRemainingTasks(
       List<AgentTask> tasks, int index, SessionContext currentContext) {
-    if (index >= tasks.size()) return Future.succeededFuture(currentContext);
+    if (index >= tasks.size()) {
+      return Future.succeededFuture(currentContext);
+    }
     AgentTask task = tasks.get(index);
     Message cancelMsg =
         Message.tool(task.id(), task.name(), "CANCELLED: Previous task interrupted the flow.");

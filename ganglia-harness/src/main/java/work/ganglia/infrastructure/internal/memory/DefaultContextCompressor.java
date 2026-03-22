@@ -79,7 +79,9 @@ public class DefaultContextCompressor
   @Override
   public Future<String> compress(List<Turn> turns) {
     var content = new StringBuilder("Summarize these turns into a dense state report:\n");
-    for (Turn t : turns) content.append(t.toString()).append("\n");
+    for (Turn t : turns) {
+      content.append(t.toString()).append("\n");
+    }
 
     var userMsg = Message.user(content.toString());
     ModelOptions summaryOptions =

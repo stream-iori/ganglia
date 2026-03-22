@@ -48,7 +48,9 @@ public class JarSkillLoader implements SkillLoader {
     return fs.exists(baseDir.toString())
         .compose(
             exists -> {
-              if (!exists) return Future.succeededFuture(List.of());
+              if (!exists) {
+                return Future.succeededFuture(List.of());
+              }
               return fs.readDir(baseDir.toString())
                   .compose(
                       list -> {
@@ -64,7 +66,9 @@ public class JarSkillLoader implements SkillLoader {
                                   List<SkillManifest> loaded = new ArrayList<>();
                                   for (int i = 0; i < futures.size(); i++) {
                                     SkillManifest m = composite.resultAt(i);
-                                    if (m != null) loaded.add(m);
+                                    if (m != null) {
+                                      loaded.add(m);
+                                    }
                                   }
                                   return loaded;
                                 });

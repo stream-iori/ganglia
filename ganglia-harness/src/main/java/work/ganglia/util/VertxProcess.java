@@ -295,7 +295,9 @@ public class VertxProcess {
                       }
                     }
                     n = stream.read(buffer);
-                    if (n == -1) break;
+                    if (n == -1) {
+                      break;
+                    }
 
                     Buffer b = Buffer.buffer(n);
                     b.appendBytes(buffer, 0, n);
@@ -481,6 +483,7 @@ public class VertxProcess {
       try {
         os.close();
       } catch (IOException ignored) {
+        // Ignored
       }
     }
   }

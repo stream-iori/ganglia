@@ -4,7 +4,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import java.util.UUID;
 import work.ganglia.Ganglia;
-import work.ganglia.ui.TerminalUI;
+import work.ganglia.ui.TerminalUi;
 
 /**
  * A demo showcasing Parent-Child Agent cooperation. The Parent Agent delegates a messy
@@ -31,7 +31,7 @@ public class SubAgentCooperationDemo {
             })
         .onSuccess(
             ganglia -> {
-              TerminalUI ui = TerminalUI.create(vertx);
+              TerminalUi ui = TerminalUi.create(vertx);
               String sessionId = "parent-session-" + UUID.randomUUID().toString().substring(0, 8);
 
               System.out.println("--- Ganglia Sub-Agent Cooperation Demo ---");

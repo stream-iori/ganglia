@@ -10,8 +10,14 @@ import work.ganglia.port.internal.state.AgentSignal;
 public record ChatRequest(
     List<Message> messages, List<ToolDefinition> tools, ModelOptions options, AgentSignal signal) {
   public ChatRequest {
-    if (messages == null) messages = Collections.emptyList();
-    if (tools == null) tools = Collections.emptyList();
-    if (signal == null) signal = new AgentSignal();
+    if (messages == null) {
+      messages = Collections.emptyList();
+    }
+    if (tools == null) {
+      tools = Collections.emptyList();
+    }
+    if (signal == null) {
+      signal = new AgentSignal();
+    }
   }
 }

@@ -45,7 +45,9 @@ public class FileSystemSkillLoader implements SkillLoader {
     return fs.exists(baseDir.toString())
         .compose(
             exists -> {
-              if (!exists) return Future.succeededFuture(List.of());
+              if (!exists) {
+                return Future.succeededFuture(List.of());
+              }
               return fs.readDir(baseDir.toString())
                   .compose(
                       list -> {
@@ -59,7 +61,9 @@ public class FileSystemSkillLoader implements SkillLoader {
                                   List<SkillManifest> loaded = new ArrayList<>();
                                   for (int i = 0; i < futures.size(); i++) {
                                     SkillManifest m = composite.resultAt(i);
-                                    if (m != null) loaded.add(m);
+                                    if (m != null) {
+                                      loaded.add(m);
+                                    }
                                   }
                                   return loaded;
                                 });
@@ -88,7 +92,9 @@ public class FileSystemSkillLoader implements SkillLoader {
                 return fs.exists(skillJsonPath)
                     .compose(
                         jsonExists -> {
-                          if (!jsonExists) return Future.succeededFuture(null);
+                          if (!jsonExists) {
+                            return Future.succeededFuture(null);
+                          }
                           return fs.readFile(skillJsonPath)
                               .map(buffer -> SkillManifest.fromJson(buffer.toJsonObject()));
                         });

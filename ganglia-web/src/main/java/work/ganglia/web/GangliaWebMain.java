@@ -20,21 +20,21 @@ public class GangliaWebMain {
     BootstrapOptions options =
         BootstrapOptions.defaultOptions()
             .withConfigPath(configPath)
-            .withObservers(List.of(new WebUIEventPublisher(vertx)));
+            .withObservers(List.of(new WebUiEventPublisher(vertx)));
 
     CodingAgentBuilder.bootstrap(vertx, options)
         .onSuccess(
             ganglia -> {
               Runtime.getRuntime().addShutdownHook(new Thread(ganglia::shutdown));
 
-              GangliaConfig.WebUIConfig webUIConfig =
+              GangliaConfig.WebUiConfig webUiConfig =
                   ganglia.configManager().getGangliaConfig().webui();
-              if (webUIConfig != null && webUIConfig.enabled()) {
-                int port = webUIConfig.port();
-                String webroot = webUIConfig.webroot();
+              if (webUiConfig != null && webUiConfig.enabled()) {
+                int port = webUiConfig.port();
+                String webroot = webUiConfig.webroot();
 
-                WebUIVerticle webUIVerticle =
-                    new WebUIVerticle(
+                WebUiVerticle webUiVerticle =
+                    new WebUiVerticle(
                         port,
                         webroot,
                         ganglia.agentLoop(),
@@ -42,7 +42,7 @@ public class GangliaWebMain {
                         ganglia.mcpServersCount());
 
                 vertx
-                    .deployVerticle(webUIVerticle)
+                    .deployVerticle(webUiVerticle)
                     .onSuccess(
                         id -> logger.info("Ganglia WebUI deployed successfully on port {}", port))
                     .onFailure(

@@ -3,7 +3,7 @@ package work.ganglia.example;
 import io.vertx.core.Vertx;
 import java.util.UUID;
 import work.ganglia.Ganglia;
-import work.ganglia.ui.TerminalUI;
+import work.ganglia.ui.TerminalUi;
 
 /** Base demo showing how to bootstrap and run a Ganglia agent with streaming. */
 public class BaseDemo {
@@ -19,7 +19,7 @@ public class BaseDemo {
             ganglia -> {
               Vertx vertx = ganglia.vertx();
               // 2. Setup UI for streaming feedback
-              TerminalUI ui = TerminalUI.create(vertx);
+              TerminalUi ui = TerminalUi.create(vertx);
 
               String sessionId = UUID.randomUUID().toString();
 

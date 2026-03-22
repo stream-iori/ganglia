@@ -18,15 +18,15 @@ import work.ganglia.port.internal.memory.model.CompressionContext;
 import work.ganglia.port.internal.state.TokenUsage;
 
 @ExtendWith(VertxExtension.class)
-class LLMObservationCompressorTest {
+class LlmObservationCompressorTest {
 
   private ModelGateway modelGateway;
-  private LLMObservationCompressor compressor;
+  private LlmObservationCompressor compressor;
 
   @BeforeEach
   void setUp() {
     modelGateway = Mockito.mock(ModelGateway.class);
-    compressor = new LLMObservationCompressor(modelGateway, 100); // Small threshold for testing
+    compressor = new LlmObservationCompressor(modelGateway, 100); // Small threshold for testing
   }
 
   @Test

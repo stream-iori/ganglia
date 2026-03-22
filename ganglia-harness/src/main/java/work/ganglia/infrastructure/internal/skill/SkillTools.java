@@ -72,9 +72,11 @@ public class SkillTools implements ToolSet {
     String skillId = (String) args.get("skillId");
     Object confirmedObj = args.getOrDefault("confirmed", false);
     boolean confirmed = false;
-    if (confirmedObj instanceof Boolean) confirmed = (Boolean) confirmedObj;
-    else if (confirmedObj instanceof String)
+    if (confirmedObj instanceof Boolean) {
+      confirmed = (Boolean) confirmedObj;
+    } else if (confirmedObj instanceof String) {
       confirmed = Boolean.parseBoolean((String) confirmedObj);
+    }
 
     Optional<SkillManifest> skillOpt = skillService.getSkill(skillId);
     if (skillOpt.isEmpty()) {

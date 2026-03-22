@@ -61,15 +61,15 @@ public abstract class AbstractModelGateway implements ModelGateway {
       return future.onComplete(v -> semaphore.release());
     } else {
       return Future.failedFuture(
-          new LLMException("Concurrency limit reached (max 5)", null, 429, null, null));
+          new LlmException("Concurrency limit reached (max 5)", null, 429, null, null));
     }
   }
 
   protected Throwable wrapException(Throwable e) {
-    if (e instanceof LLMException) {
+    if (e instanceof LlmException) {
       return e;
     }
-    return new LLMException(e.getMessage(), null, null, null, e);
+    return new LlmException(e.getMessage(), null, null, null, e);
   }
 
   /** Shared helper for ToolCall building during streaming. */
@@ -135,7 +135,7 @@ public abstract class AbstractModelGateway implements ModelGateway {
                 }
                 logger.error("[LLM_ERROR] Status: {}, Body: {}", response.statusCode(), errorBody);
                 promise.fail(
-                    new LLMException(
+                    new LlmException(
                         "LLM Error: " + response.statusCode() + " " + response.statusMessage(),
                         null,
                         response.statusCode(),

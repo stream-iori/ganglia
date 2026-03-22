@@ -32,7 +32,9 @@ public class SseParser implements Handler<Buffer> {
 
   private void handleRecord(Buffer record) {
     String chunk = record.toString("UTF-8").trim();
-    if (chunk.isEmpty()) return;
+    if (chunk.isEmpty()) {
+      return;
+    }
 
     String[] lines = chunk.split("\n");
     for (String line : lines) {
