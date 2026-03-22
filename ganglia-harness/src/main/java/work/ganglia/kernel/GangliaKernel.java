@@ -173,7 +173,14 @@ public class GangliaKernel {
     memoryService.registerModule(new DailyJournalModule(compressor, dailyRecordManager));
     memoryService.registerModule(new LongTermKnowledgeModule(longTermMemory));
 
-    InterceptorPipeline pipeline = new InterceptorPipeline();
+    DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
+
+    // Register extra observers directly
+    for (work.ganglia.kernel.loop.AgentLoopObserver observer : options.extraObservers()) {
+      dispatcher.register(observer);
+    }
+
+    InterceptorPipeline pipeline = new InterceptorPipeline(dispatcher);
     pipeline.addInterceptor(new ObservationCompressionHook(observationCompressor, memoryStore));
 
     ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, longTermMemory, projectRoot);
@@ -205,12 +212,6 @@ public class GangliaKernel {
         new work.ganglia.infrastructure.external.tool.RecallMemoryTools(memoryStore));
 
     DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, allExtraToolSets);
-    DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
-
-    // Register extra observers directly
-    for (work.ganglia.kernel.loop.AgentLoopObserver observer : options.extraObservers()) {
-      dispatcher.register(observer);
-    }
 
     ConsecutiveFailurePolicy failurePolicy = new ConsecutiveFailurePolicy();
     DefaultContextOptimizer contextOptimizer =

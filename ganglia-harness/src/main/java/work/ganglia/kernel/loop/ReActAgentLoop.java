@@ -58,7 +58,8 @@ public class ReActAgentLoop implements AgentLoop {
     this.modelGateway = builder.modelGateway;
     this.taskFactory = builder.taskFactory;
     this.faultTolerancePolicy = builder.faultTolerancePolicy;
-    this.pipeline = builder.pipeline != null ? builder.pipeline : new InterceptorPipeline();
+    this.pipeline =
+        builder.pipeline != null ? builder.pipeline : new InterceptorPipeline(this.dispatcher);
   }
 
   public static Builder builder() {
@@ -80,7 +81,6 @@ public class ReActAgentLoop implements AgentLoop {
   @Override
   public Future<String> run(String userInput, SessionContext initialContext, AgentSignal signal) {
     sessionSignals.put(initialContext.sessionId(), signal);
-    publishObservation(initialContext.sessionId(), ObservationType.TURN_STARTED, userInput);
 
     return pipeline
         .executePreTurn(initialContext, userInput)
@@ -278,7 +278,6 @@ public class ReActAgentLoop implements AgentLoop {
                       .persist(contextAfterTools)
                       .compose(v -> runLoop(contextAfterTools, signal)));
     } else {
-      publishObservation(currentContext.sessionId(), ObservationType.TURN_FINISHED, content);
       SessionContext finalContext =
           sessionManager.completeTurn(currentContext, Message.assistant(content));
 
@@ -304,8 +303,6 @@ public class ReActAgentLoop implements AgentLoop {
     if (task.getToolCall() != null && task.getToolCall().arguments() != null) {
       toolData.putAll(task.getToolCall().arguments());
     }
-    publishObservation(
-        currentContext.sessionId(), ObservationType.TOOL_STARTED, task.name(), toolData);
 
     final SessionContext originalContext = currentContext;
     ExecutionContext execContext =
@@ -385,12 +382,6 @@ public class ReActAgentLoop implements AgentLoop {
                     "Interrupted: " + result.output(),
                     interruptData);
 
-                publishObservation(
-                    originalContext.sessionId(),
-                    ObservationType.TOOL_FINISHED,
-                    "Paused: " + result.output(),
-                    resData);
-
                 Message interruptMsg =
                     Message.tool(task.id(), task.name(), "INTERRUPTED: " + result.output());
                 SessionContext interruptedContext =
@@ -403,12 +394,6 @@ public class ReActAgentLoop implements AgentLoop {
                             Future.failedFuture(
                                 new AgentInterruptException(result.output(), askId)));
               }
-
-              publishObservation(
-                  originalContext.sessionId(),
-                  ObservationType.TOOL_FINISHED,
-                  result.output(),
-                  resData);
 
               Message toolMsg = Message.tool(task.id(), task.name(), result.output());
               SessionContext ctxToUse =

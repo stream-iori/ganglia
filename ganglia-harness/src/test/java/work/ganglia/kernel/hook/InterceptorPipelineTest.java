@@ -21,7 +21,7 @@ class InterceptorPipelineTest extends BaseGangliaTest {
 
   @BeforeEach
   void setUpPipeline() {
-    pipeline = new InterceptorPipeline();
+    pipeline = new InterceptorPipeline(null);
     context = createSessionContext();
   }
 
