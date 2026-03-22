@@ -179,7 +179,13 @@ public class GangliaKernel {
     ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, longTermMemory, projectRoot);
     StandardPromptEngine promptEngine =
         new StandardPromptEngine(
-            vertx, memoryService, skillRuntime, null, tokenCounter, options.extraContextSources());
+            vertx,
+            memoryService,
+            skillRuntime,
+            null,
+            tokenCounter,
+            options.extraContextSources(),
+            configManager);
     promptEngine.addContextSource(
         new DailyContextSource(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString()));
     promptEngine.addContextSource(new MemoryContextSource(memoryStore));
@@ -200,6 +206,12 @@ public class GangliaKernel {
 
     DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, allExtraToolSets);
     DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
+
+    // Register extra observers directly
+    for (work.ganglia.kernel.loop.AgentLoopObserver observer : options.extraObservers()) {
+      dispatcher.register(observer);
+    }
+
     ConsecutiveFailurePolicy failurePolicy = new ConsecutiveFailurePolicy();
     DefaultContextOptimizer contextOptimizer =
         new DefaultContextOptimizer(configManager, configManager, compressor, tokenCounter);

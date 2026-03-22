@@ -12,7 +12,7 @@ public final class Constants {
   public static final String SUFFIX_TTY = ".tty";
   public static final String ADDRESS_UI_OUTBOUND_CACHE = "ganglia.ui.stream.outbound.cache";
   public static final String ADDRESS_OBSERVATIONS_PREFIX = "ganglia.observations.";
-  public static final String ADDRESS_OBSERVATIONS_ALL = "ganglia.observations.*";
+  public static final String ADDRESS_OBSERVATIONS_ALL = "ganglia.observations.all";
 
   // --- File Paths & Names ---
   public static final String DEFAULT_GANGLIA_DIR = ".ganglia";

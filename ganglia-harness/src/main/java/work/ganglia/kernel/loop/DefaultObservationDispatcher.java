@@ -15,9 +15,18 @@ import work.ganglia.util.Constants;
  */
 public class DefaultObservationDispatcher implements ObservationDispatcher, AgentLoopObserver {
   private final Vertx vertx;
+  private final java.util.List<AgentLoopObserver> localObservers =
+      new java.util.concurrent.CopyOnWriteArrayList<>();
 
   public DefaultObservationDispatcher(Vertx vertx) {
     this.vertx = vertx;
+  }
+
+  /** Registers a local observer to receive observations directly. */
+  public void register(AgentLoopObserver observer) {
+    if (observer != null) {
+      localObservers.add(observer);
+    }
   }
 
   @Override
@@ -25,22 +34,33 @@ public class DefaultObservationDispatcher implements ObservationDispatcher, Agen
     dispatch(sessionId, type, content, null);
   }
 
+  private static final org.slf4j.Logger logger =
+      org.slf4j.LoggerFactory.getLogger(DefaultObservationDispatcher.class);
+
   @Override
   public void dispatch(
       String sessionId, ObservationType type, String content, Map<String, Object> data) {
+    if (type == ObservationType.REASONING_STARTED) {
+      logger.info("[SESSION:{}] Agent triggered reasoning loop.", sessionId);
+    }
+
+    // 1. Notify local observers directly (Synchronous/Reliable)
+    for (AgentLoopObserver observer : localObservers) {
+      try {
+        observer.onObservation(sessionId, type, content, data);
+      } catch (Exception e) {
+        // Ignore observer errors
+      }
+    }
+
+    // 2. Publish to EventBus (Asynchronous/Decoupled)
     ObservationEvent event = ObservationEvent.of(sessionId, type, content, data);
     JsonObject json = JsonObject.mapFrom(event);
-
-    // Publish to session-specific topic (for legacy or specific listeners)
     vertx.eventBus().publish(Constants.ADDRESS_OBSERVATIONS_PREFIX + sessionId, json);
-
-    // Publish to global topic (for WebUI, TraceManager, etc.)
     vertx.eventBus().publish(Constants.ADDRESS_OBSERVATIONS_ALL, json);
   }
 
   // --- AgentLoopObserver implementation ---
-  // This allows the dispatcher to be registered with the loop to catch macro events
-  // and seamlessly route them through the same dispatch logic.
 
   @Override
   public void onObservation(
@@ -51,6 +71,15 @@ public class DefaultObservationDispatcher implements ObservationDispatcher, Agen
   @Override
   public void onUsageRecorded(String sessionId, TokenUsage usage) {
     if (usage != null) {
+      // Notify local observers
+      for (AgentLoopObserver observer : localObservers) {
+        try {
+          observer.onUsageRecorded(sessionId, usage);
+        } catch (Exception e) {
+          // Ignore
+        }
+      }
+
       vertx
           .eventBus()
           .publish(

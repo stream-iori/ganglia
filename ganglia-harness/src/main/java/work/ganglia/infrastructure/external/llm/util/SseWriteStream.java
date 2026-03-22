@@ -10,6 +10,8 @@ public class SseWriteStream implements WriteStream<Buffer> {
 
   private final Handler<Buffer> dataHandler;
   private Handler<Throwable> exceptionHandler;
+  private final Buffer rawBuffer = Buffer.buffer();
+  private static final int MAX_BUFFER_SIZE = 16384; // 16KB
 
   public SseWriteStream(Handler<Buffer> dataHandler) {
     this.dataHandler = dataHandler;
@@ -24,6 +26,9 @@ public class SseWriteStream implements WriteStream<Buffer> {
   @Override
   public Future<Void> write(Buffer data) {
     try {
+      if (rawBuffer.length() < MAX_BUFFER_SIZE) {
+        rawBuffer.appendBuffer(data);
+      }
       dataHandler.handle(data);
       return Future.succeededFuture();
     } catch (Exception e) {
@@ -32,6 +37,10 @@ public class SseWriteStream implements WriteStream<Buffer> {
       }
       return Future.failedFuture(e);
     }
+  }
+
+  public String getRawData() {
+    return rawBuffer.toString("UTF-8");
   }
 
   public void write(Buffer data, Handler<AsyncResult<Void>> handler) {

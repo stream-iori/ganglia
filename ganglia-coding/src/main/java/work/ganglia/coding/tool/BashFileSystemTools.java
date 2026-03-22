@@ -12,6 +12,7 @@ import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.CommandExecutor;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.port.external.tool.ToolSet;
+import work.ganglia.util.PathMapper;
 import work.ganglia.util.PathSanitizer;
 import work.ganglia.util.VertxProcess;
 
@@ -20,13 +21,13 @@ public class BashFileSystemTools implements ToolSet {
   private static final Logger log = LoggerFactory.getLogger(BashFileSystemTools.class);
 
   private final CommandExecutor commandExecutor;
-  private final PathSanitizer sanitizer;
+  private final PathMapper sanitizer;
 
   public BashFileSystemTools(CommandExecutor commandExecutor) {
     this(commandExecutor, new PathSanitizer());
   }
 
-  public BashFileSystemTools(CommandExecutor commandExecutor, PathSanitizer sanitizer) {
+  public BashFileSystemTools(CommandExecutor commandExecutor, PathMapper sanitizer) {
     this.commandExecutor = commandExecutor;
     this.sanitizer = sanitizer;
   }
@@ -122,13 +123,13 @@ public class BashFileSystemTools implements ToolSet {
   }
 
   private Future<ToolInvokeResult> ls(Map<String, Object> args) {
-    String path = sanitizer.sanitize((String) args.get("path"));
+    String path = sanitizer.map((String) args.get("path"));
     return execute("list_directory", "ls -F " + PathSanitizer.escapeShellArg(path));
   }
 
   public Future<ToolInvokeResult> cat(Map<String, Object> args) {
     String rawPath = (String) args.get("path");
-    String safePath = sanitizer.sanitize(rawPath);
+    String safePath = sanitizer.map(rawPath);
     int offset = ((Number) args.getOrDefault("offset", 0)).intValue();
     int limit = ((Number) args.getOrDefault("limit", 500)).intValue();
 
@@ -173,7 +174,7 @@ public class BashFileSystemTools implements ToolSet {
     // Sanitize and escape all paths
     String escapedPaths =
         paths.stream()
-            .map(sanitizer::sanitize)
+            .map(sanitizer::map)
             .map(PathSanitizer::escapeShellArg)
             .collect(Collectors.joining(" "));
 
@@ -202,7 +203,7 @@ public class BashFileSystemTools implements ToolSet {
   }
 
   private Future<ToolInvokeResult> grepSearch(Map<String, Object> args) {
-    String path = sanitizer.sanitize((String) args.get("path"));
+    String path = sanitizer.map((String) args.get("path"));
     String pattern = (String) args.get("pattern");
     String include = (String) args.get("include");
 

@@ -53,7 +53,8 @@ class StandardPromptEngineTest {
     TokenCounter counter = new TokenCounter();
     AgentTaskFactory taskFactory =
         new DefaultAgentTaskFactory(() -> null, new StubToolExecutor(), null, null, null);
-    StandardPromptEngine engine = new StandardPromptEngine(vertx, null, null, taskFactory, counter);
+    StandardPromptEngine engine =
+        new StandardPromptEngine(vertx, null, null, taskFactory, counter, null);
 
     ModelOptions options = new ModelOptions(0.0, 100, "test-model", true);
     SessionContext context =

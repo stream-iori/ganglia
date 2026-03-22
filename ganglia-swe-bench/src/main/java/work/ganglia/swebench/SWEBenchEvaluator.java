@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import work.ganglia.infrastructure.internal.prompt.context.MarkdownContextResolver;
-import work.ganglia.port.external.tool.ToolSet;
+import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.swebench.tools.DockerCommandExecutor;
 
 public class SWEBenchEvaluator {
@@ -93,78 +93,107 @@ public class SWEBenchEvaluator {
       sandbox.setupTaskEnvironment(task);
 
       // 4. 配置 Agent
-      // projectRoot 设为宿主机路径，Agent 在此处写日志
-      work.ganglia.BootstrapOptions baseOptions =
-          work.ganglia.BootstrapOptions.defaultOptions()
-              .withProjectRoot(taskRoot.toAbsolutePath().toString())
-              .withConfigPath(taskRoot.resolve(".ganglia/config.json").toAbsolutePath().toString())
-              .withObservers(List.of(trajectoryLogger))
-              .withCommandExecutor(new DockerCommandExecutor(vertx, sandbox));
-
-      // 强制工具操作容器内的 /workspace 路径
       String containerRoot = "/workspace";
-      work.ganglia.util.PathSanitizer dockerSanitizer =
-          new work.ganglia.util.PathSanitizer(containerRoot);
-      work.ganglia.port.external.tool.CommandExecutor commandExecutor =
-          baseOptions.commandExecutor();
+      String hostRoot = taskRoot.toAbsolutePath().toString();
 
-      List<ToolSet> codingToolSets = new java.util.ArrayList<>(baseOptions.extraToolSets());
-      codingToolSets.add(
-          new work.ganglia.coding.tool.BashFileSystemTools(commandExecutor, dockerSanitizer));
-      codingToolSets.add(new work.ganglia.coding.tool.BashTools(commandExecutor));
-      codingToolSets.add(new work.ganglia.coding.tool.FileEditTools(vertx, dockerSanitizer));
-      codingToolSets.add(new work.ganglia.coding.tool.WebFetchTools(vertx));
+      // For tools inside container: map host paths BACK to container paths if Agent uses them
+      work.ganglia.util.PathMapper dockerMapper =
+          new work.ganglia.util.MappingPathSanitizer(hostRoot, containerRoot);
 
-      List<work.ganglia.port.internal.prompt.ContextSource> codingSources =
-          new java.util.ArrayList<>(baseOptions.extraContextSources());
+      // For host-side tools: map container paths to host paths
+      work.ganglia.util.PathMapper hostMapper =
+          new work.ganglia.util.MappingPathSanitizer(containerRoot, hostRoot);
 
-      // 替换环境信息，指示 Agent 在容器内工作
-      codingSources.removeIf(
-          s ->
-              s.getClass()
-                  .getName()
-                  .equals("work.ganglia.infrastructure.internal.prompt.context.EnvironmentSource"));
-      codingSources.add(
-          sessionContext -> {
-            List<work.ganglia.port.internal.prompt.ContextFragment> fragments =
-                new java.util.ArrayList<>();
-            fragments.add(
-                work.ganglia.port.internal.prompt.ContextFragment.prunable(
-                    "OS", "Linux (Docker Sandbox)", 10));
-            fragments.add(
-                work.ganglia.port.internal.prompt.ContextFragment.prunable(
-                    "Working Directory", containerRoot, 10));
-            return io.vertx.core.Future.succeededFuture(fragments);
+      List<work.ganglia.kernel.loop.AgentLoopObserver> observers = new java.util.ArrayList<>();
+      observers.add(trajectoryLogger);
+      observers.add(
+          new work.ganglia.kernel.loop.AgentLoopObserver() {
+            private final Logger progressLog = LoggerFactory.getLogger("work.ganglia.progress");
+
+            @Override
+            public void onObservation(
+                String sessionId,
+                work.ganglia.port.external.tool.ObservationType type,
+                String content,
+                java.util.Map<String, Object> data) {
+              String typeName = type.name();
+              if (typeName.equals("REASONING_STARTED")) {
+                progressLog.info("[Agent Thinking...]");
+              } else if (typeName.equals("TOOL_STARTED")) {
+                progressLog.info("[Tool Call] {}: {}", data.get("name"), data.get("arguments"));
+              } else if (typeName.equals("TOOL_FINISHED")) {
+                String status = (String) data.get("status");
+                progressLog.info("[Tool Result] Status: {}", status);
+              } else if (typeName.equals("TURN_FINISHED")) {
+                progressLog.info("--- Turn Completed ---");
+              }
+            }
+
+            @Override
+            public void onUsageRecorded(
+                String sessionId, work.ganglia.port.internal.state.TokenUsage usage) {
+              // No-op for console
+            }
           });
 
-      var resolver = new MarkdownContextResolver(vertx);
-      codingSources.add(
-          new work.ganglia.infrastructure.internal.prompt.context.FileContextSource(
-              vertx, resolver, "CODING.md"));
-
-      work.ganglia.BootstrapOptions finalOptions =
-          baseOptions.withExtraToolSets(codingToolSets).withExtraContextSources(codingSources);
+      work.ganglia.BootstrapOptions baseOptions =
+          work.ganglia.BootstrapOptions.defaultOptions()
+              .withProjectRoot(hostRoot)
+              .withConfigPath(taskRoot.resolve(".ganglia/config.json").toAbsolutePath().toString())
+              .withObservers(observers)
+              .withCommandExecutor(new DockerCommandExecutor(vertx, sandbox));
 
       work.ganglia.Ganglia ganglia =
-          work.ganglia.Ganglia.bootstrap(vertx, finalOptions)
+          work.ganglia.coding.CodingAgentBuilder.create(vertx)
+              .withOptions(baseOptions)
+              .withInternalPathMapper(dockerMapper)
+              .withExternalPathMapper(hostMapper)
+              .filterContextSources(
+                  s ->
+                      s.getClass()
+                          .getName()
+                          .equals(
+                              "work.ganglia.infrastructure.internal.prompt.context.EnvironmentSource"))
+              .addContextSource(
+                  sessionContext -> {
+                    List<work.ganglia.port.internal.prompt.ContextFragment> fragments =
+                        new java.util.ArrayList<>();
+                    fragments.add(
+                        work.ganglia.port.internal.prompt.ContextFragment.prunable(
+                            "OS", "Linux (Docker Sandbox)", 10));
+                    fragments.add(
+                        work.ganglia.port.internal.prompt.ContextFragment.prunable(
+                            "Project Structure",
+                            "The project is located at /workspace/repo. Use /workspace/repo as the root for all file operations.",
+                            10));
+                    return io.vertx.core.Future.succeededFuture(fragments);
+                  })
+              .bootstrap()
               .toCompletionStage()
               .toCompletableFuture()
               .get();
 
-      log.info("Ganglia Agent bootstrapped. Launching evaluation...");
+      log.info("Ganglia Agent bootstrapped via CodingAgentBuilder. Launching evaluation...");
 
       // Print config inside container for verification
       String containerConfig = sandbox.exec("cat", "/workspace/.ganglia/config.json");
       log.info("Config inside container (/workspace/.ganglia/config.json):\n{}", containerConfig);
 
-      work.ganglia.port.chat.SessionContext sessionContext =
-          new work.ganglia.port.chat.SessionContext(
+      var modelOptions =
+          new ModelOptions(
+              ganglia.configManager().getTemperature(),
+              ganglia.configManager().getMaxTokens(),
+              ganglia.configManager().getModel(),
+              ganglia.configManager().isStream());
+
+      SessionContext sessionContext =
+          new SessionContext(
               task.getInstanceId(),
               Collections.emptyList(),
               null,
               Collections.emptyMap(),
               Collections.emptyList(),
-              null);
+              modelOptions);
 
       String result =
           ganglia
@@ -192,31 +221,30 @@ public class SWEBenchEvaluator {
     String repoName = task.getRepo(); // e.g., astropy/astropy
     String repoDirName = repoName.replace("/", "__");
 
-    // Primary location: ganglia-swe-bench/.ganglia/[repo_dir_name]
-    Path localSourceRepo = baseDir.resolve(".ganglia").resolve(repoDirName);
-
-    if (!Files.exists(localSourceRepo)) {
-      // Fallback 1: target/[repo_name]
-      localSourceRepo = baseDir.resolve("target").resolve(repoName);
+    // Target location for the reference mirror: ganglia-swe-bench/.ganglia/[repo_dir_name]
+    Path mirrorRepoParent = baseDir.resolve(".ganglia");
+    if (!Files.exists(mirrorRepoParent)) {
+      log.info("Creating directory: {}", mirrorRepoParent);
+      Files.createDirectories(mirrorRepoParent);
     }
 
-    if (!Files.exists(localSourceRepo)) {
-      // Fallback 2: target/[repo_dir_name]
-      localSourceRepo = baseDir.resolve("target").resolve(repoDirName);
+    Path localSourceRepo = mirrorRepoParent.resolve(repoDirName);
+
+    // If mirror does not exist, clone it from GitHub as a bare repository
+    if (!Files.exists(localSourceRepo) || !Files.exists(localSourceRepo.resolve("config"))) {
+      log.info(
+          "Local mirror not found for {}. Cloning from GitHub to {}...", repoName, localSourceRepo);
+      ProcessBuilder cloneMirrorPb =
+          new ProcessBuilder(
+              "git",
+              "clone",
+              "--bare",
+              "https://github.com/" + repoName + ".git",
+              localSourceRepo.toAbsolutePath().toString());
+      cloneMirrorPb.inheritIO().start().waitFor(30, TimeUnit.MINUTES);
     }
 
-    if (!Files.exists(localSourceRepo) || !Files.exists(localSourceRepo.resolve(".git"))) {
-      throw new RuntimeException(
-          "Local repository not found for task "
-              + task.getInstanceId()
-              + ". Please manually clone "
-              + repoName
-              + " to "
-              + baseDir.resolve(".ganglia").resolve(repoDirName)
-              + " on the host.");
-    }
-
-    log.info("Using local source repository as reference for clone: {}", localSourceRepo);
+    log.info("Using local source repository as reference for task clone: {}", localSourceRepo);
     // 使用 --reference 实现引用，避免物理拷贝大量对象库
     ProcessBuilder pb =
         new ProcessBuilder(
@@ -251,6 +279,6 @@ public class SWEBenchEvaluator {
     } else {
       log.warn("Dataset not found at {}", datasetPath);
     }
-    vertx.close();
+    vertx.close().toCompletionStage().toCompletableFuture().get();
   }
 }

@@ -98,7 +98,11 @@ public class SandboxManager implements AutoCloseable {
   public void close() {
     if (container != null && container.isRunning()) {
       log.info("Stopping Docker Sandbox...");
-      container.stop();
+      try {
+        container.stop();
+      } catch (Exception e) {
+        log.warn("Error during Docker Sandbox shutdown: {}", e.getMessage());
+      }
     }
   }
 }

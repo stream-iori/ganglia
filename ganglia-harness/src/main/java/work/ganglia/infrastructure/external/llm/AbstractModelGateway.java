@@ -126,6 +126,9 @@ public abstract class AbstractModelGateway implements ModelGateway {
               }
               if (response.statusCode() >= 400) {
                 String errorBody = response.bodyAsString();
+                if (errorBody == null || errorBody.isEmpty()) {
+                  errorBody = writeStream.getRawData();
+                }
                 logger.error("[LLM_ERROR] Status: {}, Body: {}", response.statusCode(), errorBody);
                 promise.fail(
                     new LLMException(

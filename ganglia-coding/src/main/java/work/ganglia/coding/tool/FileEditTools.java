@@ -14,6 +14,7 @@ import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.port.external.tool.ToolSet;
+import work.ganglia.util.PathMapper;
 import work.ganglia.util.PathSanitizer;
 import work.ganglia.util.VertxProcess;
 
@@ -23,13 +24,13 @@ public class FileEditTools implements ToolSet {
 
   private final Vertx vertx;
   private final FileSystem fs;
-  private final PathSanitizer sanitizer;
+  private final PathMapper sanitizer;
 
   public FileEditTools(Vertx vertx) {
     this(vertx, new PathSanitizer());
   }
 
-  public FileEditTools(Vertx vertx, PathSanitizer sanitizer) {
+  public FileEditTools(Vertx vertx, PathMapper sanitizer) {
     this.vertx = vertx;
     this.fs = vertx.fileSystem();
     this.sanitizer = sanitizer;
@@ -127,7 +128,7 @@ public class FileEditTools implements ToolSet {
 
   private Future<ToolInvokeResult> replaceInFile(String toolName, Map<String, Object> args) {
     String rawPath = (String) args.get("file_path");
-    String filePath = sanitizer.sanitize(rawPath);
+    String filePath = sanitizer.map(rawPath);
     String oldString = (String) args.get("old_string");
     String newString = (String) args.get("new_string");
 
@@ -237,7 +238,7 @@ public class FileEditTools implements ToolSet {
   private Future<ToolInvokeResult> writeFile(Map<String, Object> args) {
     String rawPath = (String) args.get("file_path");
     String content = (String) args.get("content");
-    String filePath = sanitizer.sanitize(rawPath);
+    String filePath = sanitizer.map(rawPath);
 
     if (filePath == null || content == null) {
       return Future.succeededFuture(
@@ -314,7 +315,7 @@ public class FileEditTools implements ToolSet {
   private Future<ToolInvokeResult> applyPatch(Map<String, Object> args) {
     String rawPath = (String) args.get("file_path");
     String patch = (String) args.get("patch");
-    String filePath = sanitizer.sanitize(rawPath);
+    String filePath = sanitizer.map(rawPath);
 
     if (filePath == null || patch == null) {
       return Future.succeededFuture(

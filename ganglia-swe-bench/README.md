@@ -50,6 +50,11 @@ mvn exec:java -Dexec.mainClass="work.ganglia.swebench.SWEBenchEvaluator" -pl gan
 * For each task, it starts a fresh Docker container, clones the repository, and injects the issue description.
 * The **Coding Agent** then attempts to solve the issue using `run_shell_command`, `read_file`, and `replace_in_file` (all executed *inside* the container).
 * Logs are saved to `target/e2e-logs/[instance_id]_trajectory.json`.
+* 您可以尝试运行此命令查看容器内的 pip 进度：
+
+1 docker ps
+2 # 找到 astropy-base 容器 ID 后
+3 docker exec <ID> ps aux | grep pip
 
 ## 4. Verification Workflow
 

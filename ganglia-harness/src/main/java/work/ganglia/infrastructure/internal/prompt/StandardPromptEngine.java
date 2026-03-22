@@ -31,6 +31,7 @@ public class StandardPromptEngine implements PromptEngine {
   private final Vertx vertx;
   private final MemoryService memoryService;
   private final SkillRuntime skillRuntime;
+  private final work.ganglia.config.ModelConfigProvider modelConfigProvider;
   private AgentTaskFactory taskFactory;
 
   public StandardPromptEngine(
@@ -38,8 +39,16 @@ public class StandardPromptEngine implements PromptEngine {
       MemoryService memoryService,
       SkillRuntime skillRuntime,
       AgentTaskFactory taskFactory,
-      TokenCounter tokenCounter) {
-    this(vertx, memoryService, skillRuntime, taskFactory, tokenCounter, List.of());
+      TokenCounter tokenCounter,
+      work.ganglia.config.ModelConfigProvider modelConfigProvider) {
+    this(
+        vertx,
+        memoryService,
+        skillRuntime,
+        taskFactory,
+        tokenCounter,
+        List.of(),
+        modelConfigProvider);
   }
 
   public StandardPromptEngine(
@@ -48,13 +57,15 @@ public class StandardPromptEngine implements PromptEngine {
       SkillRuntime skillRuntime,
       AgentTaskFactory taskFactory,
       TokenCounter tokenCounter,
-      List<ContextSource> extraSources) {
+      List<ContextSource> extraSources,
+      work.ganglia.config.ModelConfigProvider modelConfigProvider) {
     this.tokenCounter = tokenCounter;
     this.composer = new ContextComposer(this.tokenCounter);
     this.taskFactory = taskFactory;
     this.vertx = vertx;
     this.memoryService = memoryService;
     this.skillRuntime = skillRuntime;
+    this.modelConfigProvider = modelConfigProvider;
 
     if (extraSources != null) {
       sources.addAll(extraSources);
@@ -120,9 +131,16 @@ public class StandardPromptEngine implements PromptEngine {
 
               // 3. Resolve Model Options
               ModelOptions currentOptions = context.modelOptions();
+              if (currentOptions == null && modelConfigProvider != null) {
+                currentOptions =
+                    new ModelOptions(
+                        modelConfigProvider.getTemperature(),
+                        modelConfigProvider.getMaxTokens(),
+                        modelConfigProvider.getModel(),
+                        modelConfigProvider.isStream());
+              }
               if (currentOptions == null) {
-                // TODO: Hardcoded fallback, should ideally come from ConfigManager via constructor
-                // if needed
+                // Last ditch fallback if provider is missing
                 currentOptions = new ModelOptions(0.0, 4096, "gpt-4o", true);
               }
 

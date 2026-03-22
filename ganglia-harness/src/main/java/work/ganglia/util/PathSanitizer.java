@@ -5,7 +5,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /** Utility for ensuring file operations stay within the project sandbox. */
-public class PathSanitizer {
+public class PathSanitizer implements PathMapper {
 
   private final String projectRoot;
 
@@ -15,6 +15,11 @@ public class PathSanitizer {
 
   public PathSanitizer(String projectRoot) {
     this.projectRoot = projectRoot;
+  }
+
+  @Override
+  public String map(String inputPath) {
+    return sanitize(inputPath);
   }
 
   /**
