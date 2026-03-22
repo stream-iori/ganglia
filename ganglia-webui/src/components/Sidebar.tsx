@@ -171,7 +171,7 @@ const Sidebar: React.FC = () => {
       </div>
 
       <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between shrink-0">
-        <span className="text-[9px] text-slate-600 font-mono tracking-tighter">V1.1.0-WEBUI</span>
+        <span className="text-[9px] text-slate-600 font-mono tracking-tighter">0.1.6-WEBUI</span>
         <div className="flex gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-slate-800"></div>
           <div className="w-1.5 h-1.5 rounded-full bg-slate-800"></div>

@@ -1,6 +1,6 @@
 # Ganglia Project Context
 
-**Status:** Core Implemented (v1.4.0 - Assembly Refactoring & Config SRP)
+**Status:** Core Implemented (0.1.6 - Assembly Refactoring & Config SRP)
 
 ## 1. Project Overview
 
@@ -21,7 +21,7 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for
 ### 3.1 Reasoning & Orchestration
 
 - **Kernel Loop:** `StandardAgentLoop` (in `work.ganglia.kernel.loop`) handles iterative reasoning and sequential task execution.
-- **Dependency Assembly (v1.4.0):** `GangliaKernel` uses an improved late-binding assembly pattern (DIP) to resolve circular dependencies between loops and task factories without hacky proxies.
+- **Dependency Assembly (0.1.6):** `GangliaKernel` uses an improved late-binding assembly pattern (DIP) to resolve circular dependencies between loops and task factories without hacky proxies.
 - **Task Scheduling:** `SchedulableFactory` maps LLM tool calls to executable `Schedulable` tasks (Standard Tools, Sub-Agents, Skills, DAGs).
 - **Hierarchical Context:** `StandardPromptEngine` with `ContextComposer` stacks five layers: **Kernel** (Persona/Mandates), **Process** (Workflow), **Rule** (Guidelines/Tools), **Capability** (Skills), and **Context** (Env/Plan/Memory).
 - **Sub-Agents:** `SubAgentTask` for transient delegation and `GraphExecutor` for DAG-based execution.
@@ -39,7 +39,7 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for
 ### 3.3 Memory & State
 
 - **Three-Tier Memory:** Turns (ephemeral), Sessions (compressed via `ContextCompressor`), and Long-term (`.ganglia/memory/MEMORY.md` & Daily Logs).
-- **Context Compression & Hybrid Search (v1.3.0):**
+- **Context Compression & Hybrid Search (0.1.5):**
   - `MemoryStore`: File-based storage for `MemoryEntry` with hybrid search (keyword, category, tags).
   - `ObservationCompressor`: LLM-powered real-time compression of large tool outputs (>4000 chars).
   - `TimelineLedger`: Automated Markdown-based system medical record (`TIMELINE.md`).
@@ -47,7 +47,7 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for
 - **Daily Journal:** `DailyRecordManager` persists cross-session accomplishments to `.ganglia/memory/daily-*.md`.
 - **Persistence:** `FileStateEngine` ensures session continuity across restarts via JSON serialization.
 
-### 3.4 Configuration & Bootstrapping (v1.4.0)
+### 3.4 Configuration & Bootstrapping (0.1.6)
 
 - **SRP Configuration:** `ConfigLoader` handles file IO and watchers, while `ConfigManager` acts as the pure registry and multi-domain provider.
 - **DRY Accessors:** Functional helpers eliminate boilerplate for safe nested configuration retrieval.
@@ -77,7 +77,7 @@ Ganglia is a **Java 17** Agent framework built on **Vert.x 5.0.6**, designed for
 - `ganglia-swe-bench/`: SWE-bench evaluation module with Docker sandboxing.
 - `integration-test/`: Automated IT and E2E simulation scenarios.
 - `ganglia-example/`: Usage examples including the `WebUIDemo`.
-- `docs/`: Technical designs and v1.2.0 documentation.
+- `docs/`: Technical designs and core documentation.
 
 ## 5. Development Guidelines
 

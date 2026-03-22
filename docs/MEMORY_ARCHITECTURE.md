@@ -15,7 +15,7 @@ Ganglia implements a **Three-Tier Memory System** designed to balance high-fidel
 
 * **Scope:** A single User-Agent interaction cycle.
 * **Implementation:** In-memory `Turn` objects within `SessionContext`.
-* **Timeline:** Starting from v1.5.0, the UI preserves a full literal timeline of thoughts and tool calls, including duration metrics for each step.
+* **Timeline:** Starting from 0.1.7, the UI preserves a full literal timeline of thoughts and tool calls, including duration metrics for each step.
 
 ### Tier 2: Medium-Term Memory (The "Context Window")
 

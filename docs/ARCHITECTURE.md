@@ -26,7 +26,7 @@ The core design philosophy follows a **Hexagonal (Ports & Adapters)** architectu
 5. **Memory as Code:**
    - Memory is stored in **Markdown files** (`.ganglia/memory/MEMORY.md`, Daily Records).
    - It is transparent, editable, and version-controlled.
-6. **Startup Self-Check & Configuration (v1.4.0):**
+6. **Startup Self-Check & Configuration (0.1.6):**
    - The system automatically validates and initializes the necessary directory structure (`.ganglia/skills`, `memory`, `state`, `logs`, etc.) and configuration at bootstrap.
    - **ConfigLoader** handles recursive file resolution and Vert.x-based hot-reloading (IO), while **ConfigManager** maintains the state and provides domain-specific interfaces (SRP).
 
@@ -85,7 +85,7 @@ graph TD
 
 ### 3.3 The Infrastructure Layer ("The Hands")
 
-- **Configuration Engine (v1.4.0):**
+- **Configuration Engine (0.1.6):**
   - `ConfigLoader`: Responsible for file path resolution, ensuring default config files exist, and initializing the Vert.x `ConfigRetriever` for watching.
   - `ConfigManager`: Implements multi-domain providers (`ModelConfigProvider`, `AgentConfigProvider`, etc.) and provides a clean, DRY API for the Kernel to access settings.
 - **Native LLM Gateways:** Implements protocols via Vert.x `WebClient`. Supports explicit timeouts and broadened retry logic for connection resets.
@@ -112,7 +112,7 @@ Ganglia supports an asynchronous **"Steering & Abort"** mechanism:
 
 ## 6. WebUI Observation & Control (The 3x3 Matrix)
 
-Starting from v1.5.0, the WebUI is built with **React 18 + TypeScript + shadcn/ui**:
+Starting from 0.1.7, the WebUI is built with **React 18 + TypeScript + shadcn/ui**:
 - **Glance (Low Load)**: Real-time Phase indicators, Mini-mode ToolCards, and **Continuous Timeline** with duration metrics.
 - **Inspect (Medium Load)**: A side-drawer `Inspector` with TTY virtualization (TanStack Virtual), regex-based log filtering, and high-fidelity Code/Diff viewers (Prism.js).
 - **Block (High Load)**: Modal `AskUserForm` with embedded Diff context for high-stakes authorization and decision making.

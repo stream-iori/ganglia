@@ -140,7 +140,7 @@ By separating the **Kernel** from **Infrastructure** via **Ports**:
 2. **Persistence Agnostic**: The Kernel doesn't know if state is saved to a JSON file or a database.
 3. **Testability**: The Kernel can be fully unit tested by mocking the Port interfaces.
 
-### 4.1 Dependency Assembly (v1.4.0)
+### 4.1 Dependency Assembly (0.1.6)
 
 To resolve circular dependencies between `AgentLoopFactory` and `AgentTaskFactory` without reflection or proxies, `GangliaKernel` employs a **Late-Binding Assembly** pattern:
 - **AgentEnv** acts as the central registry.
