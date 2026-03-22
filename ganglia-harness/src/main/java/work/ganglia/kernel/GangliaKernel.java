@@ -217,36 +217,7 @@ public class GangliaKernel {
     DefaultContextOptimizer contextOptimizer =
         new DefaultContextOptimizer(configManager, configManager, compressor, tokenCounter);
 
-    // Core component construction via explicitly declared dependencies and Factories
-    LazyTaskFactoryProxy lazyTaskFactoryProxy = new LazyTaskFactoryProxy();
-    AgentLoopFactory loopFactory =
-        () ->
-            ReActAgentLoop.builder()
-                .vertx(vertx)
-                .dispatcher(dispatcher)
-                .sessionManager(sessionManager)
-                .configProvider(configManager)
-                .contextOptimizer(contextOptimizer)
-                .promptEngine(promptEngine)
-                .modelGateway(modelGateway)
-                .taskFactory(lazyTaskFactoryProxy)
-                .faultTolerancePolicy(failurePolicy)
-                .pipeline(pipeline)
-                .build();
-
-    GraphExecutor graphExecutor = new DefaultGraphExecutor(loopFactory);
-
-    AgentTaskFactory taskFactory =
-        new DefaultAgentTaskFactory(
-            loopFactory, toolExecutor, graphExecutor, skillService, skillRuntime);
-
-    // Wire circular dependencies
-    lazyTaskFactoryProxy.setDelegate(taskFactory);
-    // Better: use AgentEnv as the holder or just set it in PromptEngine
-    promptEngine.setTaskFactory(taskFactory);
-    graphExecutor.initialize(taskFactory);
-
-    // Build AgentEnv as the global container/registry
+    // 1. Build AgentEnv first (with taskFactory = null initially)
     AgentEnv env =
         AgentEnv.builder()
             .vertx(vertx)
@@ -260,11 +231,10 @@ public class GangliaKernel {
             .dispatcher(dispatcher)
             .faultTolerancePolicy(failurePolicy)
             .contextOptimizer(contextOptimizer)
-            .taskFactory(taskFactory)
             .build();
 
-    // Update the loop factory to correctly provide the task factory without reflection hack:
-    AgentLoopFactory finalLoopFactory =
+    // 2. Define AgentLoopFactory with late-binding taskFactory from env
+    AgentLoopFactory loopFactory =
         () ->
             ReActAgentLoop.builder()
                 .vertx(vertx)
@@ -274,25 +244,26 @@ public class GangliaKernel {
                 .contextOptimizer(contextOptimizer)
                 .promptEngine(promptEngine)
                 .modelGateway(modelGateway)
-                .taskFactory(taskFactory)
+                .taskFactory(env.taskFactory()) // Late binding
                 .faultTolerancePolicy(failurePolicy)
                 .pipeline(pipeline)
                 .build();
 
-    // Update factories with the correct loop factory
-    AgentTaskFactory finalTaskFactory =
+    // 3. Complete the dependency graph
+    GraphExecutor graphExecutor = new DefaultGraphExecutor(loopFactory);
+    AgentTaskFactory taskFactory =
         new DefaultAgentTaskFactory(
-            finalLoopFactory, toolExecutor, graphExecutor, skillService, skillRuntime);
-    env.setTaskFactory(finalTaskFactory);
-    promptEngine.setTaskFactory(finalTaskFactory);
+            loopFactory, toolExecutor, graphExecutor, skillService, skillRuntime);
 
-    // recreate GraphExecutor to use finalLoopFactory
-    GraphExecutor finalGraphExecutor = new DefaultGraphExecutor(finalLoopFactory);
+    // 4. Wire back the cross-references
+    env.setTaskFactory(taskFactory);
+    promptEngine.setTaskFactory(taskFactory);
+    graphExecutor.initialize(taskFactory);
 
     new TraceManager(vertx, configManager);
     new TokenUsageManager(vertx, tokenCounter);
 
-    ReActAgentLoop primaryAgentLoop = (ReActAgentLoop) finalLoopFactory.createLoop();
+    ReActAgentLoop primaryAgentLoop = (ReActAgentLoop) loopFactory.createLoop();
 
     int mcpCount =
         mcpRegistry != null && mcpRegistry.toolSets() != null ? mcpRegistry.toolSets().size() : 0;
@@ -313,25 +284,4 @@ public class GangliaKernel {
 
   private record InitContext2(
       InitContext ctx, work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry) {}
-
-  private static class LazyTaskFactoryProxy implements AgentTaskFactory {
-    private AgentTaskFactory delegate;
-
-    public void setDelegate(AgentTaskFactory delegate) {
-      this.delegate = delegate;
-    }
-
-    @Override
-    public work.ganglia.kernel.task.AgentTask create(
-        work.ganglia.port.external.tool.ToolCall call,
-        work.ganglia.port.chat.SessionContext context) {
-      return delegate.create(call, context);
-    }
-
-    @Override
-    public List<work.ganglia.port.external.tool.ToolDefinition> getAvailableDefinitions(
-        work.ganglia.port.chat.SessionContext context) {
-      return delegate.getAvailableDefinitions(context);
-    }
-  }
 }

@@ -10,7 +10,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.config.model.GangliaConfig;
@@ -150,59 +152,52 @@ public class ConfigManager
 
   @Override
   public String getModel() {
-    ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
-    return mc != null ? mc.name() : "gpt-4o";
+    return getModelProp(ConfigKeys.PRIMARY, ModelConfig::name, "gpt-4o");
   }
 
   @Override
   public String getUtilityModel() {
-    ModelConfig mc = currentConfig.getModel(ConfigKeys.UTILITY);
-    if (mc != null) return mc.name();
-    // Fallback to primary model if utility is not configured
-    ModelConfig primary = currentConfig.getModel(ConfigKeys.PRIMARY);
-    return primary != null ? primary.name() : "gpt-4o-mini";
+    String utility = getModelProp(ConfigKeys.UTILITY, ModelConfig::name, null);
+    return utility != null ? utility : getModel();
   }
 
   @Override
   public double getTemperature() {
-    ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
-    return mc != null ? mc.temperature() : 0.0;
+    return getModelProp(ConfigKeys.PRIMARY, ModelConfig::temperature, 0.0);
   }
 
   @Override
   public int getMaxTokens() {
-    ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
-    return mc != null ? mc.maxTokens() : 4096;
+    return getModelProp(ConfigKeys.PRIMARY, ModelConfig::maxTokens, 4096);
   }
 
   @Override
   public int getContextLimit() {
-    ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
-    return mc != null ? mc.contextLimit() : 128000;
+    return getModelProp(ConfigKeys.PRIMARY, ModelConfig::contextLimit, 128000);
   }
 
   @Override
   public boolean isStream() {
-    ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
-    return mc != null && mc.stream() != null ? mc.stream() : true;
+    return getModelProp(ConfigKeys.PRIMARY, ModelConfig::stream, true);
   }
 
   @Override
   public boolean isUtilityStream() {
-    ModelConfig mc = currentConfig.getModel(ConfigKeys.UTILITY);
-    return mc != null && mc.stream() != null ? mc.stream() : false;
+    return getModelProp(ConfigKeys.UTILITY, ModelConfig::stream, false);
   }
 
   @Override
   public String getBaseUrl() {
-    ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
-    return mc != null ? mc.baseUrl() : "https://api.openai.com/v1";
+    return getModelProp(ConfigKeys.PRIMARY, ModelConfig::baseUrl, "https://api.openai.com/v1");
   }
 
   @Override
   public String getProvider() {
-    ModelConfig mc = currentConfig.getModel(ConfigKeys.PRIMARY);
-    return mc != null ? mc.type() : "openai";
+    return getModelProp(ConfigKeys.PRIMARY, ModelConfig::type, "openai");
+  }
+
+  private <T> T getModelProp(String modelKey, Function<ModelConfig, T> getter, T defaultValue) {
+    return Optional.ofNullable(currentConfig.getModel(modelKey)).map(getter).orElse(defaultValue);
   }
 
   // --- AgentConfigProvider Implementation ---
