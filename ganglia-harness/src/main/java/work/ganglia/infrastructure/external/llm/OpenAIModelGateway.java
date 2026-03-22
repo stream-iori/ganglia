@@ -23,26 +23,29 @@ public class OpenAIModelGateway extends AbstractModelGateway {
   private static final Logger logger = LoggerFactory.getLogger(OpenAIModelGateway.class);
   private static final Logger llmLogger = LoggerFactory.getLogger("LLM_LOG");
   private final WebClient webClient;
-  private final String apiKey;
+  private final GatewayConfig config;
   private final String endpoint;
-  private final int timeoutMs;
 
   public OpenAIModelGateway(Vertx vertx, WebClient webClient, String apiKey, String baseUrl) {
-    this(vertx, webClient, apiKey, baseUrl, 60000);
+    this(vertx, webClient, new GatewayConfig(apiKey, baseUrl, 60000));
   }
 
-  public OpenAIModelGateway(
-      Vertx vertx, WebClient webClient, String apiKey, String baseUrl, int timeoutMs) {
+  public OpenAIModelGateway(Vertx vertx, WebClient webClient, GatewayConfig config) {
     super(vertx);
     this.webClient = webClient;
-    this.apiKey = apiKey;
-    this.timeoutMs = timeoutMs;
+    this.config = config;
+    String baseUrl = config.baseUrl();
     this.endpoint =
         baseUrl.endsWith("/chat/completions")
             ? baseUrl
             : (baseUrl.endsWith("/")
                 ? baseUrl + "chat/completions"
                 : baseUrl + "/chat/completions");
+  }
+
+  public OpenAIModelGateway(
+      Vertx vertx, WebClient webClient, String apiKey, String baseUrl, int timeoutMs) {
+    this(vertx, webClient, new GatewayConfig(apiKey, baseUrl, timeoutMs));
   }
 
   @Override
@@ -58,9 +61,9 @@ public class OpenAIModelGateway extends AbstractModelGateway {
     return withSemaphore(
         webClient
             .postAbs(endpoint)
-            .putHeader("Authorization", "Bearer " + apiKey)
+            .putHeader("Authorization", "Bearer " + config.apiKey())
             .putHeader("Content-Type", "application/json")
-            .timeout(timeoutMs)
+            .timeout(config.timeout())
             .as(BodyCodec.jsonObject())
             .sendJsonObject(payload)
             .compose(
@@ -109,9 +112,9 @@ public class OpenAIModelGateway extends AbstractModelGateway {
         payload,
         webClient
             .postAbs(endpoint)
-            .putHeader("Authorization", "Bearer " + apiKey)
+            .putHeader("Authorization", "Bearer " + config.apiKey())
             .putHeader("Content-Type", "application/json")
-            .timeout(timeoutMs),
+            .timeout(config.timeout()),
         json -> {
           try {
             JsonArray choices = json.getJsonArray("choices");

@@ -126,22 +126,16 @@ public class VertxProcess {
    *
    * @param vertx the Vert.x instance
    * @param command the command and arguments
-   * @param timeoutMs maximum time to wait for execution
-   * @param maxOutputSize maximum number of bytes to capture
+   * @param options execution options
    * @param chunkHandler optional handler for streaming output chunks
    * @return a future that completes with the captured {@link Result}
    */
   public static Future<Result> execute(
-      Vertx vertx,
-      List<String> command,
-      String workingDir,
-      long timeoutMs,
-      long maxOutputSize,
-      Handler<String> chunkHandler) {
+      Vertx vertx, List<String> command, ProcessOptions options, Handler<String> chunkHandler) {
 
     ProcessBuilder pb = new ProcessBuilder(command);
-    if (workingDir != null && !workingDir.isEmpty()) {
-      pb.directory(new java.io.File(workingDir));
+    if (options.workingDir() != null && !options.workingDir().isEmpty()) {
+      pb.directory(new java.io.File(options.workingDir()));
     }
     pb.redirectErrorStream(true);
 
@@ -158,16 +152,18 @@ public class VertxProcess {
                       data -> {
                         if (limitExceeded[0]) return;
 
-                        if (outputBuffer.length() + data.length() > maxOutputSize) {
+                        if (outputBuffer.length() + data.length() > options.maxOutputSize()) {
                           limitExceeded[0] = true;
-                          int remaining = (int) (maxOutputSize - outputBuffer.length());
+                          int remaining = (int) (options.maxOutputSize() - outputBuffer.length());
                           if (remaining > 0) {
                             outputBuffer.appendBuffer(data.slice(0, remaining));
                           }
                           vp.destroyForcibly();
                           promise.fail(
                               new ExecutionException(
-                                  "Output size limit exceeded (" + maxOutputSize + " bytes)",
+                                  "Output size limit exceeded ("
+                                      + options.maxOutputSize()
+                                      + " bytes)",
                                   outputBuffer.toString(StandardCharsets.UTF_8)));
                           return;
                         }
@@ -180,13 +176,13 @@ public class VertxProcess {
 
               long timerId =
                   vertx.setTimer(
-                      timeoutMs,
+                      options.timeoutMs(),
                       id -> {
                         if (!finished[0]) {
                           vp.destroyForcibly();
                           promise.fail(
                               new ExecutionException(
-                                  "Command timed out after " + timeoutMs + "ms",
+                                  "Command timed out after " + options.timeoutMs() + "ms",
                                   outputBuffer.toString(StandardCharsets.UTF_8)));
                         }
                       });
@@ -212,6 +208,17 @@ public class VertxProcess {
 
               return promise.future();
             });
+  }
+
+  public static Future<Result> execute(
+      Vertx vertx,
+      List<String> command,
+      String workingDir,
+      long timeoutMs,
+      long maxOutputSize,
+      Handler<String> chunkHandler) {
+    return execute(
+        vertx, command, new ProcessOptions(workingDir, timeoutMs, maxOutputSize), chunkHandler);
   }
 
   public static Future<Result> execute(

@@ -23,24 +23,27 @@ public class AnthropicModelGateway extends AbstractModelGateway {
   private static final Logger logger = LoggerFactory.getLogger(AnthropicModelGateway.class);
   private static final Logger llmLogger = LoggerFactory.getLogger("LLM_LOG");
   private final WebClient webClient;
-  private final String apiKey;
+  private final GatewayConfig config;
   private final String endpoint;
-  private final int timeoutMs;
 
   public AnthropicModelGateway(Vertx vertx, WebClient webClient, String apiKey, String baseUrl) {
-    this(vertx, webClient, apiKey, baseUrl, 60000);
+    this(vertx, webClient, new GatewayConfig(apiKey, baseUrl, 60000));
   }
 
-  public AnthropicModelGateway(
-      Vertx vertx, WebClient webClient, String apiKey, String baseUrl, int timeoutMs) {
+  public AnthropicModelGateway(Vertx vertx, WebClient webClient, GatewayConfig config) {
     super(vertx);
     this.webClient = webClient;
-    this.apiKey = apiKey;
-    this.timeoutMs = timeoutMs;
+    this.config = config;
+    String baseUrl = config.baseUrl();
     this.endpoint =
         baseUrl.endsWith("/v1/messages")
             ? baseUrl
             : (baseUrl.endsWith("/") ? baseUrl + "v1/messages" : baseUrl + "/v1/messages");
+  }
+
+  public AnthropicModelGateway(
+      Vertx vertx, WebClient webClient, String apiKey, String baseUrl, int timeoutMs) {
+    this(vertx, webClient, new GatewayConfig(apiKey, baseUrl, timeoutMs));
   }
 
   @Override
@@ -54,10 +57,10 @@ public class AnthropicModelGateway extends AbstractModelGateway {
     return withSemaphore(
         webClient
             .postAbs(endpoint)
-            .putHeader("x-api-key", apiKey)
+            .putHeader("x-api-key", config.apiKey())
             .putHeader("anthropic-version", "2023-06-01")
             .putHeader("Content-Type", "application/json")
-            .timeout(timeoutMs)
+            .timeout(config.timeout())
             .as(BodyCodec.jsonObject())
             .sendJsonObject(payload)
             .compose(
@@ -105,10 +108,10 @@ public class AnthropicModelGateway extends AbstractModelGateway {
         payload,
         webClient
             .postAbs(endpoint)
-            .putHeader("x-api-key", apiKey)
+            .putHeader("x-api-key", config.apiKey())
             .putHeader("anthropic-version", "2023-06-01")
             .putHeader("Content-Type", "application/json")
-            .timeout(timeoutMs),
+            .timeout(config.timeout()),
         json -> {
           try {
             String type = json.getString("type");
