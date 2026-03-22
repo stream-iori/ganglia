@@ -5,7 +5,7 @@ import io.vertx.core.Vertx;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import work.ganglia.infrastructure.external.tool.model.*;
+import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.chat.Turn;
 import work.ganglia.port.external.tool.ToolCall;
@@ -117,8 +117,9 @@ public class ToDoTools implements ToolSet {
       work.ganglia.port.internal.state.ExecutionContext executionContext) {
     String id = (String) args.get("id");
     ToDoList currentList = getToDoList(context);
-    if (currentList.isEmpty())
+    if (currentList.isEmpty()) {
       return Future.succeededFuture(ToolInvokeResult.error("No plan exists."));
+    }
 
     // Trigger Compression of Previous Turns
     // Strategy: Summarize all previousTurns, store result in the task, and CLEAR previousTurns.

@@ -135,9 +135,13 @@ public class InteractiveDemo {
   }
 
   private static boolean hasPendingInteraction(SessionContext context) {
-    if (context.currentTurn() == null) return false;
+    if (context.currentTurn() == null) {
+      return false;
+    }
     var steps = context.currentTurn().intermediateSteps();
-    if (steps == null || steps.isEmpty()) return false;
+    if (steps == null || steps.isEmpty()) {
+      return false;
+    }
 
     // Collect all answered tool call IDs
     Set<String> answeredIds = new java.util.HashSet<>();

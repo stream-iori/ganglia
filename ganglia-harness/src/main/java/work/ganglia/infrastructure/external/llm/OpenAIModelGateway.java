@@ -6,7 +6,12 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -137,15 +142,21 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                         toolCallBuilders.computeIfAbsent(index, k -> new ToolCallBuilder());
 
                     String id = tcDelta.getString("id");
-                    if (id != null) builder.id = id;
+                    if (id != null) {
+                      builder.id = id;
+                    }
 
                     JsonObject function = tcDelta.getJsonObject("function");
                     if (function != null) {
                       String name = function.getString("name");
-                      if (name != null) builder.name = name;
+                      if (name != null) {
+                        builder.name = name;
+                      }
 
                       String arguments = function.getString("arguments");
-                      if (arguments != null) builder.arguments.append(arguments);
+                      if (arguments != null) {
+                        builder.arguments.append(arguments);
+                      }
                     }
                   }
                 }
@@ -272,7 +283,9 @@ public class OpenAIModelGateway extends AbstractModelGateway {
     JsonObject message = choice.getJsonObject("message");
 
     String content = message.getString("content");
-    if (content == null) content = "";
+    if (content == null) {
+      content = "";
+    }
 
     List<ToolCall> toolCalls = new ArrayList<>();
     JsonArray tcs = message.getJsonArray("tool_calls");
@@ -282,7 +295,9 @@ public class OpenAIModelGateway extends AbstractModelGateway {
         if ("function".equals(tc.getString("type"))) {
           JsonObject function = tc.getJsonObject("function");
           String id = tc.getString("id");
-          if (id == null) id = "call_" + UUID.randomUUID().toString().substring(0, 8);
+          if (id == null) {
+            id = "call_" + UUID.randomUUID().toString().substring(0, 8);
+          }
 
           Map<String, Object> args = parseJson(function.getString("arguments"));
           toolCalls.add(new ToolCall(id, function.getString("name"), args));
@@ -302,7 +317,9 @@ public class OpenAIModelGateway extends AbstractModelGateway {
   }
 
   private Map<String, Object> parseJson(String json) {
-    if (json == null || json.isEmpty()) return Collections.emptyMap();
+    if (json == null || json.isEmpty()) {
+      return Collections.emptyMap();
+    }
     try {
       String sanitized = JsonSanitizer.sanitize(json);
       return new JsonObject(sanitized).getMap();

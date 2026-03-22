@@ -26,7 +26,9 @@ public class ProcessTracker {
   }
 
   public static void cleanupAll() {
-    if (trackedProcesses.isEmpty()) return;
+    if (trackedProcesses.isEmpty()) {
+      return;
+    }
 
     logger.info("Cleaning up {} tracked child processes...", trackedProcesses.size());
     for (Process process : trackedProcesses) {

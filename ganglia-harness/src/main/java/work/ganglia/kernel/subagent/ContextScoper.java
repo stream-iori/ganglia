@@ -1,6 +1,8 @@
 package work.ganglia.kernel.subagent;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import work.ganglia.port.chat.SessionContext;
 
 /** Utility for scoping and isolating context for Sub-Agents. */

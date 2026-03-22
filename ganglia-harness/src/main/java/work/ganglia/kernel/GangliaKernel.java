@@ -10,19 +10,33 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.BootstrapOptions;
 import work.ganglia.Ganglia;
-import work.ganglia.config.*;
+import work.ganglia.config.ConfigManager;
 import work.ganglia.infrastructure.external.llm.ModelGatewayFactory;
 import work.ganglia.infrastructure.external.llm.RetryingModelGateway;
 import work.ganglia.infrastructure.external.tool.DefaultToolExecutor;
 import work.ganglia.infrastructure.external.tool.ToolsFactory;
-import work.ganglia.infrastructure.internal.memory.*;
+import work.ganglia.infrastructure.internal.memory.DailyJournalModule;
+import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
+import work.ganglia.infrastructure.internal.memory.FileSystemDailyRecordManager;
+import work.ganglia.infrastructure.internal.memory.FileSystemLongTermMemory;
+import work.ganglia.infrastructure.internal.memory.FileSystemMemoryStore;
+import work.ganglia.infrastructure.internal.memory.LLMObservationCompressor;
+import work.ganglia.infrastructure.internal.memory.LongTermKnowledgeModule;
+import work.ganglia.infrastructure.internal.memory.MarkdownTimelineLedger;
+import work.ganglia.infrastructure.internal.memory.MemoryContextSource;
+import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.infrastructure.internal.prompt.StandardPromptEngine;
 import work.ganglia.infrastructure.internal.prompt.context.DailyContextSource;
 import work.ganglia.infrastructure.internal.skill.DefaultSkillRuntime;
 import work.ganglia.infrastructure.internal.skill.DefaultSkillService;
 import work.ganglia.infrastructure.internal.skill.FileSystemSkillLoader;
 import work.ganglia.infrastructure.internal.skill.JarSkillLoader;
-import work.ganglia.infrastructure.internal.state.*;
+import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
+import work.ganglia.infrastructure.internal.state.DefaultSessionManager;
+import work.ganglia.infrastructure.internal.state.FileLogManager;
+import work.ganglia.infrastructure.internal.state.FileStateEngine;
+import work.ganglia.infrastructure.internal.state.TokenUsageManager;
+import work.ganglia.infrastructure.internal.state.TraceManager;
 import work.ganglia.kernel.hook.InterceptorPipeline;
 import work.ganglia.kernel.hook.builtin.ObservationCompressionHook;
 import work.ganglia.kernel.loop.AgentLoopFactory;
@@ -124,7 +138,9 @@ public class GangliaKernel {
     List<Path> skillPaths = new ArrayList<>();
     skillPaths.add(Paths.get(projectRoot, Constants.DIR_SKILLS));
     String userHome = System.getProperty("user.home");
-    if (userHome != null) skillPaths.add(Paths.get(userHome, ".ganglia/skills"));
+    if (userHome != null) {
+      skillPaths.add(Paths.get(userHome, ".ganglia/skills"));
+    }
     skillPaths.add(Paths.get(projectRoot, "skills"));
 
     List<SkillLoader> loaders = new ArrayList<>();

@@ -2,7 +2,9 @@ package work.ganglia.port.internal.memory;
 
 import io.vertx.core.Future;
 import java.util.List;
-import work.ganglia.port.internal.memory.model.*;
+import work.ganglia.port.internal.memory.model.MemoryEntry;
+import work.ganglia.port.internal.memory.model.MemoryIndexItem;
+import work.ganglia.port.internal.memory.model.MemoryQuery;
 
 /** Port for Long-term Memory Storage and Retrieval (Hybrid Search & Progressive Disclosure). */
 public interface MemoryStore {

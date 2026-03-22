@@ -121,9 +121,13 @@ public class ErrorHandlingAgentDemo {
   }
 
   private static boolean hasPendingInteraction(SessionContext context) {
-    if (context.currentTurn() == null) return false;
+    if (context.currentTurn() == null) {
+      return false;
+    }
     var steps = context.currentTurn().intermediateSteps();
-    if (steps == null || steps.isEmpty()) return false;
+    if (steps == null || steps.isEmpty()) {
+      return false;
+    }
 
     var lastMsg = steps.get(steps.size() - 1);
     if (lastMsg.role() == Role.ASSISTANT && lastMsg.toolCalls() != null) {
@@ -134,7 +138,9 @@ public class ErrorHandlingAgentDemo {
         }
       }
       for (var tc : lastMsg.toolCalls()) {
-        if (!answeredIds.contains(tc.id())) return true;
+        if (!answeredIds.contains(tc.id())) {
+          return true;
+        }
       }
     }
     return false;

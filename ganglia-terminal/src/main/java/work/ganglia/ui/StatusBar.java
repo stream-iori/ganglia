@@ -115,7 +115,9 @@ public class StatusBar {
    * visible and anchored in the input box. Must be called while holding {@link #terminalWriteLock}.
    */
   public void parkCursorAtInput() {
-    if (!enabled || isDumb()) return;
+    if (!enabled || isDumb()) {
+      return;
+    }
     writer.print(String.format("\033[%d;%dH", getInputRow(), INPUT_CURSOR_COL));
   }
 
@@ -136,7 +138,9 @@ public class StatusBar {
 
   /** Enables the status bar: sets up scroll region, WINCH handler, and initial paint. */
   public void enable() {
-    if (isDumb()) return;
+    if (isDumb()) {
+      return;
+    }
     this.enabled = true;
     setupScrollRegion();
     terminal.handle(Signal.WINCH, sig -> handleResize());
@@ -145,7 +149,9 @@ public class StatusBar {
 
   /** Disables the status bar, restoring the full terminal scroll region. */
   public void disable() {
-    if (!enabled) return;
+    if (!enabled) {
+      return;
+    }
     this.enabled = false;
     writer.print(RESET_SCROLL_REGION);
     clearRows(getRows() - reservedRows + 1, reservedRows);
@@ -203,9 +209,13 @@ public class StatusBar {
 
   /** Renders the task panel if present. Returns the next row to render at. */
   private int renderTaskPanel(int startRow, int termRows, int cols) {
-    if (taskPanel == null) return startRow;
+    if (taskPanel == null) {
+      return startRow;
+    }
     int height = taskPanel.getHeight(termRows);
-    if (height <= 0) return startRow;
+    if (height <= 0) {
+      return startRow;
+    }
     taskPanel.renderAt(writer, startRow, cols, height);
     return startRow + height;
   }
@@ -270,9 +280,13 @@ public class StatusBar {
   // ── Scroll region management ────────────────────────────────────────
 
   private void setupScrollRegion() {
-    if (isDumb()) return;
+    if (isDumb()) {
+      return;
+    }
     int rows = getRows();
-    if (rows < reservedRows + MIN_SCROLL_HEIGHT) return;
+    if (rows < reservedRows + MIN_SCROLL_HEIGHT) {
+      return;
+    }
     int scrollBottom = rows - reservedRows;
     writer.print(String.format("\033[1;%dr", scrollBottom));
     writer.print(String.format("\033[%d;1H", scrollBottom));
@@ -280,7 +294,9 @@ public class StatusBar {
   }
 
   private void handleResize() {
-    if (!enabled || isDumb()) return;
+    if (!enabled || isDumb()) {
+      return;
+    }
     synchronized (terminalWriteLock) {
       int rows = getRows();
       writer.print(RESET_SCROLL_REGION);

@@ -49,7 +49,9 @@ public class ResponseRenderer {
   public void render(String content, boolean full) {
     synchronized (statusBar.terminalWriteLock) {
       List<String> lines = buildResponseLines(content, full);
-      if (lines.isEmpty()) return;
+      if (lines.isEmpty()) {
+        return;
+      }
       for (String line : lines) {
         writer.println(line);
       }
@@ -80,12 +82,16 @@ public class ResponseRenderer {
    * StatusBar lives below the scroll region and would be wiped.
    */
   public void toggleInPlace() {
-    if (lastRenderedResponse == null) return;
+    if (lastRenderedResponse == null) {
+      return;
+    }
 
     synchronized (statusBar.terminalWriteLock) {
       boolean newExpanded = !lastResponseExpanded;
       List<String> newLines = buildResponseLines(lastRenderedResponse, newExpanded);
-      if (newLines.isEmpty()) return;
+      if (newLines.isEmpty()) {
+        return;
+      }
 
       int oldTotal = lastResponseLineCount + 1; // +1 for blank line after content
       int newTotal = newLines.size() + 1;
@@ -196,7 +202,9 @@ public class ResponseRenderer {
 
   private int getResponseContentWidth() {
     int termWidth = terminal.getWidth();
-    if (termWidth <= 0) termWidth = 80;
+    if (termWidth <= 0) {
+      termWidth = 80;
+    }
     return Math.max(termWidth - 4, 40);
   }
 

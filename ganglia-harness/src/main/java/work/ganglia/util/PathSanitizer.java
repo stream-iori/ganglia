@@ -98,8 +98,12 @@ public class PathSanitizer implements PathMapper {
    * special characters.
    */
   public static String escapeShellArg(String arg) {
-    if (arg == null) return "''";
-    if (arg.isEmpty()) return "''";
+    if (arg == null) {
+      return "''";
+    }
+    if (arg.isEmpty()) {
+      return "''";
+    }
 
     // Wrap in single quotes and escape existing single quotes
     // ' becomes '\''

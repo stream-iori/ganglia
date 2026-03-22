@@ -150,7 +150,9 @@ public class VertxProcess {
               vp.stdout()
                   .handler(
                       data -> {
-                        if (limitExceeded[0]) return;
+                        if (limitExceeded[0]) {
+                          return;
+                        }
 
                         if (outputBuffer.length() + data.length() > options.maxOutputSize()) {
                           limitExceeded[0] = true;
@@ -381,7 +383,9 @@ public class VertxProcess {
     }
 
     public void close() {
-      if (readThread != null) readThread.interrupt();
+      if (readThread != null) {
+        readThread.interrupt();
+      }
     }
   }
 

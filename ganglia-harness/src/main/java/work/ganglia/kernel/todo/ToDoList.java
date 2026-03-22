@@ -58,7 +58,9 @@ public record ToDoList(List<ToDoItem> items) {
 
   @Override
   public String toString() {
-    if (items.isEmpty()) return "No tasks.";
+    if (items.isEmpty()) {
+      return "No tasks.";
+    }
     StringBuilder sb = new StringBuilder("ToDo List:\n");
     for (ToDoItem item : items) {
       sb.append(
@@ -78,7 +80,9 @@ public record ToDoList(List<ToDoItem> items) {
    * keeping the active (TODO/IN_PROGRESS) tasks fully visible.
    */
   public String toSummarizedString() {
-    if (items.isEmpty()) return "No tasks.";
+    if (items.isEmpty()) {
+      return "No tasks.";
+    }
     StringBuilder sb = new StringBuilder("ToDo List (Summarized):\n");
     long doneCount = items.stream().filter(item -> item.status() == TaskStatus.DONE).count();
     long totalCount = items.size();

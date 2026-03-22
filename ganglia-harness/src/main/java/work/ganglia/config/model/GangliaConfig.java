@@ -14,7 +14,9 @@ public record GangliaConfig(
 
   public record WebUIConfig(int port, boolean enabled, String webroot) {
     public WebUIConfig {
-      if (port == 0) port = 8080;
+      if (port == 0) {
+        port = 8080;
+      }
     }
   }
 }

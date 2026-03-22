@@ -40,16 +40,22 @@ public record Turn(
 
   public List<Message> flatten() {
     ArrayList<Message> list = new ArrayList<>();
-    if (Objects.nonNull(userMessage)) list.add(userMessage);
+    if (Objects.nonNull(userMessage)) {
+      list.add(userMessage);
+    }
     list.addAll(intermediateSteps);
-    if (Objects.nonNull(finalResponse)) list.add(finalResponse);
+    if (Objects.nonNull(finalResponse)) {
+      list.add(finalResponse);
+    }
     return list;
   }
 
   /** Returns the most recent message in this turn. */
   @JsonIgnore
   public Message getLatestMessage() {
-    if (finalResponse != null) return finalResponse;
+    if (finalResponse != null) {
+      return finalResponse;
+    }
     if (intermediateSteps != null && !intermediateSteps.isEmpty()) {
       return intermediateSteps.get(intermediateSteps.size() - 1);
     }

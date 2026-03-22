@@ -50,7 +50,9 @@ public class DetailView {
         } catch (IOException e) {
           break;
         }
-        if (c == -1) break;
+        if (c == -1) {
+          break;
+        }
 
         switch (c) {
           case 'q', 'Q' -> running = false;
@@ -180,12 +182,16 @@ public class DetailView {
   }
 
   private String padRight(String s, int width) {
-    if (s.length() >= width) return s.substring(0, width);
+    if (s.length() >= width) {
+      return s.substring(0, width);
+    }
     return s + " ".repeat(width - s.length());
   }
 
   private String formatDuration(long millis) {
-    if (millis < 1000) return millis + "ms";
+    if (millis < 1000) {
+      return millis + "ms";
+    }
     double secs = millis / 1000.0;
     return String.format("%.1fs", secs);
   }

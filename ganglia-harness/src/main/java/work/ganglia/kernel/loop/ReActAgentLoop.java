@@ -152,7 +152,9 @@ public class ReActAgentLoop implements AgentLoop {
 
   private ToolCall findPendingToolCall(SessionContext context) {
     Turn current = context.currentTurn();
-    if (current == null) return null;
+    if (current == null) {
+      return null;
+    }
     return current.getPendingToolCalls().stream().findFirst().orElse(null);
   }
 
@@ -314,22 +316,24 @@ public class ReActAgentLoop implements AgentLoop {
 
           @Override
           public void emitStream(String chunk) {
-            if (dispatcher != null)
+            if (dispatcher != null) {
               dispatcher.dispatch(
                   originalContext.sessionId(),
                   ObservationType.TOOL_OUTPUT_STREAM,
                   chunk,
                   Map.of("toolCallId", task.id()));
+            }
           }
 
           @Override
           public void emitError(Throwable error) {
-            if (dispatcher != null)
+            if (dispatcher != null) {
               dispatcher.dispatch(
                   originalContext.sessionId(),
                   ObservationType.ERROR,
                   error.getMessage(),
                   Map.of("toolCallId", task.id()));
+            }
           }
         };
 

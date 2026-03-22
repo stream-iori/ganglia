@@ -31,7 +31,9 @@ public record Ganglia(
     work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry) {
   /** Shuts down the Ganglia instance and all its components, including MCP servers. */
   public void shutdown() {
-    if (mcpRegistry != null) mcpRegistry.close();
+    if (mcpRegistry != null) {
+      mcpRegistry.close();
+    }
     vertx.close();
   }
 

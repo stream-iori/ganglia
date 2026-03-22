@@ -135,8 +135,12 @@ public class DefaultAgentTaskFactory implements AgentTaskFactory {
   }
 
   private boolean isSkillTool(String toolName, SessionContext context) {
-    if (skillRuntime == null || skillService == null) return false;
-    if ("list_available_skills".equals(toolName) || "activate_skill".equals(toolName)) return true;
+    if (skillRuntime == null || skillService == null) {
+      return false;
+    }
+    if ("list_available_skills".equals(toolName) || "activate_skill".equals(toolName)) {
+      return true;
+    }
     return skillRuntime.getActiveSkillsTools(context).stream()
         .anyMatch(ts -> ts.getDefinitions().stream().anyMatch(d -> d.name().equals(toolName)));
   }

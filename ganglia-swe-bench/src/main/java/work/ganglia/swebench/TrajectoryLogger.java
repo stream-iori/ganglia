@@ -26,7 +26,9 @@ public class TrajectoryLogger implements AgentLoopObserver {
   public TrajectoryLogger(String instanceId) {
     this.instanceId = instanceId;
     File logDir = new File("target/e2e-logs");
-    if (!logDir.exists()) logDir.mkdirs();
+    if (!logDir.exists()) {
+      logDir.mkdirs();
+    }
     this.logFile = new File(logDir, instanceId + "_trajectory.json");
   }
 
@@ -40,7 +42,9 @@ public class TrajectoryLogger implements AgentLoopObserver {
         content != null && content.length() > 4000
             ? content.substring(0, 4000) + "...(truncated)"
             : content);
-    if (data != null) entry.put("data", data);
+    if (data != null) {
+      entry.put("data", data);
+    }
     entry.put("timestamp", System.currentTimeMillis());
     trajectory.add(entry);
     save();

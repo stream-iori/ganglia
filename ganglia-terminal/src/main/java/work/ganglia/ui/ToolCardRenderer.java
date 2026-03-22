@@ -80,7 +80,9 @@ public class ToolCardRenderer {
   }
 
   public void appendOutput(ObservationEvent event) {
-    if (!insideToolCard) return;
+    if (!insideToolCard) {
+      return;
+    }
     if (event.content() != null) {
       String[] lines = event.content().split("\n", -1);
       if (pendingOutputLines != null) {
@@ -168,7 +170,9 @@ public class ToolCardRenderer {
             @Override
             public void run() {
               synchronized (statusBar.terminalWriteLock) {
-                if (spinnerTimer == null) return;
+                if (spinnerTimer == null) {
+                  return;
+                }
                 long elapsed = System.currentTimeMillis() - toolStartTime;
                 String time = formatDuration(elapsed);
                 String frame = SPINNER[spinnerFrame % SPINNER.length];
@@ -224,7 +228,9 @@ public class ToolCardRenderer {
 
   private String formatToolParams(ObservationEvent event) {
     var data = event.data();
-    if (data == null || data.isEmpty()) return "";
+    if (data == null || data.isEmpty()) {
+      return "";
+    }
 
     if ("run_shell_command".equals(currentToolName) && data.containsKey("command")) {
       return "$ " + data.get("command");
@@ -232,15 +238,21 @@ public class ToolCardRenderer {
 
     StringBuilder sb = new StringBuilder();
     for (var entry : data.entrySet()) {
-      if ("toolCallId".equals(entry.getKey())) continue;
-      if (sb.length() > 0) sb.append("  ");
+      if ("toolCallId".equals(entry.getKey())) {
+        continue;
+      }
+      if (sb.length() > 0) {
+        sb.append("  ");
+      }
       sb.append(entry.getKey()).append("=").append(entry.getValue());
     }
     return sb.toString();
   }
 
   private String formatDuration(long millis) {
-    if (millis < 1000) return millis + "ms";
+    if (millis < 1000) {
+      return millis + "ms";
+    }
     double secs = millis / 1000.0;
     return String.format("%.1fs", secs);
   }

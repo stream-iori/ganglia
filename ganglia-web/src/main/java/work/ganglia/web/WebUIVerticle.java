@@ -13,8 +13,20 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import java.io.IOException;
-import java.nio.file.*;
-import java.util.*;
+import java.nio.file.ClosedWatchServiceException;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.stream.Collectors;
@@ -24,7 +36,11 @@ import work.ganglia.kernel.loop.AgentLoop;
 import work.ganglia.port.internal.state.AgentSignal;
 import work.ganglia.port.internal.state.SessionManager;
 import work.ganglia.util.Constants;
-import work.ganglia.web.model.*;
+import work.ganglia.web.model.EventType;
+import work.ganglia.web.model.JsonRpcNotification;
+import work.ganglia.web.model.JsonRpcRequest;
+import work.ganglia.web.model.JsonRpcResponse;
+import work.ganglia.web.model.ServerEvent;
 
 /** Verticle for handling WebUI connections via WebSocket and JSON-RPC. */
 public class WebUIVerticle extends AbstractVerticle {
@@ -124,7 +140,9 @@ public class WebUIVerticle extends AbstractVerticle {
                       && (key = watchService.take()) != null) {
                     for (WatchEvent<?> event : key.pollEvents()) {
                       WatchEvent.Kind<?> kind = event.kind();
-                      if (kind == StandardWatchEventKinds.OVERFLOW) continue;
+                      if (kind == StandardWatchEventKinds.OVERFLOW) {
+                        continue;
+                      }
 
                       Path context = (Path) event.context();
                       Path dir = (Path) key.watchable();
@@ -245,7 +263,9 @@ public class WebUIVerticle extends AbstractVerticle {
         text -> {
           try {
             JsonRpcRequest request = new JsonObject(text).mapTo(JsonRpcRequest.class);
-            if (!"2.0".equals(request.jsonrpc()) || request.method() == null) return;
+            if (!"2.0".equals(request.jsonrpc()) || request.method() == null) {
+              return;
+            }
 
             String sessionId =
                 request.params() != null ? request.params().getString("sessionId") : null;
@@ -266,7 +286,9 @@ public class WebUIVerticle extends AbstractVerticle {
             Set<ServerWebSocket> sockets = sessionSockets.get(currentSessionId[0]);
             if (sockets != null) {
               sockets.remove(ws);
-              if (sockets.isEmpty()) sessionSockets.remove(currentSessionId[0]);
+              if (sockets.isEmpty()) {
+                sessionSockets.remove(currentSessionId[0]);
+              }
             }
           }
           logger.info("WebUI WebSocket closed");
@@ -282,9 +304,7 @@ public class WebUIVerticle extends AbstractVerticle {
             msg -> {
               String sessionId = msg.headers().get("sessionId");
               if (sessionId != null) {
-                sessionHistories
-                    .computeIfAbsent(sessionId, k -> new java.util.ArrayList<>())
-                    .add(msg.body());
+                sessionHistories.computeIfAbsent(sessionId, k -> new ArrayList<>()).add(msg.body());
               }
             });
 
@@ -304,7 +324,9 @@ public class WebUIVerticle extends AbstractVerticle {
   }
 
   private void handleRpcRequest(JsonRpcRequest request, ServerWebSocket ws, String sessionId) {
-    if (sessionId == null) return;
+    if (sessionId == null) {
+      return;
+    }
 
     switch (request.method()) {
       case "SYNC" -> handleSync(request, ws, sessionId);
@@ -326,8 +348,7 @@ public class WebUIVerticle extends AbstractVerticle {
         new ServerEvent.InitConfigData(
             Path.of(".").toAbsolutePath().toString(), sessionId, mcpServersCount));
 
-    List<JsonObject> history =
-        sessionHistories.getOrDefault(sessionId, java.util.Collections.emptyList());
+    List<JsonObject> history = sessionHistories.getOrDefault(sessionId, Collections.emptyList());
     sendRpcResponse(ws, request.id(), new JsonObject().put("history", new JsonArray(history)));
   }
 
@@ -354,13 +375,15 @@ public class WebUIVerticle extends AbstractVerticle {
     JsonObject userJson = JsonObject.mapFrom(userEvent);
 
     forwardToWebSocket(sessionId, "server_event", userJson);
-    sessionHistories.computeIfAbsent(sessionId, k -> new java.util.ArrayList<>()).add(userJson);
+    sessionHistories.computeIfAbsent(sessionId, k -> new ArrayList<>()).add(userJson);
 
     sessionManager
         .getSession(sessionId)
         .onComplete(
             res -> {
-              if (res.succeeded()) agentLoop.run(prompt, res.result(), new AgentSignal());
+              if (res.succeeded()) {
+                agentLoop.run(prompt, res.result(), new AgentSignal());
+              }
             });
     sendRpcResponse(ws, request.id(), new JsonObject().put("status", "started"));
   }
@@ -372,8 +395,9 @@ public class WebUIVerticle extends AbstractVerticle {
           .getSession(sessionId)
           .onComplete(
               res -> {
-                if (res.succeeded() && res.result() != null)
+                if (res.succeeded() && res.result() != null) {
                   agentLoop.run(lastPrompt, res.result(), new AgentSignal());
+                }
               });
     }
     sendRpcResponse(ws, request.id(), new JsonObject().put("status", "retrying"));
@@ -404,7 +428,9 @@ public class WebUIVerticle extends AbstractVerticle {
           } else {
             formattedAnswers.append(val != null ? val.toString() : "");
           }
-          if (i < answers.size() - 1) formattedAnswers.append("\n");
+          if (i < answers.size() - 1) {
+            formattedAnswers.append("\n");
+          }
         }
       }
     }
@@ -415,8 +441,9 @@ public class WebUIVerticle extends AbstractVerticle {
         .getSession(sessionId)
         .onComplete(
             res -> {
-              if (res.succeeded() && res.result() != null)
+              if (res.succeeded() && res.result() != null) {
                 agentLoop.resume(userInput, res.result(), new AgentSignal());
+              }
             });
     sendRpcResponse(ws, request.id(), new JsonObject().put("status", "resumed"));
   }
@@ -468,13 +495,17 @@ public class WebUIVerticle extends AbstractVerticle {
   }
 
   private void forwardToWebSocket(String sessionId, String method, Object params) {
-    if (sessionId == null) return;
+    if (sessionId == null) {
+      return;
+    }
     Set<ServerWebSocket> sockets = sessionSockets.get(sessionId);
     if (sockets != null) {
       String payload = JsonObject.mapFrom(JsonRpcNotification.create(method, params)).encode();
       sockets.forEach(
           ws -> {
-            if (!ws.isClosed()) ws.writeTextMessage(payload);
+            if (!ws.isClosed()) {
+              ws.writeTextMessage(payload);
+            }
           });
     }
   }
@@ -530,7 +561,9 @@ public class WebUIVerticle extends AbstractVerticle {
                                         (j1, j2) -> {
                                           boolean d1 = "directory".equals(j1.getString("type"));
                                           boolean d2 = "directory".equals(j2.getString("type"));
-                                          if (d1 != d2) return d1 ? -1 : 1;
+                                          if (d1 != d2) {
+                                            return d1 ? -1 : 1;
+                                          }
                                           return j1.getString("name")
                                               .compareToIgnoreCase(j2.getString("name"));
                                         });

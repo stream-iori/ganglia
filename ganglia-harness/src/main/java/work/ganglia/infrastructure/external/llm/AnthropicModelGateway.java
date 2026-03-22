@@ -6,7 +6,11 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.codec.BodyCodec;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -115,7 +119,9 @@ public class AnthropicModelGateway extends AbstractModelGateway {
         json -> {
           try {
             String type = json.getString("type");
-            if (type == null) return;
+            if (type == null) {
+              return;
+            }
 
             switch (type) {
               case "message_start":

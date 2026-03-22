@@ -65,7 +65,9 @@ public class EventRenderer {
 
   @SuppressWarnings("unchecked")
   private void handlePlanUpdated(ObservationEvent event) {
-    if (taskPanel == null) return;
+    if (taskPanel == null) {
+      return;
+    }
     Map<String, Object> data = event.data();
     if (data != null && data.containsKey("plan")) {
       taskPanel.updatePlanFromData(data.get("plan"));

@@ -362,7 +362,9 @@ public class TerminalApp implements AutoCloseable {
 
   /** Moves the cursor to the input row inside the reserved bottom panel. */
   private void moveToInputRow() {
-    if ("dumb".equals(terminal.getType())) return;
+    if ("dumb".equals(terminal.getType())) {
+      return;
+    }
     int inputRow = statusBar.getInputRow();
     writer.print(String.format("\033[%d;1H\033[2K", inputRow));
     writer.flush();
@@ -373,7 +375,9 @@ public class TerminalApp implements AutoCloseable {
    * visible after the input box is repainted.
    */
   private void echoUserInput(String input) {
-    if ("dumb".equals(terminal.getType())) return;
+    if ("dumb".equals(terminal.getType())) {
+      return;
+    }
     synchronized (statusBar.terminalWriteLock) {
       writer.print(String.format("\033[%d;1H", statusBar.getScrollBottom()));
       writer.println();
@@ -393,7 +397,9 @@ public class TerminalApp implements AutoCloseable {
    * the scrollable area.
    */
   private void moveToScrollBottom() {
-    if ("dumb".equals(terminal.getType())) return;
+    if ("dumb".equals(terminal.getType())) {
+      return;
+    }
     int scrollBottom = statusBar.getScrollBottom();
     writer.print(String.format("\033[%d;1H", scrollBottom));
     writer.flush();
