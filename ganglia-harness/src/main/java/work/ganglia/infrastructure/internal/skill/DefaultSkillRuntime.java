@@ -84,7 +84,9 @@ public class DefaultSkillRuntime implements SkillRuntime {
       skillService.getSkill(skillId).ifPresent(skill -> futures.add(loadSkillPrompts(skill)));
     }
 
-    if (futures.isEmpty()) return Future.succeededFuture("");
+    if (futures.isEmpty()) {
+      return Future.succeededFuture("");
+    }
 
     return Future.join(futures)
         .map(
@@ -205,14 +207,18 @@ public class DefaultSkillRuntime implements SkillRuntime {
               List<SkillManifest> suggestions = new ArrayList<>();
 
               for (SkillManifest skill : availableSkills) {
-                if (activeSkillIds != null && activeSkillIds.contains(skill.id())) continue;
+                if (activeSkillIds != null && activeSkillIds.contains(skill.id())) {
+                  continue;
+                }
 
                 if (matchTriggers(skill, filenames)) {
                   suggestions.add(skill);
                 }
               }
 
-              if (suggestions.isEmpty()) return "";
+              if (suggestions.isEmpty()) {
+                return "";
+              }
 
               StringBuilder sb = new StringBuilder("\n## Skill Suggestions\n");
               sb.append(
@@ -234,16 +240,22 @@ public class DefaultSkillRuntime implements SkillRuntime {
   }
 
   private boolean matchTriggers(SkillManifest skill, List<String> filenames) {
-    if (skill.activationTriggers() == null) return false;
+    if (skill.activationTriggers() == null) {
+      return false;
+    }
 
     List<String> patterns = skill.activationTriggers().filePatterns();
-    if (patterns == null || patterns.isEmpty()) return false;
+    if (patterns == null || patterns.isEmpty()) {
+      return false;
+    }
 
     for (String p : patterns) {
       String regex = p.replace(".", "\\.").replace("*", ".*");
       Pattern pattern = Pattern.compile("^" + regex + "$");
       for (String file : filenames) {
-        if (pattern.matcher(file).matches()) return true;
+        if (pattern.matcher(file).matches()) {
+          return true;
+        }
       }
     }
     return false;

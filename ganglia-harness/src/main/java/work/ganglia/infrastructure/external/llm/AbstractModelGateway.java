@@ -38,7 +38,9 @@ public abstract class AbstractModelGateway implements ModelGateway {
 
   /** Emits a token received event via the ExecutionContext. */
   protected void publishToken(ExecutionContext context, String token) {
-    if (token == null || token.isEmpty()) return;
+    if (token == null || token.isEmpty()) {
+      return;
+    }
     if (context != null) {
       context.emitStream(token);
     }
@@ -64,7 +66,9 @@ public abstract class AbstractModelGateway implements ModelGateway {
   }
 
   protected Throwable wrapException(Throwable e) {
-    if (e instanceof LLMException) return e;
+    if (e instanceof LLMException) {
+      return e;
+    }
     return new LLMException(e.getMessage(), null, null, null, e);
   }
 

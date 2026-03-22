@@ -13,7 +13,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.port.internal.memory.MemoryStore;
-import work.ganglia.port.internal.memory.model.*;
+import work.ganglia.port.internal.memory.model.MemoryEntry;
+import work.ganglia.port.internal.memory.model.MemoryIndexItem;
+import work.ganglia.port.internal.memory.model.MemoryQuery;
 
 public class FileSystemMemoryStore implements MemoryStore {
   private static final Logger log = LoggerFactory.getLogger(FileSystemMemoryStore.class);

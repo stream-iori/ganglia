@@ -39,8 +39,9 @@ public class RetryingModelGateway implements ModelGateway {
   }
 
   private Future<ModelResponse> retryChat(ChatRequest request, int attempt) {
-    if (request.signal().isAborted())
+    if (request.signal().isAborted()) {
       return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
+    }
     return delegate
         .chat(request)
         .recover(err -> handleRetry(err, attempt, () -> retryChat(request, attempt + 1), null));
@@ -48,8 +49,9 @@ public class RetryingModelGateway implements ModelGateway {
 
   private Future<ModelResponse> retryChatStream(
       ChatRequest request, ExecutionContext context, int attempt) {
-    if (request.signal().isAborted())
+    if (request.signal().isAborted()) {
       return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
+    }
     return delegate
         .chatStream(request, context)
         .recover(

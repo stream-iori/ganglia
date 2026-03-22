@@ -291,10 +291,12 @@ public class FileEditTools implements ToolSet {
                                               filePath,
                                               new CopyOptions().setReplaceExisting(true)))
                                   .compose(
-                                      v4 ->
-                                          (oldBuffer != null)
-                                              ? fs.delete(tempOldPath)
-                                              : Future.succeededFuture())
+                                      v4 -> {
+                                        if (oldBuffer != null) {
+                                          return fs.delete(tempOldPath);
+                                        }
+                                        return Future.succeededFuture();
+                                      })
                                   .map(
                                       v5 ->
                                           ToolInvokeResult.success(
@@ -325,8 +327,9 @@ public class FileEditTools implements ToolSet {
     return fs.exists(filePath)
         .compose(
             exists -> {
-              if (!exists)
+              if (!exists) {
                 return Future.succeededFuture(ToolInvokeResult.error("File not found: " + rawPath));
+              }
 
               String patchPath = filePath + ".patch." + System.nanoTime();
               return fs.writeFile(patchPath, io.vertx.core.buffer.Buffer.buffer(patch))
@@ -410,7 +413,9 @@ public class FileEditTools implements ToolSet {
   }
 
   private int countOccurrences(String text, String target) {
-    if (target.isEmpty()) return 0;
+    if (target.isEmpty()) {
+      return 0;
+    }
     int count = 0;
     int index = 0;
     while ((index = text.indexOf(target, index)) != -1) {

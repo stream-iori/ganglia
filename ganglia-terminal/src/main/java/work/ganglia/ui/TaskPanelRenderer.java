@@ -154,7 +154,9 @@ public class TaskPanelRenderer {
   }
 
   private String formatElapsed() {
-    if (turnStartTime <= 0) return "";
+    if (turnStartTime <= 0) {
+      return "";
+    }
     long elapsed = System.currentTimeMillis() - turnStartTime;
     long seconds = elapsed / 1000;
     if (seconds < 60) {
@@ -166,9 +168,15 @@ public class TaskPanelRenderer {
   }
 
   private String truncate(String text, int maxWidth) {
-    if (text == null) return "";
-    if (maxWidth <= 3) return "...";
-    if (text.length() <= maxWidth) return text;
+    if (text == null) {
+      return "";
+    }
+    if (maxWidth <= 3) {
+      return "...";
+    }
+    if (text.length() <= maxWidth) {
+      return text;
+    }
     return text.substring(0, maxWidth - 3) + "...";
   }
 

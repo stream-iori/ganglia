@@ -4,7 +4,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,9 +31,15 @@ public record SkillManifest(
   private static final ObjectMapper yamlMapper = new ObjectMapper(new YAMLFactory());
 
   public SkillManifest {
-    if (prompts == null) prompts = Collections.emptyList();
-    if (tools == null) tools = Collections.emptyList();
-    if (skillTools == null) skillTools = Collections.emptyList();
+    if (prompts == null) {
+      prompts = Collections.emptyList();
+    }
+    if (tools == null) {
+      tools = Collections.emptyList();
+    }
+    if (skillTools == null) {
+      skillTools = Collections.emptyList();
+    }
   }
 
   public static SkillManifest fromJson(JsonObject json) {
@@ -145,7 +156,9 @@ public record SkillManifest(
   }
 
   private static Map<String, Object> parseFrontmatter(String frontmatter) {
-    if (frontmatter.isEmpty()) return new HashMap<>();
+    if (frontmatter.isEmpty()) {
+      return new HashMap<>();
+    }
     try {
       return yamlMapper.readValue(frontmatter, Map.class);
     } catch (Exception e) {
@@ -156,7 +169,9 @@ public record SkillManifest(
   }
 
   private static List<String> parseList(Object value) {
-    if (value == null) return Collections.emptyList();
+    if (value == null) {
+      return Collections.emptyList();
+    }
     if (value instanceof List<?> list) {
       return list.stream().map(Object::toString).collect(Collectors.toList());
     }
@@ -181,7 +196,9 @@ public record SkillManifest(
 
   public record SkillTrigger(List<String> filePatterns, List<String> keywords) {
     public static SkillTrigger fromJson(JsonObject json) {
-      if (json == null) return new SkillTrigger(List.of(), List.of());
+      if (json == null) {
+        return new SkillTrigger(List.of(), List.of());
+      }
       return new SkillTrigger(
           json.getJsonArray("filePatterns", new JsonArray()).stream()
               .map(Object::toString)
