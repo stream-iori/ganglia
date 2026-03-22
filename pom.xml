@@ -216,6 +216,7 @@
                 <exclude>**/target/**</exclude>
                 <exclude>**/venv/**</exclude>
                 <exclude>**/.ganglia/**</exclude>
+                <exclude>**/SKILL.md</exclude>
               </excludes>
               <flexmark/>
             </markdown>
