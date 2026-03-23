@@ -2,6 +2,7 @@ package work.ganglia.coding;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -32,8 +33,8 @@ public class CodingAgentBuilder {
   private BootstrapOptions baseOptions;
   private PathMapper internalPathMapper;
   private PathMapper externalPathMapper;
-  private List<ContextSource> contextOverrides = new ArrayList<>();
   private Predicate<ContextSource> contextFilter = s -> false;
+  private final List<ContextSource> contextOverrides = new ArrayList<>();
 
   public CodingAgentBuilder(Vertx vertx) {
     this.vertx = vertx;
@@ -116,7 +117,7 @@ public class CodingAgentBuilder {
       configManager.updateConfig(baseOptions.overrideConfig());
     }
 
-    io.vertx.core.json.JsonObject config = configManager.getConfig();
+    JsonObject config = configManager.getConfig();
     String instructionFile = null;
 
     // Try nested agent object first (standard convention)

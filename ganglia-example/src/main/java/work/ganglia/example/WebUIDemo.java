@@ -33,7 +33,7 @@ public class WebUIDemo {
               System.out.println("Ganglia Core bootstrapped successfully.");
 
               // 3. Extract WebUI config and deploy the Verticle from ganglia-web module
-              GangliaConfig.WebUiConfig webConfig =
+              GangliaConfig.WebUIConfig webConfig =
                   ganglia.configManager().getGangliaConfig().webui();
               if (webConfig != null && webConfig.enabled()) {
                 WebUiVerticle webUiVerticle =

@@ -7,13 +7,13 @@ public record GangliaConfig(
     AgentConfig agent,
     Map<String, ModelConfig> models,
     ObservabilityConfig observability,
-    WebUiConfig webui) {
+    WebUIConfig webui) {
   public ModelConfig getModel(String key) {
     return models != null ? models.get(key) : null;
   }
 
-  public record WebUiConfig(int port, boolean enabled, String webroot) {
-    public WebUiConfig {
+  public record WebUIConfig(int port, boolean enabled, String webroot) {
+    public WebUIConfig {
       if (port == 0) {
         port = 8080;
       }

@@ -2,6 +2,7 @@ package work.ganglia.coding.tool;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.CopyOptions;
 import io.vertx.core.file.FileSystem;
 import java.io.File;
@@ -113,17 +114,27 @@ public class FileEditTools implements ToolSet {
       Map<String, Object> args,
       SessionContext context,
       work.ganglia.port.internal.state.ExecutionContext executionContext) {
+    Future<ToolInvokeResult> result;
     try {
-      return switch (toolName) {
-        case "replace_in_file" -> replaceInFile(toolName, args);
-        case "write_file" -> writeFile(args);
-        case "apply_patch" -> applyPatch(args);
-        default -> Future.failedFuture("Unknown tool: " + toolName);
-      };
+      result =
+          switch (toolName) {
+            case "replace_in_file" -> replaceInFile(toolName, args);
+            case "write_file" -> writeFile(args);
+            case "apply_patch" -> applyPatch(args);
+            default -> Future.failedFuture("Unknown tool: " + toolName);
+          };
     } catch (SecurityException e) {
       return Future.succeededFuture(
           ToolInvokeResult.error("Security/Validation Error: " + e.getMessage()));
     }
+
+    return result.recover(
+        err -> {
+          if (err instanceof SecurityException) {
+            return Future.succeededFuture(ToolInvokeResult.error(err.getMessage()));
+          }
+          return Future.failedFuture(err);
+        });
   }
 
   private Future<ToolInvokeResult> replaceInFile(String toolName, Map<String, Object> args) {
@@ -131,16 +142,7 @@ public class FileEditTools implements ToolSet {
     String filePath = sanitizer.map(rawPath);
     String oldString = (String) args.get("old_string");
     String newString = (String) args.get("new_string");
-
-    Object expectedObj = args.getOrDefault("expected_replacements", 1);
-    int expected;
-    if (expectedObj instanceof Number) {
-      expected = ((Number) expectedObj).intValue();
-    } else if (expectedObj instanceof String) {
-      expected = Integer.parseInt((String) expectedObj);
-    } else {
-      expected = 1;
-    }
+    int expected = parseExpectedReplacements(args.getOrDefault("expected_replacements", 1));
 
     if (filePath == null || oldString == null || newString == null) {
       return Future.succeededFuture(
@@ -150,88 +152,91 @@ public class FileEditTools implements ToolSet {
     logger.debug("Attempting surgical replacement in {}. Expected: {}", filePath, expected);
 
     return fs.exists(filePath)
+        .compose(exists -> validateFileExists(exists, filePath))
+        .compose(v -> fs.readFile(filePath))
+        .compose(buffer -> performReplacement(buffer, oldString, newString, expected, filePath))
         .compose(
-            exists -> {
-              if (!exists) {
-                return Future.succeededFuture(
-                    ToolInvokeResult.error("File not found: " + filePath));
-              }
+            replacement ->
+                saveWithDiff(filePath, rawPath, replacement.oldBuffer(), replacement.newContent())
+                    .map(
+                        diff ->
+                            ToolInvokeResult.success(
+                                "SUCCESS: Replaced "
+                                    + replacement.count()
+                                    + " occurrence(s) in "
+                                    + rawPath,
+                                diff)));
+  }
 
-              return fs.readFile(filePath)
-                  .compose(
-                      buffer -> {
-                        String content = buffer.toString();
+  private int parseExpectedReplacements(Object expectedObj) {
+    if (expectedObj instanceof Number) {
+      return ((Number) expectedObj).intValue();
+    }
+    if (expectedObj instanceof String) {
+      return Integer.parseInt((String) expectedObj);
+    }
+    return 1;
+  }
 
-                        // 1. Strict literal matching count
-                        int actualCount = countOccurrences(content, oldString);
+  private Future<Void> validateFileExists(boolean exists, String filePath) {
+    if (!exists) {
+      return Future.failedFuture(new SecurityException("File not found: " + filePath));
+    }
+    return Future.succeededFuture();
+  }
 
-                        if (actualCount == 0) {
-                          return Future.succeededFuture(
-                              ToolInvokeResult.error(
-                                  "MATCH_FAILURE: Could not find the exact 'old_string' in "
-                                      + filePath
-                                      + ". "
-                                      + "Ensure whitespace, indentation, and newlines match exactly."));
-                        }
+  private record ReplacementResult(Buffer oldBuffer, String newContent, int count) {}
 
-                        if (actualCount != expected) {
-                          return Future.succeededFuture(
-                              ToolInvokeResult.error(
-                                  "AMBIGUITY_FAILURE: Expected "
-                                      + expected
-                                      + " occurrence(s), but found "
-                                      + actualCount
-                                      + " in "
-                                      + filePath
-                                      + ". Please provide more context to identify a unique match."));
-                        }
+  private Future<ReplacementResult> performReplacement(
+      Buffer buffer, String oldString, String newString, int expected, String filePath) {
+    String content = buffer.toString();
+    int actualCount = countOccurrences(content, oldString);
 
-                        // 2. Perform replacement
-                        String updatedContent = content.replace(oldString, newString);
+    if (actualCount == 0) {
+      return Future.failedFuture(
+          new SecurityException(
+              "MATCH_FAILURE: Could not find the exact 'old_string' in "
+                  + filePath
+                  + ". Ensure whitespace, indentation, and newlines match exactly."));
+    }
 
-                        // 3. Generate Diff (using a temporary file)
-                        String tempOldPath = filePath + ".old." + System.nanoTime();
+    if (actualCount != expected) {
+      return Future.failedFuture(
+          new SecurityException(
+              "AMBIGUITY_FAILURE: Expected "
+                  + expected
+                  + " occurrence(s), but found "
+                  + actualCount
+                  + " in "
+                  + filePath
+                  + ". Please provide more context to identify a unique match."));
+    }
 
-                        return fs.writeFile(tempOldPath, buffer) // Save current content to temp
-                            .compose(v -> generateDiff(tempOldPath, updatedContent, rawPath))
-                            .compose(
-                                diff -> {
-                                  // 4. Atomic write (temporary file pattern)
-                                  String tempPath = filePath + ".tmp." + System.nanoTime();
+    String updatedContent = content.replace(oldString, newString);
+    return Future.succeededFuture(new ReplacementResult(buffer, updatedContent, actualCount));
+  }
 
-                                  return fs.writeFile(
-                                          tempPath,
-                                          io.vertx.core.buffer.Buffer.buffer(updatedContent))
-                                      .compose(
-                                          v ->
-                                              fs.move(
-                                                  tempPath,
-                                                  filePath,
-                                                  new CopyOptions().setReplaceExisting(true)))
-                                      .compose(
-                                          v -> fs.delete(tempOldPath)) // Clean up temp old file
-                                      .map(
-                                          v ->
-                                              ToolInvokeResult.success(
-                                                  "SUCCESS: Replaced "
-                                                      + actualCount
-                                                      + " occurrence(s) in "
-                                                      + rawPath,
-                                                  diff))
-                                      .recover(
-                                          err -> {
-                                            logger.error(
-                                                "Failed to write updated file: {}", filePath, err);
-                                            return fs.delete(tempOldPath)
-                                                .compose(
-                                                    v2 ->
-                                                        Future.succeededFuture(
-                                                            ToolInvokeResult.error(
-                                                                "FS_ERROR: Failed to save changes: "
-                                                                    + err.getMessage())));
-                                          });
-                                });
-                      });
+  private Future<String> saveWithDiff(
+      String filePath, String rawPath, Buffer oldBuffer, String newContent) {
+    String tempOldPath = filePath + ".old." + System.nanoTime();
+    String tempPath = filePath + ".tmp." + System.nanoTime();
+
+    return fs.writeFile(tempOldPath, oldBuffer)
+        .compose(v -> generateDiff(tempOldPath, newContent, rawPath))
+        .compose(
+            diff ->
+                fs.writeFile(tempPath, Buffer.buffer(newContent))
+                    .compose(
+                        v ->
+                            fs.move(tempPath, filePath, new CopyOptions().setReplaceExisting(true)))
+                    .compose(v -> fs.delete(tempOldPath))
+                    .map(v -> diff))
+        .recover(
+            err -> {
+              logger.error("Failed to save file changes: {}", filePath, err);
+              return fs.delete(tempOldPath)
+                  .compose(v -> Future.<String>failedFuture(err))
+                  .recover(e2 -> Future.failedFuture(err));
             });
   }
 
@@ -246,74 +251,55 @@ public class FileEditTools implements ToolSet {
     }
 
     return fs.exists(filePath)
+        .compose(exists -> readOldContentIfAvailable(exists, filePath))
+        .compose(oldBuffer -> performWriteWithDiff(filePath, rawPath, content, oldBuffer))
+        .map(diff -> ToolInvokeResult.success("SUCCESS: Wrote file " + rawPath, diff));
+  }
+
+  private Future<Buffer> readOldContentIfAvailable(boolean exists, String filePath) {
+    return exists ? fs.readFile(filePath) : Future.succeededFuture(null);
+  }
+
+  private Future<String> performWriteWithDiff(
+      String filePath, String rawPath, String content, Buffer oldBuffer) {
+    String tempOldPath = filePath + ".old." + System.nanoTime();
+    String tempPath = filePath + ".tmp." + System.nanoTime();
+    Buffer newBuffer = Buffer.buffer(content);
+
+    Future<Void> prepareOld =
+        (oldBuffer != null) ? fs.writeFile(tempOldPath, oldBuffer) : Future.succeededFuture();
+
+    return prepareOld
+        .compose(v -> fs.writeFile(tempPath, newBuffer))
         .compose(
-            exists -> {
-              Future<io.vertx.core.buffer.Buffer> oldBufferFuture =
-                  exists ? fs.readFile(filePath) : Future.succeededFuture(null);
-
-              return oldBufferFuture.compose(
-                  oldBuffer -> {
-                    String tempOldPath = filePath + ".old." + System.nanoTime();
-                    String tempPath = filePath + ".tmp." + System.nanoTime();
-
-                    Future<Void> prepareOld =
-                        (oldBuffer != null)
-                            ? fs.writeFile(tempOldPath, oldBuffer)
-                            : Future.succeededFuture();
-
-                    return prepareOld
-                        .compose(
-                            v ->
-                                fs.writeFile(tempPath, io.vertx.core.buffer.Buffer.buffer(content)))
-                        .compose(
-                            v2 -> {
-                              String oldFileForDiff =
-                                  (oldBuffer != null) ? tempOldPath : "/dev/null";
-                              // Ensure we use a valid path for the new content temp file
-                              String tempNewPath = filePath + ".new." + System.nanoTime();
-                              return generateDiffInternal(
-                                  oldFileForDiff, content, rawPath, tempNewPath);
-                            })
-                        .compose(
-                            diff -> {
-                              File file = new File(filePath);
-                              File parent = file.getParentFile();
-                              Future<Void> mkdirsFuture =
-                                  (parent != null)
-                                      ? fs.mkdirs(parent.getAbsolutePath())
-                                      : Future.succeededFuture();
-
-                              return mkdirsFuture
-                                  .compose(
-                                      v3 ->
-                                          fs.move(
-                                              tempPath,
-                                              filePath,
-                                              new CopyOptions().setReplaceExisting(true)))
-                                  .compose(
-                                      v4 -> {
-                                        if (oldBuffer != null) {
-                                          return fs.delete(tempOldPath);
-                                        }
-                                        return Future.succeededFuture();
-                                      })
-                                  .map(
-                                      v5 ->
-                                          ToolInvokeResult.success(
-                                              "SUCCESS: Wrote file " + rawPath, diff))
-                                  .recover(
-                                      err -> {
-                                        logger.error("Failed to write file: {}", filePath, err);
-                                        if (oldBuffer != null) {
-                                          fs.delete(tempOldPath);
-                                        }
-                                        return Future.succeededFuture(
-                                            ToolInvokeResult.error(
-                                                "FS_ERROR: " + err.getMessage()));
-                                      });
-                            });
-                  });
+            v -> {
+              String oldFileForDiff = (oldBuffer != null) ? tempOldPath : "/dev/null";
+              String tempNewPathForDiff = filePath + ".new." + System.nanoTime();
+              return generateDiffInternal(oldFileForDiff, content, rawPath, tempNewPathForDiff);
+            })
+        .compose(diff -> finalizeWrite(filePath, tempPath, tempOldPath, oldBuffer != null, diff))
+        .recover(
+            err -> {
+              logger.error("Failed to write file: {}", filePath, err);
+              if (oldBuffer != null) {
+                return fs.delete(tempOldPath)
+                    .compose(v -> Future.<String>failedFuture(err))
+                    .recover(e2 -> Future.failedFuture(err));
+              }
+              return Future.failedFuture(err);
             });
+  }
+
+  private Future<String> finalizeWrite(
+      String filePath, String tempPath, String tempOldPath, boolean hasOld, String diff) {
+    File parent = new File(filePath).getParentFile();
+    Future<Void> mkdirsFuture =
+        (parent != null) ? fs.mkdirs(parent.getAbsolutePath()) : Future.succeededFuture();
+
+    return mkdirsFuture
+        .compose(v -> fs.move(tempPath, filePath, new CopyOptions().setReplaceExisting(true)))
+        .compose(v -> hasOld ? fs.delete(tempOldPath) : Future.succeededFuture())
+        .map(v -> diff);
   }
 
   private Future<ToolInvokeResult> applyPatch(Map<String, Object> args) {
@@ -327,48 +313,43 @@ public class FileEditTools implements ToolSet {
     }
 
     return fs.exists(filePath)
-        .compose(
-            exists -> {
-              if (!exists) {
-                return Future.succeededFuture(ToolInvokeResult.error("File not found: " + rawPath));
-              }
+        .compose(exists -> validateFileExists(exists, filePath))
+        .compose(v -> performPatch(filePath, rawPath, patch));
+  }
 
-              String patchPath = filePath + ".patch." + System.nanoTime();
-              return fs.writeFile(patchPath, io.vertx.core.buffer.Buffer.buffer(patch))
-                  .compose(
-                      v -> {
-                        // patch -u [file] -i [patch_file]
-                        List<String> command = List.of("patch", "-u", filePath, "-i", patchPath);
-                        return VertxProcess.execute(vertx, command, 30000, 1024 * 1024)
-                            .compose(
-                                result ->
-                                    fs.delete(patchPath)
-                                        .map(
-                                            v2 -> {
-                                              if (result.exitCode() == 0) {
-                                                return ToolInvokeResult.success(
-                                                    "SUCCESS: Applied patch to "
-                                                        + rawPath
-                                                        + "\n"
-                                                        + result.output());
-                                              } else {
-                                                return ToolInvokeResult.error(
-                                                    "PATCH_FAILURE: Exit code "
-                                                        + result.exitCode()
-                                                        + ". "
-                                                        + result.output());
-                                              }
-                                            }))
-                            .recover(
-                                err ->
-                                    fs.delete(patchPath)
-                                        .compose(
-                                            v2 ->
-                                                Future.succeededFuture(
-                                                    ToolInvokeResult.error(
-                                                        "PATCH_ERROR: " + err.getMessage()))));
-                      });
+  private Future<ToolInvokeResult> performPatch(String filePath, String rawPath, String patch) {
+    String patchPath = filePath + ".patch." + System.nanoTime();
+    Buffer patchBuffer = Buffer.buffer(patch);
+
+    return fs.writeFile(patchPath, patchBuffer)
+        .compose(v -> executePatchCommand(filePath, patchPath))
+        .compose(result -> cleanupAndReturnPatchResult(patchPath, result, rawPath))
+        .recover(err -> cleanupAndFailPatch(patchPath, err));
+  }
+
+  private Future<VertxProcess.Result> executePatchCommand(String filePath, String patchPath) {
+    List<String> command = List.of("patch", "-u", filePath, "-i", patchPath);
+    return VertxProcess.execute(vertx, command, 30000, 1024 * 1024);
+  }
+
+  private Future<ToolInvokeResult> cleanupAndReturnPatchResult(
+      String patchPath, VertxProcess.Result result, String rawPath) {
+    return fs.delete(patchPath)
+        .map(
+            v -> {
+              if (result.exitCode() == 0) {
+                return ToolInvokeResult.success(
+                    "SUCCESS: Applied patch to " + rawPath + "\n" + result.output());
+              }
+              return ToolInvokeResult.error(
+                  "PATCH_FAILURE: Exit code " + result.exitCode() + ". " + result.output());
             });
+  }
+
+  private Future<ToolInvokeResult> cleanupAndFailPatch(String patchPath, Throwable err) {
+    return fs.delete(patchPath)
+        .compose(v -> Future.<ToolInvokeResult>failedFuture(err))
+        .recover(e2 -> Future.failedFuture(err));
   }
 
   private Future<String> generateDiff(String oldFilePath, String newContent, String label) {
@@ -378,40 +359,44 @@ public class FileEditTools implements ToolSet {
 
   private Future<String> generateDiffInternal(
       String oldFilePath, String newContent, String label, String tempNewPath) {
-    return fs.writeFile(tempNewPath, io.vertx.core.buffer.Buffer.buffer(newContent))
-        .compose(
+    return fs.writeFile(tempNewPath, Buffer.buffer(newContent))
+        .compose(v -> executeDiffCommand(oldFilePath, tempNewPath))
+        .compose(result -> cleanupAndReturnDiffResult(tempNewPath, result, label))
+        .recover(err -> cleanupAndFailDiff(tempNewPath, err));
+  }
+
+  private Future<VertxProcess.Result> executeDiffCommand(String oldFilePath, String tempNewPath) {
+    var command = String.format("diff -u %s %s", oldFilePath, tempNewPath);
+    return VertxProcess.execute(vertx, List.of("bash", "-c", command), 10000, 1024 * 1024);
+  }
+
+  private Future<String> cleanupAndReturnDiffResult(
+      String tempNewPath, VertxProcess.Result result, String label) {
+    return fs.delete(tempNewPath)
+        .map(
             v -> {
-              // Use native diff command for simplicity and reliability on Unix/MacOS
-              String command = String.format("diff -u %s %s", oldFilePath, tempNewPath);
-              return VertxProcess.execute(vertx, List.of("bash", "-c", command), 10000, 1024 * 1024)
-                  .compose(
-                      result ->
-                          fs.delete(tempNewPath)
-                              .map(
-                                  v2 -> {
-                                    String output = result.output();
-                                    // Basic cleanup of the diff header to use the actual filename
-                                    if (output.startsWith("---")) {
-                                      String[] lines = output.split("\\n", 3);
-                                      if (lines.length >= 2) {
-                                        return "--- "
-                                            + label
-                                            + "\n"
-                                            + "+++ "
-                                            + label
-                                            + "\n"
-                                            + (lines.length > 2 ? lines[2] : "");
-                                      }
-                                    }
-                                    return output;
-                                  }))
-                  .recover(
-                      err -> {
-                        logger.warn("Failed to generate diff: {}", err.getMessage());
-                        return fs.delete(tempNewPath)
-                            .map(v2 -> "Diff generation failed: " + err.getMessage());
-                      });
+              String output = result.output();
+              if (output.startsWith("---")) {
+                String[] lines = output.split("\\n", 3);
+                if (lines.length >= 2) {
+                  return "--- "
+                      + label
+                      + "\n"
+                      + "+++ "
+                      + label
+                      + "\n"
+                      + (lines.length > 2 ? lines[2] : "");
+                }
+              }
+              return output;
             });
+  }
+
+  private Future<String> cleanupAndFailDiff(String tempNewPath, Throwable err) {
+    logger.warn("Failed to generate diff: {}", err.getMessage());
+    return fs.delete(tempNewPath)
+        .map(v -> "Diff generation failed: " + err.getMessage())
+        .recover(e2 -> Future.succeededFuture("Diff generation failed: " + err.getMessage()));
   }
 
   private int countOccurrences(String text, String target) {

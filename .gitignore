@@ -71,7 +71,7 @@ config.json
 .ganglia/
 
 # Personal
-brainstorm/
+docs/superpowers/
 learning/
 .specify/
 specs/

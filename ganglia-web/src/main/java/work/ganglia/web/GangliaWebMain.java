@@ -27,7 +27,7 @@ public class GangliaWebMain {
             ganglia -> {
               Runtime.getRuntime().addShutdownHook(new Thread(ganglia::shutdown));
 
-              GangliaConfig.WebUiConfig webUiConfig =
+              GangliaConfig.WebUIConfig webUiConfig =
                   ganglia.configManager().getGangliaConfig().webui();
               if (webUiConfig != null && webUiConfig.enabled()) {
                 int port = webUiConfig.port();
