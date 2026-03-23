@@ -57,6 +57,92 @@ The project uses the `just` command runner for common development tasks.
 
 ---
 
+## 🕹 Demos
+
+Ganglia provides several ways to interact with the reasoning engine:
+
+### 1. WebUI Interactive Demo (`work.ganglia.example.WebUIDemo`)
+
+This is the recommended way to explore the agent's reasoning, tool use, and memory systems with a rich visual dashboard.
+
+```bash
+# Start the full environment (Backend + Frontend)
+just backend
+```
+
+Then open `http://localhost:8080`. For frontend development with HMR, use `just dev-all` and open `http://localhost:5173`.
+
+### 2. Interactive Terminal Chat (`work.ganglia.example.InteractiveChatDemo`)
+
+A feature-rich TTY interface for chatting with the agent directly from your terminal, featuring box-drawing responses and markdown rendering.
+
+```bash
+# Start the terminal REPL
+just chat
+```
+
+> [!NOTE]
+> Ensure you have an environment variable `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` set before running the demos. You can also configure providers in `.ganglia/config.json`.
+
+---
+
+## ⚙️ Configuration
+
+Ganglia is configured via a JSON file, typically located at `ganglia-example/.ganglia/config.json` in your project root. If the file doesn't exist, it will be automatically created with default values on the first run.
+
+### Example `.ganglia/config.json`
+
+```json
+{
+  "agent": {
+    "maxIterations": 10,
+    "compressionThreshold": 0.7,
+    "instructionFile": "GANGLIA.md"
+  },
+  "models": {
+    "primary": {
+      "name": "gpt-4o",
+      "type": "openai",
+      "apiKey": "your-api-key-here",
+      "temperature": 0.0,
+      "maxTokens": 4096,
+      "stream": true
+    },
+    "utility": {
+      "name": "gpt-4o-mini",
+      "type": "openai",
+      "apiKey": "your-api-key-here",
+      "temperature": 0.0,
+      "maxTokens": 2048,
+      "stream": false
+    }
+  }
+}
+```
+
+### Key Configuration Fields
+
+- **`agent`**:
+  - `maxIterations`: Maximum number of reasoning steps per turn.
+  - `instructionFile`: A Markdown file (e.g., `GANGLIA.md`) containing custom system instructions and persona rules.
+- **`models`**: Supports `primary` and `utility` (used for background tasks like compression).
+  - `type`: `openai`, `anthropic`, or `gemini` (via OpenAI compatibility).
+  - `apiKey`: Your provider API key. Environment variables like `OPENAI_API_KEY` are also supported.
+
+### Custom Instructions (`GANGLIA.md`)
+
+You can provide structured system instructions by creating a `GANGLIA.md` file. Ganglia parses **H2 headers** to extract individual context fragments:
+
+```markdown
+## [Coding Style] (Priority: 8, Mandatory)
+Always use Google Java Style for all code changes.
+
+## [Security] (Priority: 10, Mandatory)
+Never log or commit secrets or API keys.
+```
+
+---
+
 ## 🔌 Communication Protocol
 
 Ganglia uses **JSON-RPC 2.0** over **WebSockets** for all external client communication.

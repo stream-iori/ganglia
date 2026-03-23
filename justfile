@@ -22,6 +22,10 @@ setup:
 backend:
     cd {{example_dir}} && mvn exec:java -Dexec.mainClass="work.ganglia.example.WebUIDemo"
 
+# Start the Terminal Interactive Chat Demo
+chat:
+    cd {{example_dir}} && mvn exec:java -Dexec.mainClass="work.ganglia.example.InteractiveChatDemo"
+
 # Start the Frontend Dev Server (Vite on 5173) with HMR
 frontend:
     cd {{frontend_dir}} && npm run dev
