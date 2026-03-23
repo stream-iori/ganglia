@@ -87,7 +87,8 @@ public class ReActAgentLoopTest extends BaseKernelTest {
                       .onComplete(
                           testContext.succeeding(
                               updatedContext -> {
-                                loop.resume("Yes, I approve", updatedContext, new AgentSignal())
+                                loop.resume(
+                                        null, "Yes, I approve", updatedContext, new AgentSignal())
                                     .onComplete(
                                         testContext.succeeding(
                                             result2 -> {

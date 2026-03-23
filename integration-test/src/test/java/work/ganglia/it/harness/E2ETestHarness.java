@@ -87,7 +87,7 @@ public class E2ETestHarness {
     return ganglia
         .sessionManager()
         .getSession(context.sessionId())
-        .compose(latest -> ganglia.agentLoop().resume(step.userInput(), latest))
+        .compose(latest -> ganglia.agentLoop().resume(null, step.userInput(), latest))
         .compose(
             nextOutput -> handleInteractiveSteps(scenario, context, nextOutput, stepIndex + 1));
   }

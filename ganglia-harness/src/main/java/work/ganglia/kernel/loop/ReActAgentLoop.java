@@ -47,6 +47,7 @@ public class ReActAgentLoop implements AgentLoop {
   private final InterceptorPipeline pipeline;
 
   private final ConcurrentHashMap<String, AgentSignal> sessionSignals = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, String> pendingAsks = new ConcurrentHashMap<>();
 
   private ReActAgentLoop(Builder builder) {
     this.vertx = builder.vertx;
@@ -134,8 +135,9 @@ public class ReActAgentLoop implements AgentLoop {
 
   @Override
   public Future<String> resume(
-      String toolOutput, SessionContext initialContext, AgentSignal signal) {
-    ToolCall pendingCall = findPendingToolCall(initialContext);
+      String askId, String toolOutput, SessionContext initialContext, AgentSignal signal) {
+    String toolCallId = askId != null ? pendingAsks.remove(askId) : null;
+    ToolCall pendingCall = findPendingToolCall(initialContext, toolCallId);
     if (pendingCall == null) {
       return Future.failedFuture("No pending tool call found to resume.");
     }
@@ -162,12 +164,16 @@ public class ReActAgentLoop implements AgentLoop {
     return runLoop(context, signal);
   }
 
-  private ToolCall findPendingToolCall(SessionContext context) {
+  private ToolCall findPendingToolCall(SessionContext context, String toolCallId) {
     Turn current = context.currentTurn();
     if (current == null) {
       return null;
     }
-    return current.getPendingToolCalls().stream().findFirst().orElse(null);
+    List<ToolCall> pending = current.getPendingToolCalls();
+    if (toolCallId != null) {
+      return pending.stream().filter(tc -> tc.id().equals(toolCallId)).findFirst().orElse(null);
+    }
+    return pending.stream().findFirst().orElse(null);
   }
 
   private Future<String> runLoop(SessionContext currentContext, AgentSignal signal) {
@@ -403,6 +409,7 @@ public class ReActAgentLoop implements AgentLoop {
 
               if (result.status() == AgentTaskResult.Status.INTERRUPT) {
                 String askId = "ask-" + UUID.randomUUID().toString().substring(0, 8);
+                pendingAsks.put(askId, task.id());
                 Map<String, Object> interruptData = new HashMap<>(resData);
                 if (result.data() != null) {
                   interruptData.putAll(result.data());

@@ -106,8 +106,9 @@ public class ErrorHandlingAgentDemo {
 
                           return ganglia
                               .agentLoop()
-                              .resume(feedback, latestContext)
+                              .resume(null, feedback, latestContext)
                               .compose(
+
                                   finalResponse -> {
                                     System.out.println(
                                         "\n\nAgent Final Response: " + finalResponse);

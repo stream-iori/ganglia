@@ -406,6 +406,7 @@ public class WebUIVerticle extends AbstractVerticle {
   }
 
   private void handleRespondAsk(JsonRpcRequest request, ServerWebSocket ws, String sessionId) {
+    String askId = request.params().getString("askId");
     JsonArray answers = request.params().getJsonArray("answers");
     StringBuilder formattedAnswers = new StringBuilder();
 
@@ -444,7 +445,7 @@ public class WebUIVerticle extends AbstractVerticle {
         .onComplete(
             res -> {
               if (res.succeeded() && res.result() != null) {
-                agentLoop.resume(userInput, res.result(), new AgentSignal());
+                agentLoop.resume(askId, userInput, res.result(), new AgentSignal());
               }
             });
     sendRpcResponse(ws, request.id(), new JsonObject().put("status", "resumed"));

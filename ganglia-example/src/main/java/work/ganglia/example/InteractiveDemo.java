@@ -109,8 +109,9 @@ public class InteractiveDemo {
                           // Resume the loop with user feedback
                           ganglia
                               .agentLoop()
-                              .resume(feedback, context)
+                              .resume(null, feedback, context)
                               .onComplete(
+
                                   res -> handleAgentResponse(vertx, ganglia, sessionId, res));
                         });
               } else {

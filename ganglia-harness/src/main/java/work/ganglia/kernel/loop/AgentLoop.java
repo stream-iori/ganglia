@@ -21,15 +21,16 @@ public interface AgentLoop {
    * Resumes the loop by providing the result of an interrupted tool execution (e.g. user
    * selection).
    */
-  default Future<String> resume(String toolOutput, SessionContext context) {
-    return resume(toolOutput, context, new AgentSignal());
+  default Future<String> resume(String askId, String toolOutput, SessionContext context) {
+    return resume(askId, toolOutput, context, new AgentSignal());
   }
 
   /**
    * Resumes the loop by providing the result of an interrupted tool execution, with a cancellation
    * signal.
    */
-  Future<String> resume(String toolOutput, SessionContext context, AgentSignal signal);
+  Future<String> resume(
+      String askId, String toolOutput, SessionContext context, AgentSignal signal);
 
   /** Attempts to stop/abort a running session. */
   void stop(String sessionId);
