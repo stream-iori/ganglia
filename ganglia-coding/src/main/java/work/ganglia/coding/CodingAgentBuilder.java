@@ -8,6 +8,9 @@ import java.util.List;
 import java.util.function.Predicate;
 import work.ganglia.BootstrapOptions;
 import work.ganglia.Ganglia;
+import work.ganglia.coding.prompt.CodingMandatesContextSource;
+import work.ganglia.coding.prompt.CodingPersonaContextSource;
+import work.ganglia.coding.prompt.CodingWorkflowSource;
 import work.ganglia.coding.tool.BashFileSystemTools;
 import work.ganglia.coding.tool.BashTools;
 import work.ganglia.coding.tool.FileEditTools;
@@ -39,6 +42,12 @@ public class CodingAgentBuilder {
   public CodingAgentBuilder(Vertx vertx) {
     this.vertx = vertx;
     this.baseOptions = BootstrapOptions.defaultOptions();
+    // Default filter to remove generic sources since we provide coding-specific ones
+    this.contextFilter =
+        s ->
+            s instanceof work.ganglia.infrastructure.internal.prompt.context.PersonaContextSource
+                || s instanceof work.ganglia.port.internal.prompt.WorkflowContextSource
+                || s instanceof work.ganglia.port.internal.prompt.MandatesContextSource;
   }
 
   public static CodingAgentBuilder create(Vertx vertx) {
@@ -102,6 +111,10 @@ public class CodingAgentBuilder {
 
     // 2. Prepare Context Sources
     List<ContextSource> codingSources = new ArrayList<>(baseOptions.extraContextSources());
+    codingSources.add(new CodingWorkflowSource());
+    codingSources.add(new CodingPersonaContextSource());
+    codingSources.add(new CodingMandatesContextSource());
+
     // Apply filter to remove unwanted sources (like default EnvironmentSource)
     codingSources.removeIf(contextFilter);
     codingSources.addAll(contextOverrides);
