@@ -7,12 +7,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.config.AgentConfigProvider;
 import work.ganglia.config.ModelConfigProvider;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.chat.Turn;
 import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.port.internal.state.ContextOptimizer;
+import work.ganglia.util.TokenCounter;
 
 public class DefaultContextOptimizer implements ContextOptimizer {
   private static final Logger logger = LoggerFactory.getLogger(DefaultContextOptimizer.class);

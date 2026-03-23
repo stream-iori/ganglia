@@ -17,6 +17,10 @@
     </dependency>
     <dependency>
       <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-local-file-memory</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>work.ganglia</groupId>
       <artifactId>ganglia-coding</artifactId>
     </dependency>
     <dependency>

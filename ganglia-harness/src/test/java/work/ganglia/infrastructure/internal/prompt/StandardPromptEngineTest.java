@@ -9,7 +9,6 @@ import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.kernel.task.DefaultAgentTaskFactory;
 import work.ganglia.port.chat.Message;
@@ -17,6 +16,7 @@ import work.ganglia.port.chat.Role;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.stubs.StubToolExecutor;
+import work.ganglia.util.TokenCounter;
 
 @ExtendWith(VertxExtension.class)
 class StandardPromptEngineTest {

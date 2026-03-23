@@ -4,8 +4,8 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.port.external.tool.ToolCall;
+import work.ganglia.util.TokenCounter;
 
 /** Represents a single message in the conversation history. */
 public record Message(

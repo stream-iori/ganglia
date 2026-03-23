@@ -1,0 +1,125 @@
+package work.ganglia.infrastructure.internal.memory;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.RejectedExecutionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import work.ganglia.port.internal.memory.MemoryEvent;
+import work.ganglia.port.internal.memory.MemoryModule;
+import work.ganglia.port.internal.memory.MemoryService;
+import work.ganglia.port.internal.memory.ReflectEvent;
+import work.ganglia.util.Constants;
+
+/**
+ * EventBus-based implementation of {@link MemoryService}. Listens for memory events on the EventBus
+ * and delegates to registered modules.
+ */
+public class EventBusMemoryService implements MemoryService {
+  private static final Logger logger = LoggerFactory.getLogger(EventBusMemoryService.class);
+  public static final String ADDRESS_EVENT = Constants.ADDRESS_MEMORY_EVENT;
+
+  private final Vertx vertx;
+  private final List<MemoryModule> modules = new ArrayList<>();
+
+  public EventBusMemoryService(Vertx vertx) {
+    this.vertx = vertx;
+    register();
+  }
+
+  @Override
+  public void registerModule(MemoryModule module) {
+    modules.add(module);
+    logger.debug("Registered MemoryModule: {}", module.id());
+  }
+
+  @Override
+  public List<MemoryModule> getModules() {
+    return new ArrayList<>(modules);
+  }
+
+  private void register() {
+    vertx
+        .eventBus()
+        .<JsonObject>consumer(
+            ADDRESS_EVENT,
+            message -> {
+              try {
+                MemoryEvent event = message.body().mapTo(MemoryEvent.class);
+                handleEvent(event);
+              } catch (Exception e) {
+                // For backward compatibility during migration, try ReflectEvent
+                try {
+                  ReflectEvent oldEvent = message.body().mapTo(ReflectEvent.class);
+                  MemoryEvent event =
+                      new MemoryEvent(
+                          MemoryEvent.EventType.TURN_COMPLETED,
+                          oldEvent.sessionId(),
+                          oldEvent.goal(),
+                          oldEvent.turn());
+                  handleEvent(event);
+                } catch (Exception ex) {
+                  logger.error("Failed to parse MemoryEvent from message: {}", message.body(), e);
+                }
+              }
+            });
+    logger.info("MemoryService registered on address: {}", ADDRESS_EVENT);
+  }
+
+  private void handleEvent(MemoryEvent event) {
+    logger.debug("Dispatching memory event {} for session: {}", event.type(), event.sessionId());
+
+    List<Future<Void>> futures =
+        modules.stream()
+            .map(
+                module ->
+                    module
+                        .onEvent(event)
+                        .recover(
+                            err -> {
+                              if (!isShutdownError(err)) {
+                                logger.error(
+                                    "Module {} failed to handle event {}",
+                                    module.id(),
+                                    event.type(),
+                                    err);
+                              }
+                              return Future.succeededFuture(); // Don't fail the whole batch
+                            }))
+            .toList();
+
+    Future.all(futures)
+        .onComplete(
+            ar -> {
+              if (ar.succeeded()) {
+                logger.debug(
+                    "Memory event {} completed for session: {}", event.type(), event.sessionId());
+              } else {
+                logger.error(
+                    "Memory event dispatch failed for session: {}", event.sessionId(), ar.cause());
+              }
+            });
+  }
+
+  private boolean isShutdownError(Throwable err) {
+    if (err == null) {
+      return false;
+    }
+    if (err instanceof RejectedExecutionException) {
+      return true;
+    }
+    if (err instanceof CompletionException
+        && err.getCause() instanceof RejectedExecutionException) {
+      return true;
+    }
+    if (err.getMessage() != null
+        && err.getMessage().contains("rejected from java.util.concurrent.ThreadPoolExecutor")) {
+      return true;
+    }
+    return isShutdownError(err.getCause());
+  }
+}

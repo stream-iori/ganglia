@@ -5,7 +5,6 @@ import io.vertx.core.Vertx;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.infrastructure.internal.prompt.context.*;
 import work.ganglia.kernel.subagent.SubAgentContextSource;
 import work.ganglia.kernel.task.AgentTaskFactory;
@@ -21,6 +20,7 @@ import work.ganglia.port.internal.prompt.ContextSource;
 import work.ganglia.port.internal.prompt.PromptEngine;
 import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.state.*;
+import work.ganglia.util.TokenCounter;
 
 /** Standard implementation of PromptEngine using the ContextEngine mechanism. */
 public class StandardPromptEngine implements PromptEngine {

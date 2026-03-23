@@ -3,8 +3,6 @@ package work.ganglia.kernel;
 import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
 import work.ganglia.BaseGangliaTest;
-import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import work.ganglia.kernel.loop.AgentLoopFactory;
 import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
@@ -12,9 +10,12 @@ import work.ganglia.kernel.loop.DefaultObservationDispatcher;
 import work.ganglia.kernel.loop.ReActAgentLoop;
 import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.kernel.task.DefaultAgentTaskFactory;
+import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.stubs.StubContextCompressor;
 import work.ganglia.stubs.StubModelGateway;
 import work.ganglia.stubs.StubPromptEngine;
 import work.ganglia.stubs.StubToolExecutor;
+import work.ganglia.util.TokenCounter;
 
 /** Base class for testing kernel logic such as loops and interceptors. */
 public abstract class BaseKernelTest extends BaseGangliaTest {
@@ -22,7 +23,7 @@ public abstract class BaseKernelTest extends BaseGangliaTest {
   protected StubPromptEngine prompt;
   protected StubToolExecutor tools;
   protected ReActAgentLoop loop;
-  protected DefaultContextCompressor compressor;
+  protected ContextCompressor compressor;
   protected DefaultContextOptimizer optimizer;
 
   @BeforeEach
@@ -30,7 +31,7 @@ public abstract class BaseKernelTest extends BaseGangliaTest {
     this.model = new StubModelGateway();
     this.prompt = new StubPromptEngine();
     this.tools = new StubToolExecutor();
-    this.compressor = new DefaultContextCompressor(model, configManager);
+    this.compressor = new StubContextCompressor();
     this.optimizer =
         new DefaultContextOptimizer(configManager, configManager, compressor, new TokenCounter());
 

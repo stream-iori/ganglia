@@ -8,8 +8,8 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.port.internal.prompt.ContextFragment;
+import work.ganglia.util.TokenCounter;
 
 @ExtendWith(VertxExtension.class)
 class ContextComposerTest {

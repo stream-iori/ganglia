@@ -4,8 +4,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.port.internal.prompt.ContextFragment;
+import work.ganglia.util.TokenCounter;
 
 /** Composes fragments into a final prompt string, applying pruning based on priority. */
 public class ContextComposer {

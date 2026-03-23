@@ -1,4 +1,4 @@
-package work.ganglia.infrastructure.internal.memory;
+package work.ganglia.util;
 
 import com.knuddels.jtokkit.Encodings;
 import com.knuddels.jtokkit.api.Encoding;

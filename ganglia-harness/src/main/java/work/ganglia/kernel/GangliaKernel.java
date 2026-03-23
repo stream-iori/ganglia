@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.ServiceLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.BootstrapOptions;
@@ -15,16 +16,6 @@ import work.ganglia.infrastructure.external.llm.ModelGatewayFactory;
 import work.ganglia.infrastructure.external.llm.RetryingModelGateway;
 import work.ganglia.infrastructure.external.tool.DefaultToolExecutor;
 import work.ganglia.infrastructure.external.tool.ToolsFactory;
-import work.ganglia.infrastructure.internal.memory.DailyJournalModule;
-import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
-import work.ganglia.infrastructure.internal.memory.FileSystemDailyRecordManager;
-import work.ganglia.infrastructure.internal.memory.FileSystemLongTermMemory;
-import work.ganglia.infrastructure.internal.memory.FileSystemMemoryStore;
-import work.ganglia.infrastructure.internal.memory.LLMObservationCompressor;
-import work.ganglia.infrastructure.internal.memory.LongTermKnowledgeModule;
-import work.ganglia.infrastructure.internal.memory.MarkdownTimelineLedger;
-import work.ganglia.infrastructure.internal.memory.MemoryContextSource;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.infrastructure.internal.prompt.StandardPromptEngine;
 import work.ganglia.infrastructure.internal.prompt.context.DailyContextSource;
 import work.ganglia.infrastructure.internal.skill.DefaultSkillRuntime;
@@ -50,19 +41,16 @@ import work.ganglia.kernel.task.DefaultAgentTaskFactory;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.external.tool.ToolSetProvider;
-import work.ganglia.port.internal.memory.ContextCompressor;
-import work.ganglia.port.internal.memory.DailyRecordManager;
-import work.ganglia.port.internal.memory.LongTermMemory;
-import work.ganglia.port.internal.memory.MemoryService;
-import work.ganglia.port.internal.memory.MemoryStore;
-import work.ganglia.port.internal.memory.ObservationCompressor;
-import work.ganglia.port.internal.memory.TimelineLedger;
+import work.ganglia.port.internal.memory.MemorySystem;
+import work.ganglia.port.internal.memory.MemorySystemConfig;
+import work.ganglia.port.internal.memory.MemorySystemProvider;
 import work.ganglia.port.internal.skill.SkillLoader;
 import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.skill.SkillService;
 import work.ganglia.port.internal.state.SessionManager;
 import work.ganglia.util.Constants;
 import work.ganglia.util.FileSystemUtil;
+import work.ganglia.util.TokenCounter;
 
 /**
  * SRP: Orchestrates the initialization and wiring of all Ganglia core components. DIP: Manages the
@@ -102,19 +90,11 @@ public class GangliaKernel {
         .compose(v -> initializeSkillSystem(projectRoot))
         .compose(
             skillService ->
-                initializeMemorySystem(projectRoot)
-                    .map(longTermMemory -> new SkillAndMemoryContext(skillService, longTermMemory)))
-        .compose(
-            skillAndMemory ->
                 work.ganglia.infrastructure.mcp.McpConfigManager.loadMcpToolSets(vertx, projectRoot)
-                    .map(mcpRegistry -> new BootstrapContext(skillAndMemory, mcpRegistry)))
+                    .map(mcpRegistry -> new BootstrapContext(skillService, mcpRegistry)))
         .compose(
             bootstrap ->
-                assembleSystem(
-                    projectRoot,
-                    bootstrap.core.skillService,
-                    bootstrap.core.longTermMemory,
-                    bootstrap.mcpRegistry));
+                assembleSystem(projectRoot, bootstrap.skillService, bootstrap.mcpRegistry));
   }
 
   private Future<Void> ensureCoreStructure(String projectRoot) {
@@ -154,17 +134,9 @@ public class GangliaKernel {
     return skillService.init().map(v -> skillService);
   }
 
-  private Future<LongTermMemory> initializeMemorySystem(String projectRoot) {
-    LongTermMemory longTermMemory =
-        new FileSystemLongTermMemory(
-            vertx, Paths.get(projectRoot, Constants.FILE_MEMORY_MD).toString());
-    return longTermMemory.ensureInitialized().map(v -> longTermMemory);
-  }
-
   private Future<Ganglia> assembleSystem(
       String projectRoot,
       SkillService skillService,
-      LongTermMemory longTermMemory,
       work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry) {
     ModelGateway rawGateway =
         options.modelGatewayOverride() != null
@@ -172,25 +144,40 @@ public class GangliaKernel {
             : ModelGatewayFactory.create(vertx, configManager);
     ModelGateway modelGateway = new RetryingModelGateway(rawGateway, vertx);
 
-    MemoryStore memoryStore = new FileSystemMemoryStore(vertx, projectRoot);
+    // Discover memory system via ServiceLoader (SPI)
+    MemorySystemProvider memoryProvider =
+        ServiceLoader.load(MemorySystemProvider.class)
+            .findFirst()
+            .orElseThrow(
+                () ->
+                    new IllegalStateException(
+                        "No MemorySystemProvider on classpath. Add ganglia-memory dependency."));
+
     String compressionModel =
         configManager.getUtilityModel() != null
             ? configManager.getUtilityModel()
             : configManager.getModel();
-    ObservationCompressor observationCompressor =
-        new LLMObservationCompressor(modelGateway, 4000, compressionModel);
-    TimelineLedger timelineLedger = new MarkdownTimelineLedger(vertx, projectRoot);
 
+    MemorySystem memory =
+        memoryProvider.create(
+            new MemorySystemConfig(
+                vertx, projectRoot, modelGateway, configManager, compressionModel));
+
+    // Initialize long-term memory and then wire the rest of the system
+    return memory
+        .longTermMemory()
+        .ensureInitialized()
+        .compose(v -> buildGanglia(projectRoot, skillService, mcpRegistry, modelGateway, memory));
+  }
+
+  private Future<Ganglia> buildGanglia(
+      String projectRoot,
+      SkillService skillService,
+      work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry,
+      ModelGateway modelGateway,
+      MemorySystem memory) {
     SkillRuntime skillRuntime = new DefaultSkillRuntime(vertx, skillService);
     TokenCounter tokenCounter = new TokenCounter();
-    ContextCompressor compressor = new DefaultContextCompressor(modelGateway, configManager);
-    DailyRecordManager dailyRecordManager =
-        new FileSystemDailyRecordManager(
-            vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString());
-
-    MemoryService memoryService = new MemoryService(vertx);
-    memoryService.registerModule(new DailyJournalModule(compressor, dailyRecordManager));
-    memoryService.registerModule(new LongTermKnowledgeModule(longTermMemory));
 
     DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
 
@@ -200,13 +187,14 @@ public class GangliaKernel {
     }
 
     InterceptorPipeline pipeline = new InterceptorPipeline(dispatcher);
-    pipeline.addInterceptor(new ObservationCompressionHook(observationCompressor, memoryStore));
+    pipeline.addInterceptor(
+        new ObservationCompressionHook(memory.observationCompressor(), memory.memoryStore()));
 
-    ToolsFactory toolsFactory = new ToolsFactory(vertx, compressor, longTermMemory, projectRoot);
+    ToolsFactory toolsFactory = new ToolsFactory(vertx, projectRoot);
     StandardPromptEngine promptEngine =
         new StandardPromptEngine(
             vertx,
-            memoryService,
+            memory.memoryService(),
             skillRuntime,
             null,
             tokenCounter,
@@ -214,7 +202,7 @@ public class GangliaKernel {
             configManager);
     promptEngine.addContextSource(
         new DailyContextSource(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString()));
-    promptEngine.addContextSource(new MemoryContextSource(memoryStore));
+    promptEngine.addContextSource(memory.memoryContextSource());
 
     SessionManager sessionManager =
         new DefaultSessionManager(
@@ -225,16 +213,18 @@ public class GangliaKernel {
       allExtraToolSets.addAll(mcpRegistry.toolSets());
     }
     for (ToolSetProvider provider : options.extraToolSetProviders()) {
-      allExtraToolSets.add(provider.create(vertx, compressor, longTermMemory, projectRoot));
+      allExtraToolSets.add(
+          provider.create(vertx, memory.contextCompressor(), memory.longTermMemory(), projectRoot));
     }
     allExtraToolSets.add(
-        new work.ganglia.infrastructure.external.tool.RecallMemoryTools(memoryStore));
+        new work.ganglia.infrastructure.external.tool.RecallMemoryTools(memory.memoryStore()));
 
     DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, allExtraToolSets);
 
     ConsecutiveFailurePolicy failurePolicy = new ConsecutiveFailurePolicy();
     DefaultContextOptimizer contextOptimizer =
-        new DefaultContextOptimizer(configManager, configManager, compressor, tokenCounter);
+        new DefaultContextOptimizer(
+            configManager, configManager, memory.contextCompressor(), tokenCounter);
 
     // 1. Build AgentEnv first (with taskFactory = null initially)
     AgentEnv env =
@@ -245,8 +235,8 @@ public class GangliaKernel {
             .promptEngine(promptEngine)
             .configProvider(configManager)
             .modelConfig(configManager)
-            .compressor(compressor)
-            .memoryService(memoryService)
+            .compressor(memory.contextCompressor())
+            .memoryService(memory.memoryService())
             .dispatcher(dispatcher)
             .faultTolerancePolicy(failurePolicy)
             .contextOptimizer(contextOptimizer)
@@ -299,8 +289,6 @@ public class GangliaKernel {
             mcpRegistry));
   }
 
-  private record SkillAndMemoryContext(SkillService skillService, LongTermMemory longTermMemory) {}
-
   private record BootstrapContext(
-      SkillAndMemoryContext core, work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry) {}
+      SkillService skillService, work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry) {}
 }

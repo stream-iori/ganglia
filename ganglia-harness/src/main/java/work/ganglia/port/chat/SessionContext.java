@@ -9,8 +9,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.port.external.llm.ModelOptions;
+import work.ganglia.util.TokenCounter;
 
 /** Represents the full context of a running session, organized by Turns. */
 public record SessionContext(

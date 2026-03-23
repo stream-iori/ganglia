@@ -9,6 +9,7 @@
 
   <modules>
     <module>ganglia-harness</module>
+    <module>ganglia-local-file-memory</module>
     <module>ganglia-coding</module>
     <module>ganglia-web</module>
     <module>ganglia-terminal</module>
@@ -56,6 +57,11 @@
       <dependency>
         <groupId>work.ganglia</groupId>
         <artifactId>ganglia-harness</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>work.ganglia</groupId>
+        <artifactId>ganglia-local-file-memory</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

@@ -1,4 +1,4 @@
-package work.ganglia.infrastructure.internal.memory;
+package work.ganglia.util;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

@@ -7,9 +7,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import work.ganglia.infrastructure.internal.memory.TokenCounter;
 import work.ganglia.port.internal.state.TokenUsage;
 import work.ganglia.util.Constants;
+import work.ganglia.util.TokenCounter;
 
 /** Tracks and persists token usage for agent sessions. */
 public class TokenUsageManager {

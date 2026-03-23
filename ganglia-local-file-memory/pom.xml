@@ -8,30 +8,12 @@
     <version>0.1.6</version>
   </parent>
 
-  <artifactId>integration-test</artifactId>
+  <artifactId>ganglia-local-file-memory</artifactId>
 
   <dependencies>
     <dependency>
       <groupId>work.ganglia</groupId>
       <artifactId>ganglia-harness</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>work.ganglia</groupId>
-      <artifactId>ganglia-local-file-memory</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>work.ganglia</groupId>
-      <artifactId>ganglia-coding</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>work.ganglia</groupId>
-      <artifactId>ganglia-web</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
-      <scope>test</scope>
     </dependency>
 
     <!-- Test dependencies -->
@@ -54,35 +36,18 @@
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
       <artifactId>mockito-junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
+      <groupId>com.google.jimfs</groupId>
+      <artifactId>jimfs</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-failsafe-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 </project>
