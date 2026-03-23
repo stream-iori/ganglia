@@ -1,5 +1,13 @@
 {
-  "permissions" : {
-    "allow" : [ "WebSearch", "WebFetch(domain:github.com)", "WebFetch(domain:mvnrepository.com)", "WebFetch(domain:central.sonatype.com)", "WebFetch(domain:javadoc.io)", "WebFetch(domain:mabe02.github.io)", "Bash(git commit:*)", "Bash(git status:*)", "Bash(git add:*)", "Bash(do git:*)", "Bash(git mv:*)", "Bash(git stash:*)", "Bash(git:*)" ]
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:mvnrepository.com)",
+      "WebFetch(domain:central.sonatype.com)",
+      "WebFetch(domain:javadoc.io)",
+      "WebFetch(domain:mabe02.github.io)",
+      "Bash(git:*)"
+    ]
   }
 }
