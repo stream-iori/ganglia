@@ -11,7 +11,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.infrastructure.external.llm.util.JsonSanitizer;
@@ -38,11 +37,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
     super(vertx);
     this.webClient = webClient;
     this.config = config;
-    String baseUrl = config.baseUrl();
-    this.endpoint =
-        baseUrl.endsWith("/v1/messages")
-            ? baseUrl
-            : (baseUrl.endsWith("/") ? baseUrl + "v1/messages" : baseUrl + "/v1/messages");
+    this.endpoint = normalizeEndpoint(config.baseUrl(), "v1/messages");
   }
 
   public AnthropicModelGateway(
@@ -75,7 +70,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
                   }
                   if (response.statusCode() >= 400) {
                     return Future.failedFuture(
-                        new LlmException(
+                        new LLMException(
                             "Anthropic Error: " + response.statusMessage(),
                             null,
                             response.statusCode(),
@@ -173,14 +168,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
             logger.error("Failed to parse Anthropic SSE chunk", e);
           }
         },
-        () -> {
-          List<ToolCall> toolCalls =
-              toolCallBuilders.values().stream()
-                  .map(ToolCallBuilder::build)
-                  .collect(Collectors.toList());
-          return new ModelResponse(
-              fullContent.toString(), toolCalls, new TokenUsage(usage[0], usage[1]));
-        });
+        () -> buildStreamingResponse(fullContent, toolCallBuilders, usage[0], usage[1]));
   }
 
   private JsonObject buildPayload(
@@ -283,7 +271,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
   private ModelResponse toModelResponse(JsonObject json) {
     JsonArray content = json.getJsonArray("content");
     if (content == null) {
-      throw new LlmException("No content returned from Anthropic");
+      throw new LLMException("No content returned from Anthropic");
     }
 
     StringBuilder text = new StringBuilder();

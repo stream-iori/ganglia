@@ -75,6 +75,8 @@ public class TerminalApp implements AutoCloseable {
   private final AtomicReference<AgentSignal> currentSignal = new AtomicReference<>();
   private volatile boolean running = true;
   private volatile boolean detailViewRequested = false;
+  private volatile boolean slashMenuRequested = false;
+  private final SlashCommandMenu slashCommandMenu;
 
   public TerminalApp(Vertx vertx, Ganglia ganglia, Terminal terminal) {
     this.vertx = vertx;
@@ -90,33 +92,21 @@ public class TerminalApp implements AutoCloseable {
     this.eventRenderer = new EventRenderer(terminal, mdRenderer, statusBar);
     this.eventRenderer.setTaskPanel(taskPanel);
     this.detailView = new DetailView(terminal);
+    this.slashCommandMenu = new SlashCommandMenu(terminal, statusBar);
 
-    this.reader =
-        LineReaderBuilder.builder()
-            .terminal(terminal)
-            .appName("Ganglia")
-            .completer(new SlashCommandCompleter())
-            .build();
+    this.reader = LineReaderBuilder.builder().terminal(terminal).appName("Ganglia").build();
 
-    // Enable vertical dropdown menu for completion
-    reader.option(LineReader.Option.AUTO_MENU, true);
-    reader.option(LineReader.Option.AUTO_LIST, true);
-    reader.option(LineReader.Option.AUTO_MENU_LIST, true);
-    reader.option(LineReader.Option.GROUP, true);
-    reader.option(LineReader.Option.AUTO_GROUP, true);
-    reader.option(LineReader.Option.GROUP_PERSIST, true);
-    reader.setVariable(LineReader.MENU_LIST_MAX, 10);
-
-    // Auto-trigger completion when '/' is typed at the beginning of the line
+    // When '/' is typed at the start of input, request the custom slash menu
+    // by setting a flag and exiting readLine via UserInterruptException.
     reader
         .getWidgets()
         .put(
             "slash-auto-complete",
             () -> {
               reader.getBuffer().write('/');
-              // Only trigger completion if '/' is the first character
               if (reader.getBuffer().toString().equals("/")) {
-                reader.callWidget(LineReader.MENU_EXPAND_OR_COMPLETE);
+                slashMenuRequested = true;
+                throw new UserInterruptException("");
               }
               return true;
             });
@@ -307,6 +297,17 @@ public class TerminalApp implements AutoCloseable {
         try {
           line = reader.readLine(buildPrompt());
         } catch (UserInterruptException e) {
+          // Custom slash command menu
+          if (consumeSlashMenuRequest()) {
+            String selected = slashCommandMenu.show();
+            if (selected != null) {
+              moveToScrollBottom();
+              if (handleSlashCommand(selected)) {
+                continue;
+              }
+            }
+            continue;
+          }
           // Ctrl+O toggle fires UserInterruptException to exit readLine cleanly
           if (eventRenderer.consumeToggleRequest()) {
             moveToScrollBottom();
@@ -366,7 +367,7 @@ public class TerminalApp implements AutoCloseable {
       return;
     }
     int inputRow = statusBar.getInputRow();
-    writer.print(String.format("\033[%d;1H\033[2K", inputRow));
+    writer.print(AnsiCodes.moveAndClear(inputRow));
     writer.flush();
   }
 
@@ -385,7 +386,7 @@ public class TerminalApp implements AutoCloseable {
       writer.println(
           new AttributedStringBuilder()
               .style(
-                  AttributedStyle.DEFAULT.foreground(AttributedStyle.WHITE).bold().background(237))
+                  AttributedStyle.DEFAULT.foreground(AttributedStyle.WHITE).bold().background(236))
               .append("  \u276f " + input + "  ")
               .toAnsi());
       writer.flush();
@@ -481,6 +482,14 @@ public class TerminalApp implements AutoCloseable {
         return true;
       }
     }
+  }
+
+  private boolean consumeSlashMenuRequest() {
+    if (slashMenuRequested) {
+      slashMenuRequested = false;
+      return true;
+    }
+    return false;
   }
 
   private boolean consumeDetailViewRequest() {

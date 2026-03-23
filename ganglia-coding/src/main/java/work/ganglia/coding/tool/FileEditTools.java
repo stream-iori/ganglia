@@ -24,17 +24,17 @@ public class FileEditTools implements ToolSet {
   private static final Logger logger = LoggerFactory.getLogger(FileEditTools.class);
 
   private final Vertx vertx;
-  private final FileSystem fs;
-  private final PathMapper sanitizer;
+  private final FileSystem fileSystem;
+  private final PathMapper pathMapper;
 
   public FileEditTools(Vertx vertx) {
     this(vertx, new PathSanitizer());
   }
 
-  public FileEditTools(Vertx vertx, PathMapper sanitizer) {
+  public FileEditTools(Vertx vertx, PathMapper pathMapper) {
     this.vertx = vertx;
-    this.fs = vertx.fileSystem();
-    this.sanitizer = sanitizer;
+    this.fileSystem = vertx.fileSystem();
+    this.pathMapper = pathMapper;
   }
 
   @Override
@@ -139,7 +139,7 @@ public class FileEditTools implements ToolSet {
 
   private Future<ToolInvokeResult> replaceInFile(String toolName, Map<String, Object> args) {
     String rawPath = (String) args.get("file_path");
-    String filePath = sanitizer.map(rawPath);
+    String filePath = pathMapper.map(rawPath);
     String oldString = (String) args.get("old_string");
     String newString = (String) args.get("new_string");
     int expected = parseExpectedReplacements(args.getOrDefault("expected_replacements", 1));
@@ -151,9 +151,10 @@ public class FileEditTools implements ToolSet {
 
     logger.debug("Attempting surgical replacement in {}. Expected: {}", filePath, expected);
 
-    return fs.exists(filePath)
+    return fileSystem
+        .exists(filePath)
         .compose(exists -> validateFileExists(exists, filePath))
-        .compose(v -> fs.readFile(filePath))
+        .compose(v -> fileSystem.readFile(filePath))
         .compose(buffer -> performReplacement(buffer, oldString, newString, expected, filePath))
         .compose(
             replacement ->
@@ -172,8 +173,13 @@ public class FileEditTools implements ToolSet {
     if (expectedObj instanceof Number) {
       return ((Number) expectedObj).intValue();
     }
-    if (expectedObj instanceof String) {
-      return Integer.parseInt((String) expectedObj);
+    if (expectedObj instanceof String str) {
+      try {
+        return Integer.parseInt(str);
+      } catch (NumberFormatException e) {
+        logger.warn("Invalid expected_replacements value: '{}', defaulting to 1", str);
+        return 1;
+      }
     }
     return 1;
   }
@@ -221,20 +227,24 @@ public class FileEditTools implements ToolSet {
     String tempOldPath = filePath + ".old." + System.nanoTime();
     String tempPath = filePath + ".tmp." + System.nanoTime();
 
-    return fs.writeFile(tempOldPath, oldBuffer)
+    return fileSystem
+        .writeFile(tempOldPath, oldBuffer)
         .compose(v -> generateDiff(tempOldPath, newContent, rawPath))
         .compose(
             diff ->
-                fs.writeFile(tempPath, Buffer.buffer(newContent))
+                fileSystem
+                    .writeFile(tempPath, Buffer.buffer(newContent))
                     .compose(
                         v ->
-                            fs.move(tempPath, filePath, new CopyOptions().setReplaceExisting(true)))
-                    .compose(v -> fs.delete(tempOldPath))
+                            fileSystem.move(
+                                tempPath, filePath, new CopyOptions().setReplaceExisting(true)))
+                    .compose(v -> fileSystem.delete(tempOldPath))
                     .map(v -> diff))
         .recover(
             err -> {
               logger.error("Failed to save file changes: {}", filePath, err);
-              return fs.delete(tempOldPath)
+              return fileSystem
+                  .delete(tempOldPath)
                   .compose(v -> Future.<String>failedFuture(err))
                   .recover(e2 -> Future.failedFuture(err));
             });
@@ -243,21 +253,22 @@ public class FileEditTools implements ToolSet {
   private Future<ToolInvokeResult> writeFile(Map<String, Object> args) {
     String rawPath = (String) args.get("file_path");
     String content = (String) args.get("content");
-    String filePath = sanitizer.map(rawPath);
+    String filePath = pathMapper.map(rawPath);
 
     if (filePath == null || content == null) {
       return Future.succeededFuture(
           ToolInvokeResult.error("Missing required arguments for write_file."));
     }
 
-    return fs.exists(filePath)
+    return fileSystem
+        .exists(filePath)
         .compose(exists -> readOldContentIfAvailable(exists, filePath))
         .compose(oldBuffer -> performWriteWithDiff(filePath, rawPath, content, oldBuffer))
         .map(diff -> ToolInvokeResult.success("SUCCESS: Wrote file " + rawPath, diff));
   }
 
   private Future<Buffer> readOldContentIfAvailable(boolean exists, String filePath) {
-    return exists ? fs.readFile(filePath) : Future.succeededFuture(null);
+    return exists ? fileSystem.readFile(filePath) : Future.succeededFuture(null);
   }
 
   private Future<String> performWriteWithDiff(
@@ -267,10 +278,12 @@ public class FileEditTools implements ToolSet {
     Buffer newBuffer = Buffer.buffer(content);
 
     Future<Void> prepareOld =
-        (oldBuffer != null) ? fs.writeFile(tempOldPath, oldBuffer) : Future.succeededFuture();
+        (oldBuffer != null)
+            ? fileSystem.writeFile(tempOldPath, oldBuffer)
+            : Future.succeededFuture();
 
     return prepareOld
-        .compose(v -> fs.writeFile(tempPath, newBuffer))
+        .compose(v -> fileSystem.writeFile(tempPath, newBuffer))
         .compose(
             v -> {
               String oldFileForDiff = (oldBuffer != null) ? tempOldPath : "/dev/null";
@@ -282,7 +295,8 @@ public class FileEditTools implements ToolSet {
             err -> {
               logger.error("Failed to write file: {}", filePath, err);
               if (oldBuffer != null) {
-                return fs.delete(tempOldPath)
+                return fileSystem
+                    .delete(tempOldPath)
                     .compose(v -> Future.<String>failedFuture(err))
                     .recover(e2 -> Future.failedFuture(err));
               }
@@ -294,25 +308,27 @@ public class FileEditTools implements ToolSet {
       String filePath, String tempPath, String tempOldPath, boolean hasOld, String diff) {
     File parent = new File(filePath).getParentFile();
     Future<Void> mkdirsFuture =
-        (parent != null) ? fs.mkdirs(parent.getAbsolutePath()) : Future.succeededFuture();
+        (parent != null) ? fileSystem.mkdirs(parent.getAbsolutePath()) : Future.succeededFuture();
 
     return mkdirsFuture
-        .compose(v -> fs.move(tempPath, filePath, new CopyOptions().setReplaceExisting(true)))
-        .compose(v -> hasOld ? fs.delete(tempOldPath) : Future.succeededFuture())
+        .compose(
+            v -> fileSystem.move(tempPath, filePath, new CopyOptions().setReplaceExisting(true)))
+        .compose(v -> hasOld ? fileSystem.delete(tempOldPath) : Future.succeededFuture())
         .map(v -> diff);
   }
 
   private Future<ToolInvokeResult> applyPatch(Map<String, Object> args) {
     String rawPath = (String) args.get("file_path");
     String patch = (String) args.get("patch");
-    String filePath = sanitizer.map(rawPath);
+    String filePath = pathMapper.map(rawPath);
 
     if (filePath == null || patch == null) {
       return Future.succeededFuture(
           ToolInvokeResult.error("Missing required arguments for apply_patch."));
     }
 
-    return fs.exists(filePath)
+    return fileSystem
+        .exists(filePath)
         .compose(exists -> validateFileExists(exists, filePath))
         .compose(v -> performPatch(filePath, rawPath, patch));
   }
@@ -321,7 +337,8 @@ public class FileEditTools implements ToolSet {
     String patchPath = filePath + ".patch." + System.nanoTime();
     Buffer patchBuffer = Buffer.buffer(patch);
 
-    return fs.writeFile(patchPath, patchBuffer)
+    return fileSystem
+        .writeFile(patchPath, patchBuffer)
         .compose(v -> executePatchCommand(filePath, patchPath))
         .compose(result -> cleanupAndReturnPatchResult(patchPath, result, rawPath))
         .recover(err -> cleanupAndFailPatch(patchPath, err));
@@ -334,7 +351,8 @@ public class FileEditTools implements ToolSet {
 
   private Future<ToolInvokeResult> cleanupAndReturnPatchResult(
       String patchPath, VertxProcess.Result result, String rawPath) {
-    return fs.delete(patchPath)
+    return fileSystem
+        .delete(patchPath)
         .map(
             v -> {
               if (result.exitCode() == 0) {
@@ -347,7 +365,8 @@ public class FileEditTools implements ToolSet {
   }
 
   private Future<ToolInvokeResult> cleanupAndFailPatch(String patchPath, Throwable err) {
-    return fs.delete(patchPath)
+    return fileSystem
+        .delete(patchPath)
         .compose(v -> Future.<ToolInvokeResult>failedFuture(err))
         .recover(e2 -> Future.failedFuture(err));
   }
@@ -359,7 +378,8 @@ public class FileEditTools implements ToolSet {
 
   private Future<String> generateDiffInternal(
       String oldFilePath, String newContent, String label, String tempNewPath) {
-    return fs.writeFile(tempNewPath, Buffer.buffer(newContent))
+    return fileSystem
+        .writeFile(tempNewPath, Buffer.buffer(newContent))
         .compose(v -> executeDiffCommand(oldFilePath, tempNewPath))
         .compose(result -> cleanupAndReturnDiffResult(tempNewPath, result, label))
         .recover(err -> cleanupAndFailDiff(tempNewPath, err));
@@ -372,7 +392,8 @@ public class FileEditTools implements ToolSet {
 
   private Future<String> cleanupAndReturnDiffResult(
       String tempNewPath, VertxProcess.Result result, String label) {
-    return fs.delete(tempNewPath)
+    return fileSystem
+        .delete(tempNewPath)
         .map(
             v -> {
               String output = result.output();
@@ -394,7 +415,8 @@ public class FileEditTools implements ToolSet {
 
   private Future<String> cleanupAndFailDiff(String tempNewPath, Throwable err) {
     logger.warn("Failed to generate diff: {}", err.getMessage());
-    return fs.delete(tempNewPath)
+    return fileSystem
+        .delete(tempNewPath)
         .map(v -> "Diff generation failed: " + err.getMessage())
         .recover(e2 -> Future.succeededFuture("Diff generation failed: " + err.getMessage()));
   }

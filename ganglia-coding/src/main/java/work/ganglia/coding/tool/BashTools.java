@@ -10,10 +10,9 @@ import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.CommandExecutor;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.port.external.tool.ToolSet;
-import work.ganglia.util.VertxProcess;
 
 public class BashTools implements ToolSet {
-  private static final Logger log = LoggerFactory.getLogger(BashTools.class);
+  private static final Logger logger = LoggerFactory.getLogger(BashTools.class);
 
   private final CommandExecutor commandExecutor;
 
@@ -63,34 +62,11 @@ public class BashTools implements ToolSet {
       String command,
       String dirPath,
       work.ganglia.port.internal.state.ExecutionContext executionContext) {
-    log.debug("[SHELL_EXEC] Executing: {} in {}", command, dirPath);
+    logger.debug("[SHELL_EXEC] Executing: {} in {}", command, dirPath);
 
     return commandExecutor
         .execute(command, dirPath, executionContext)
-        .map(
-            result -> {
-              if (result.exitCode() != 0) {
-                return ToolInvokeResult.error(
-                    "Command failed with exit code " + result.exitCode() + ": " + result.output());
-              }
-              return ToolInvokeResult.success(result.output());
-            })
-        .recover(
-            err -> {
-              if (err instanceof VertxProcess.ExecutionException ee) {
-                String msg = ee.getMessage();
-                work.ganglia.infrastructure.external.tool.model.ToolErrorResult.ErrorType type =
-                    msg.contains("Output size limit exceeded")
-                        ? work.ganglia.infrastructure.external.tool.model.ToolErrorResult.ErrorType
-                            .SIZE_LIMIT_EXCEEDED
-                        : work.ganglia.infrastructure.external.tool.model.ToolErrorResult.ErrorType
-                            .TIMEOUT;
-                return Future.succeededFuture(
-                    ToolInvokeResult.exception(
-                        new work.ganglia.infrastructure.external.tool.model.ToolErrorResult(
-                            "run_shell_command", type, msg, null, ee.getPartialOutput())));
-              }
-              return Future.succeededFuture(ToolInvokeResult.error(err.getMessage()));
-            });
+        .map(CommandResultHandler::fromResult)
+        .recover(err -> CommandResultHandler.recoverError("run_shell_command", err));
   }
 }

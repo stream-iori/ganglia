@@ -189,10 +189,6 @@ public class DetailView {
   }
 
   private String formatDuration(long millis) {
-    if (millis < 1000) {
-      return millis + "ms";
-    }
-    double secs = millis / 1000.0;
-    return String.format("%.1fs", secs);
+    return AnsiCodes.formatDuration(millis);
   }
 }

@@ -20,7 +20,7 @@ import work.ganglia.infrastructure.internal.memory.DefaultContextCompressor;
 import work.ganglia.infrastructure.internal.memory.FileSystemDailyRecordManager;
 import work.ganglia.infrastructure.internal.memory.FileSystemLongTermMemory;
 import work.ganglia.infrastructure.internal.memory.FileSystemMemoryStore;
-import work.ganglia.infrastructure.internal.memory.LlmObservationCompressor;
+import work.ganglia.infrastructure.internal.memory.LLMObservationCompressor;
 import work.ganglia.infrastructure.internal.memory.LongTermKnowledgeModule;
 import work.ganglia.infrastructure.internal.memory.MarkdownTimelineLedger;
 import work.ganglia.infrastructure.internal.memory.MemoryContextSource;
@@ -103,15 +103,18 @@ public class GangliaKernel {
         .compose(
             skillService ->
                 initializeMemorySystem(projectRoot)
-                    .map(longTermMemory -> new InitContext(skillService, longTermMemory)))
+                    .map(longTermMemory -> new SkillAndMemoryContext(skillService, longTermMemory)))
         .compose(
-            ctx ->
+            skillAndMemory ->
                 work.ganglia.infrastructure.mcp.McpConfigManager.loadMcpToolSets(vertx, projectRoot)
-                    .map(mcpRegistry -> new InitContext2(ctx, mcpRegistry)))
+                    .map(mcpRegistry -> new BootstrapContext(skillAndMemory, mcpRegistry)))
         .compose(
-            ctx2 ->
+            bootstrap ->
                 assembleSystem(
-                    projectRoot, ctx2.ctx.skillService, ctx2.ctx.longTermMemory, ctx2.mcpRegistry));
+                    projectRoot,
+                    bootstrap.core.skillService,
+                    bootstrap.core.longTermMemory,
+                    bootstrap.mcpRegistry));
   }
 
   private Future<Void> ensureCoreStructure(String projectRoot) {
@@ -175,7 +178,7 @@ public class GangliaKernel {
             ? configManager.getUtilityModel()
             : configManager.getModel();
     ObservationCompressor observationCompressor =
-        new LlmObservationCompressor(modelGateway, 4000, compressionModel);
+        new LLMObservationCompressor(modelGateway, 4000, compressionModel);
     TimelineLedger timelineLedger = new MarkdownTimelineLedger(vertx, projectRoot);
 
     SkillRuntime skillRuntime = new DefaultSkillRuntime(vertx, skillService);
@@ -296,8 +299,8 @@ public class GangliaKernel {
             mcpRegistry));
   }
 
-  private record InitContext(SkillService skillService, LongTermMemory longTermMemory) {}
+  private record SkillAndMemoryContext(SkillService skillService, LongTermMemory longTermMemory) {}
 
-  private record InitContext2(
-      InitContext ctx, work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry) {}
+  private record BootstrapContext(
+      SkillAndMemoryContext core, work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry) {}
 }

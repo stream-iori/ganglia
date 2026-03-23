@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import work.ganglia.infrastructure.external.tool.model.ToolErrorResult;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.CommandExecutor;
@@ -14,22 +13,21 @@ import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.util.PathMapper;
 import work.ganglia.util.PathSanitizer;
-import work.ganglia.util.VertxProcess;
 
 /** Built-in tools for local filesystem operations using native system commands. */
 public class BashFileSystemTools implements ToolSet {
-  private static final Logger log = LoggerFactory.getLogger(BashFileSystemTools.class);
+  private static final Logger logger = LoggerFactory.getLogger(BashFileSystemTools.class);
 
   private final CommandExecutor commandExecutor;
-  private final PathMapper sanitizer;
+  private final PathMapper pathMapper;
 
   public BashFileSystemTools(CommandExecutor commandExecutor) {
     this(commandExecutor, new PathSanitizer());
   }
 
-  public BashFileSystemTools(CommandExecutor commandExecutor, PathMapper sanitizer) {
+  public BashFileSystemTools(CommandExecutor commandExecutor, PathMapper pathMapper) {
     this.commandExecutor = commandExecutor;
-    this.sanitizer = sanitizer;
+    this.pathMapper = pathMapper;
   }
 
   @Override
@@ -110,26 +108,26 @@ public class BashFileSystemTools implements ToolSet {
     try {
       return switch (toolName) {
         case "list_directory" -> ls(args);
-        case "read_file" -> cat(args);
+        case "read_file" -> readFile(args);
         case "read_files" -> readFiles(args);
         case "grep_search" -> grepSearch(args);
         default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
       };
     } catch (SecurityException | IllegalArgumentException e) {
-      log.warn("[SANDBOX_VIOLATION] Tool: {}, Error: {}", toolName, e.getMessage());
+      logger.warn("[SANDBOX_VIOLATION] Tool: {}, Error: {}", toolName, e.getMessage());
       return Future.succeededFuture(
           ToolInvokeResult.error("Security/Validation Error: " + e.getMessage()));
     }
   }
 
   private Future<ToolInvokeResult> ls(Map<String, Object> args) {
-    String path = sanitizer.map((String) args.get("path"));
+    String path = pathMapper.map((String) args.get("path"));
     return execute("list_directory", "ls -F " + PathSanitizer.escapeShellArg(path));
   }
 
-  public Future<ToolInvokeResult> cat(Map<String, Object> args) {
+  public Future<ToolInvokeResult> readFile(Map<String, Object> args) {
     String rawPath = (String) args.get("path");
-    String safePath = sanitizer.map(rawPath);
+    String safePath = pathMapper.map(rawPath);
     int offset = ((Number) args.getOrDefault("offset", 0)).intValue();
     int limit = ((Number) args.getOrDefault("limit", 500)).intValue();
 
@@ -174,7 +172,7 @@ public class BashFileSystemTools implements ToolSet {
     // Sanitize and escape all paths
     String escapedPaths =
         paths.stream()
-            .map(sanitizer::map)
+            .map(pathMapper::map)
             .map(PathSanitizer::escapeShellArg)
             .collect(Collectors.joining(" "));
 
@@ -203,7 +201,7 @@ public class BashFileSystemTools implements ToolSet {
   }
 
   private Future<ToolInvokeResult> grepSearch(Map<String, Object> args) {
-    String path = sanitizer.map((String) args.get("path"));
+    String path = pathMapper.map((String) args.get("path"));
     String pattern = (String) args.get("pattern");
     String include = (String) args.get("include");
 
@@ -226,31 +224,11 @@ public class BashFileSystemTools implements ToolSet {
   }
 
   private Future<ToolInvokeResult> execute(String toolName, String command) {
-    log.debug("[FS_EXEC] Tool: {}, Command: {}", toolName, command);
+    logger.debug("[FS_EXEC] Tool: {}, Command: {}", toolName, command);
 
     return commandExecutor
         .execute(command, null, null)
-        .map(
-            result -> {
-              if (result.exitCode() != 0) {
-                return ToolInvokeResult.error(
-                    "Command failed with exit code " + result.exitCode() + ": " + result.output());
-              }
-              return ToolInvokeResult.success(result.output());
-            })
-        .recover(
-            err -> {
-              if (err instanceof VertxProcess.ExecutionException ee) {
-                String msg = ee.getMessage();
-                ToolErrorResult.ErrorType type =
-                    msg.contains("Output size limit exceeded")
-                        ? ToolErrorResult.ErrorType.SIZE_LIMIT_EXCEEDED
-                        : ToolErrorResult.ErrorType.TIMEOUT;
-                return Future.succeededFuture(
-                    ToolInvokeResult.exception(
-                        new ToolErrorResult(toolName, type, msg, null, ee.getPartialOutput())));
-              }
-              return Future.succeededFuture(ToolInvokeResult.error(err.getMessage()));
-            });
+        .map(CommandResultHandler::fromResult)
+        .recover(err -> CommandResultHandler.recoverError(toolName, err));
   }
 }

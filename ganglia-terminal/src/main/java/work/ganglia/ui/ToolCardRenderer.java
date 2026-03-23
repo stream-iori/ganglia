@@ -119,7 +119,7 @@ public class ToolCardRenderer {
     boolean isError = event.content() != null && event.content().startsWith("Error:");
 
     if (isError) {
-      writer.print(String.format("\033[%d;1H\033[2K", lastWrittenRow));
+      writer.print(AnsiCodes.moveAndClear(lastWrittenRow));
       writer.println(
           new AttributedStringBuilder()
               .append(toolLinePrefix + "  ")
@@ -128,7 +128,7 @@ public class ToolCardRenderer {
               .append("  " + (event.content() != null ? event.content() : ""))
               .toAnsi());
     } else {
-      writer.print(String.format("\033[%d;1H\033[2K", lastWrittenRow));
+      writer.print(AnsiCodes.moveAndClear(lastWrittenRow));
       writer.println(
           new AttributedStringBuilder()
               .append(toolLinePrefix + "  ")
@@ -177,7 +177,7 @@ public class ToolCardRenderer {
                 String time = formatDuration(elapsed);
                 String frame = SPINNER[spinnerFrame % SPINNER.length];
                 spinnerFrame++;
-                writer.print(String.format("\033[%d;1H\033[2K", lastWrittenRow));
+                writer.print(AnsiCodes.moveAndClear(lastWrittenRow));
                 writer.print(
                     new AttributedStringBuilder()
                         .append(toolLinePrefix + "  ")
@@ -250,10 +250,6 @@ public class ToolCardRenderer {
   }
 
   private String formatDuration(long millis) {
-    if (millis < 1000) {
-      return millis + "ms";
-    }
-    double secs = millis / 1000.0;
-    return String.format("%.1fs", secs);
+    return AnsiCodes.formatDuration(millis);
   }
 }

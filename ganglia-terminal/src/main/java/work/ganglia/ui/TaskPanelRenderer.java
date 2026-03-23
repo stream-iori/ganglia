@@ -105,7 +105,7 @@ public class TaskPanelRenderer {
         items.stream().filter(i -> i.status() == TaskStatus.IN_PROGRESS).findFirst().orElse(null);
 
     // Render header
-    writer.print(String.format("\033[%d;1H\033[2K", startRow));
+    writer.print(AnsiCodes.moveAndClear(startRow));
     if (activeTask != null) {
       String elapsed = formatElapsed();
       String header =
@@ -126,7 +126,7 @@ public class TaskPanelRenderer {
     for (int i = 0; i < itemCount; i++) {
       ToDoItem item = items.get(i);
       int row = startRow + 1 + i;
-      writer.print(String.format("\033[%d;1H\033[2K", row));
+      writer.print(AnsiCodes.moveAndClear(row));
 
       boolean isLast = (i == itemCount - 1);
       String connector = isLast ? "  \u2514\u2500 " : "  \u251c\u2500 ";
@@ -138,7 +138,7 @@ public class TaskPanelRenderer {
     if (items.size() > itemCount) {
       int remaining = items.size() - itemCount;
       int row = startRow + itemCount;
-      writer.print(String.format("\033[%d;1H\033[2K", row));
+      writer.print(AnsiCodes.moveAndClear(row));
       writer.print("  \033[2m... " + remaining + " more\033[0m");
     }
   }

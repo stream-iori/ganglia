@@ -79,7 +79,7 @@ public class EventRenderer {
     synchronized (statusBar.terminalWriteLock) {
       if (event.content() != null) {
         accumulatedTokens.append(event.content());
-        writer.print(String.format("\033[%d;1H\033[2K", statusBar.getScrollBottom()));
+        writer.print(AnsiCodes.moveAndClear(statusBar.getScrollBottom()));
         writer.print("Generating... (" + accumulatedTokens.length() + " chars)");
         statusBar.parkCursorAtInput();
         writer.flush();
@@ -106,7 +106,7 @@ public class EventRenderer {
 
   private void handleReasoningFinished() {
     synchronized (statusBar.terminalWriteLock) {
-      writer.print(String.format("\033[%d;1H\033[2K", statusBar.getScrollBottom()));
+      writer.print(AnsiCodes.moveAndClear(statusBar.getScrollBottom()));
       if (accumulatedTokens.length() > 0) {
         response.render(accumulatedTokens.toString(), false);
       }
@@ -128,7 +128,7 @@ public class EventRenderer {
 
   private void handleTurnFinished() {
     synchronized (statusBar.terminalWriteLock) {
-      writer.print(String.format("\033[%d;1H\033[2K", statusBar.getScrollBottom()));
+      writer.print(AnsiCodes.moveAndClear(statusBar.getScrollBottom()));
       String content = accumulatedTokens.toString();
       if (!content.isEmpty() && !response.isResponseRendered()) {
         response.render(content, false);

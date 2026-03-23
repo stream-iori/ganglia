@@ -75,11 +75,11 @@ public class RetryingModelGateway implements ModelGateway {
           err.getMessage());
 
       if (context != null) {
-        String warning =
+        String retryNotification =
             String.format(
                 "\n\n⚠️ Network error: %s. Retrying attempt %d of %d...\n\n",
                 err.getMessage(), attempt + 1, maxRetries);
-        context.emitStream(warning);
+        context.emitStream(retryNotification);
       }
 
       Promise<ModelResponse> promise = Promise.promise();
@@ -107,8 +107,8 @@ public class RetryingModelGateway implements ModelGateway {
       return true;
     }
 
-    if (err instanceof LlmException) {
-      LlmException le = (LlmException) err;
+    if (err instanceof LLMException) {
+      LLMException le = (LLMException) err;
       int status = le.httpStatusCode().orElse(0);
       return status == 429 || (status >= 500 && status < 600);
     }

@@ -8,11 +8,13 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.codec.BodyCodec;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.infrastructure.external.llm.util.JsonSanitizer;
@@ -25,12 +27,17 @@ import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.internal.state.ExecutionContext;
+import work.ganglia.port.internal.state.TokenUsage;
 
 /** Base class for ModelGateways to reduce boilerplate and enforce common constraints. */
 public abstract class AbstractModelGateway implements ModelGateway {
   protected static final Logger logger = LoggerFactory.getLogger(AbstractModelGateway.class);
+
+  /** Maximum concurrent LLM API calls allowed per gateway instance. */
+  private static final int MAX_CONCURRENT_CALLS = 5;
+
   protected final Vertx vertx;
-  private final Semaphore semaphore = new Semaphore(5); // Limit to 5 concurrent calls
+  private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_CALLS);
 
   protected AbstractModelGateway(Vertx vertx) {
     this.vertx = vertx;
@@ -61,15 +68,50 @@ public abstract class AbstractModelGateway implements ModelGateway {
       return future.onComplete(v -> semaphore.release());
     } else {
       return Future.failedFuture(
-          new LlmException("Concurrency limit reached (max 5)", null, 429, null, null));
+          new LLMException(
+              "Concurrency limit reached (max " + MAX_CONCURRENT_CALLS + ")",
+              null,
+              429,
+              null,
+              null));
     }
   }
 
   protected Throwable wrapException(Throwable e) {
-    if (e instanceof LlmException) {
+    if (e instanceof LLMException) {
       return e;
     }
-    return new LlmException(e.getMessage(), null, null, null, e);
+    return new LLMException(e.getMessage(), null, null, null, e);
+  }
+
+  /**
+   * Appends {@code endpointPath} to {@code baseUrl}, handling trailing slashes and the case where
+   * the path is already present.
+   */
+  protected static String normalizeEndpoint(String baseUrl, String endpointPath) {
+    if (baseUrl.endsWith(endpointPath)) {
+      return baseUrl;
+    }
+    return baseUrl.endsWith("/") ? baseUrl + endpointPath : baseUrl + "/" + endpointPath;
+  }
+
+  /** Collects streaming tool call builders into a finished list. */
+  protected static List<ToolCall> collectToolCalls(Map<Integer, ToolCallBuilder> toolCallBuilders) {
+    return toolCallBuilders.values().stream()
+        .map(ToolCallBuilder::build)
+        .collect(Collectors.toList());
+  }
+
+  /** Builds a {@link ModelResponse} from streaming accumulators. */
+  protected static ModelResponse buildStreamingResponse(
+      StringBuilder fullContent,
+      Map<Integer, ToolCallBuilder> toolCallBuilders,
+      int inputTokens,
+      int outputTokens) {
+    return new ModelResponse(
+        fullContent.toString(),
+        collectToolCalls(toolCallBuilders),
+        new TokenUsage(inputTokens, outputTokens));
   }
 
   /** Shared helper for ToolCall building during streaming. */
@@ -135,7 +177,7 @@ public abstract class AbstractModelGateway implements ModelGateway {
                 }
                 logger.error("[LLM_ERROR] Status: {}, Body: {}", response.statusCode(), errorBody);
                 promise.fail(
-                    new LlmException(
+                    new LLMException(
                         "LLM Error: " + response.statusCode() + " " + response.statusMessage(),
                         null,
                         response.statusCode(),

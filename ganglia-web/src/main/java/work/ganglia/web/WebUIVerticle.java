@@ -29,6 +29,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -257,7 +258,7 @@ public class WebUIVerticle extends AbstractVerticle {
 
   private void setupWebSocket(ServerWebSocket ws) {
     logger.info("WebUI WebSocket connected");
-    String[] currentSessionId = new String[1];
+    AtomicReference<String> currentSessionId = new AtomicReference<>();
 
     ws.textMessageHandler(
         text -> {
@@ -270,7 +271,7 @@ public class WebUIVerticle extends AbstractVerticle {
             String sessionId =
                 request.params() != null ? request.params().getString("sessionId") : null;
             if (sessionId != null) {
-              currentSessionId[0] = sessionId;
+              currentSessionId.set(sessionId);
               sessionSockets.computeIfAbsent(sessionId, k -> new CopyOnWriteArraySet<>()).add(ws);
             }
 
@@ -282,12 +283,13 @@ public class WebUIVerticle extends AbstractVerticle {
 
     ws.closeHandler(
         v -> {
-          if (currentSessionId[0] != null) {
-            Set<ServerWebSocket> sockets = sessionSockets.get(currentSessionId[0]);
+          String lastSessionId = currentSessionId.get();
+          if (lastSessionId != null) {
+            Set<ServerWebSocket> sockets = sessionSockets.get(lastSessionId);
             if (sockets != null) {
               sockets.remove(ws);
               if (sockets.isEmpty()) {
-                sessionSockets.remove(currentSessionId[0]);
+                sessionSockets.remove(lastSessionId);
               }
             }
           }

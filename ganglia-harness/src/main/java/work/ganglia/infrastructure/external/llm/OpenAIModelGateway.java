@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.infrastructure.external.llm.util.JsonSanitizer;
@@ -24,31 +23,25 @@ import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.port.internal.state.TokenUsage;
 
-public class OpenAiModelGateway extends AbstractModelGateway {
-  private static final Logger logger = LoggerFactory.getLogger(OpenAiModelGateway.class);
+public class OpenAIModelGateway extends AbstractModelGateway {
+  private static final Logger logger = LoggerFactory.getLogger(OpenAIModelGateway.class);
   private static final Logger llmLogger = LoggerFactory.getLogger("LLM_LOG");
   private final WebClient webClient;
   private final GatewayConfig config;
   private final String endpoint;
 
-  public OpenAiModelGateway(Vertx vertx, WebClient webClient, String apiKey, String baseUrl) {
+  public OpenAIModelGateway(Vertx vertx, WebClient webClient, String apiKey, String baseUrl) {
     this(vertx, webClient, new GatewayConfig(apiKey, baseUrl, 60000));
   }
 
-  public OpenAiModelGateway(Vertx vertx, WebClient webClient, GatewayConfig config) {
+  public OpenAIModelGateway(Vertx vertx, WebClient webClient, GatewayConfig config) {
     super(vertx);
     this.webClient = webClient;
     this.config = config;
-    String baseUrl = config.baseUrl();
-    this.endpoint =
-        baseUrl.endsWith("/chat/completions")
-            ? baseUrl
-            : (baseUrl.endsWith("/")
-                ? baseUrl + "chat/completions"
-                : baseUrl + "/chat/completions");
+    this.endpoint = normalizeEndpoint(config.baseUrl(), "chat/completions");
   }
 
-  public OpenAiModelGateway(
+  public OpenAIModelGateway(
       Vertx vertx, WebClient webClient, String apiKey, String baseUrl, int timeoutMs) {
     this(vertx, webClient, new GatewayConfig(apiKey, baseUrl, timeoutMs));
   }
@@ -82,7 +75,7 @@ public class OpenAiModelGateway extends AbstractModelGateway {
                     logger.error(
                         "[LLM_ERROR] Status: {}, Body: {}", response.statusCode(), errorBody);
                     return Future.failedFuture(
-                        new LlmException(
+                        new LLMException(
                             "LLM Error: " + response.statusCode() + " " + response.statusMessage(),
                             null,
                             response.statusCode(),
@@ -172,14 +165,7 @@ public class OpenAiModelGateway extends AbstractModelGateway {
             logger.error("Failed to parse SSE JSON chunk", e);
           }
         },
-        () -> {
-          List<ToolCall> toolCalls =
-              toolCallBuilders.values().stream()
-                  .map(ToolCallBuilder::build)
-                  .collect(Collectors.toList());
-          return new ModelResponse(
-              fullContent.toString(), toolCalls, new TokenUsage(usage[0], usage[1]));
-        });
+        () -> buildStreamingResponse(fullContent, toolCallBuilders, usage[0], usage[1]));
   }
 
   private JsonObject buildPayload(
@@ -276,7 +262,7 @@ public class OpenAiModelGateway extends AbstractModelGateway {
   private ModelResponse toModelResponse(JsonObject json) {
     JsonArray choices = json.getJsonArray("choices");
     if (choices == null || choices.isEmpty()) {
-      throw new LlmException("No choices returned from OpenAI");
+      throw new LLMException("No choices returned from OpenAI");
     }
 
     JsonObject choice = choices.getJsonObject(0);

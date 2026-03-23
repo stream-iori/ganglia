@@ -123,7 +123,7 @@ public class RetryingModelGatewayTest {
               ChatRequest request, work.ganglia.port.internal.state.ExecutionContext context) {
             attempts.incrementAndGet();
             return Future.failedFuture(
-                new LlmException("Server Error", null, 502, "Bad Gateway", null));
+                new LLMException("Server Error", null, 502, "Bad Gateway", null));
           }
         };
 
@@ -140,7 +140,7 @@ public class RetryingModelGatewayTest {
                         () -> {
                           // Initial attempt + maxRetries
                           assertEquals(1 + maxRetries, attempts.get());
-                          assertTrue(err instanceof LlmException);
+                          assertTrue(err instanceof LLMException);
                           testContext.completeNow();
                         })));
   }
