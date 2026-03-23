@@ -92,6 +92,11 @@ public class RetryingModelGateway implements ModelGateway {
   private boolean shouldRetry(Throwable err) {
     // Unwrap Vert.x generic errors if possible
     Throwable cause = err.getCause() != null ? err.getCause() : err;
+
+    if (cause instanceof work.ganglia.kernel.loop.AgentAbortedException) {
+      return false;
+    }
+
     logger.debug(
         "Checking if should retry. Error class: {}, Cause class: {}, Message: {}",
         err.getClass().getName(),

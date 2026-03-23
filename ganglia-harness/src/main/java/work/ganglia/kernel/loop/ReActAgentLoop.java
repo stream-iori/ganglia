@@ -67,6 +67,11 @@ public class ReActAgentLoop implements AgentLoop {
     return new Builder();
   }
 
+  /** Returns the dispatcher used by this loop. Used for testing observations. */
+  public ObservationDispatcher getDispatcher() {
+    return this.dispatcher;
+  }
+
   private void publishObservation(String sessionId, ObservationType type, String content) {
     publishObservation(sessionId, type, content, null);
   }
@@ -117,7 +122,8 @@ public class ReActAgentLoop implements AgentLoop {
         .onComplete(v -> sessionSignals.remove(initialContext.sessionId()))
         .recover(
             err -> {
-              if (!(err instanceof AgentInterruptException)) {
+              if (!(err instanceof AgentInterruptException)
+                  && !(err instanceof AgentAbortedException)) {
                 publishObservation(
                     initialContext.sessionId(), ObservationType.ERROR, err.getMessage());
               }
@@ -136,16 +142,39 @@ public class ReActAgentLoop implements AgentLoop {
   @Override
   public Future<String> resume(
       String askId, String toolOutput, SessionContext initialContext, AgentSignal signal) {
+    logger.debug("Resuming session: {} with askId: {}", initialContext.sessionId(), askId);
+    sessionSignals.put(initialContext.sessionId(), signal);
+
     String toolCallId = askId != null ? pendingAsks.remove(askId) : null;
     ToolCall pendingCall = findPendingToolCall(initialContext, toolCallId);
     if (pendingCall == null) {
+      sessionSignals.remove(initialContext.sessionId());
       return Future.failedFuture("No pending tool call found to resume.");
     }
 
     Message toolMessage = Message.tool(pendingCall.id(), pendingCall.toolName(), toolOutput);
     SessionContext context = sessionManager.addStep(initialContext, toolMessage);
 
-    return sessionManager.persist(context).compose(v -> continueActingOrReason(context, signal));
+    return sessionManager
+        .persist(context)
+        .compose(v -> continueActingOrReason(context, signal))
+        .compose(
+            finalResponse -> {
+              pipeline
+                  .executePostTurn(initialContext, Message.assistant(finalResponse))
+                  .onFailure(err -> logger.warn("PostTurn hook failed", err));
+              return Future.succeededFuture(finalResponse);
+            })
+        .onComplete(v -> sessionSignals.remove(initialContext.sessionId()))
+        .recover(
+            err -> {
+              if (!(err instanceof AgentInterruptException)
+                  && !(err instanceof AgentAbortedException)) {
+                publishObservation(
+                    initialContext.sessionId(), ObservationType.ERROR, err.getMessage());
+              }
+              return Future.failedFuture(err);
+            });
   }
 
   private Future<String> continueActingOrReason(SessionContext context, AgentSignal signal) {
@@ -203,6 +232,12 @@ public class ReActAgentLoop implements AgentLoop {
                         if (err instanceof AgentInterruptException) {
                           return Future.succeededFuture(
                               ((AgentInterruptException) err).getPrompt());
+                        }
+                        if (err instanceof AgentAbortedException) {
+                          logger.debug(
+                              "Agent loop aborted for session: {}",
+                              contextForReasoning.sessionId());
+                          return Future.failedFuture(err);
                         }
                         logger.error(
                             "Error in agent loop for session: {}",

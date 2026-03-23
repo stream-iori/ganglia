@@ -16,6 +16,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,11 +24,17 @@ import org.junit.jupiter.api.io.TempDir;
 import work.ganglia.BootstrapOptions;
 import work.ganglia.Ganglia;
 import work.ganglia.coding.CodingAgentBuilder;
+import work.ganglia.kernel.loop.AgentAbortedException;
+import work.ganglia.kernel.loop.AgentLoopObserver;
+import work.ganglia.kernel.loop.DefaultObservationDispatcher;
+import work.ganglia.kernel.loop.ReActAgentLoop;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.external.tool.ToolCall;
+import work.ganglia.port.internal.state.AgentSignal;
 import work.ganglia.port.internal.state.TokenUsage;
 
 @ExtendWith(VertxExtension.class)
@@ -61,6 +68,48 @@ public class AgentLoopIT {
                 (Ganglia g) -> {
                   this.ganglia = g;
                   testContext.completeNow();
+                }));
+  }
+
+  @Test
+  void testAbortedExceptionDoesNotPublishError(Vertx vertx, VertxTestContext testContext) {
+    SessionContext context = ganglia.sessionManager().createSession(UUID.randomUUID().toString());
+    AgentSignal signal = new AgentSignal();
+
+    AtomicBoolean errorObserved = new AtomicBoolean(false);
+    ReActAgentLoop loop = ganglia.agentLoop();
+    if (loop.getDispatcher() instanceof DefaultObservationDispatcher dod) {
+      dod.register(
+          new AgentLoopObserver() {
+            @Override
+            public void onObservation(
+                String sessionId, ObservationType type, String content, Map<String, Object> data) {
+              if (type == ObservationType.ERROR) {
+                errorObserved.set(true);
+              }
+            }
+
+            @Override
+            public void onUsageRecorded(
+                String sessionId, work.ganglia.port.internal.state.TokenUsage usage) {}
+          });
+    }
+
+    signal.abort();
+    ganglia
+        .agentLoop()
+        .run("Abort me", context, signal)
+        .onComplete(
+            testContext.failing(
+                err -> {
+                  testContext.verify(
+                      () -> {
+                        assertTrue(err instanceof AgentAbortedException);
+                        assertTrue(
+                            !errorObserved.get(),
+                            "Should NOT publish ERROR observation for AgentAbortedException IT");
+                        testContext.completeNow();
+                      });
                 }));
   }
 
