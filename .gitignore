@@ -68,6 +68,7 @@ local.properties
 # Project
 config.json
 .gemini/
+.claude/
 .ganglia/
 
 # Personal
