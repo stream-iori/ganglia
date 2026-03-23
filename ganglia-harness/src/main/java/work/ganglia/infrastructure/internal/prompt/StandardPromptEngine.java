@@ -17,7 +17,7 @@ import work.ganglia.port.external.tool.*;
 import work.ganglia.port.internal.memory.MemoryService;
 import work.ganglia.port.internal.prompt.ContextFragment;
 import work.ganglia.port.internal.prompt.ContextSource;
-import work.ganglia.port.internal.prompt.MandatesContextSource;
+import work.ganglia.port.internal.prompt.GuidelineContextSource;
 import work.ganglia.port.internal.prompt.PromptEngine;
 import work.ganglia.port.internal.prompt.WorkflowContextSource;
 import work.ganglia.port.internal.skill.SkillRuntime;
@@ -89,7 +89,7 @@ public class StandardPromptEngine implements PromptEngine {
                           "You operate using an iterative Plan -> Act -> Validate loop.",
                           work.ganglia.port.internal.prompt.ContextFragment.PRIORITY_WORKFLOW))));
     }
-    if (sources.stream().noneMatch(s -> s instanceof MandatesContextSource)) {
+    if (sources.stream().noneMatch(s -> s instanceof GuidelineContextSource)) {
       // No default mandates, user must provide them via Markdown or CodingMandates
     }
     if (sources.stream().noneMatch(s -> s instanceof EnvironmentSource)) {

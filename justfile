@@ -49,7 +49,7 @@ test: test-backend test-frontend
 
 # Run Java backend unit tests
 test-backend:
-    mvn test -pl ganglia-harness,ganglia-memory,ganglia-web,ganglia-terminal
+    mvn test -pl ganglia-harness,ganglia-local-file-memory,ganglia-coding,ganglia-web,ganglia-terminal
 
 # Run Java integration tests
 test-it:
@@ -69,7 +69,7 @@ test-frontend:
 coverage: _run-coverage _print-coverage
 
 _run-coverage:
-    mvn test -pl ganglia-harness,ganglia-memory,ganglia-web,ganglia-terminal
+    mvn test -pl ganglia-harness,ganglia-local-file-memory,ganglia-coding,ganglia-web,ganglia-terminal
 
 _print-coverage:
     python3 scripts/print-coverage.py

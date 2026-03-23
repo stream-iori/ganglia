@@ -21,6 +21,7 @@ import work.ganglia.infrastructure.internal.prompt.context.MarkdownContextResolv
 import work.ganglia.port.external.tool.CommandExecutor;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.internal.prompt.ContextSource;
+import work.ganglia.port.internal.prompt.GuidelineContextSource;
 import work.ganglia.util.PathMapper;
 import work.ganglia.util.PathSanitizer;
 
@@ -47,7 +48,7 @@ public class CodingAgentBuilder {
         s ->
             s instanceof work.ganglia.infrastructure.internal.prompt.context.PersonaContextSource
                 || s instanceof work.ganglia.port.internal.prompt.WorkflowContextSource
-                || s instanceof work.ganglia.port.internal.prompt.MandatesContextSource;
+                || s instanceof GuidelineContextSource;
   }
 
   public static CodingAgentBuilder create(Vertx vertx) {
