@@ -43,8 +43,8 @@ import work.ganglia.web.model.JsonRpcResponse;
 import work.ganglia.web.model.ServerEvent;
 
 /** Verticle for handling WebUI connections via WebSocket and JSON-RPC. */
-public class WebUiVerticle extends AbstractVerticle {
-  private static final Logger logger = LoggerFactory.getLogger(WebUiVerticle.class);
+public class WebUIVerticle extends AbstractVerticle {
+  private static final Logger logger = LoggerFactory.getLogger(WebUIVerticle.class);
 
   private final int port;
   private final String webroot;
@@ -62,12 +62,12 @@ public class WebUiVerticle extends AbstractVerticle {
   private long lastNotifyTime = 0;
   private static final long DEBOUNCE_MS = 1000;
 
-  public WebUiVerticle(
+  public WebUIVerticle(
       int port, AgentLoop agentLoop, SessionManager sessionManager, int mcpServersCount) {
     this(port, "webroot", agentLoop, sessionManager, mcpServersCount);
   }
 
-  public WebUiVerticle(
+  public WebUIVerticle(
       int port,
       String webroot,
       AgentLoop agentLoop,

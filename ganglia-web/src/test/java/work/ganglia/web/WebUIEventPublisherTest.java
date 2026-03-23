@@ -21,7 +21,7 @@ import work.ganglia.web.model.EventType;
 import work.ganglia.web.model.ServerEvent;
 
 @ExtendWith(VertxExtension.class)
-public class WebUiEventPublisherTest {
+public class WebUIEventPublisherTest {
 
   static Stream<Arguments> observationEventProvider() {
     return Stream.of(
@@ -71,7 +71,7 @@ public class WebUiEventPublisherTest {
 
     String sessionId = "test-session";
     // Instantiate publisher - it will register its consumer
-    new WebUiEventPublisher(vertx);
+    new WebUIEventPublisher(vertx);
 
     vertx
         .eventBus()
@@ -106,7 +106,7 @@ public class WebUiEventPublisherTest {
     String sessionId = "stream-session";
     String token = "part of a word";
 
-    new WebUiEventPublisher(vertx);
+    new WebUIEventPublisher(vertx);
 
     vertx
         .eventBus()

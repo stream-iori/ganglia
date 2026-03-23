@@ -14,16 +14,16 @@ import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.swebench.tools.DockerCommandExecutor;
 
-public class SweBenchEvaluator {
-  private static final Logger log = LoggerFactory.getLogger(SweBenchEvaluator.class);
+public class SWEBenchEvaluator {
+  private static final Logger log = LoggerFactory.getLogger(SWEBenchEvaluator.class);
   private final Vertx vertx;
 
-  public SweBenchEvaluator(Vertx vertx) {
+  public SWEBenchEvaluator(Vertx vertx) {
     this.vertx = vertx;
   }
 
   public void evaluate(Path datasetPath) throws Exception {
-    List<SweBenchTask> tasks = SweBenchDatasetLoader.loadFromJsonl(datasetPath);
+    List<SWEBenchTask> tasks = SWEBenchDatasetLoader.loadFromJsonl(datasetPath);
     log.info("Loaded {} tasks for evaluation", tasks.size());
 
     // 只跑第一个任务进行验证
@@ -32,7 +32,7 @@ public class SweBenchEvaluator {
     }
   }
 
-  private void evaluateTask(SweBenchTask task) {
+  private void evaluateTask(SWEBenchTask task) {
     log.info("Starting evaluation for task: {}", task.getInstanceId());
     TrajectoryLogger trajectoryLogger = new TrajectoryLogger(task.getInstanceId());
 
@@ -210,7 +210,7 @@ public class SweBenchEvaluator {
     }
   }
 
-  private void setupRepoOnHost(SweBenchTask task, Path repoPath) throws Exception {
+  private void setupRepoOnHost(SWEBenchTask task, Path repoPath) throws Exception {
     String currentDir = System.getProperty("user.dir");
     Path currentPath = Path.of(currentDir);
     Path baseDir =
@@ -272,7 +272,7 @@ public class SweBenchEvaluator {
 
   public static void main(String[] args) throws Exception {
     Vertx vertx = Vertx.vertx();
-    SweBenchEvaluator evaluator = new SweBenchEvaluator(vertx);
+    SWEBenchEvaluator evaluator = new SWEBenchEvaluator(vertx);
     Path datasetPath = Path.of("ganglia-swe-bench/swe_bench_lite_subset.jsonl");
     if (datasetPath.toFile().exists()) {
       evaluator.evaluate(datasetPath);

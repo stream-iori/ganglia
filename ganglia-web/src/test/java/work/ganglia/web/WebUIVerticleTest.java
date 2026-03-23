@@ -14,13 +14,13 @@ import work.ganglia.kernel.loop.ReActAgentLoop;
 import work.ganglia.port.internal.state.SessionManager;
 
 @ExtendWith(VertxExtension.class)
-public class WebUiVerticleTest {
+public class WebUIVerticleTest {
 
   @Test
   @DisplayName("Should start WebUI server and serve index.html")
   void shouldStartServer(Vertx vertx, VertxTestContext testContext) {
-    WebUiVerticle verticle =
-        new WebUiVerticle(0, mock(ReActAgentLoop.class), mock(SessionManager.class), 0);
+    WebUIVerticle verticle =
+        new WebUIVerticle(0, mock(ReActAgentLoop.class), mock(SessionManager.class), 0);
 
     vertx
         .deployVerticle(verticle)
@@ -39,8 +39,8 @@ public class WebUiVerticleTest {
   void shouldServeIndex(Vertx vertx, VertxTestContext testContext) {
     int port = 8081;
     // Mock a webroot for testing if needed, or assume it exists
-    WebUiVerticle verticle =
-        new WebUiVerticle(port, mock(ReActAgentLoop.class), mock(SessionManager.class), 0);
+    WebUIVerticle verticle =
+        new WebUIVerticle(port, mock(ReActAgentLoop.class), mock(SessionManager.class), 0);
 
     vertx
         .deployVerticle(verticle)

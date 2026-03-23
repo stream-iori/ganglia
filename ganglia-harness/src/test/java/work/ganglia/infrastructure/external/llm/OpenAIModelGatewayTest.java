@@ -22,11 +22,11 @@ import work.ganglia.port.internal.state.AgentSignal;
 import work.ganglia.stubs.StubExecutionContext;
 
 @ExtendWith(VertxExtension.class)
-class OpenAiModelGatewayTest {
+class OpenAIModelGatewayTest {
 
   private Vertx vertx;
   private HttpServer server;
-  private OpenAiModelGateway gateway;
+  private OpenAIModelGateway gateway;
   private int port = 8081;
 
   @BeforeEach
@@ -34,7 +34,7 @@ class OpenAiModelGatewayTest {
     vertx = Vertx.vertx();
     server = vertx.createHttpServer();
     gateway =
-        new OpenAiModelGateway(
+        new OpenAIModelGateway(
             vertx, WebClient.create(vertx), "test-key", "http://localhost:" + port);
 
     server

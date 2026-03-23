@@ -7,8 +7,8 @@ import org.slf4j.LoggerFactory;
 import work.ganglia.BootstrapOptions;
 import work.ganglia.coding.CodingAgentBuilder;
 import work.ganglia.config.model.GangliaConfig;
-import work.ganglia.web.WebUiEventPublisher;
-import work.ganglia.web.WebUiVerticle;
+import work.ganglia.web.WebUIEventPublisher;
+import work.ganglia.web.WebUIVerticle;
 
 /**
  * Example demonstrating how to bootstrap Ganglia with the WebUI. This demo uses the new
@@ -22,7 +22,7 @@ public class WebUIDemo {
 
     // 1. Setup Bootstrap Options with WebUI Observer
     BootstrapOptions options =
-        BootstrapOptions.defaultOptions().withObservers(List.of(new WebUiEventPublisher(vertx)));
+        BootstrapOptions.defaultOptions().withObservers(List.of(new WebUIEventPublisher(vertx)));
 
     // 2. Bootstrap Ganglia with Coding Capabilities
     CodingAgentBuilder.bootstrap(vertx, options)
@@ -36,8 +36,8 @@ public class WebUIDemo {
               GangliaConfig.WebUIConfig webConfig =
                   ganglia.configManager().getGangliaConfig().webui();
               if (webConfig != null && webConfig.enabled()) {
-                WebUiVerticle webUiVerticle =
-                    new WebUiVerticle(
+                WebUIVerticle webUiVerticle =
+                    new WebUIVerticle(
                         webConfig.port(),
                         webConfig.webroot(),
                         ganglia.agentLoop(),

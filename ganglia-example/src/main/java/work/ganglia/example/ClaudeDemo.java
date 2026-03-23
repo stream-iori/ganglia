@@ -5,7 +5,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.Ganglia;
-import work.ganglia.ui.TerminalUi;
+import work.ganglia.ui.TerminalUI;
 
 /**
  * A demo specifically for verifying Anthropic Claude integration. It ensures the provider is set to
@@ -23,7 +23,7 @@ public class ClaudeDemo {
         .onSuccess(
             ganglia -> {
               Vertx vertx = ganglia.vertx();
-              TerminalUi ui = TerminalUi.create(vertx);
+              TerminalUI ui = TerminalUI.create(vertx);
               String sessionId = "claude-demo-" + UUID.randomUUID().toString().substring(0, 8);
 
               System.out.println("--- Ganglia Claude Integration Demo ---");

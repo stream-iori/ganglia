@@ -3,7 +3,7 @@ package work.ganglia.example;
 import io.vertx.core.Vertx;
 import java.util.UUID;
 import work.ganglia.Ganglia;
-import work.ganglia.ui.TerminalUi;
+import work.ganglia.ui.TerminalUI;
 
 /** Demo showcasing the agent's ability to plan, execute, and complete tasks using ToDoTools. */
 public class ToDoWorkflowDemo {
@@ -19,7 +19,7 @@ public class ToDoWorkflowDemo {
             ganglia -> {
               Vertx vertx = ganglia.vertx();
               // 2. Setup UI for streaming feedback
-              TerminalUi ui = TerminalUi.create(vertx);
+              TerminalUI ui = TerminalUI.create(vertx);
 
               String sessionId = UUID.randomUUID().toString();
 

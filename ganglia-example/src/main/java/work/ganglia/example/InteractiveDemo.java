@@ -10,7 +10,7 @@ import java.util.UUID;
 import work.ganglia.Ganglia;
 import work.ganglia.port.chat.Role;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.ui.TerminalUi;
+import work.ganglia.ui.TerminalUI;
 
 /**
  * A demo showcasing interactive troubleshooting with ask_selection. This demo uses the EventBus to
@@ -54,7 +54,7 @@ public class InteractiveDemo {
             })
         .onSuccess(
             ganglia -> {
-              TerminalUi ui = TerminalUi.create(vertx);
+              TerminalUI ui = TerminalUI.create(vertx);
               String sessionId = "interactive-demo-" + UUID.randomUUID().toString().substring(0, 8);
 
               System.out.println("--- Ganglia Interactive Demo ---");

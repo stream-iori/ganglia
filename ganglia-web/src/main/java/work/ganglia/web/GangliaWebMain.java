@@ -20,7 +20,7 @@ public class GangliaWebMain {
     BootstrapOptions options =
         BootstrapOptions.defaultOptions()
             .withConfigPath(configPath)
-            .withObservers(List.of(new WebUiEventPublisher(vertx)));
+            .withObservers(List.of(new WebUIEventPublisher(vertx)));
 
     CodingAgentBuilder.bootstrap(vertx, options)
         .onSuccess(
@@ -33,8 +33,8 @@ public class GangliaWebMain {
                 int port = webUiConfig.port();
                 String webroot = webUiConfig.webroot();
 
-                WebUiVerticle webUiVerticle =
-                    new WebUiVerticle(
+                WebUIVerticle webUiVerticle =
+                    new WebUIVerticle(
                         port,
                         webroot,
                         ganglia.agentLoop(),

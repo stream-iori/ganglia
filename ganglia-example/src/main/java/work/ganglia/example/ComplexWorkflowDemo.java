@@ -5,7 +5,7 @@ import io.vertx.core.Vertx;
 import java.util.UUID;
 import work.ganglia.Ganglia;
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.ui.TerminalUi;
+import work.ganglia.ui.TerminalUI;
 
 /** A complex demo showing a multi-turn workflow with tool usage and context persistence. */
 public class ComplexWorkflowDemo {
@@ -21,7 +21,7 @@ public class ComplexWorkflowDemo {
             })
         .onSuccess(
             ganglia -> {
-              TerminalUi ui = TerminalUi.create(vertx);
+              TerminalUI ui = TerminalUI.create(vertx);
               String sessionId = "complex-demo-" + UUID.randomUUID().toString().substring(0, 8);
 
               System.out.println("--- Ganglia Complex Workflow Demo ---");

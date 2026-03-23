@@ -4,7 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class SweBenchTask {
+public class SWEBenchTask {
   @JsonProperty("instance_id")
   private String instanceId;
 
