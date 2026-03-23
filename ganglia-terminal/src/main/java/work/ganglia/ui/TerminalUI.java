@@ -14,15 +14,15 @@ import org.slf4j.LoggerFactory;
 import work.ganglia.port.external.tool.ObservationEvent;
 
 /** Enhanced Terminal UI using JLine 3 for rich output and reactive streaming. */
-public class TerminalUi implements AutoCloseable {
-  private static final Logger logger = LoggerFactory.getLogger(TerminalUi.class);
+public class TerminalUI implements AutoCloseable {
+  private static final Logger logger = LoggerFactory.getLogger(TerminalUI.class);
   private final Vertx vertx;
   private final Terminal terminal;
   private final PrintWriter writer;
   private final MarkdownRenderer markdownRenderer;
   private final StringBuilder accumulatedContent = new StringBuilder();
 
-  public TerminalUi(Vertx vertx, Terminal terminal) {
+  public TerminalUI(Vertx vertx, Terminal terminal) {
     this.vertx = vertx;
     this.terminal = terminal;
     this.writer = terminal.writer();
@@ -33,7 +33,7 @@ public class TerminalUi implements AutoCloseable {
    * Factory method to create and initialize a TerminalUi. Handles JLine terminal initialization
    * with fallback to dumb terminal.
    */
-  public static TerminalUi create(Vertx vertx) {
+  public static TerminalUI create(Vertx vertx) {
     Terminal terminal;
     try {
       terminal = TerminalBuilder.builder().system(true).build();
@@ -45,7 +45,7 @@ public class TerminalUi implements AutoCloseable {
         throw new RuntimeException("Critical failure initializing terminal", ex);
       }
     }
-    return new TerminalUi(vertx, terminal);
+    return new TerminalUI(vertx, terminal);
   }
 
   public Terminal getTerminal() {

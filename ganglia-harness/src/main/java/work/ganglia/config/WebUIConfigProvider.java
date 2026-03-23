@@ -1,10 +1,10 @@
 package work.ganglia.config;
 
 /** Interface Segregation: Provides WebUi specific configuration. */
-public interface WebUiConfigProvider {
-  boolean isWebUiEnabled();
+public interface WebUIConfigProvider {
+  boolean isWebUIEnabled();
 
-  int getWebUiPort();
+  int getWebUIPort();
 
   String getWebRoot();
 }

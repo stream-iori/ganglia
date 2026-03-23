@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import work.ganglia.config.AgentConfigProvider;
-import work.ganglia.infrastructure.external.llm.LlmException;
+import work.ganglia.infrastructure.external.llm.LLMException;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.kernel.hook.InterceptorPipeline;
 import work.ganglia.kernel.task.AgentTask;
@@ -191,7 +191,7 @@ public class ReActAgentLoop implements AgentLoop {
                             contextForReasoning.sessionId(),
                             err);
                         Map<String, Object> errorData = new HashMap<>();
-                        if (err instanceof LlmException llmErr) {
+                        if (err instanceof LLMException llmErr) {
                           llmErr.errorCode().ifPresent(code -> errorData.put("errorCode", code));
                           llmErr
                               .httpStatusCode()

@@ -4,14 +4,12 @@
     "https://checkstyle.org/dtds/suppressions_1_2.dtd">
 
 <suppressions>
-    <!-- 1. 忽略所有 Javadoc 相关检查 -->
     <suppress checks="Javadoc.*" files=".*" />
     <suppress checks="MissingJavadoc.*" files=".*" />
     <suppress checks="SummaryJavadoc" files=".*" />
     <suppress checks="SingleLineJavadoc" files=".*" />
     <suppress checks="InvalidJavadocPosition" files=".*" />
-    
-    <!-- 2. 忽略格式与命名噪音 -->
+
     <suppress checks="LineLength" files=".*" />
     <suppress checks="AbbreviationAsWordInName" files=".*" />
     <suppress checks="Indentation" files=".*" />
@@ -19,13 +17,10 @@
     <suppress checks="VariableDeclarationUsageDistance" files=".*" />
     <suppress checks="CustomImportOrder" files=".*" />
     <suppress checks="ImportOrder" files=".*" />
-    
-    <!-- 3. 忽略特定编码规范（暂时允许，后续可逐步修复） -->
-    <suppress checks="NeedBraces" files=".*" />
+
     <suppress checks="AvoidStarImport" files=".*" />
     <suppress checks="MissingSwitchDefault" files=".*" />
     <suppress checks="AvoidEscapedUnicodeCharacters" files=".*" />
-    <suppress checks="EmptyCatchBlock" files=".*" />
     <suppress checks="LocalVariableName" files=".*" />
     <suppress checks="PatternVariableName" files=".*" />
 </suppressions>

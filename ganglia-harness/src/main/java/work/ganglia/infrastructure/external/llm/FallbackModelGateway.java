@@ -72,7 +72,7 @@ public class FallbackModelGateway implements ModelGateway {
   }
 
   private boolean shouldFallback(Throwable err) {
-    if (err instanceof LlmException le) {
+    if (err instanceof LLMException le) {
       int status = le.httpStatusCode().orElse(0);
       // Fallback on rate limit or server errors
       return status == 429 || (status >= 500 && status < 600);

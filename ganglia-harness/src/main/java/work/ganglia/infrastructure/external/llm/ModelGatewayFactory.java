@@ -66,7 +66,7 @@ public class ModelGatewayFactory {
     logger.info("Initializing OpenAI provider (Base URL: {})", baseUrl);
     GatewayConfig gatewayConfig =
         new GatewayConfig(config.apiKey(), baseUrl, config.getTimeoutOrDefault());
-    return new OpenAiModelGateway(vertx, webClient, gatewayConfig);
+    return new OpenAIModelGateway(vertx, webClient, gatewayConfig);
   }
 
   private static ModelGateway createAnthropic(
@@ -89,6 +89,6 @@ public class ModelGatewayFactory {
     logger.info("Initializing Gemini provider via OpenAI compatibility (Base URL: {})", baseUrl);
     GatewayConfig gatewayConfig =
         new GatewayConfig(config.apiKey(), baseUrl, config.getTimeoutOrDefault());
-    return new OpenAiModelGateway(vertx, webClient, gatewayConfig);
+    return new OpenAIModelGateway(vertx, webClient, gatewayConfig);
   }
 }
