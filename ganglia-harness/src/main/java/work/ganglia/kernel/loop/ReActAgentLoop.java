@@ -415,8 +415,25 @@ public class ReActAgentLoop implements AgentLoop {
               SessionContext ctxToUse =
                   result.modifiedContext() != null ? result.modifiedContext() : originalContext;
 
+              // Apply fault tolerance policy
+              if (result.status() == AgentTaskResult.Status.ERROR
+                  || result.status() == AgentTaskResult.Status.EXCEPTION) {
+                return faultTolerancePolicy
+                    .handleFailure(ctxToUse, task, result)
+                    .compose(
+                        policyCtx ->
+                            sessionManager
+                                .addStep(policyCtx, toolMsg)
+                                .persistWith(sessionManager)
+                                .compose(
+                                    nextCtx ->
+                                        executeTasksSequentially(
+                                            tasks, index + 1, nextCtx, signal)));
+              }
+
+              SessionContext successCtx = faultTolerancePolicy.onSuccess(ctxToUse, task);
               return sessionManager
-                  .addStep(ctxToUse, toolMsg)
+                  .addStep(successCtx, toolMsg)
                   .persistWith(sessionManager)
                   .compose(nextCtx -> executeTasksSequentially(tasks, index + 1, nextCtx, signal));
             });

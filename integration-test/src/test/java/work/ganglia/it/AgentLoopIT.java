@@ -65,6 +65,40 @@ public class AgentLoopIT {
   }
 
   @Test
+  void testConsecutiveToolFailuresAbortLoop(Vertx vertx, VertxTestContext testContext) {
+    // 3 consecutive calls to read a nonexistent file — should trigger ConsecutiveFailurePolicy
+    ToolCall read1 = new ToolCall("c1", "read_file", Map.of("path", "no_such_file_1.txt"));
+    ToolCall read2 = new ToolCall("c2", "read_file", Map.of("path", "no_such_file_2.txt"));
+    ToolCall read3 = new ToolCall("c3", "read_file", Map.of("path", "no_such_file_3.txt"));
+
+    when(mockModel.chatStream(any(ChatRequest.class), any()))
+        .thenReturn(
+            Future.succeededFuture(
+                new ModelResponse("Reading file 1.", List.of(read1), new TokenUsage(1, 1))))
+        .thenReturn(
+            Future.succeededFuture(
+                new ModelResponse("Reading file 2.", List.of(read2), new TokenUsage(1, 1))))
+        .thenReturn(
+            Future.succeededFuture(
+                new ModelResponse("Reading file 3.", List.of(read3), new TokenUsage(1, 1))));
+
+    SessionContext context = ganglia.sessionManager().createSession(UUID.randomUUID().toString());
+
+    ganglia
+        .agentLoop()
+        .run("Read three missing files", context)
+        .onComplete(
+            testContext.failing(
+                err -> {
+                  testContext.verify(
+                      () -> {
+                        assertTrue(err.getMessage().contains("repetitive task failures"));
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
   void testFileConcatenation(Vertx vertx, VertxTestContext testContext) {
     String file1 = tempDir.resolve("file1.txt").toString();
     String file2 = tempDir.resolve("file2.txt").toString();
