@@ -53,7 +53,7 @@ public class InteractionTools implements ToolSet {
             "description": "Selectable choices for 'choice' type. Provide 2-4 options.",
             "items": {
               "type": "object",
-              "required": ["label", "description"],
+              "required": ["label", "description", "value"],
               "properties": {
                 "label": {
                   "type": "string",
@@ -65,7 +65,7 @@ public class InteractionTools implements ToolSet {
                 },
                 "value": {
                   "type": "string",
-                  "description": "The internal value for this option."
+                  "description": "Unique internal value for this option (e.g., 'option1', 'yes', 'no')."
                 }
               }
             }
@@ -110,21 +110,34 @@ public class InteractionTools implements ToolSet {
     StringBuilder textSummary = new StringBuilder();
 
     for (Object item : questionsList) {
-      if (item instanceof Map<?, ?> qMap) {
+      if (item instanceof Map<?, ?> qMapRaw) {
         @SuppressWarnings("unchecked")
-        Map<String, Object> question = (Map<String, Object>) qMap;
-        questions.add(question);
+        Map<String, Object> qMap = new java.util.HashMap<>((Map<String, Object>) qMapRaw);
+        questions.add(qMap);
 
-        String qText = (String) question.get("question");
-        String type = (String) question.getOrDefault("type", "text");
+        String qText = (String) qMap.get("question");
+        String type = (String) qMap.getOrDefault("type", "text");
         textSummary.append("- ").append(qText).append(" (").append(type).append(")\n");
 
         if ("choice".equals(type)) {
-          Object opts = question.get("options");
+          Object opts = qMap.get("options");
           if (opts instanceof List<?> optList) {
+            List<Map<String, Object>> mutableOpts = new java.util.ArrayList<>();
             for (int i = 0; i < optList.size(); i++) {
               Object optItem = optList.get(i);
-              if (optItem instanceof Map<?, ?> optMap) {
+              if (optItem instanceof Map<?, ?> optMapRaw) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> optMap =
+                    new java.util.HashMap<>((Map<String, Object>) optMapRaw);
+
+                // Ensure value exists
+                if (!optMap.containsKey("value") || optMap.get("value") == null) {
+                  String label = String.valueOf(optMap.getOrDefault("label", "option" + i));
+                  optMap.put("value", label.toLowerCase().replaceAll("[^a-z0-9]", "_"));
+                }
+
+                mutableOpts.add(optMap);
+
                 textSummary.append("  ").append(i + 1).append(". ").append(optMap.get("label"));
                 Object desc = optMap.get("description");
                 if (desc != null && !desc.toString().isEmpty()) {
@@ -133,6 +146,7 @@ public class InteractionTools implements ToolSet {
                 textSummary.append("\n");
               }
             }
+            qMap.put("options", mutableOpts);
           }
         }
       }

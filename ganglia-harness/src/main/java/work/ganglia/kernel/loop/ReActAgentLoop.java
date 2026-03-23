@@ -72,6 +72,18 @@ public class ReActAgentLoop implements AgentLoop {
 
   private void publishObservation(
       String sessionId, ObservationType type, String content, Map<String, Object> data) {
+    AgentSignal signal = sessionSignals.get(sessionId);
+
+    // If turn is finished (signal removed) or signal is aborted, ignore most events.
+    // We only allow ERROR, TURN_FINISHED, and SYSTEM_EVENT to pass through.
+    if (signal == null || signal.isAborted()) {
+      if (type != ObservationType.ERROR
+          && type != ObservationType.TURN_FINISHED
+          && type != ObservationType.SYSTEM_EVENT) {
+        return;
+      }
+    }
+
     logger.debug("Publishing observation: {} for session: {}", type, sessionId);
     if (dispatcher != null) {
       dispatcher.dispatch(sessionId, type, content, data);
@@ -240,8 +252,10 @@ public class ReActAgentLoop implements AgentLoop {
 
                     @Override
                     public void emitStream(String chunk) {
-                      publishObservation(
-                          context.sessionId(), ObservationType.TOKEN_RECEIVED, chunk);
+                      if (!signal.isAborted()) {
+                        publishObservation(
+                            context.sessionId(), ObservationType.TOKEN_RECEIVED, chunk);
+                      }
                     }
 
                     @Override
@@ -390,6 +404,9 @@ public class ReActAgentLoop implements AgentLoop {
               if (result.status() == AgentTaskResult.Status.INTERRUPT) {
                 String askId = "ask-" + UUID.randomUUID().toString().substring(0, 8);
                 Map<String, Object> interruptData = new HashMap<>(resData);
+                if (result.data() != null) {
+                  interruptData.putAll(result.data());
+                }
                 interruptData.put("askId", askId);
 
                 publishObservation(

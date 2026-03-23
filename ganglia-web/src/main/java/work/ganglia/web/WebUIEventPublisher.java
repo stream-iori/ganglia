@@ -186,7 +186,11 @@ public class WebUIEventPublisher implements AgentLoopObserver {
           }
         }
 
-        publish(sessionId, EventType.ASK_USER, new ServerEvent.AskUserData(askId, questions, null));
+        String diffContext = data != null ? (String) data.get("diffContext") : null;
+        publish(
+            sessionId,
+            EventType.ASK_USER,
+            new ServerEvent.AskUserData(askId, questions, diffContext));
       }
       case TURN_FINISHED -> {
         if (content != null && !content.isBlank()) {

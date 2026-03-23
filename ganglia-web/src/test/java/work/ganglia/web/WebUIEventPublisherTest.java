@@ -15,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import work.ganglia.port.external.tool.ObservationEvent;
 import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.web.model.EventType;
 import work.ganglia.web.model.ServerEvent;
@@ -57,10 +56,10 @@ public class WebUIEventPublisherTest {
             Map.of("message", "Fail", "code", "ERR", "canRetry", false)));
   }
 
-  @ParameterizedTest(name = "Should publish {3} event from {0} observation via EventBus")
+  @ParameterizedTest(name = "Should publish {3} event from {0} observation")
   @MethodSource("observationEventProvider")
-  @DisplayName("Unified Stream EventBus Ingestion Test")
-  void shouldPublishCorrectEventViaBus(
+  @DisplayName("Unified Stream Ingestion Test")
+  void shouldPublishCorrectEvent(
       ObservationType obsType,
       String content,
       Map<String, Object> data,
@@ -70,8 +69,7 @@ public class WebUIEventPublisherTest {
       VertxTestContext testContext) {
 
     String sessionId = "test-session";
-    // Instantiate publisher - it will register its consumer
-    new WebUIEventPublisher(vertx);
+    WebUIEventPublisher publisher = new WebUIEventPublisher(vertx);
 
     vertx
         .eventBus()
@@ -94,10 +92,7 @@ public class WebUIEventPublisherTest {
                   });
             });
 
-    ObservationEvent obs = ObservationEvent.of(sessionId, obsType, content, data);
-    vertx
-        .eventBus()
-        .publish(work.ganglia.util.Constants.ADDRESS_OBSERVATIONS_ALL, JsonObject.mapFrom(obs));
+    publisher.onObservation(sessionId, obsType, content, data);
   }
 
   @Test
@@ -106,7 +101,7 @@ public class WebUIEventPublisherTest {
     String sessionId = "stream-session";
     String token = "part of a word";
 
-    new WebUIEventPublisher(vertx);
+    WebUIEventPublisher publisher = new WebUIEventPublisher(vertx);
 
     vertx
         .eventBus()
@@ -123,11 +118,6 @@ public class WebUIEventPublisherTest {
                   });
             });
 
-    ObservationEvent tokenObs =
-        ObservationEvent.of(sessionId, ObservationType.TOKEN_RECEIVED, token);
-    vertx
-        .eventBus()
-        .publish(
-            work.ganglia.util.Constants.ADDRESS_OBSERVATIONS_ALL, JsonObject.mapFrom(tokenObs));
+    publisher.onObservation(sessionId, ObservationType.TOKEN_RECEIVED, token, null);
   }
 }

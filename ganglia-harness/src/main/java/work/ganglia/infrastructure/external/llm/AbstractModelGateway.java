@@ -147,7 +147,14 @@ public abstract class AbstractModelGateway implements ModelGateway {
 
     Promise<ModelResponse> promise = Promise.promise();
 
-    SseParser parser = new SseParser(eventHandler::accept, promise::tryFail);
+    SseParser parser =
+        new SseParser(
+            json -> {
+              if (!request.signal().isAborted()) {
+                eventHandler.accept(json);
+              }
+            },
+            promise::tryFail);
     SseWriteStream writeStream = new SseWriteStream(parser);
     writeStream.exceptionHandler(promise::tryFail);
 
