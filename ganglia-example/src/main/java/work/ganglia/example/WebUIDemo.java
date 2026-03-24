@@ -22,7 +22,7 @@ public class WebUIDemo {
 
     // 1. Setup Bootstrap Options with WebUI Observer
     BootstrapOptions options =
-        BootstrapOptions.defaultOptions().withObservers(List.of(new WebUIEventPublisher(vertx)));
+        BootstrapOptions.builder().extraObservers(List.of(new WebUIEventPublisher(vertx))).build();
 
     // 2. Bootstrap Ganglia with Coding Capabilities
     CodingAgentBuilder.bootstrap(vertx, options)

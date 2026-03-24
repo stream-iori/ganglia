@@ -84,7 +84,7 @@ public record Ganglia(
     contexts.add(new ToDoContextSource());
 
     BootstrapOptions finalOptions =
-        options.withExtraToolSetProviders(providers).withExtraContextSources(contexts);
+        options.toBuilder().extraToolSetProviders(providers).extraContextSources(contexts).build();
 
     return new GangliaKernel(vertx, finalOptions).init();
   }

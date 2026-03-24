@@ -18,7 +18,7 @@ public class InteractiveChatDemo {
     Vertx vertx = Vertx.vertx();
     String projectRoot = System.getProperty("user.dir");
 
-    BootstrapOptions options = BootstrapOptions.defaultOptions().withProjectRoot(projectRoot);
+    BootstrapOptions options = BootstrapOptions.builder().projectRoot(projectRoot).build();
 
     CodingAgentBuilder.bootstrap(vertx, options)
         .onFailure(

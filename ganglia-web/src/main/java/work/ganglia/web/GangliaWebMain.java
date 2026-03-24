@@ -18,9 +18,10 @@ public class GangliaWebMain {
     String projectRoot = System.getProperty("user.dir");
 
     BootstrapOptions options =
-        BootstrapOptions.defaultOptions()
-            .withConfigPath(configPath)
-            .withObservers(List.of(new WebUIEventPublisher(vertx)));
+        BootstrapOptions.builder()
+            .configPath(configPath)
+            .extraObservers(List.of(new WebUIEventPublisher(vertx)))
+            .build();
 
     CodingAgentBuilder.bootstrap(vertx, options)
         .onSuccess(

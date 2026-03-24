@@ -137,11 +137,12 @@ public class SWEBenchEvaluator {
           });
 
       work.ganglia.BootstrapOptions baseOptions =
-          work.ganglia.BootstrapOptions.defaultOptions()
-              .withProjectRoot(hostRoot)
-              .withConfigPath(taskRoot.resolve(".ganglia/config.json").toAbsolutePath().toString())
-              .withObservers(observers)
-              .withCommandExecutor(new DockerCommandExecutor(vertx, sandbox));
+          work.ganglia.BootstrapOptions.builder()
+              .projectRoot(hostRoot)
+              .configPath(taskRoot.resolve(".ganglia/config.json").toAbsolutePath().toString())
+              .extraObservers(observers)
+              .commandExecutor(new DockerCommandExecutor(vertx, sandbox))
+              .build();
 
       work.ganglia.Ganglia ganglia =
           work.ganglia.coding.CodingAgentBuilder.create(vertx)

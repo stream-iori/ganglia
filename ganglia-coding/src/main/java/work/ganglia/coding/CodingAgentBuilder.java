@@ -2,7 +2,6 @@ package work.ganglia.coding;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -21,7 +20,7 @@ import work.ganglia.infrastructure.internal.prompt.context.MarkdownContextResolv
 import work.ganglia.port.external.tool.CommandExecutor;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.internal.prompt.ContextSource;
-import work.ganglia.port.internal.prompt.GuidelineContextSource;
+import work.ganglia.port.internal.prompt.DefaultContextSource;
 import work.ganglia.util.PathMapper;
 import work.ganglia.util.PathSanitizer;
 
@@ -33,22 +32,29 @@ import work.ganglia.util.PathSanitizer;
  */
 public class CodingAgentBuilder {
 
+  private static final String DEFAULT_INSTRUCTION_FILE = "CODING.md";
+
   private final Vertx vertx;
   private BootstrapOptions baseOptions;
   private PathMapper internalPathMapper;
   private PathMapper externalPathMapper;
+  private String instructionFile = DEFAULT_INSTRUCTION_FILE;
   private Predicate<ContextSource> contextFilter = s -> false;
   private final List<ContextSource> contextOverrides = new ArrayList<>();
+
+  public CodingAgentBuilder() {
+    this(Vertx.vertx());
+  }
 
   public CodingAgentBuilder(Vertx vertx) {
     this.vertx = vertx;
     this.baseOptions = BootstrapOptions.defaultOptions();
     // Default filter to remove generic sources since we provide coding-specific ones
-    this.contextFilter =
-        s ->
-            s instanceof work.ganglia.infrastructure.internal.prompt.context.PersonaContextSource
-                || s instanceof work.ganglia.port.internal.prompt.WorkflowContextSource
-                || s instanceof GuidelineContextSource;
+    this.contextFilter = s -> s instanceof DefaultContextSource;
+  }
+
+  public static CodingAgentBuilder create() {
+    return new CodingAgentBuilder();
   }
 
   public static CodingAgentBuilder create(Vertx vertx) {
@@ -83,6 +89,12 @@ public class CodingAgentBuilder {
   /** Adds custom context sources. */
   public CodingAgentBuilder addContextSource(ContextSource source) {
     this.contextOverrides.add(source);
+    return this;
+  }
+
+  /** Sets the instruction file to load as a context source. Defaults to "CODING.md". */
+  public CodingAgentBuilder withInstructionFile(String file) {
+    this.instructionFile = (file != null) ? file : DEFAULT_INSTRUCTION_FILE;
     return this;
   }
 
@@ -121,40 +133,14 @@ public class CodingAgentBuilder {
     codingSources.addAll(contextOverrides);
 
     MarkdownContextResolver resolver = new MarkdownContextResolver(vertx);
-
-    // Load config to get instruction file
-    work.ganglia.config.ConfigManager configManager =
-        baseOptions.configPath() != null
-            ? new work.ganglia.config.ConfigManager(vertx, baseOptions.configPath())
-            : new work.ganglia.config.ConfigManager(vertx);
-    if (baseOptions.overrideConfig() != null) {
-      configManager.updateConfig(baseOptions.overrideConfig());
-    }
-
-    JsonObject config = configManager.getConfig();
-    String instructionFile = null;
-
-    // Try nested agent object first (standard convention)
-    if (config.containsKey("agent")
-        && config.getValue("agent") instanceof io.vertx.core.json.JsonObject) {
-      instructionFile = config.getJsonObject("agent").getString("instructionFile");
-    }
-
-    // Fallback to top-level key
-    if (instructionFile == null) {
-      instructionFile = config.getString("instructionFile");
-    }
-
-    // Default
-    if (instructionFile == null) {
-      instructionFile = "CODING.md";
-    }
-
     codingSources.add(new FileContextSource(vertx, resolver, instructionFile));
 
     // 3. Perform Bootstrap
     BootstrapOptions options =
-        baseOptions.withExtraToolSets(codingToolSets).withExtraContextSources(codingSources);
+        baseOptions.toBuilder()
+            .extraToolSets(codingToolSets)
+            .extraContextSources(codingSources)
+            .build();
 
     return Ganglia.bootstrap(vertx, options);
   }

@@ -10,144 +10,151 @@ import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.external.tool.ToolSetProvider;
 import work.ganglia.port.internal.prompt.ContextSource;
 
-/** Configuration options for bootstrapping Ganglia. */
-public record BootstrapOptions(
-    String configPath,
-    JsonObject overrideConfig,
-    ModelGateway modelGatewayOverride,
-    List<AgentLoopObserver> extraObservers,
-    String projectRoot,
-    List<ToolSet> extraToolSets,
-    List<ToolSetProvider> extraToolSetProviders,
-    List<ContextSource> extraContextSources,
-    CommandExecutor commandExecutor) {
+/** Immutable configuration options for bootstrapping Ganglia. */
+public final class BootstrapOptions {
+
+  private final String configPath;
+  private final JsonObject overrideConfig;
+  private final ModelGateway modelGatewayOverride;
+  private final List<AgentLoopObserver> extraObservers;
+  private final String projectRoot;
+  private final List<ToolSet> extraToolSets;
+  private final List<ToolSetProvider> extraToolSetProviders;
+  private final List<ContextSource> extraContextSources;
+  private final CommandExecutor commandExecutor;
+
+  private BootstrapOptions(Builder builder) {
+    this.configPath = builder.configPath;
+    this.overrideConfig = builder.overrideConfig;
+    this.modelGatewayOverride = builder.modelGatewayOverride;
+    this.extraObservers = builder.extraObservers;
+    this.projectRoot = builder.projectRoot;
+    this.extraToolSets = builder.extraToolSets;
+    this.extraToolSetProviders = builder.extraToolSetProviders;
+    this.extraContextSources = builder.extraContextSources;
+    this.commandExecutor = builder.commandExecutor;
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
   public static BootstrapOptions defaultOptions() {
-    return new BootstrapOptions(
-        null,
-        null,
-        null,
-        Collections.emptyList(),
-        null,
-        Collections.emptyList(),
-        Collections.emptyList(),
-        Collections.emptyList(),
-        null);
+    return new Builder().build();
   }
 
-  public BootstrapOptions withConfigPath(String path) {
-    return new BootstrapOptions(
-        path,
-        overrideConfig,
-        modelGatewayOverride,
-        extraObservers,
-        projectRoot,
-        extraToolSets,
-        extraToolSetProviders,
-        extraContextSources,
-        commandExecutor);
+  // --- Accessors (same names as the former record for compatibility) ---
+
+  public String configPath() {
+    return configPath;
   }
 
-  public BootstrapOptions withOverrideConfig(JsonObject config) {
-    return new BootstrapOptions(
-        configPath,
-        config,
-        modelGatewayOverride,
-        extraObservers,
-        projectRoot,
-        extraToolSets,
-        extraToolSetProviders,
-        extraContextSources,
-        commandExecutor);
+  public JsonObject overrideConfig() {
+    return overrideConfig;
   }
 
-  public BootstrapOptions withModelGateway(ModelGateway gateway) {
-    return new BootstrapOptions(
-        configPath,
-        overrideConfig,
-        gateway,
-        extraObservers,
-        projectRoot,
-        extraToolSets,
-        extraToolSetProviders,
-        extraContextSources,
-        commandExecutor);
+  public ModelGateway modelGatewayOverride() {
+    return modelGatewayOverride;
   }
 
-  public BootstrapOptions withObservers(List<AgentLoopObserver> observers) {
-    return new BootstrapOptions(
-        configPath,
-        overrideConfig,
-        modelGatewayOverride,
-        observers,
-        projectRoot,
-        extraToolSets,
-        extraToolSetProviders,
-        extraContextSources,
-        commandExecutor);
+  public List<AgentLoopObserver> extraObservers() {
+    return extraObservers;
   }
 
-  public BootstrapOptions withProjectRoot(String root) {
-    return new BootstrapOptions(
-        configPath,
-        overrideConfig,
-        modelGatewayOverride,
-        extraObservers,
-        root,
-        extraToolSets,
-        extraToolSetProviders,
-        extraContextSources,
-        commandExecutor);
+  public String projectRoot() {
+    return projectRoot;
   }
 
-  public BootstrapOptions withExtraToolSets(List<ToolSet> toolSets) {
-    return new BootstrapOptions(
-        configPath,
-        overrideConfig,
-        modelGatewayOverride,
-        extraObservers,
-        projectRoot,
-        toolSets,
-        extraToolSetProviders,
-        extraContextSources,
-        commandExecutor);
+  public List<ToolSet> extraToolSets() {
+    return extraToolSets;
   }
 
-  public BootstrapOptions withExtraToolSetProviders(List<ToolSetProvider> toolSetProviders) {
-    return new BootstrapOptions(
-        configPath,
-        overrideConfig,
-        modelGatewayOverride,
-        extraObservers,
-        projectRoot,
-        extraToolSets,
-        toolSetProviders,
-        extraContextSources,
-        commandExecutor);
+  public List<ToolSetProvider> extraToolSetProviders() {
+    return extraToolSetProviders;
   }
 
-  public BootstrapOptions withExtraContextSources(List<ContextSource> contextSources) {
-    return new BootstrapOptions(
-        configPath,
-        overrideConfig,
-        modelGatewayOverride,
-        extraObservers,
-        projectRoot,
-        extraToolSets,
-        extraToolSetProviders,
-        contextSources,
-        commandExecutor);
+  public List<ContextSource> extraContextSources() {
+    return extraContextSources;
   }
 
-  public BootstrapOptions withCommandExecutor(CommandExecutor executor) {
-    return new BootstrapOptions(
-        configPath,
-        overrideConfig,
-        modelGatewayOverride,
-        extraObservers,
-        projectRoot,
-        extraToolSets,
-        extraToolSetProviders,
-        extraContextSources,
-        executor);
+  public CommandExecutor commandExecutor() {
+    return commandExecutor;
+  }
+
+  /** Returns a new Builder pre-populated with values from this instance. */
+  public Builder toBuilder() {
+    return new Builder()
+        .configPath(configPath)
+        .overrideConfig(overrideConfig)
+        .modelGatewayOverride(modelGatewayOverride)
+        .extraObservers(extraObservers)
+        .projectRoot(projectRoot)
+        .extraToolSets(extraToolSets)
+        .extraToolSetProviders(extraToolSetProviders)
+        .extraContextSources(extraContextSources)
+        .commandExecutor(commandExecutor);
+  }
+
+  public static final class Builder {
+    private String configPath;
+    private JsonObject overrideConfig;
+    private ModelGateway modelGatewayOverride;
+    private List<AgentLoopObserver> extraObservers = Collections.emptyList();
+    private String projectRoot;
+    private List<ToolSet> extraToolSets = Collections.emptyList();
+    private List<ToolSetProvider> extraToolSetProviders = Collections.emptyList();
+    private List<ContextSource> extraContextSources = Collections.emptyList();
+    private CommandExecutor commandExecutor;
+
+    private Builder() {}
+
+    public Builder configPath(String configPath) {
+      this.configPath = configPath;
+      return this;
+    }
+
+    public Builder overrideConfig(JsonObject overrideConfig) {
+      this.overrideConfig = overrideConfig;
+      return this;
+    }
+
+    public Builder modelGatewayOverride(ModelGateway modelGatewayOverride) {
+      this.modelGatewayOverride = modelGatewayOverride;
+      return this;
+    }
+
+    public Builder extraObservers(List<AgentLoopObserver> extraObservers) {
+      this.extraObservers = extraObservers;
+      return this;
+    }
+
+    public Builder projectRoot(String projectRoot) {
+      this.projectRoot = projectRoot;
+      return this;
+    }
+
+    public Builder extraToolSets(List<ToolSet> extraToolSets) {
+      this.extraToolSets = extraToolSets;
+      return this;
+    }
+
+    public Builder extraToolSetProviders(List<ToolSetProvider> extraToolSetProviders) {
+      this.extraToolSetProviders = extraToolSetProviders;
+      return this;
+    }
+
+    public Builder extraContextSources(List<ContextSource> extraContextSources) {
+      this.extraContextSources = extraContextSources;
+      return this;
+    }
+
+    public Builder commandExecutor(CommandExecutor commandExecutor) {
+      this.commandExecutor = commandExecutor;
+      return this;
+    }
+
+    public BootstrapOptions build() {
+      return new BootstrapOptions(this);
+    }
   }
 }

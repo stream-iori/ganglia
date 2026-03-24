@@ -23,10 +23,10 @@ public class StartupSelfCheckIT {
     String projectRoot = tempDir.toAbsolutePath().toString();
 
     BootstrapOptions options =
-        BootstrapOptions.defaultOptions()
-            .withProjectRoot(projectRoot)
-            .withOverrideConfig(
-                new JsonObject().put("webui", new JsonObject().put("enabled", false)));
+        BootstrapOptions.builder()
+            .projectRoot(projectRoot)
+            .overrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)))
+            .build();
 
     CodingAgentBuilder.bootstrap(options)
         .onComplete(

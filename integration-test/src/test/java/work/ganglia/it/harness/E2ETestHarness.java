@@ -38,10 +38,11 @@ public class E2ETestHarness {
     stubModel = new StubModelGateway();
 
     BootstrapOptions options =
-        BootstrapOptions.defaultOptions()
-            .withConfigPath(".ganglia/config.json")
-            .withOverrideConfig(configOverride)
-            .withModelGateway(stubModel);
+        BootstrapOptions.builder()
+            .configPath(".ganglia/config.json")
+            .overrideConfig(configOverride)
+            .modelGatewayOverride(stubModel)
+            .build();
 
     return CodingAgentBuilder.bootstrap(vertx, options).onSuccess(g -> this.ganglia = g).mapEmpty();
   }

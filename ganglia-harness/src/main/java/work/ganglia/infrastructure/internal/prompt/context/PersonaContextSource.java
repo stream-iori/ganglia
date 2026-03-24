@@ -4,9 +4,9 @@ import io.vertx.core.Future;
 import java.util.List;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.prompt.ContextFragment;
-import work.ganglia.port.internal.prompt.ContextSource;
+import work.ganglia.port.internal.prompt.DefaultContextSource;
 
-public class PersonaContextSource implements ContextSource {
+public class PersonaContextSource implements DefaultContextSource {
   private final String persona;
 
   public PersonaContextSource() {
