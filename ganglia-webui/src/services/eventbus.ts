@@ -310,17 +310,24 @@ class EventBusService {
           type: 'ASK_USER',
           data: {
             askId: 'ask-' + Date.now(),
-            question: 'I have prepared a diff for src/main.ts. Should I apply these changes?',
+            questions: [
+              {
+                question:
+                  'I have prepared a diff for src/main.ts. Should I apply these changes?',
+                header: 'Diff',
+                type: 'choice',
+                options: [
+                  {
+                    value: 'yes',
+                    label: 'Yes, apply it',
+                    description: 'Apply the changes to the file',
+                  },
+                  { value: 'no', label: 'No, cancel', description: 'Discard the changes' },
+                ],
+              },
+            ],
             diffContext:
               "--- a/src/main.ts\n+++ b/src/main.ts\n@@ -1,5 +1,6 @@\n import { createApp } from 'vue'\n+import { createPinia } from 'pinia'\n import App from './App.vue'\n \n createApp(App).mount('#app')\n",
-            options: [
-              {
-                value: 'yes',
-                label: 'Yes, apply it',
-                description: 'Apply the changes to the file',
-              },
-              { value: 'no', label: 'No, cancel', description: 'Discard the changes' },
-            ],
           },
         });
       }
@@ -331,28 +338,34 @@ class EventBusService {
           type: 'ASK_USER',
           data: {
             askId: 'ask-' + Date.now(),
-            question:
-              'I found multiple potential matches for your request. Please select the most relevant section from the documentation below or provide more details.',
-            options: [
+            questions: [
               {
-                value: 'arch',
-                label: 'Hexagonal Architecture',
-                description: 'Deep dive into Ports and Adapters implementation in Ganglia.',
-              },
-              {
-                value: 'reactive',
-                label: 'Reactive Patterns',
-                description: 'How Vert.x event loop handles non-blocking I/O operations.',
-              },
-              {
-                value: 'memory',
-                label: 'Memory System',
-                description: 'Context compression and long-term knowledge storage strategies.',
-              },
-              {
-                value: 'custom',
-                label: 'Custom Option',
-                description: 'I want to provide my own specific instructions instead.',
+                question:
+                  'I found multiple potential matches for your request. Please select the most relevant section from the documentation below or provide more details.',
+                header: 'Selection',
+                type: 'choice',
+                options: [
+                  {
+                    value: 'arch',
+                    label: 'Hexagonal Architecture',
+                    description: 'Deep dive into Ports and Adapters implementation in Ganglia.',
+                  },
+                  {
+                    value: 'reactive',
+                    label: 'Reactive Patterns',
+                    description: 'How Vert.x event loop handles non-blocking I/O operations.',
+                  },
+                  {
+                    value: 'memory',
+                    label: 'Memory System',
+                    description: 'Context compression and long-term knowledge storage strategies.',
+                  },
+                  {
+                    value: 'custom',
+                    label: 'Custom Option',
+                    description: 'I want to provide my own specific instructions instead.',
+                  },
+                ],
               },
             ],
           },

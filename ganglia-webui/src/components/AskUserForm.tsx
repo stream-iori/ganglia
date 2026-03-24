@@ -13,6 +13,7 @@ interface AskUserFormProps {
 const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
   const systemStore = useSystemStore();
   const isActive = systemStore.activeAskId === event.data.askId;
+  const questions = event.data.questions ?? [];
 
   const [answers, setAnswers] = React.useState<Record<number, string | string[]>>({});
 
@@ -22,7 +23,7 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
 
   const submit = () => {
     // Convert Record to Array, ensuring empty slots are handled if any
-    const answersArray = event.data.questions.map((_, i) => answers[i] || '');
+    const answersArray = questions.map((_, i) => answers[i] || '');
     eventBusService.send('RESPOND_ASK', {
       askId: event.data.askId,
       answers: answersArray,
@@ -48,7 +49,7 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
           </div>
 
           <div className="p-8 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-slate-800 space-y-8">
-            {event.data.questions.map((q, qIdx) => (
+            {questions.map((q, qIdx) => (
               <div key={qIdx} className="space-y-4">
                 <div className="flex items-center gap-3">
                   {q.header && (
@@ -90,7 +91,7 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
                   </div>
                 )}
 
-                {q.type === 'choice' && (
+                {q.type === 'choice' && (q.options ?? []).length > 0 && (
                   <div
                     className={`grid gap-3 ${
                       q.options.length > 2 ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'
@@ -201,7 +202,7 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
           <div className="p-6 bg-slate-800/50 border-t border-slate-700/50 flex justify-end gap-4">
             <button
               onClick={submit}
-              disabled={event.data.questions.some((q, i) => {
+              disabled={questions.some((q, i) => {
                 const a = answers[i];
                 if (q.type === 'choice' && q.multiSelect) return !a || (a as string[]).length === 0;
                 return !a || (typeof a === 'string' && !a.trim());
@@ -222,7 +223,7 @@ const AskUserForm: React.FC<AskUserFormProps> = ({ event }) => {
         <span className="text-amber-500/50 text-xs">⚠️ Historical Ask</span>
       </div>
       <div className="p-4 space-y-2">
-        {event.data.questions.map((q, i) => (
+        {questions.map((q, i) => (
           <p key={i} className="text-slate-400 text-xs italic">
             &quot;{q.question}&quot;
           </p>
