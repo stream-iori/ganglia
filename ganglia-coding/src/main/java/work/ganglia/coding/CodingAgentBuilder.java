@@ -117,6 +117,7 @@ public class CodingAgentBuilder {
 
     // 1. Prepare Tools
     List<ToolSet> codingToolSets = new ArrayList<>(baseOptions.extraToolSets());
+    codingToolSets.add(new work.ganglia.coding.tool.NativeFileSystemTools(vertx, internalMapper));
     codingToolSets.add(new BashFileSystemTools(commandExecutor, internalMapper));
     codingToolSets.add(new BashTools(commandExecutor));
     codingToolSets.add(new FileEditTools(vertx, externalMapper));

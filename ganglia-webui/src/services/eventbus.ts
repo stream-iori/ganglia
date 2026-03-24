@@ -312,8 +312,7 @@ class EventBusService {
             askId: 'ask-' + Date.now(),
             questions: [
               {
-                question:
-                  'I have prepared a diff for src/main.ts. Should I apply these changes?',
+                question: 'I have prepared a diff for src/main.ts. Should I apply these changes?',
                 header: 'Diff',
                 type: 'choice',
                 options: [
