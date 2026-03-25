@@ -8,6 +8,7 @@ public final class ConfigKeys {
   public static final String MAX_ITERATIONS = "maxIterations";
   public static final String COMPRESSION_THRESHOLD = "compressionThreshold";
   public static final String INSTRUCTION_FILE = "instructionFile";
+  public static final String TOOL_TIMEOUT = "toolTimeout";
 
   public static final String MODELS = "models";
   public static final String PRIMARY = "primary";

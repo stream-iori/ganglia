@@ -25,6 +25,10 @@ import work.ganglia.util.PathSanitizer;
 public class NativeFileSystemTools implements ToolSet {
   private static final Logger logger = LoggerFactory.getLogger(NativeFileSystemTools.class);
 
+  static final int DEFAULT_PAGE_SIZE = 500;
+  static final int MAX_LINE_LENGTH = 2000;
+  static final int DEFAULT_LIMIT_PER_FILE = 300;
+
   private final Vertx vertx;
   private final FileSystem fileSystem;
   private final PathMapper pathMapper;
@@ -118,73 +122,73 @@ public class NativeFileSystemTools implements ToolSet {
     String rawPath = (String) args.get("path");
     String safePath = pathMapper.map(rawPath);
 
-    return fileSystem
-        .exists(safePath)
-        .compose(
-            exists -> {
-              if (!exists) {
-                return Future.succeededFuture(
-                    ToolInvokeResult.error("Directory not found: " + safePath));
-              }
-              return fileSystem
-                  .props(safePath)
-                  .compose(
-                      props -> {
-                        if (!props.isDirectory()) {
-                          return Future.succeededFuture(
-                              ToolInvokeResult.error("Path is not a directory: " + safePath));
-                        }
-                        return fileSystem
-                            .readDir(safePath)
-                            .compose(
-                                files -> {
-                                  List<Future<String>> formattedFiles = new ArrayList<>();
-                                  for (String file : files) {
-                                    formattedFiles.add(
-                                        fileSystem
-                                            .props(file)
-                                            .map(
-                                                fileProps -> {
-                                                  String name = new java.io.File(file).getName();
-                                                  if (fileProps.isDirectory()) {
-                                                    return name + "/";
-                                                  } else if (fileProps.isSymbolicLink()) {
-                                                    return name + "@";
-                                                  } else {
-                                                    return name;
-                                                  }
-                                                })
-                                            .recover(
-                                                err ->
-                                                    Future.succeededFuture(
-                                                        new java.io.File(file).getName()
-                                                            + " [error]")));
-                                  }
-
-                                  return Future.all(formattedFiles)
-                                      .map(
-                                          cf -> {
-                                            List<String> list = cf.list();
-                                            list.sort(String::compareToIgnoreCase);
-                                            return ToolInvokeResult.success(
-                                                String.join("\n", list));
-                                          });
-                                });
-                      });
-            })
+    return validateDirectory(safePath)
+        .compose(v -> fileSystem.readDir(safePath))
+        .compose(this::formatDirectoryEntries)
         .recover(
             err ->
                 Future.succeededFuture(
                     ToolInvokeResult.error("Error listing directory: " + err.getMessage())));
   }
 
-  public Future<ToolInvokeResult> readFile(Map<String, Object> args) {
+  private Future<Void> validateDirectory(String path) {
+    return fileSystem
+        .exists(path)
+        .compose(
+            exists -> {
+              if (!exists) {
+                return Future.failedFuture("Directory not found: " + path);
+              }
+              return fileSystem.props(path);
+            })
+        .compose(
+            props -> {
+              if (!props.isDirectory()) {
+                return Future.failedFuture("Path is not a directory: " + path);
+              }
+              return Future.succeededFuture();
+            });
+  }
+
+  private Future<ToolInvokeResult> formatDirectoryEntries(List<String> files) {
+    List<Future<String>> formattedFiles = new ArrayList<>();
+    for (String file : files) {
+      formattedFiles.add(
+          fileSystem
+              .props(file)
+              .map(
+                  fileProps -> {
+                    String name = new java.io.File(file).getName();
+                    if (fileProps.isDirectory()) {
+                      return name + "/";
+                    } else if (fileProps.isSymbolicLink()) {
+                      return name + "@";
+                    } else {
+                      return name;
+                    }
+                  })
+              .recover(
+                  err -> Future.succeededFuture(new java.io.File(file).getName() + " [error]")));
+    }
+
+    return Future.all(formattedFiles)
+        .map(
+            cf -> {
+              List<String> list = cf.list();
+              list.sort(String::compareToIgnoreCase);
+              return ToolInvokeResult.success(String.join("\n", list));
+            });
+  }
+
+  Future<ToolInvokeResult> readFile(Map<String, Object> args) {
     String rawPath = (String) args.get("path");
     String safePath = pathMapper.map(rawPath);
 
     int startLine = ((Number) args.getOrDefault("start_line", 1)).intValue();
     int endLine =
-        args.containsKey("end_line") ? ((Number) args.get("end_line")).intValue() : startLine + 499;
+        args.containsKey("end_line")
+            ? ((Number) args.get("end_line")).intValue()
+            : startLine + DEFAULT_PAGE_SIZE - 1;
 
     if (startLine < 1) {
       startLine = 1;
@@ -203,9 +207,20 @@ public class NativeFileSystemTools implements ToolSet {
   }
 
   private Future<String> readFileLinesAsync(String filePath, int startLine, int endLine) {
-    Promise<String> promise = Promise.promise();
+    return validateFile(filePath)
+        .compose(
+            v -> {
+              Promise<String> promise = Promise.promise();
+              fileSystem
+                  .open(filePath, new OpenOptions().setRead(true).setWrite(false))
+                  .onSuccess(asyncFile -> setupRecordParser(asyncFile, startLine, endLine, promise))
+                  .onFailure(promise::fail);
+              return promise.future();
+            });
+  }
 
-    fileSystem
+  private Future<Void> validateFile(String filePath) {
+    return fileSystem
         .exists(filePath)
         .compose(
             exists -> {
@@ -214,77 +229,59 @@ public class NativeFileSystemTools implements ToolSet {
               }
               return fileSystem.props(filePath);
             })
-        .onSuccess(
+        .compose(
             props -> {
               if (props.isDirectory()) {
-                promise.fail("Path is a directory, not a file: " + filePath);
-                return;
+                return Future.failedFuture("Path is a directory, not a file: " + filePath);
               }
+              return Future.succeededFuture();
+            });
+  }
 
-              fileSystem
-                  .open(filePath, new OpenOptions().setRead(true).setWrite(false))
-                  .onComplete(
-                      ar -> {
-                        if (ar.failed()) {
-                          promise.fail(ar.cause());
-                          return;
-                        }
+  private void setupRecordParser(
+      AsyncFile asyncFile, int startLine, int endLine, Promise<String> promise) {
+    AtomicInteger currentLine = new AtomicInteger(1);
+    StringBuilder content = new StringBuilder();
 
-                        AsyncFile asyncFile = ar.result();
-                        AtomicInteger currentLine = new AtomicInteger(1);
-                        StringBuilder content = new StringBuilder();
+    RecordParser parser = RecordParser.newDelimited("\n", asyncFile);
 
-                        // Safety limit for long lines (e.g. minified files)
-                        final int MAX_LINE_LENGTH = 2000;
+    parser.handler(
+        buffer -> {
+          int lineNo = currentLine.getAndIncrement();
 
-                        RecordParser parser = RecordParser.newDelimited("\n", asyncFile);
+          if (lineNo < startLine) {
+            return;
+          }
 
-                        parser.handler(
-                            buffer -> {
-                              int lineNo = currentLine.getAndIncrement();
+          if (lineNo > endLine) {
+            parser.pause();
+            if (promise.tryComplete(buildResult(content, startLine, endLine, true))) {
+              asyncFile.close().recover(e -> Future.succeededFuture());
+            }
+            return;
+          }
 
-                              if (lineNo < startLine) {
-                                return;
-                              }
+          String line = buffer.toString("UTF-8");
+          if (line.length() > MAX_LINE_LENGTH) {
+            content.append(line, 0, MAX_LINE_LENGTH).append(" [...Line truncated...]\n");
+          } else {
+            content.append(line).append("\n");
+          }
+        });
 
-                              if (lineNo > endLine) {
-                                parser.pause();
-                                if (promise.tryComplete(
-                                    buildResult(content, startLine, endLine, true))) {
-                                  asyncFile.close().recover(e -> Future.succeededFuture());
-                                }
-                                return;
-                              }
+    parser.endHandler(
+        v -> {
+          if (promise.tryComplete(buildResult(content, startLine, currentLine.get() - 1, false))) {
+            asyncFile.close().recover(e -> Future.succeededFuture());
+          }
+        });
 
-                              String line = buffer.toString("UTF-8");
-                              if (line.length() > MAX_LINE_LENGTH) {
-                                content
-                                    .append(line, 0, MAX_LINE_LENGTH)
-                                    .append(" [...Line truncated...]\n");
-                              } else {
-                                content.append(line).append("\n");
-                              }
-                            });
-
-                        parser.endHandler(
-                            v -> {
-                              if (promise.tryComplete(
-                                  buildResult(content, startLine, currentLine.get() - 1, false))) {
-                                asyncFile.close().recover(e -> Future.succeededFuture());
-                              }
-                            });
-
-                        parser.exceptionHandler(
-                            err -> {
-                              if (promise.tryFail(err)) {
-                                asyncFile.close().recover(e -> Future.succeededFuture());
-                              }
-                            });
-                      });
-            })
-        .onFailure(promise::fail);
-
-    return promise.future();
+    parser.exceptionHandler(
+        err -> {
+          if (promise.tryFail(err)) {
+            asyncFile.close().recover(e -> Future.succeededFuture());
+          }
+        });
   }
 
   private String buildResult(StringBuilder content, int start, int end, boolean hasMore) {
@@ -313,7 +310,8 @@ public class NativeFileSystemTools implements ToolSet {
       return Future.succeededFuture(ToolInvokeResult.error("No paths provided"));
     }
 
-    int limitPerFile = ((Number) args.getOrDefault("limit_per_file", 300)).intValue();
+    int limitPerFile =
+        ((Number) args.getOrDefault("limit_per_file", DEFAULT_LIMIT_PER_FILE)).intValue();
 
     List<Future<String>> readFutures =
         paths.stream()

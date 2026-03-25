@@ -37,7 +37,7 @@ public class StdioMcpTransportTest {
             vertx,
             Arrays.asList(javaBin, "-cp", classpath, MockMcpStdioServer.class.getName()),
             null);
-    client = new VertxMcpClient(transport);
+    client = new VertxMcpClient(vertx, transport);
     transport.connect().onComplete(testContext.succeedingThenComplete());
   }
 

@@ -9,4 +9,9 @@ public interface AgentConfigProvider {
   String getProjectRoot();
 
   String getInstructionFile();
+
+  /** Maximum time in milliseconds a single tool execution may run before being timed out. */
+  default long getToolTimeoutMs() {
+    return 120_000;
+  }
 }

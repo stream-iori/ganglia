@@ -91,7 +91,7 @@ public class McpConfigManager {
     }
 
     StdioMcpTransport transport = new StdioMcpTransport(vertx, commandList, env);
-    McpClient client = new VertxMcpClient(transport);
+    McpClient client = new VertxMcpClient(vertx, transport);
 
     return transport
         .connect()

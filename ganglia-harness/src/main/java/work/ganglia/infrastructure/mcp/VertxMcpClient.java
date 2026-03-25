@@ -2,6 +2,7 @@ package work.ganglia.infrastructure.mcp;
 
 import io.vertx.core.Future;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
@@ -15,20 +16,37 @@ import work.ganglia.infrastructure.mcp.transport.McpTransport;
 import work.ganglia.port.mcp.*;
 
 public class VertxMcpClient implements McpClient {
-  private static final Logger log = LoggerFactory.getLogger(VertxMcpClient.class);
+  private static final Logger logger = LoggerFactory.getLogger(VertxMcpClient.class);
+  static final long DEFAULT_requestTimeoutMs = 30_000;
 
+  private final Vertx vertx;
   private final McpTransport transport;
+  private final long requestTimeoutMs;
   private final Map<String, Promise<JsonObject>> pendingRequests = new ConcurrentHashMap<>();
   private final AtomicLong nextId = new AtomicLong(1);
 
-  public VertxMcpClient(McpTransport transport) {
+  public VertxMcpClient(Vertx vertx, McpTransport transport) {
+    this(vertx, transport, DEFAULT_requestTimeoutMs);
+  }
+
+  VertxMcpClient(Vertx vertx, McpTransport transport, long requestTimeoutMs) {
+    this.vertx = vertx;
     this.transport = transport;
+    this.requestTimeoutMs = requestTimeoutMs;
 
     this.transport
         .messageStream()
-        .exceptionHandler(e -> log.error("Transport error", e))
+        .exceptionHandler(e -> logger.error("Transport error", e))
         .handler(this::handleIncomingMessage)
-        .endHandler(v -> log.info("Transport ended"));
+        .endHandler(v -> logger.info("Transport ended"));
+  }
+
+  /**
+   * @deprecated Use {@link #VertxMcpClient(Vertx, McpTransport)} instead.
+   */
+  @Deprecated
+  public VertxMcpClient(McpTransport transport) {
+    this(null, transport);
   }
 
   private void handleIncomingMessage(JsonObject message) {
@@ -49,12 +67,11 @@ public class VertxMcpClient implements McpClient {
           promise.complete(message);
         }
       } else {
-        log.warn("Received response for unknown id: {}", id);
+        logger.warn("Received response for unknown id: {}", id);
       }
     } else if (message.containsKey("method") && !message.containsKey("id")) {
       // It's a Notification
-      log.debug("Received notification: {}", message.getString("method"));
-      // TODO: Expose event bus or handler for notifications like "notifications/tools/list_changed"
+      logger.debug("Received notification: {}", message.getString("method"));
     }
   }
 
@@ -78,6 +95,20 @@ public class VertxMcpClient implements McpClient {
               pendingRequests.remove(idStr);
               promise.fail(err);
             });
+
+    // Set up timeout to prevent hanging requests
+    if (vertx != null) {
+      long timerId =
+          vertx.setTimer(
+              requestTimeoutMs,
+              id -> {
+                Promise<JsonObject> p = pendingRequests.remove(idStr);
+                if (p != null) {
+                  p.fail("MCP request timed out after " + requestTimeoutMs + "ms: " + method);
+                }
+              });
+      promise.future().onComplete(ar -> vertx.cancelTimer(timerId));
+    }
 
     return promise.future();
   }

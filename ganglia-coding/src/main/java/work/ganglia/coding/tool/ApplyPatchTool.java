@@ -56,15 +56,8 @@ class ApplyPatchTool {
 
     return fileSystem
         .exists(filePath)
-        .compose(exists -> validateFileExists(exists, filePath))
+        .compose(exists -> FileEditTools.validateFileExists(exists, filePath))
         .compose(v -> performPatch(filePath, rawPath, patch));
-  }
-
-  private Future<Void> validateFileExists(boolean exists, String filePath) {
-    if (!exists) {
-      return Future.failedFuture(new SecurityException("File not found: " + filePath));
-    }
-    return Future.succeededFuture();
   }
 
   private Future<ToolInvokeResult> performPatch(String filePath, String rawPath, String patch) {

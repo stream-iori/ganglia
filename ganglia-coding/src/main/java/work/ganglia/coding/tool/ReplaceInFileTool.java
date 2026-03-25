@@ -75,7 +75,7 @@ class ReplaceInFileTool {
 
     return fileSystem
         .exists(filePath)
-        .compose(exists -> validateFileExists(exists, filePath))
+        .compose(exists -> FileEditTools.validateFileExists(exists, filePath))
         .compose(v -> fileSystem.readFile(filePath))
         .compose(buffer -> performReplacement(buffer, oldString, newString, expected, filePath))
         .compose(
@@ -104,13 +104,6 @@ class ReplaceInFileTool {
       }
     }
     return 1;
-  }
-
-  private Future<Void> validateFileExists(boolean exists, String filePath) {
-    if (!exists) {
-      return Future.failedFuture(new SecurityException("File not found: " + filePath));
-    }
-    return Future.succeededFuture();
   }
 
   private record ReplacementResult(Buffer oldBuffer, String newContent, int count) {}

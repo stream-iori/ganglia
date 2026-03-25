@@ -188,6 +188,13 @@ public class ConfigManager
         : Constants.FILE_GANGLIA_MD;
   }
 
+  @Override
+  public long getToolTimeoutMs() {
+    return (currentConfig.agent() != null && currentConfig.agent().toolTimeout() > 0)
+        ? currentConfig.agent().toolTimeout()
+        : 120_000;
+  }
+
   // --- WebUiConfigProvider Implementation ---
 
   @Override

@@ -40,7 +40,7 @@ public class McpIntegrationTest {
                               .setHost("localhost")
                               .setPort(port)
                               .setURI("/"));
-                  client = new VertxMcpClient(transport);
+                  client = new VertxMcpClient(vertx, transport);
                   transport.connect().onComplete(testContext.succeedingThenComplete());
                 }));
   }

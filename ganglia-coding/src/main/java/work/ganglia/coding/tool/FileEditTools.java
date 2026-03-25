@@ -22,6 +22,13 @@ public class FileEditTools implements ToolSet {
   private final WriteFileTool writeFileTool;
   private final ApplyPatchTool applyPatchTool;
 
+  static Future<Void> validateFileExists(boolean exists, String filePath) {
+    if (!exists) {
+      return Future.failedFuture(new SecurityException("File not found: " + filePath));
+    }
+    return Future.succeededFuture();
+  }
+
   public FileEditTools(Vertx vertx) {
     this(vertx, new PathSanitizer());
   }
@@ -62,7 +69,7 @@ public class FileEditTools implements ToolSet {
             case "replace_in_file" -> replaceInFileTool.execute(args);
             case "write_file" -> writeFileTool.execute(args);
             case "apply_patch" -> applyPatchTool.execute(args);
-            default -> Future.failedFuture("Unknown tool: " + toolName);
+            default -> Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
           };
     } catch (SecurityException e) {
       return Future.succeededFuture(
