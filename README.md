@@ -3,6 +3,7 @@
 **Ganglia** is a high-performance, non-blocking Java 17 Agent framework built on **Vert.x 5.0.6**. It follows a **Hexagonal (Ports & Adapters)** architecture, prioritizing simplicity, robustness, and transparency for building autonomous agents that can be seamlessly integrated into any third-party application.
 
 ![Status](https://img.shields.io/badge/status-In_Development-yellow)
+![CI](https://github.com/stream-iori/ganglia/actions/workflows/ci.yml/badge.svg)
 ![Version](https://img.shields.io/badge/version-0.1.5-blue)
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![Vert.x](https://img.shields.io/badge/Vert.x-5.0.6-purple)
