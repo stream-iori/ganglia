@@ -28,6 +28,7 @@ import work.ganglia.infrastructure.internal.state.FileLogManager;
 import work.ganglia.infrastructure.internal.state.FileStateEngine;
 import work.ganglia.infrastructure.internal.state.TokenUsageManager;
 import work.ganglia.infrastructure.internal.state.TraceManager;
+import work.ganglia.kernel.doctor.DefaultDoctorService;
 import work.ganglia.kernel.hook.InterceptorPipeline;
 import work.ganglia.kernel.hook.builtin.ObservationCompressionHook;
 import work.ganglia.kernel.loop.AgentLoopFactory;
@@ -82,8 +83,9 @@ public class GangliaKernel {
 
     return configManager
         .init()
+        .compose(v -> new DefaultDoctorService(vertx, options.doctorChecks()).runStartupChecks())
         .compose(
-            v -> {
+            results -> {
               logger.info("Configuration initialized. Starting self-check...");
               return ensureCoreStructure(projectRoot);
             })

@@ -8,6 +8,7 @@ import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.tool.CommandExecutor;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.external.tool.ToolSetProvider;
+import work.ganglia.port.internal.doctor.DoctorCheck;
 import work.ganglia.port.internal.prompt.ContextSource;
 
 /** Immutable configuration options for bootstrapping Ganglia. */
@@ -22,6 +23,7 @@ public final class BootstrapOptions {
   private final List<ToolSetProvider> extraToolSetProviders;
   private final List<ContextSource> extraContextSources;
   private final CommandExecutor commandExecutor;
+  private final List<DoctorCheck> doctorChecks;
 
   private BootstrapOptions(Builder builder) {
     this.configPath = builder.configPath;
@@ -33,6 +35,7 @@ public final class BootstrapOptions {
     this.extraToolSetProviders = builder.extraToolSetProviders;
     this.extraContextSources = builder.extraContextSources;
     this.commandExecutor = builder.commandExecutor;
+    this.doctorChecks = builder.doctorChecks;
   }
 
   public static Builder builder() {
@@ -81,6 +84,10 @@ public final class BootstrapOptions {
     return commandExecutor;
   }
 
+  public List<DoctorCheck> doctorChecks() {
+    return doctorChecks;
+  }
+
   /** Returns a new Builder pre-populated with values from this instance. */
   public Builder toBuilder() {
     return new Builder()
@@ -92,7 +99,8 @@ public final class BootstrapOptions {
         .extraToolSets(extraToolSets)
         .extraToolSetProviders(extraToolSetProviders)
         .extraContextSources(extraContextSources)
-        .commandExecutor(commandExecutor);
+        .commandExecutor(commandExecutor)
+        .doctorChecks(doctorChecks);
   }
 
   public static final class Builder {
@@ -105,6 +113,7 @@ public final class BootstrapOptions {
     private List<ToolSetProvider> extraToolSetProviders = Collections.emptyList();
     private List<ContextSource> extraContextSources = Collections.emptyList();
     private CommandExecutor commandExecutor;
+    private List<DoctorCheck> doctorChecks = Collections.emptyList();
 
     private Builder() {}
 
@@ -150,6 +159,11 @@ public final class BootstrapOptions {
 
     public Builder commandExecutor(CommandExecutor commandExecutor) {
       this.commandExecutor = commandExecutor;
+      return this;
+    }
+
+    public Builder doctorChecks(List<DoctorCheck> doctorChecks) {
+      this.doctorChecks = doctorChecks;
       return this;
     }
 

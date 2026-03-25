@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import work.ganglia.BootstrapOptions;
 import work.ganglia.Ganglia;
+import work.ganglia.coding.doctor.RipgrepCheck;
 import work.ganglia.coding.prompt.CodingMandatesContextSource;
 import work.ganglia.coding.prompt.CodingPersonaContextSource;
 import work.ganglia.coding.prompt.CodingWorkflowSource;
@@ -19,6 +20,7 @@ import work.ganglia.infrastructure.internal.prompt.context.FileContextSource;
 import work.ganglia.infrastructure.internal.prompt.context.MarkdownContextResolver;
 import work.ganglia.port.external.tool.CommandExecutor;
 import work.ganglia.port.external.tool.ToolSet;
+import work.ganglia.port.internal.doctor.DoctorCheck;
 import work.ganglia.port.internal.prompt.ContextSource;
 import work.ganglia.port.internal.prompt.DefaultContextSource;
 import work.ganglia.util.PathMapper;
@@ -136,11 +138,16 @@ public class CodingAgentBuilder {
     MarkdownContextResolver resolver = new MarkdownContextResolver(vertx);
     codingSources.add(new FileContextSource(vertx, resolver, instructionFile));
 
-    // 3. Perform Bootstrap
+    // 3. Register doctor checks
+    List<DoctorCheck> doctorChecks = new ArrayList<>(baseOptions.doctorChecks());
+    doctorChecks.add(new RipgrepCheck());
+
+    // 4. Perform Bootstrap
     BootstrapOptions options =
         baseOptions.toBuilder()
             .extraToolSets(codingToolSets)
             .extraContextSources(codingSources)
+            .doctorChecks(doctorChecks)
             .build();
 
     return Ganglia.bootstrap(vertx, options);
