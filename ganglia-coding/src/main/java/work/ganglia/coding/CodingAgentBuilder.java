@@ -1,10 +1,12 @@
 package work.ganglia.coding;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+
 import work.ganglia.BootstrapOptions;
 import work.ganglia.Ganglia;
 import work.ganglia.coding.doctor.RipgrepCheck;

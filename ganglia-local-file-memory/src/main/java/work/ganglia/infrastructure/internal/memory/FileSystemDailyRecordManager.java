@@ -1,12 +1,15 @@
 package work.ganglia.infrastructure.internal.memory;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import work.ganglia.port.internal.memory.DailyRecordManager;
 
 /** Manages daily record persistence in Markdown format on the file system. */

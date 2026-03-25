@@ -2,18 +2,21 @@ package work.ganglia.infrastructure.external.tool;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.vertx.core.Vertx;
-import io.vertx.junit5.VertxExtension;
-import io.vertx.junit5.VertxTestContext;
 import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import io.vertx.core.Vertx;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
+
 import work.ganglia.infrastructure.internal.memory.FileSystemLongTermMemory;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.memory.LongTermMemory;

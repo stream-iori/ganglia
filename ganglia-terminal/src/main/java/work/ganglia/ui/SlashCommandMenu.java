@@ -3,6 +3,7 @@ package work.ganglia.ui;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
+
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;

@@ -4,12 +4,15 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+import java.util.UUID;
+
+import org.junit.jupiter.api.Test;
+
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxTestContext;
-import java.util.Collections;
-import java.util.UUID;
-import org.junit.jupiter.api.Test;
+
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelResponse;

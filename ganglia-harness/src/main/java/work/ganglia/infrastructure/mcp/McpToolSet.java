@@ -1,10 +1,12 @@
 package work.ganglia.infrastructure.mcp;
 
-import io.vertx.core.Future;
-import io.vertx.core.json.JsonObject;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import io.vertx.core.Future;
+import io.vertx.core.json.JsonObject;
+
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolDefinition;

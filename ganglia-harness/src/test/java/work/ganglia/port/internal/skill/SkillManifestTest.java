@@ -2,8 +2,9 @@ package work.ganglia.port.internal.skill;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.vertx.core.json.JsonObject;
 import org.junit.jupiter.api.Test;
+
+import io.vertx.core.json.JsonObject;
 
 class SkillManifestTest {
 

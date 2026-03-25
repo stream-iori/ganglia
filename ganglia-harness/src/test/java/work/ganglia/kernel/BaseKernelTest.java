@@ -1,7 +1,9 @@
 package work.ganglia.kernel;
 
-import io.vertx.core.Vertx;
 import org.junit.jupiter.api.BeforeEach;
+
+import io.vertx.core.Vertx;
+
 import work.ganglia.BaseGangliaTest;
 import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import work.ganglia.kernel.loop.AgentLoopFactory;

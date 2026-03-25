@@ -1,7 +1,5 @@
 package work.ganglia.infrastructure.internal.skill;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.List;
@@ -9,8 +7,13 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolCall;

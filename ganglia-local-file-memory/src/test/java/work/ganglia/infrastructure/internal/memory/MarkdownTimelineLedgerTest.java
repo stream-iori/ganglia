@@ -2,17 +2,20 @@ package work.ganglia.infrastructure.internal.memory;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.vertx.core.Vertx;
-import io.vertx.junit5.VertxExtension;
-import io.vertx.junit5.VertxTestContext;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+
+import io.vertx.core.Vertx;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
+
 import work.ganglia.port.internal.memory.model.MemoryCategory;
 import work.ganglia.port.internal.memory.model.TimelineEvent;
 

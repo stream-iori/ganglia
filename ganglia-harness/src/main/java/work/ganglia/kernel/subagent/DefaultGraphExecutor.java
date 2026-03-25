@@ -1,12 +1,15 @@
 package work.ganglia.kernel.subagent;
 
-import io.vertx.core.Future;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+
 import work.ganglia.kernel.loop.AgentLoop;
 import work.ganglia.kernel.loop.AgentLoopFactory;
 import work.ganglia.kernel.task.AgentTaskFactory;

@@ -1,8 +1,9 @@
 package work.ganglia.port.internal.skill;
 
-import io.vertx.core.Future;
 import java.util.List;
 import java.util.Optional;
+
+import io.vertx.core.Future;
 
 /** Service for managing the lifecycle and registry of available skills. */
 public interface SkillService {

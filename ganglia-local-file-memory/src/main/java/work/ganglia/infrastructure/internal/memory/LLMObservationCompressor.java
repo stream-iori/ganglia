@@ -1,8 +1,10 @@
 package work.ganglia.infrastructure.internal.memory;
 
-import io.vertx.core.Future;
 import java.util.Collections;
 import java.util.List;
+
+import io.vertx.core.Future;
+
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;

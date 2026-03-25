@@ -2,14 +2,17 @@ package work.ganglia.infrastructure.internal.state;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.vertx.core.Vertx;
-import io.vertx.junit5.VertxExtension;
-import io.vertx.junit5.VertxTestContext;
 import java.io.File;
 import java.nio.file.Path;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
+
+import io.vertx.core.Vertx;
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
+
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.util.Constants;
 

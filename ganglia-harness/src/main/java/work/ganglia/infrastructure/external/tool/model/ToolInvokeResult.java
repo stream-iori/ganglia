@@ -1,6 +1,7 @@
 package work.ganglia.infrastructure.external.tool.model;
 
 import java.util.Map;
+
 import work.ganglia.port.chat.SessionContext;
 
 /** Represents the structured result of a tool invocation. */

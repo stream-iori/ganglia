@@ -2,15 +2,18 @@ package work.ganglia.kernel.loop;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.vertx.junit5.VertxExtension;
-import io.vertx.junit5.VertxTestContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
+
 import work.ganglia.kernel.BaseKernelTest;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.llm.ModelResponse;

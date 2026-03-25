@@ -1,7 +1,9 @@
 package work.ganglia.port.internal.state;
 
-import io.vertx.core.Future;
 import java.util.List;
+
+import io.vertx.core.Future;
+
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
 

@@ -1,8 +1,10 @@
 package work.ganglia.infrastructure.internal.prompt.context;
 
+import java.util.List;
+
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import java.util.List;
+
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.prompt.ContextFragment;
 import work.ganglia.port.internal.prompt.ContextSource;

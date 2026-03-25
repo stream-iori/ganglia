@@ -2,12 +2,15 @@ package work.ganglia.kernel.hook;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import io.vertx.core.Future;
-import io.vertx.junit5.VertxTestContext;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import io.vertx.core.Future;
+import io.vertx.junit5.VertxTestContext;
+
 import work.ganglia.BaseGangliaTest;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;

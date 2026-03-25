@@ -2,8 +2,9 @@ package work.ganglia.infrastructure.external.llm.util;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import io.vertx.core.json.JsonObject;
 import org.junit.jupiter.api.Test;
+
+import io.vertx.core.json.JsonObject;
 
 public class JsonSanitizerTest {
 

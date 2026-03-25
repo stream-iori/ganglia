@@ -1,6 +1,7 @@
 package work.ganglia.ui;
 
 import java.io.PrintWriter;
+
 import org.jline.terminal.Terminal;
 import org.jline.terminal.Terminal.Signal;
 import org.slf4j.Logger;

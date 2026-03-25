@@ -1,12 +1,15 @@
 package work.ganglia.infrastructure.internal.state;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+
 import work.ganglia.port.internal.state.TokenUsage;
 import work.ganglia.util.Constants;
 import work.ganglia.util.TokenCounter;

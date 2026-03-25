@@ -1,16 +1,19 @@
 package work.ganglia.ui;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.eventbus.MessageConsumer;
-import io.vertx.core.json.JsonObject;
 import java.io.IOException;
 import java.io.PrintWriter;
+
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.MessageConsumer;
+import io.vertx.core.json.JsonObject;
+
 import work.ganglia.port.external.tool.ObservationEvent;
 
 /** Enhanced Terminal UI using JLine 3 for rich output and reactive streaming. */

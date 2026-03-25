@@ -1,7 +1,8 @@
 package work.ganglia.port.internal.skill;
 
-import io.vertx.core.Future;
 import java.util.List;
+
+import io.vertx.core.Future;
 
 /** Interface for loading skills from various sources (e.g., filesystem, classpath, remote). */
 public interface SkillLoader {

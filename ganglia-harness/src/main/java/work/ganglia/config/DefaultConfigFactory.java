@@ -1,8 +1,10 @@
 package work.ganglia.config;
 
-import io.vertx.core.json.JsonObject;
 import java.util.HashMap;
 import java.util.Map;
+
+import io.vertx.core.json.JsonObject;
+
 import work.ganglia.util.Constants;
 
 /** Single Responsibility: Responsible for creating the default configuration structure. */

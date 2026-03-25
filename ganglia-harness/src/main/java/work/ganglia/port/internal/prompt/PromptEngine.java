@@ -1,6 +1,7 @@
 package work.ganglia.port.internal.prompt;
 
 import io.vertx.core.Future;
+
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.llm.LLMRequest;
 

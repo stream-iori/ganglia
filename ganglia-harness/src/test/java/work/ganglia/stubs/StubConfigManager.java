@@ -2,6 +2,7 @@ package work.ganglia.stubs;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
+
 import work.ganglia.config.ConfigManager;
 
 public class StubConfigManager extends ConfigManager {

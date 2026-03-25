@@ -1,11 +1,14 @@
 package work.ganglia.kernel.hook.builtin;
 
-import io.vertx.core.Future;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolCall;

@@ -1,14 +1,17 @@
 package work.ganglia.infrastructure.internal.memory;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.RejectedExecutionException;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+
 import work.ganglia.port.internal.memory.MemoryEvent;
 import work.ganglia.port.internal.memory.MemoryModule;
 import work.ganglia.port.internal.memory.MemoryService;

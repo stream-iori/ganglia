@@ -1,9 +1,11 @@
 package work.ganglia.stubs;
 
-import io.vertx.core.Future;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import io.vertx.core.Future;
+
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.state.LogManager;
 

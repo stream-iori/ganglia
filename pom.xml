@@ -204,6 +204,9 @@
                 <style>GOOGLE</style>
               </googleJavaFormat>
               <removeUnusedImports/>
+              <importOrder>
+                <order>java,javax,org,com,io,work</order>
+              </importOrder>
             </java>
             <pom>
               <includes>

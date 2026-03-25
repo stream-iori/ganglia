@@ -1,6 +1,7 @@
 package work.ganglia.it.harness;
 
 import java.util.List;
+
 import work.ganglia.port.external.llm.ModelResponse;
 
 /** Represents an E2E test case for the agent. */

@@ -1,8 +1,9 @@
 package work.ganglia.kernel.todo;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public record ToDoList(List<ToDoItem> items) {
   public ToDoList {

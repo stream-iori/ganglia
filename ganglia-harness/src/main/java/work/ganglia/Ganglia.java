@@ -1,9 +1,11 @@
 package work.ganglia;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+
 import work.ganglia.config.ConfigManager;
 import work.ganglia.infrastructure.external.tool.InteractionTools;
 import work.ganglia.infrastructure.external.tool.KnowledgeBaseTools;

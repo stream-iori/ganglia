@@ -1,5 +1,8 @@
 package work.ganglia.infrastructure.mcp.transport;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.vertx.core.Future;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -8,8 +11,6 @@ import io.vertx.core.http.WebSocketClient;
 import io.vertx.core.http.WebSocketConnectOptions;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.streams.ReadStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StreamMcpTransport implements McpTransport, ReadStream<JsonObject> {
   private static final Logger log = LoggerFactory.getLogger(StreamMcpTransport.class);

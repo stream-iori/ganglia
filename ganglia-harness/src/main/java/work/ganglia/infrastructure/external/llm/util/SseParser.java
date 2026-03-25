@@ -1,11 +1,12 @@
 package work.ganglia.infrastructure.external.llm.util;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.parsetools.RecordParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class SseParser implements Handler<Buffer> {
   private static final Logger logger = LoggerFactory.getLogger(SseParser.class);

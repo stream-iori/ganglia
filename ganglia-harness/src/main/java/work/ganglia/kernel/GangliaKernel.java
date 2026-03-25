@@ -1,14 +1,17 @@
 package work.ganglia.kernel;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+
 import work.ganglia.BootstrapOptions;
 import work.ganglia.Ganglia;
 import work.ganglia.config.ConfigManager;

@@ -4,16 +4,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.UUID;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
+
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
-import java.nio.file.Path;
-import java.util.UUID;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.api.io.TempDir;
+
 import work.ganglia.BootstrapOptions;
 import work.ganglia.Ganglia;
 import work.ganglia.coding.CodingAgentBuilder;
@@ -31,7 +35,7 @@ public abstract class MockModelIT {
   @TempDir protected Path tempDir;
 
   @BeforeEach
-  void bootstrapGanglia(Vertx vertx, VertxTestContext testContext) throws java.io.IOException {
+  void bootstrapGanglia(Vertx vertx, VertxTestContext testContext) throws IOException {
     mockModel = mock(ModelGateway.class);
     when(mockModel.chat(any(ChatRequest.class)))
         .thenReturn(Future.failedFuture("Reflection disabled"));

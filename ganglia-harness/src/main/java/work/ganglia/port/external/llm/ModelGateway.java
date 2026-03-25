@@ -1,6 +1,7 @@
 package work.ganglia.port.external.llm;
 
 import io.vertx.core.Future;
+
 import work.ganglia.port.internal.state.ExecutionContext;
 
 /** Interface for LLM providers. */

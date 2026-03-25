@@ -1,10 +1,12 @@
 package work.ganglia.infrastructure.internal.prompt.context;
 
-import io.vertx.core.Future;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+
+import io.vertx.core.Future;
+
 import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolDefinition;

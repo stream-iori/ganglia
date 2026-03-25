@@ -1,15 +1,18 @@
 package work.ganglia.infrastructure.internal.memory;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+
 import work.ganglia.port.internal.memory.TimelineLedger;
 import work.ganglia.port.internal.memory.model.TimelineEvent;
 

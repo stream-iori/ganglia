@@ -3,7 +3,9 @@ package work.ganglia.infrastructure.mcp;
 import static org.mockito.Mockito.*;
 
 import java.util.List;
+
 import org.junit.jupiter.api.Test;
+
 import work.ganglia.port.mcp.McpClient;
 
 public class McpRegistryTest {

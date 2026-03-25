@@ -1,8 +1,10 @@
 package work.ganglia;
 
-import io.vertx.core.json.JsonObject;
 import java.util.Collections;
 import java.util.List;
+
+import io.vertx.core.json.JsonObject;
+
 import work.ganglia.kernel.loop.AgentLoopObserver;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.tool.CommandExecutor;

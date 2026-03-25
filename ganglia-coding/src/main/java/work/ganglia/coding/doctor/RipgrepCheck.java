@@ -1,8 +1,10 @@
 package work.ganglia.coding.doctor;
 
+import java.util.List;
+
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
-import java.util.List;
+
 import work.ganglia.port.internal.doctor.CheckResult;
 import work.ganglia.port.internal.doctor.DoctorCheck;
 import work.ganglia.util.VertxProcess;

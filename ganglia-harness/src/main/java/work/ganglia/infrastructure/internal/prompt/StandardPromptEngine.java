@@ -1,10 +1,12 @@
 package work.ganglia.infrastructure.internal.prompt;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+
 import work.ganglia.infrastructure.internal.prompt.context.*;
 import work.ganglia.kernel.subagent.SubAgentContextSource;
 import work.ganglia.kernel.task.AgentTaskFactory;

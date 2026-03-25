@@ -1,7 +1,9 @@
 package work.ganglia.port.internal.memory;
 
-import io.vertx.core.Future;
 import java.util.List;
+
+import io.vertx.core.Future;
+
 import work.ganglia.port.chat.Turn;
 import work.ganglia.port.external.llm.ModelOptions;
 

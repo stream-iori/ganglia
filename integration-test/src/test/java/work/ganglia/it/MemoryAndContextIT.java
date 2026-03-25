@@ -4,16 +4,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.junit5.VertxTestContext;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
 import org.junit.jupiter.api.Test;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.junit5.VertxTestContext;
+
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.llm.ChatRequest;
@@ -26,14 +29,17 @@ public class MemoryAndContextIT extends MockModelIT {
   @Test
   void observationCompression_compressesLargeOutputAndRecalls(
       Vertx vertx, VertxTestContext testContext) {
-    String longOutput = "This is a very long output that should be compressed. ".repeat(200);
+    // Each line is ~10 chars. 500 lines = 5000 chars.
+    // 5000 > 4000 (compression threshold).
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < 500; i++) {
+      sb.append("Line ").append(i).append(" data\n");
+    }
+    String longOutput = sb.toString();
     String projectRoot = tempDir.toAbsolutePath().toString();
 
     try {
-      vertx
-          .fileSystem()
-          .writeFileBlocking(
-              projectRoot + "/long.txt", io.vertx.core.buffer.Buffer.buffer(longOutput));
+      vertx.fileSystem().writeFileBlocking(projectRoot + "/long.txt", Buffer.buffer(longOutput));
     } catch (Exception e) {
       testContext.failNow(e);
       return;

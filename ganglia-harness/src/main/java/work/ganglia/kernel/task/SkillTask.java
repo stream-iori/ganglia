@@ -1,10 +1,12 @@
 package work.ganglia.kernel.task;
 
-import io.vertx.core.Future;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import io.vertx.core.Future;
+
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.external.tool.ToolSet;

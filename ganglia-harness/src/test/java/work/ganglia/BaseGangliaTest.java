@@ -1,10 +1,13 @@
 package work.ganglia;
 
-import io.vertx.core.Vertx;
-import io.vertx.junit5.VertxExtension;
 import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+import io.vertx.core.Vertx;
+import io.vertx.junit5.VertxExtension;
+
 import work.ganglia.infrastructure.internal.state.DefaultSessionManager;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.stubs.InMemoryLogManager;

@@ -1,7 +1,8 @@
 package work.ganglia.port.internal.doctor;
 
-import io.vertx.core.Future;
 import java.util.List;
+
+import io.vertx.core.Future;
 
 /** Runs diagnostic checks and reports results. */
 public interface DoctorService {

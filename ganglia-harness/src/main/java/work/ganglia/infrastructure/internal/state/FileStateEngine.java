@@ -1,14 +1,17 @@
 package work.ganglia.infrastructure.internal.state;
 
+import java.util.Collections;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.CopyOptions;
 import io.vertx.core.json.Json;
-import java.util.Collections;
-import java.util.UUID;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.state.StateEngine;
 import work.ganglia.util.Constants;

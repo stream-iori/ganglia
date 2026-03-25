@@ -1,13 +1,12 @@
 package work.ganglia.ui;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.jline.keymap.KeyMap;
@@ -22,6 +21,10 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+
 import work.ganglia.Ganglia;
 import work.ganglia.kernel.loop.AgentAbortedException;
 import work.ganglia.port.external.tool.ObservationEvent;

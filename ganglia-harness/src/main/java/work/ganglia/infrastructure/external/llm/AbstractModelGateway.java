@@ -1,12 +1,5 @@
 package work.ganglia.infrastructure.external.llm;
 
-import io.vertx.core.Future;
-import io.vertx.core.Promise;
-import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.codec.BodyCodec;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -15,8 +8,18 @@ import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.codec.BodyCodec;
+
 import work.ganglia.infrastructure.external.llm.util.JsonSanitizer;
 import work.ganglia.infrastructure.external.llm.util.SseParser;
 import work.ganglia.infrastructure.external.llm.util.SseWriteStream;

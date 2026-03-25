@@ -1,9 +1,11 @@
 package work.ganglia.kernel.subagent;
 
-import io.vertx.core.Future;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import io.vertx.core.Future;
+
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.prompt.ContextFragment;
 import work.ganglia.port.internal.prompt.ContextSource;

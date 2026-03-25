@@ -1,11 +1,13 @@
 package work.ganglia.infrastructure.internal.state;
 
-import io.vertx.core.Future;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
+
+import io.vertx.core.Future;
+
 import work.ganglia.config.ModelConfigProvider;
 import work.ganglia.port.chat.*;
 import work.ganglia.port.chat.Message;

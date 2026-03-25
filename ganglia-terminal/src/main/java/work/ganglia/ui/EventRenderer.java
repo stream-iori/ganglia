@@ -2,9 +2,11 @@ package work.ganglia.ui;
 
 import java.io.PrintWriter;
 import java.util.Map;
+
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
+
 import work.ganglia.port.external.tool.ObservationEvent;
 
 /**

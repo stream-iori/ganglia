@@ -1,10 +1,13 @@
 package work.ganglia.infrastructure.internal.state;
 
-import io.vertx.core.Future;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+
 import work.ganglia.config.AgentConfigProvider;
 import work.ganglia.config.ModelConfigProvider;
 import work.ganglia.port.chat.Message;

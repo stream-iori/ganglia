@@ -1,8 +1,10 @@
 package work.ganglia.kernel.loop;
 
+import java.util.Map;
+
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
-import java.util.Map;
+
 import work.ganglia.port.external.tool.ObservationEvent;
 import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.internal.state.ObservationDispatcher;

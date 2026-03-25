@@ -1,8 +1,5 @@
 package work.ganglia.infrastructure.internal.memory;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import io.vertx.core.json.Json;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -10,8 +7,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.Json;
+
 import work.ganglia.port.internal.memory.MemoryStore;
 import work.ganglia.port.internal.memory.model.MemoryEntry;
 import work.ganglia.port.internal.memory.model.MemoryIndexItem;

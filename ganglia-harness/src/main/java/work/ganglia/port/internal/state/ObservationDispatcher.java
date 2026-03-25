@@ -1,6 +1,7 @@
 package work.ganglia.port.internal.state;
 
 import java.util.Map;
+
 import work.ganglia.port.external.tool.ObservationType;
 
 /**

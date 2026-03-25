@@ -1,6 +1,7 @@
 package work.ganglia.port.external.tool;
 
 import io.vertx.core.Vertx;
+
 import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.port.internal.memory.LongTermMemory;
 

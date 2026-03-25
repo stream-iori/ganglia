@@ -1,15 +1,18 @@
 package work.ganglia.config;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+
 import work.ganglia.config.model.GangliaConfig;
 import work.ganglia.config.model.ModelConfig;
 import work.ganglia.util.Constants;

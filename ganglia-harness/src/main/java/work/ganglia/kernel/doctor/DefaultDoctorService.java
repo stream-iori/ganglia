@@ -1,11 +1,14 @@
 package work.ganglia.kernel.doctor;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import java.util.Collections;
 import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+
 import work.ganglia.port.internal.doctor.CheckResult;
 import work.ganglia.port.internal.doctor.DoctorCheck;
 import work.ganglia.port.internal.doctor.DoctorService;

@@ -1,6 +1,7 @@
 package work.ganglia.kernel.loop;
 
 import io.vertx.core.Future;
+
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.state.AgentSignal;
 

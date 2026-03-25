@@ -1,10 +1,13 @@
 package work.ganglia.kernel.loop;
 
-import io.vertx.core.Future;
 import java.util.HashMap;
 import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+
 import work.ganglia.kernel.task.AgentTask;
 import work.ganglia.kernel.task.AgentTaskResult;
 import work.ganglia.port.chat.SessionContext;

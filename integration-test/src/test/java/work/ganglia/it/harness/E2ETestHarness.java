@@ -2,14 +2,17 @@ package work.ganglia.it.harness;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
-import io.vertx.core.json.JsonObject;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
+
 import work.ganglia.BootstrapOptions;
 import work.ganglia.Ganglia;
 import work.ganglia.coding.CodingAgentBuilder;

@@ -1,6 +1,5 @@
 package work.ganglia.port.chat;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -9,6 +8,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.util.TokenCounter;
 

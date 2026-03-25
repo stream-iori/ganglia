@@ -1,15 +1,18 @@
 package work.ganglia.kernel.loop;
 
-import io.vertx.core.Future;
-import io.vertx.core.Vertx;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+
 import work.ganglia.config.AgentConfigProvider;
 import work.ganglia.infrastructure.external.llm.LLMException;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;

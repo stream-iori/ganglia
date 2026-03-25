@@ -1,6 +1,7 @@
 package work.ganglia.kernel;
 
 import io.vertx.core.Vertx;
+
 import work.ganglia.config.AgentConfigProvider;
 import work.ganglia.config.ModelConfigProvider;
 import work.ganglia.kernel.loop.FaultTolerancePolicy;

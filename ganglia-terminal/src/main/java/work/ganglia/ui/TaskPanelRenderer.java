@@ -1,10 +1,12 @@
 package work.ganglia.ui;
 
-import io.vertx.core.json.JsonObject;
 import java.io.PrintWriter;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import io.vertx.core.json.JsonObject;
+
 import work.ganglia.kernel.todo.TaskStatus;
 import work.ganglia.kernel.todo.ToDoItem;
 import work.ganglia.kernel.todo.ToDoList;
