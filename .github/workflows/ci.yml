@@ -1,0 +1,45 @@
+---
+name: "CI"
+"on":
+  push:
+    branches:
+    - "main"
+    - "master"
+  pull_request:
+    branches:
+    - "main"
+    - "master"
+  workflow_dispatch: null
+jobs:
+  backend-it:
+    name: "Backend Integration Tests"
+    runs-on: "ubuntu-latest"
+    steps:
+    - name: "Checkout code"
+      uses: "actions/checkout@v4"
+    - name: "Set up JDK 17"
+      uses: "actions/setup-java@v4"
+      with:
+        java-version: "17"
+        distribution: "temurin"
+        cache: "maven"
+    - name: "Build and Run Integration Tests"
+      run: "mvn verify -pl integration-test,ganglia-terminal -am"
+  frontend-test:
+    name: "Frontend Tests"
+    runs-on: "ubuntu-latest"
+    steps:
+    - name: "Checkout code"
+      uses: "actions/checkout@v4"
+    - name: "Set up Node.js"
+      uses: "actions/setup-node@v4"
+      with:
+        node-version: "20"
+        cache: "npm"
+        cache-dependency-path: "ganglia-webui/package-lock.json"
+    - name: "Install dependencies"
+      working-directory: "ganglia-webui"
+      run: "npm ci"
+    - name: "Run Tests"
+      working-directory: "ganglia-webui"
+      run: "npm run test -- --run"
