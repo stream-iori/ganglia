@@ -61,6 +61,8 @@ public class WebUIVerticle extends AbstractVerticle {
 
   private final int mcpServersCount;
 
+  private int actualPort;
+
   private WatchService watchService;
   private volatile Thread watcherThread;
   private long lastNotifyTime = 0;
@@ -84,6 +86,10 @@ public class WebUIVerticle extends AbstractVerticle {
     this.mcpServersCount = mcpServersCount;
   }
 
+  public int getActualPort() {
+    return actualPort;
+  }
+
   @Override
   public void start(Promise<Void> startPromise) {
     Router router = setupRouter();
@@ -96,7 +102,8 @@ public class WebUIVerticle extends AbstractVerticle {
         .onComplete(
             res -> {
               if (res.succeeded()) {
-                logger.info("WebUI Server started on port {}", port);
+                actualPort = res.result().actualPort();
+                logger.info("WebUI Server started on port {}", actualPort);
                 startPromise.complete();
                 startFileWatcher();
               } else {

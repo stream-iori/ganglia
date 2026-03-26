@@ -39,15 +39,15 @@ public class WebUIVerticleTest {
   @Test
   @DisplayName("Should serve index.html")
   void shouldServeIndex(Vertx vertx, VertxTestContext testContext) {
-    int port = 8081;
-    // Mock a webroot for testing if needed, or assume it exists
+    // Use port 0 so the OS picks a free ephemeral port, avoiding conflicts
     WebUIVerticle verticle =
-        new WebUIVerticle(port, mock(ReActAgentLoop.class), mock(SessionManager.class), 0);
+        new WebUIVerticle(0, mock(ReActAgentLoop.class), mock(SessionManager.class), 0);
 
     vertx
         .deployVerticle(verticle)
         .onComplete(
             deploy -> {
+              int port = verticle.getActualPort();
               WebClient client = WebClient.create(vertx);
               client
                   .get(port, "localhost", "/")

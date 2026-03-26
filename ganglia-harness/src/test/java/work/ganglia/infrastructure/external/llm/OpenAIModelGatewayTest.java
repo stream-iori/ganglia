@@ -30,15 +30,11 @@ class OpenAIModelGatewayTest {
   private Vertx vertx;
   private HttpServer server;
   private OpenAIModelGateway gateway;
-  private int port = 8081;
 
   @BeforeEach
   void setUp(VertxTestContext testContext) {
     vertx = Vertx.vertx();
     server = vertx.createHttpServer();
-    gateway =
-        new OpenAIModelGateway(
-            vertx, WebClient.create(vertx), "test-key", "http://localhost:" + port);
 
     server
         .requestHandler(
@@ -97,8 +93,16 @@ class OpenAIModelGatewayTest {
                 req.response().setStatusCode(404).end();
               }
             })
-        .listen(port)
-        .onComplete(testContext.succeeding(s -> testContext.completeNow()));
+        .listen(0)
+        .onComplete(
+            testContext.succeeding(
+                s -> {
+                  int port = s.actualPort();
+                  gateway =
+                      new OpenAIModelGateway(
+                          vertx, WebClient.create(vertx), "test-key", "http://localhost:" + port);
+                  testContext.completeNow();
+                }));
   }
 
   @AfterEach
