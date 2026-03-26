@@ -100,7 +100,8 @@ public record SessionContext(
       }
     }
 
-    // 2. Add previous turns as atomic units, moving backwards
+    // 2. Add previous turns as atomic units, moving backwards.
+    // Use continue (not break) so that one oversized turn does not discard all older turns.
     for (int i = previousTurns.size() - 1; i >= 0; i--) {
       Turn turn = previousTurns.get(i);
       List<Message> turnMessages = turn.flatten();
@@ -111,8 +112,8 @@ public record SessionContext(
         turnTokens += m.countTokens(counter);
       }
 
-      if (currentTokens + turnTokens > maxTokens && !fullPruned.isEmpty()) {
-        break; // Stop if adding this turn exceeds limit
+      if (currentTokens + turnTokens > maxTokens) {
+        continue; // Skip this oversized turn but keep searching older turns
       }
 
       // Add all messages from this turn to the beginning

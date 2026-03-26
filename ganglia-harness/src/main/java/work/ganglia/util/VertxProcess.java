@@ -145,7 +145,8 @@ public class VertxProcess {
         .compose(
             vp -> {
               Promise<Result> promise = Promise.promise();
-              Buffer outputBuffer = Buffer.buffer();
+              // Use Buffer[] so the lambda can swap the reference when prepending the marker.
+              Buffer[] outputBuffer = {Buffer.buffer()};
               boolean[] limitExceeded = {false};
               boolean[] finished = {false};
 
@@ -156,23 +157,29 @@ public class VertxProcess {
                           return;
                         }
 
-                        if (outputBuffer.length() + data.length() > options.maxOutputSize()) {
+                        if (outputBuffer[0].length() + data.length() > options.maxOutputSize()) {
                           limitExceeded[0] = true;
-                          int remaining = (int) (options.maxOutputSize() - outputBuffer.length());
+                          // Prepend the truncation marker so it survives any downstream
+                          // token-based truncation that takes a prefix of the output.
+                          int remaining =
+                              (int) (options.maxOutputSize() - outputBuffer[0].length());
+                          String marker =
+                              "[OUTPUT TRUNCATED: exceeded "
+                                  + options.maxOutputSize()
+                                  + " bytes. Only the first portion is shown.]\n\n";
+                          Buffer truncated = Buffer.buffer();
+                          truncated.appendString(marker);
+                          truncated.appendBuffer(outputBuffer[0]);
                           if (remaining > 0) {
-                            outputBuffer.appendBuffer(data.slice(0, remaining));
+                            truncated.appendBuffer(data.slice(0, remaining));
                           }
+                          outputBuffer[0] = truncated;
                           vp.destroyForcibly();
-                          promise.fail(
-                              new ExecutionException(
-                                  "Output size limit exceeded ("
-                                      + options.maxOutputSize()
-                                      + " bytes)",
-                                  outputBuffer.toString(StandardCharsets.UTF_8)));
+                          // Do not fail — let the exitCode handler complete the promise normally
                           return;
                         }
 
-                        outputBuffer.appendBuffer(data);
+                        outputBuffer[0].appendBuffer(data);
                         if (chunkHandler != null) {
                           chunkHandler.handle(data.toString(StandardCharsets.UTF_8));
                         }
@@ -187,7 +194,7 @@ public class VertxProcess {
                           promise.fail(
                               new ExecutionException(
                                   "Command timed out after " + options.timeoutMs() + "ms",
-                                  outputBuffer.toString(StandardCharsets.UTF_8)));
+                                  outputBuffer[0].toString(StandardCharsets.UTF_8)));
                         }
                       });
 
@@ -197,14 +204,21 @@ public class VertxProcess {
                         finished[0] = true;
                         vertx.cancelTimer(timerId);
 
-                        if (limitExceeded[0] || promise.future().isComplete()) {
+                        if (promise.future().isComplete()) {
+                          return;
+                        }
+
+                        if (limitExceeded[0]) {
+                          // Output was truncated — deliver partial result with exit code 1
+                          promise.complete(
+                              new Result(1, outputBuffer[0].toString(StandardCharsets.UTF_8)));
                           return;
                         }
 
                         if (ar.succeeded()) {
                           promise.complete(
                               new Result(
-                                  ar.result(), outputBuffer.toString(StandardCharsets.UTF_8)));
+                                  ar.result(), outputBuffer[0].toString(StandardCharsets.UTF_8)));
                         } else {
                           promise.fail(ar.cause());
                         }

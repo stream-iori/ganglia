@@ -21,12 +21,14 @@ import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.internal.memory.MemoryStore;
 import work.ganglia.port.internal.memory.ObservationCompressor;
 import work.ganglia.port.internal.memory.model.CompressionContext;
+import work.ganglia.util.TokenCounter;
 
 @ExtendWith(VertxExtension.class)
 class ObservationCompressionHookTest {
 
   private ObservationCompressor compressor;
   private MemoryStore store;
+  private TokenAwareTruncator truncator;
   private ObservationCompressionHook hook;
   private SessionContext context;
 
@@ -34,7 +36,8 @@ class ObservationCompressionHookTest {
   void setUp() {
     compressor = mock(ObservationCompressor.class);
     store = mock(MemoryStore.class);
-    hook = new ObservationCompressionHook(compressor, store);
+    truncator = new TokenAwareTruncator(new TokenCounter(), 50);
+    hook = new ObservationCompressionHook(compressor, store, truncator);
     context =
         new SessionContext(
             "test",
@@ -106,6 +109,82 @@ class ObservationCompressionHookTest {
                       () -> {
                         assertEquals(rawOutput, hookedResult.output());
                         verify(compressor, never()).requiresCompression(anyString());
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
+  void testErrorStatusOutputIsTruncated(VertxTestContext testContext) {
+    // ERROR status with very long output should still be truncated
+    String rawOutput = "error detail ".repeat(200); // > 50 tokens
+    ToolCall call = new ToolCall("c1", "bash", Map.of());
+    ToolInvokeResult result = ToolInvokeResult.error(rawOutput);
+
+    when(compressor.requiresCompression(rawOutput)).thenReturn(false);
+
+    hook.postToolExecute(call, result, context)
+        .onComplete(
+            testContext.succeeding(
+                hookedResult -> {
+                  testContext.verify(
+                      () -> {
+                        assertTrue(
+                            hookedResult.output().contains("[TRUNCATED:"),
+                            "Long error output should be truncated");
+                        assertEquals(
+                            ToolInvokeResult.Status.ERROR,
+                            hookedResult.status(),
+                            "Status must remain ERROR");
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
+  void testPureTruncationWhenNoLlmCompressor(VertxTestContext testContext) {
+    ObservationCompressionHook noLlmHook = new ObservationCompressionHook(truncator);
+    String rawOutput = "word ".repeat(200); // > 50 tokens
+    ToolCall call = new ToolCall("c1", "cat", Map.of());
+    ToolInvokeResult result = ToolInvokeResult.success(rawOutput);
+
+    noLlmHook
+        .postToolExecute(call, result, context)
+        .onComplete(
+            testContext.succeeding(
+                hookedResult -> {
+                  testContext.verify(
+                      () -> {
+                        assertTrue(
+                            hookedResult.output().contains("[TRUNCATED:"),
+                            "Output must be truncated by TokenAwareTruncator");
+                        assertFalse(
+                            hookedResult.output().contains("recall_memory"),
+                            "Pure truncation must not mention recall_memory");
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
+  void testLlmFailureFallsBackToTruncation(VertxTestContext testContext) {
+    String rawOutput = "data ".repeat(200); // > 50 tokens
+    ToolCall call = new ToolCall("c1", "grep", Map.of());
+    ToolInvokeResult result = ToolInvokeResult.success(rawOutput);
+
+    when(compressor.requiresCompression(rawOutput)).thenReturn(true);
+    when(compressor.compress(eq(rawOutput), any(CompressionContext.class)))
+        .thenReturn(Future.failedFuture(new RuntimeException("LLM unavailable")));
+
+    hook.postToolExecute(call, result, context)
+        .onComplete(
+            testContext.succeeding(
+                hookedResult -> {
+                  testContext.verify(
+                      () -> {
+                        assertTrue(
+                            hookedResult.output().contains("[TRUNCATED:"),
+                            "Should fall back to truncation on LLM failure");
                         testContext.completeNow();
                       });
                 }));

@@ -1,6 +1,6 @@
 package work.ganglia.infrastructure.internal.prompt;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -17,6 +17,7 @@ import work.ganglia.kernel.task.DefaultAgentTaskFactory;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.Role;
 import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.chat.Turn;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.stubs.StubToolExecutor;
 import work.ganglia.util.TokenCounter;
@@ -48,6 +49,106 @@ class StandardPromptEngineTest {
     assertEquals(3, pruned.size());
     assertEquals("Msg 1", pruned.get(0).content());
     assertEquals("Msg 3", pruned.get(2).content());
+  }
+
+  @Test
+  void testCapToolMessagesInPrepareRequest(Vertx vertx, VertxTestContext testContext) {
+    // Build a very long TOOL message that exceeds 4000 tokens
+    String longToolOutput = "word ".repeat(5000); // ~5000 tokens
+    Message userMsg = Message.user("do something");
+    Message assistantMsg = Message.assistant("calling tool", List.of());
+    Message toolMsg = Message.tool("call-1", "bash", longToolOutput);
+
+    Turn turn = Turn.newTurn("t1", userMsg);
+    turn = turn.withStep(assistantMsg).withStep(toolMsg);
+
+    TokenCounter counter = new TokenCounter();
+    AgentTaskFactory taskFactory =
+        new DefaultAgentTaskFactory(() -> null, new StubToolExecutor(), null, null, null);
+    StandardPromptEngine engine =
+        new StandardPromptEngine(vertx, null, null, taskFactory, counter, null);
+
+    ModelOptions options = new ModelOptions(0.0, 100, "test-model", true);
+    SessionContext ctx =
+        new SessionContext(
+            "sid",
+            Collections.emptyList(),
+            turn,
+            Collections.emptyMap(),
+            Collections.emptyList(),
+            options);
+
+    engine
+        .prepareRequest(ctx, 0)
+        .onComplete(
+            testContext.succeeding(
+                request -> {
+                  testContext.verify(
+                      () -> {
+                        // Find the TOOL message in the prepared request
+                        Message toolInRequest =
+                            request.messages().stream()
+                                .filter(m -> m.role() == Role.TOOL)
+                                .findFirst()
+                                .orElse(null);
+                        assertNotNull(toolInRequest, "TOOL message should be present");
+                        assertTrue(
+                            toolInRequest.content().contains("[TRUNCATED:"),
+                            "Oversized tool output must be truncated");
+                        assertTrue(
+                            counter.count(toolInRequest.content()) <= 4000 + 50,
+                            "Truncated output must be near or below 4000 tokens");
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
+  void testSmallToolMessageNotTruncated(Vertx vertx, VertxTestContext testContext) {
+    String shortOutput = "small result";
+    Message userMsg = Message.user("do something");
+    Message assistantMsg = Message.assistant("calling tool", List.of());
+    Message toolMsg = Message.tool("call-1", "bash", shortOutput);
+
+    Turn turn = Turn.newTurn("t1", userMsg);
+    turn = turn.withStep(assistantMsg).withStep(toolMsg);
+
+    TokenCounter counter = new TokenCounter();
+    AgentTaskFactory taskFactory =
+        new DefaultAgentTaskFactory(() -> null, new StubToolExecutor(), null, null, null);
+    StandardPromptEngine engine =
+        new StandardPromptEngine(vertx, null, null, taskFactory, counter, null);
+
+    ModelOptions options = new ModelOptions(0.0, 100, "test-model", true);
+    SessionContext ctx =
+        new SessionContext(
+            "sid",
+            Collections.emptyList(),
+            turn,
+            Collections.emptyMap(),
+            Collections.emptyList(),
+            options);
+
+    engine
+        .prepareRequest(ctx, 0)
+        .onComplete(
+            testContext.succeeding(
+                request -> {
+                  testContext.verify(
+                      () -> {
+                        Message toolInRequest =
+                            request.messages().stream()
+                                .filter(m -> m.role() == Role.TOOL)
+                                .findFirst()
+                                .orElse(null);
+                        assertNotNull(toolInRequest);
+                        assertEquals(
+                            shortOutput,
+                            toolInRequest.content(),
+                            "Small tool output must not be modified");
+                        testContext.completeNow();
+                      });
+                }));
   }
 
   @Test

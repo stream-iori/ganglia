@@ -34,6 +34,7 @@ import work.ganglia.infrastructure.internal.state.TraceManager;
 import work.ganglia.kernel.doctor.DefaultDoctorService;
 import work.ganglia.kernel.hook.InterceptorPipeline;
 import work.ganglia.kernel.hook.builtin.ObservationCompressionHook;
+import work.ganglia.kernel.hook.builtin.TokenAwareTruncator;
 import work.ganglia.kernel.loop.AgentLoopFactory;
 import work.ganglia.kernel.loop.ConsecutiveFailurePolicy;
 import work.ganglia.kernel.loop.DefaultObservationDispatcher;
@@ -193,7 +194,12 @@ public class GangliaKernel {
 
     InterceptorPipeline pipeline = new InterceptorPipeline(dispatcher);
     pipeline.addInterceptor(
-        new ObservationCompressionHook(memory.observationCompressor(), memory.memoryStore()));
+        new ObservationCompressionHook(
+            memory.observationCompressor(),
+            memory.memoryStore(),
+            // 1 500 tokens keeps a degraded turn well within the 2 000-token history budget,
+            // so one LLM-compression failure does not crowd out all other turns.
+            new TokenAwareTruncator(tokenCounter, 1500)));
 
     ToolsFactory toolsFactory = new ToolsFactory(vertx, projectRoot);
     StandardPromptEngine promptEngine =

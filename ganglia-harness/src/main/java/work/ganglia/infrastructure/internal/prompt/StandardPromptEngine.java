@@ -8,6 +8,7 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 
 import work.ganglia.infrastructure.internal.prompt.context.*;
+import work.ganglia.kernel.hook.builtin.TokenAwareTruncator;
 import work.ganglia.kernel.subagent.SubAgentContextSource;
 import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.port.chat.*;
@@ -28,9 +29,12 @@ import work.ganglia.util.TokenCounter;
 
 /** Standard implementation of PromptEngine using the ContextEngine mechanism. */
 public class StandardPromptEngine implements PromptEngine {
+  private static final int MAX_TOOL_OUTPUT_TOKENS = 4000;
+
   private final List<ContextSource> sources = new ArrayList<>();
   private final ContextComposer composer;
   private final TokenCounter tokenCounter;
+  private final TokenAwareTruncator toolOutputTruncator;
   private final Vertx vertx;
   private final MemoryService memoryService;
   private final SkillRuntime skillRuntime;
@@ -64,6 +68,7 @@ public class StandardPromptEngine implements PromptEngine {
       work.ganglia.config.ModelConfigProvider modelConfigProvider) {
     this.tokenCounter = tokenCounter;
     this.composer = new ContextComposer(this.tokenCounter);
+    this.toolOutputTruncator = new TokenAwareTruncator(tokenCounter, MAX_TOOL_OUTPUT_TOKENS);
     this.taskFactory = taskFactory;
     this.vertx = vertx;
     this.memoryService = memoryService;
@@ -143,7 +148,7 @@ public class StandardPromptEngine implements PromptEngine {
               // 2. Prune and add session history
               List<Message> prunedHistory =
                   context.getPrunedHistory(2000, tokenCounter); // Keep last 2000 tokens of history
-              modelHistory.addAll(sanitizeHistory(prunedHistory));
+              modelHistory.addAll(capToolMessages(sanitizeHistory(prunedHistory)));
 
               // 3. Resolve Model Options
               ModelOptions currentOptions = context.modelOptions();
@@ -168,6 +173,27 @@ public class StandardPromptEngine implements PromptEngine {
 
               return new LLMRequest(modelHistory, tools, currentOptions);
             });
+  }
+
+  /**
+   * Caps oversized TOOL messages to {@link #MAX_TOOL_OUTPUT_TOKENS} tokens so they don't consume
+   * the entire context window. Message structure is preserved; only the content string is
+   * truncated.
+   */
+  private List<Message> capToolMessages(List<Message> messages) {
+    return messages.stream()
+        .map(
+            m -> {
+              if (m.role() != Role.TOOL) return m;
+              if (m.content() == null) return m;
+              String toolName =
+                  m.toolObservation() != null ? m.toolObservation().toolName() : "tool-output";
+              String capped = toolOutputTruncator.truncate(m.content(), toolName);
+              if (capped == m.content()) return m; // unchanged reference — no truncation needed
+              return Message.tool(
+                  m.toolObservation().toolCallId(), m.toolObservation().toolName(), capped);
+            })
+        .toList();
   }
 
   private List<Message> sanitizeHistory(List<Message> history) {
