@@ -2,7 +2,10 @@ package work.ganglia.ui;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.jline.terminal.Terminal;
@@ -14,11 +17,19 @@ import org.junit.jupiter.api.Test;
 public class DetailViewTest {
 
   private Terminal terminal;
+  private ByteArrayOutputStream output;
   private DetailView detailView;
 
   @BeforeEach
   void setUp() throws IOException {
-    terminal = TerminalBuilder.builder().dumb(true).streams(System.in, System.out).build();
+    output = new ByteArrayOutputStream();
+    terminal =
+        TerminalBuilder.builder()
+            .system(false)
+            .dumb(true)
+            .encoding(StandardCharsets.UTF_8)
+            .streams(new ByteArrayInputStream(new byte[0]), output)
+            .build();
     detailView = new DetailView(terminal);
   }
 

@@ -2,9 +2,11 @@ package work.ganglia.ui;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -27,7 +29,13 @@ public class TaskPanelRendererTest {
   @BeforeEach
   void setUp() throws IOException {
     output = new ByteArrayOutputStream();
-    terminal = TerminalBuilder.builder().dumb(true).streams(System.in, output).build();
+    terminal =
+        TerminalBuilder.builder()
+            .system(false)
+            .dumb(true)
+            .encoding(StandardCharsets.UTF_8)
+            .streams(new ByteArrayInputStream(new byte[0]), output)
+            .build();
     renderer = new TaskPanelRenderer();
   }
 
@@ -85,7 +93,7 @@ public class TaskPanelRendererTest {
     renderer.renderAt(writer, 10, 80, 4);
     writer.flush();
 
-    String out = output.toString();
+    String out = output.toString(StandardCharsets.UTF_8);
     // Should contain done checkmark, in-progress square, todo empty square
     assertTrue(out.contains("\u2714"), "Should have checkmark for DONE task");
     assertTrue(out.contains("\u25a0"), "Should have filled square for IN_PROGRESS task");
@@ -102,7 +110,7 @@ public class TaskPanelRendererTest {
     renderer.renderAt(writer, 10, 80, 2);
     writer.flush();
 
-    String out = output.toString();
+    String out = output.toString(StandardCharsets.UTF_8);
     assertTrue(out.contains("Implement feature X"), "Header should show active task description");
   }
 
@@ -115,7 +123,7 @@ public class TaskPanelRendererTest {
     renderer.renderAt(writer, 10, 80, 2);
     writer.flush();
 
-    String out = output.toString();
+    String out = output.toString(StandardCharsets.UTF_8);
     assertTrue(out.contains("Tasks"), "Should show generic 'Tasks' header when no active task");
   }
 
@@ -127,7 +135,7 @@ public class TaskPanelRendererTest {
     renderer.renderAt(writer, 10, 80, 0);
     writer.flush();
 
-    String out = output.toString();
+    String out = output.toString(StandardCharsets.UTF_8);
     // Should be empty or contain no task-related content
     assertFalse(out.contains("\u2714"), "Should not render anything for empty plan");
   }
@@ -172,8 +180,8 @@ public class TaskPanelRendererTest {
     renderer.renderAt(writer, 10, 80, 3);
     writer.flush();
 
-    String out = output.toString();
-    assertTrue(out.contains("\u251c"), "Should have ├ connector for non-last item");
-    assertTrue(out.contains("\u2514"), "Should have └ connector for last item");
+    String out = output.toString(StandardCharsets.UTF_8);
+    assertTrue(out.contains("\u251c"), "Should have \u251c connector for non-last item");
+    assertTrue(out.contains("\u2514"), "Should have \u2514 connector for last item");
   }
 }
