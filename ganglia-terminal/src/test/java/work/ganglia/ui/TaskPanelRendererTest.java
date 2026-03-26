@@ -95,9 +95,10 @@ public class TaskPanelRendererTest {
 
     String out = output.toString(StandardCharsets.UTF_8);
     // Should contain done checkmark, in-progress square, todo empty square
-    assertTrue(out.contains("\u2714"), "Should have checkmark for DONE task");
-    assertTrue(out.contains("\u25a0"), "Should have filled square for IN_PROGRESS task");
-    assertTrue(out.contains("\u25a1"), "Should have empty square for TODO task");
+    assertTrue(out.contains("\u2714"), "Should have checkmark for DONE task. Output: " + out);
+    assertTrue(
+        out.contains("\u25a0"), "Should have filled square for IN_PROGRESS task. Output: " + out);
+    assertTrue(out.contains("\u25a1"), "Should have empty square for TODO task. Output: " + out);
   }
 
   @Test
@@ -111,7 +112,9 @@ public class TaskPanelRendererTest {
     writer.flush();
 
     String out = output.toString(StandardCharsets.UTF_8);
-    assertTrue(out.contains("Implement feature X"), "Header should show active task description");
+    assertTrue(
+        out.contains("Implement feature X"),
+        "Header should show active task description. Output: " + out);
   }
 
   @Test
@@ -124,7 +127,9 @@ public class TaskPanelRendererTest {
     writer.flush();
 
     String out = output.toString(StandardCharsets.UTF_8);
-    assertTrue(out.contains("Tasks"), "Should show generic 'Tasks' header when no active task");
+    assertTrue(
+        out.contains("Tasks"),
+        "Should show generic 'Tasks' header when no active task. Output: " + out);
   }
 
   @Test
@@ -137,7 +142,8 @@ public class TaskPanelRendererTest {
 
     String out = output.toString(StandardCharsets.UTF_8);
     // Should be empty or contain no task-related content
-    assertFalse(out.contains("\u2714"), "Should not render anything for empty plan");
+    assertFalse(
+        out.contains("\u2714"), "Should not render anything for empty plan. Output: " + out);
   }
 
   @Test
@@ -181,7 +187,9 @@ public class TaskPanelRendererTest {
     writer.flush();
 
     String out = output.toString(StandardCharsets.UTF_8);
-    assertTrue(out.contains("\u251c"), "Should have \u251c connector for non-last item");
-    assertTrue(out.contains("\u2514"), "Should have \u2514 connector for last item");
+    assertTrue(
+        out.contains("\u251c"), "Should have \u251c connector for non-last item. Output: " + out);
+    assertTrue(
+        out.contains("\u2514"), "Should have \u2514 connector for last item. Output: " + out);
   }
 }

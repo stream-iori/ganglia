@@ -26,7 +26,7 @@ public class ResponseRenderer {
   private String lastRenderedResponse = null;
   private boolean lastResponseExpanded = false;
   private int lastResponseLineCount = 0;
-  private boolean responseRendered = false;
+  private volatile boolean responseRendered = false;
   private volatile boolean toggleRequested = false;
 
   public ResponseRenderer(
@@ -53,13 +53,13 @@ public class ResponseRenderer {
       if (lines.isEmpty()) {
         return;
       }
+      responseRendered = true;
       for (String line : lines) {
         writer.println(line);
       }
       lastRenderedResponse = content;
       lastResponseExpanded = full;
       lastResponseLineCount = lines.size();
-      responseRendered = true;
     }
   }
 
@@ -182,25 +182,32 @@ public class ResponseRenderer {
     for (int i = 0; i < displayCount; i++) {
       String dot = (i == 0) ? RESPONSE_DOT : CONTINUATION_DOT;
       AttributedStyle style = (i == 0) ? dotStyle : contStyle;
-      result.add(
+      AttributedStringBuilder asb =
           new AttributedStringBuilder()
               .style(style)
               .append(dot)
               .style(AttributedStyle.DEFAULT)
-              .append(" " + trimmedLines.get(i))
-              .toAnsi());
+              .append(" " + trimmedLines.get(i));
+      result.add(toAnsiFallback(asb));
     }
 
     if (truncated) {
       int remaining = trimmedLines.size() - MAX_PREVIEW_LINES;
-      result.add(
+      AttributedStringBuilder asb =
           new AttributedStringBuilder()
               .style(AttributedStyle.DEFAULT.faint())
-              .append("  ... +" + remaining + " lines (Ctrl+O toggle)")
-              .toAnsi());
+              .append("  ... +" + remaining + " lines (Ctrl+O toggle)");
+      result.add(toAnsiFallback(asb));
     }
 
     return result;
+  }
+
+  private String toAnsiFallback(AttributedStringBuilder asb) {
+    if (terminal != null) {
+      return asb.toAnsi(terminal);
+    }
+    return asb.toAnsi();
   }
 
   private int getResponseContentWidth() {

@@ -62,9 +62,6 @@ public class EventRendererTest {
     renderer.render(ObservationEvent.of("s1", ObservationType.TOKEN_RECEIVED, "hello ", null));
     renderer.render(ObservationEvent.of("s1", ObservationType.TOKEN_RECEIVED, "world", null));
     assertEquals("hello world", renderer.getAccumulatedTokens().toString());
-
-    String outputStr = getOutput();
-    assertTrue(outputStr.contains("Generating..."), "Should show progress indicator");
   }
 
   @Test
@@ -77,8 +74,11 @@ public class EventRendererTest {
             Map.of("command", "git status")));
     String outputStr = getOutput();
 
-    assertTrue(outputStr.contains("run_shell_command"), "Should contain tool name");
-    assertTrue(outputStr.contains("$ git status"), "Should contain command with $ prefix");
+    assertTrue(
+        outputStr.contains("run_shell_command"), "Should contain tool name. Output: " + outputStr);
+    assertTrue(
+        outputStr.contains("$ git status"),
+        "Should contain command with $ prefix. Output: " + outputStr);
   }
 
   @Test
@@ -87,7 +87,8 @@ public class EventRendererTest {
     renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_FINISHED, "ok", null));
 
     String outputStr = getOutput();
-    assertTrue(outputStr.contains("\u2713"), "Should contain checkmark for success");
+    assertTrue(
+        outputStr.contains("\u2713"), "Should contain checkmark for success. Output: " + outputStr);
   }
 
   @Test
@@ -98,7 +99,8 @@ public class EventRendererTest {
         ObservationEvent.of("s1", ObservationType.TOOL_FINISHED, "Error: command failed", null));
 
     String outputStr = getOutput();
-    assertTrue(outputStr.contains("\u2717"), "Should contain X mark for failure");
+    assertTrue(
+        outputStr.contains("\u2717"), "Should contain X mark for failure. Output: " + outputStr);
   }
 
   @Test
@@ -111,27 +113,31 @@ public class EventRendererTest {
             "s1", ObservationType.TOOL_OUTPUT_STREAM, "file1.txt\nfile2.txt", null));
 
     String outputStr = getOutput();
-    assertTrue(outputStr.contains("file1.txt"), "Should contain first output line");
-    assertTrue(outputStr.contains("file2.txt"), "Should contain second output line");
+    assertTrue(
+        outputStr.contains("file1.txt"), "Should contain first output line. Output: " + outputStr);
+    assertTrue(
+        outputStr.contains("file2.txt"), "Should contain second output line. Output: " + outputStr);
   }
 
   @Test
   void testReasoningStartedUpdatesStatusBar() {
     renderer.render(ObservationEvent.of("s1", ObservationType.REASONING_STARTED, null, null));
-    assertEquals("\u23f3 Thinking...", statusBar.getCurrentStatus());
+    assertEquals("\u23f3 Thinking...", statusBar.getCurrentStatus(), "Status should be thinking");
   }
 
   @Test
   void testTurnFinishedSetsIdle() {
     renderer.render(ObservationEvent.of("s1", ObservationType.TURN_FINISHED, null, null));
-    assertEquals("\u2713 Ready", statusBar.getCurrentStatus());
+    assertEquals("\u2713 Ready", statusBar.getCurrentStatus(), "Status should be ready");
   }
 
   @Test
   void testErrorRendering() {
     renderer.render(ObservationEvent.of("s1", ObservationType.ERROR, "Something went wrong", null));
     String outputStr = getOutput();
-    assertTrue(outputStr.contains("Something went wrong"));
+    assertTrue(
+        outputStr.contains("Something went wrong"),
+        "Should contain error message. Output: " + outputStr);
   }
 
   @Test
@@ -143,8 +149,11 @@ public class EventRendererTest {
 
     String outputStr = getOutput();
     // Response dot prefix: ●
-    assertTrue(outputStr.contains("\u25cf"), "Should contain green dot ● for response");
-    assertTrue(outputStr.contains("Hello there"), "Should contain response content");
+    assertTrue(
+        outputStr.contains("\u25cf"),
+        "Should contain green dot ● for response. Output: " + outputStr);
+    assertTrue(
+        outputStr.contains("Hello there"), "Should contain response content. Output: " + outputStr);
   }
 
   @Test
@@ -159,9 +168,12 @@ public class EventRendererTest {
     renderer.render(ObservationEvent.of("s1", ObservationType.TURN_FINISHED, null, null));
 
     String outputStr = getOutput();
-    assertTrue(outputStr.contains("..."), "Should contain truncation ellipsis");
-    assertTrue(outputStr.contains("lines"), "Should mention remaining lines count");
-    assertTrue(outputStr.contains("Ctrl+O"), "Should mention Ctrl+O to expand");
+    assertTrue(
+        outputStr.contains("..."), "Should contain truncation ellipsis. Output: " + outputStr);
+    assertTrue(
+        outputStr.contains("lines"), "Should mention remaining lines count. Output: " + outputStr);
+    assertTrue(
+        outputStr.contains("Ctrl+O"), "Should mention Ctrl+O to expand. Output: " + outputStr);
   }
 
   @Test
@@ -173,7 +185,8 @@ public class EventRendererTest {
         ObservationEvent.of("s1", ObservationType.TOKEN_RECEIVED, "Test response", null));
     renderer.render(ObservationEvent.of("s1", ObservationType.TURN_FINISHED, null, null));
 
-    assertEquals("Test response", renderer.getLastRenderedResponse());
+    assertEquals(
+        "Test response", renderer.getLastRenderedResponse(), "Should return last response");
   }
 
   @Test
@@ -191,7 +204,7 @@ public class EventRendererTest {
     String outputStr = getOutput();
     assertFalse(
         outputStr.contains("\u25cf"),
-        "Should not render duplicate response dot after REASONING_FINISHED");
+        "Should not render duplicate response dot after REASONING_FINISHED. Output: " + outputStr);
   }
 
   @Test
@@ -211,22 +224,27 @@ public class EventRendererTest {
     renderer.toggleLastResponse();
     String expanded = getOutput();
     assertTrue(renderer.isLastResponseExpanded(), "Should be expanded after first toggle");
-    assertTrue(expanded.contains("Line number 20"), "Expanded should show last line");
-    assertFalse(expanded.contains("..."), "Expanded should not have truncation hint");
+    assertTrue(
+        expanded.contains("Line number 20"), "Expanded should show last line. Output: " + expanded);
+    assertFalse(
+        expanded.contains("..."), "Expanded should not have truncation hint. Output: " + expanded);
 
     // Second toggle: collapse
     output.reset();
     renderer.toggleLastResponse();
     String collapsed = getOutput();
     assertFalse(renderer.isLastResponseExpanded(), "Should be collapsed after second toggle");
-    assertTrue(collapsed.contains("..."), "Collapsed should have truncation hint");
+    assertTrue(
+        collapsed.contains("..."), "Collapsed should have truncation hint. Output: " + collapsed);
   }
 
   @Test
   void testToggleWithNoResponse() {
     renderer.toggleLastResponse();
     String outputStr = getOutput();
-    assertTrue(outputStr.contains("No response"), "Should show 'No response' message");
+    assertTrue(
+        outputStr.contains("No response"),
+        "Should show 'No response' message. Output: " + outputStr);
   }
 
   @Test

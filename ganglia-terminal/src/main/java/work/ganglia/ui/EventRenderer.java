@@ -109,8 +109,9 @@ public class EventRenderer {
   private void handleReasoningFinished() {
     synchronized (statusBar.terminalWriteLock) {
       writer.print(AnsiCodes.moveAndClear(statusBar.getScrollBottom()));
-      if (accumulatedTokens.length() > 0) {
-        response.render(accumulatedTokens.toString(), false);
+      String content = accumulatedTokens.toString();
+      if (!content.isEmpty() && !response.isResponseRendered()) {
+        response.render(content, false);
       }
       statusBar.parkCursorAtInput();
       writer.flush();
