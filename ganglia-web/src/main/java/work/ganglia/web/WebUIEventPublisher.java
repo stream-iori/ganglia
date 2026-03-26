@@ -221,6 +221,27 @@ public class WebUIEventPublisher implements AgentLoopObserver {
           publish(sessionId, EventType.PLAN_UPDATED, new ServerEvent.PlanUpdateData(plan));
         }
       }
+      case SESSION_STARTED -> {
+        String firstPrompt =
+            data != null && data.containsKey("firstPrompt")
+                ? data.get("firstPrompt").toString()
+                : content;
+        publish(
+            sessionId,
+            EventType.SESSION_STARTED,
+            new ServerEvent.SessionStartedData(sessionId, firstPrompt));
+      }
+      case SESSION_ENDED -> {
+        long durationMs =
+            data != null && data.containsKey("durationMs")
+                ? Long.parseLong(data.get("durationMs").toString())
+                : 0L;
+        publish(
+            sessionId,
+            EventType.SESSION_ENDED,
+            new ServerEvent.SessionEndedData(sessionId, durationMs),
+            false);
+      }
     }
   }
 

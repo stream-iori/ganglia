@@ -23,7 +23,7 @@ import work.ganglia.port.internal.state.ObservationDispatcher;
  * hooks sequentially. It also handles core lifecycle observations.
  */
 public class InterceptorPipeline {
-  private static final Logger log = LoggerFactory.getLogger(InterceptorPipeline.class);
+  private static final Logger logger = LoggerFactory.getLogger(InterceptorPipeline.class);
   private final List<AgentInterceptor> interceptors = new ArrayList<>();
   private final ObservationDispatcher dispatcher;
 
@@ -39,7 +39,18 @@ public class InterceptorPipeline {
 
   public Future<SessionContext> executePreTurn(SessionContext context, String userInput) {
     if (dispatcher != null) {
-      dispatcher.dispatch(context.sessionId(), ObservationType.TURN_STARTED, userInput);
+      if (context.previousTurns().isEmpty() && context.currentTurn() == null) {
+        dispatcher.dispatch(
+            context.sessionId(),
+            ObservationType.SESSION_STARTED,
+            userInput,
+            Map.of("firstPrompt", userInput != null ? userInput : ""));
+      }
+      int turnNumber = context.previousTurns().size() + 1;
+      Map<String, Object> turnData = new HashMap<>();
+      turnData.put("turnNumber", turnNumber);
+      if (userInput != null) turnData.put("prompt", userInput);
+      dispatcher.dispatch(context.sessionId(), ObservationType.TURN_STARTED, userInput, turnData);
     }
     Future<SessionContext> f = Future.succeededFuture(context);
     for (AgentInterceptor hook : interceptors) {
@@ -81,8 +92,10 @@ public class InterceptorPipeline {
 
   public Future<Void> executePostTurn(SessionContext context, Message finalResponse) {
     if (dispatcher != null) {
+      Map<String, Object> finishData = new HashMap<>();
+      finishData.put("turnNumber", context.previousTurns().size() + 1);
       dispatcher.dispatch(
-          context.sessionId(), ObservationType.TURN_FINISHED, finalResponse.content());
+          context.sessionId(), ObservationType.TURN_FINISHED, finalResponse.content(), finishData);
     }
     Future<Void> f = Future.succeededFuture();
     for (AgentInterceptor hook : interceptors) {
@@ -98,7 +111,7 @@ public class InterceptorPipeline {
                             if (hookName.isEmpty()) {
                               hookName = hook.getClass().getName();
                             }
-                            log.warn(
+                            logger.warn(
                                 "Interceptor [{}] failed during postTurn, but continuing. Error: {}",
                                 hookName,
                                 err.getMessage());

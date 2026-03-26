@@ -52,6 +52,7 @@ public class ReActAgentLoop implements AgentLoop {
 
   private final ConcurrentHashMap<String, AgentSignal> sessionSignals = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, String> pendingAsks = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, Long> sessionStartTimes = new ConcurrentHashMap<>();
 
   private ReActAgentLoop(Builder builder) {
     this.vertx = builder.vertx;
@@ -89,7 +90,8 @@ public class ReActAgentLoop implements AgentLoop {
     if (signal == null || signal.isAborted()) {
       if (type != ObservationType.ERROR
           && type != ObservationType.TURN_FINISHED
-          && type != ObservationType.SYSTEM_EVENT) {
+          && type != ObservationType.SYSTEM_EVENT
+          && type != ObservationType.SESSION_ENDED) {
         return;
       }
     }
@@ -100,9 +102,20 @@ public class ReActAgentLoop implements AgentLoop {
     }
   }
 
+  private void publishSessionEnded(String sessionId) {
+    Long startTime = sessionStartTimes.remove(sessionId);
+    long durationMs = startTime != null ? System.currentTimeMillis() - startTime : 0L;
+    Map<String, Object> data = new HashMap<>();
+    data.put("durationMs", durationMs);
+    if (dispatcher != null) {
+      dispatcher.dispatch(sessionId, ObservationType.SESSION_ENDED, null, data);
+    }
+  }
+
   @Override
   public Future<String> run(String userInput, SessionContext initialContext, AgentSignal signal) {
     sessionSignals.put(initialContext.sessionId(), signal);
+    sessionStartTimes.put(initialContext.sessionId(), System.currentTimeMillis());
 
     return pipeline
         .executePreTurn(initialContext, userInput)
@@ -123,7 +136,11 @@ public class ReActAgentLoop implements AgentLoop {
                         return Future.succeededFuture(finalResponse);
                       });
             })
-        .onComplete(v -> sessionSignals.remove(initialContext.sessionId()))
+        .onComplete(
+            v -> {
+              sessionSignals.remove(initialContext.sessionId());
+              publishSessionEnded(initialContext.sessionId());
+            })
         .recover(
             err -> {
               if (!(err instanceof AgentInterruptException)
@@ -148,6 +165,7 @@ public class ReActAgentLoop implements AgentLoop {
       String askId, String toolOutput, SessionContext initialContext, AgentSignal signal) {
     logger.debug("Resuming session: {} with askId: {}", initialContext.sessionId(), askId);
     sessionSignals.put(initialContext.sessionId(), signal);
+    sessionStartTimes.putIfAbsent(initialContext.sessionId(), System.currentTimeMillis());
 
     String toolCallId = askId != null ? pendingAsks.remove(askId) : null;
     ToolCall pendingCall = findPendingToolCall(initialContext, toolCallId);
@@ -169,7 +187,11 @@ public class ReActAgentLoop implements AgentLoop {
                   .onFailure(err -> logger.warn("PostTurn hook failed", err));
               return Future.succeededFuture(finalResponse);
             })
-        .onComplete(v -> sessionSignals.remove(initialContext.sessionId()))
+        .onComplete(
+            v -> {
+              sessionSignals.remove(initialContext.sessionId());
+              publishSessionEnded(initialContext.sessionId());
+            })
         .recover(
             err -> {
               if (!(err instanceof AgentInterruptException)

@@ -45,4 +45,8 @@ public record ServerEvent(String eventId, long timestamp, EventType type, Object
   public record InitConfigData(String workspacePath, String sessionId, int mcpCount) {}
 
   public record PlanUpdateData(work.ganglia.kernel.todo.ToDoList plan) {}
+
+  public record SessionStartedData(String sessionId, String firstPrompt) {}
+
+  public record SessionEndedData(String sessionId, long durationMs) {}
 }

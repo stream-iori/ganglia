@@ -103,7 +103,7 @@ public class TokenUsageManager {
   }
 
   public SessionUsage getTotals(String sessionId) {
-    return sessionTotals.get(SessionUsage.EMPTY_USAGE);
+    return sessionTotals.getOrDefault(sessionId, new SessionUsage());
   }
 
   public static class SessionUsage {

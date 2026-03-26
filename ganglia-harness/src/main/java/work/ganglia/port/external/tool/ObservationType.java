@@ -2,6 +2,9 @@ package work.ganglia.port.external.tool;
 
 /** Types of observations that can occur during the agent loop. */
 public enum ObservationType {
+  /** A new session has been initiated. */
+  SESSION_STARTED,
+
   /** A new turn has started. */
   TURN_STARTED,
 
@@ -28,6 +31,9 @@ public enum ObservationType {
 
   /** The turn has completed. */
   TURN_FINISHED,
+
+  /** A session has concluded (normal completion, abort, or error). */
+  SESSION_ENDED,
 
   /** An error occurred in the loop. */
   ERROR,

@@ -59,12 +59,23 @@ public class TraceManager {
     String time = LocalTime.now().format(TIME_FORMATTER);
 
     switch (event.type()) {
+      case SESSION_STARTED:
+        sb.append("\n====\n# Session Started [")
+            .append(time)
+            .append("] Session: ")
+            .append(event.sessionId())
+            .append("\n");
+        if (event.content() != null)
+          sb.append("**Initial Prompt:** ").append(event.content()).append("\n");
+        break;
       case TURN_STARTED:
         sb.append("\n---\n# Turn Started [")
             .append(time)
             .append("] Session: ")
             .append(event.sessionId())
             .append("\n");
+        if (event.data() != null && event.data().containsKey("turnNumber"))
+          sb.append("**Turn:** ").append(event.data().get("turnNumber")).append("\n");
         if (event.content() != null) sb.append("**User:** ").append(event.content()).append("\n");
         break;
       case REASONING_STARTED:
@@ -96,8 +107,17 @@ public class TraceManager {
         break;
       case TURN_FINISHED:
         sb.append("\n## Turn Finished [").append(time).append("]\n");
+        if (event.data() != null && event.data().containsKey("turnNumber"))
+          sb.append("**Turn:** ").append(event.data().get("turnNumber")).append("\n");
         if (event.content() != null)
           sb.append("**Final Response:** ").append(event.content()).append("\n");
+        break;
+      case SESSION_ENDED:
+        sb.append("\n====\n# Session Ended [").append(time).append("]\n");
+        if (event.data() != null && event.data().containsKey("durationMs")) {
+          long ms = Long.parseLong(event.data().get("durationMs").toString());
+          sb.append("**Duration:** ").append(ms / 1000).append("s (").append(ms).append("ms)\n");
+        }
         break;
       case ERROR:
         sb.append("\n### \u274C Error [").append(time).append("]\n");
