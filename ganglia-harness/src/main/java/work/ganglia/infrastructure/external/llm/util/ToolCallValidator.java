@@ -35,7 +35,7 @@ public class ToolCallValidator {
     }
 
     try {
-      JsonSchema schema = schemaCache.computeIfAbsent(schemaJson, s -> factory.getSchema(s));
+      JsonSchema schema = schemaCache.computeIfAbsent(schemaJson, factory::getSchema);
       JsonNode node = mapper.valueToTree(arguments);
 
       Set<ValidationMessage> errors = schema.validate(node);
@@ -44,12 +44,37 @@ public class ToolCallValidator {
       }
 
       String details =
-          errors.stream().map(ValidationMessage::getMessage).collect(Collectors.joining("; "));
+          errors.stream().map(this::formatValidationMessage).collect(Collectors.joining("; "));
 
       return "Schema validation failed for tool '" + toolName + "': " + details;
     } catch (Exception e) {
       logger.warn("Failed to validate tool call for {}: {}", toolName, e.getMessage());
       return "Internal validation error: " + e.getMessage();
     }
+  }
+
+  private String formatValidationMessage(ValidationMessage vm) {
+    return switch (vm.getType()) {
+      case "required" -> "missing required field: " + extractMissingField(vm);
+      case "type" ->
+          "field '"
+              + vm.getInstanceLocation()
+              + "' has wrong type (expected: "
+              + extractExpectedType(vm)
+              + ")";
+      default -> vm.getType() + " violation at '" + vm.getInstanceLocation() + "'";
+    };
+  }
+
+  private String extractMissingField(ValidationMessage vm) {
+    Object[] args = vm.getArguments();
+    return (args != null && args.length > 0)
+        ? String.valueOf(args[0])
+        : vm.getInstanceLocation().toString();
+  }
+
+  private String extractExpectedType(ValidationMessage vm) {
+    Object[] args = vm.getArguments();
+    return (args != null && args.length > 0) ? String.valueOf(args[0]) : "unknown";
   }
 }
