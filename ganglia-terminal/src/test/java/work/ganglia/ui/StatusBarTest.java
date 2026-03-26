@@ -31,6 +31,8 @@ public class StatusBarTest {
         TerminalBuilder.builder()
             .system(false)
             .dumb(true)
+            .jansi(false)
+            .jna(false)
             .encoding(StandardCharsets.UTF_8)
             .streams(new ByteArrayInputStream(new byte[0]), output)
             .build();

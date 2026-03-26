@@ -35,6 +35,8 @@ public class EventRendererTest {
         TerminalBuilder.builder()
             .system(false)
             .dumb(true)
+            .jansi(false)
+            .jna(false)
             .encoding(StandardCharsets.UTF_8)
             .streams(new ByteArrayInputStream(new byte[0]), output)
             .build();
@@ -72,7 +74,7 @@ public class EventRendererTest {
             ObservationType.TOOL_STARTED,
             "run_shell_command",
             Map.of("command", "git status")));
-    String outputStr = getOutput();
+    String outputStr = stripAnsi(getOutput());
 
     assertTrue(
         outputStr.contains("run_shell_command"), "Should contain tool name. Output: " + outputStr);
@@ -86,7 +88,7 @@ public class EventRendererTest {
     renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_STARTED, "read_file", Map.of()));
     renderer.render(ObservationEvent.of("s1", ObservationType.TOOL_FINISHED, "ok", null));
 
-    String outputStr = getOutput();
+    String outputStr = stripAnsi(getOutput());
     assertTrue(
         outputStr.contains("\u2713"), "Should contain checkmark for success. Output: " + outputStr);
   }
@@ -98,7 +100,7 @@ public class EventRendererTest {
     renderer.render(
         ObservationEvent.of("s1", ObservationType.TOOL_FINISHED, "Error: command failed", null));
 
-    String outputStr = getOutput();
+    String outputStr = stripAnsi(getOutput());
     assertTrue(
         outputStr.contains("\u2717"), "Should contain X mark for failure. Output: " + outputStr);
   }
@@ -112,7 +114,7 @@ public class EventRendererTest {
         ObservationEvent.of(
             "s1", ObservationType.TOOL_OUTPUT_STREAM, "file1.txt\nfile2.txt", null));
 
-    String outputStr = getOutput();
+    String outputStr = stripAnsi(getOutput());
     assertTrue(
         outputStr.contains("file1.txt"), "Should contain first output line. Output: " + outputStr);
     assertTrue(
@@ -134,7 +136,7 @@ public class EventRendererTest {
   @Test
   void testErrorRendering() {
     renderer.render(ObservationEvent.of("s1", ObservationType.ERROR, "Something went wrong", null));
-    String outputStr = getOutput();
+    String outputStr = stripAnsi(getOutput());
     assertTrue(
         outputStr.contains("Something went wrong"),
         "Should contain error message. Output: " + outputStr);
@@ -147,7 +149,7 @@ public class EventRendererTest {
         ObservationEvent.of("s1", ObservationType.TOKEN_RECEIVED, "Hello there!", null));
     renderer.render(ObservationEvent.of("s1", ObservationType.TURN_FINISHED, null, null));
 
-    String outputStr = getOutput();
+    String outputStr = stripAnsi(getOutput());
     // Response dot prefix: ●
     assertTrue(
         outputStr.contains("\u25cf"),
@@ -167,7 +169,7 @@ public class EventRendererTest {
         ObservationEvent.of("s1", ObservationType.TOKEN_RECEIVED, longContent.toString(), null));
     renderer.render(ObservationEvent.of("s1", ObservationType.TURN_FINISHED, null, null));
 
-    String outputStr = getOutput();
+    String outputStr = stripAnsi(getOutput());
     assertTrue(
         outputStr.contains("..."), "Should contain truncation ellipsis. Output: " + outputStr);
     assertTrue(
@@ -201,7 +203,7 @@ public class EventRendererTest {
     output.reset();
     renderer.render(ObservationEvent.of("s1", ObservationType.TURN_FINISHED, null, null));
 
-    String outputStr = getOutput();
+    String outputStr = stripAnsi(getOutput());
     assertFalse(
         outputStr.contains("\u25cf"),
         "Should not render duplicate response dot after REASONING_FINISHED. Output: " + outputStr);
@@ -222,7 +224,7 @@ public class EventRendererTest {
     // First toggle: expand
     output.reset();
     renderer.toggleLastResponse();
-    String expanded = getOutput();
+    String expanded = stripAnsi(getOutput());
     assertTrue(renderer.isLastResponseExpanded(), "Should be expanded after first toggle");
     assertTrue(
         expanded.contains("Line number 20"), "Expanded should show last line. Output: " + expanded);
@@ -232,7 +234,7 @@ public class EventRendererTest {
     // Second toggle: collapse
     output.reset();
     renderer.toggleLastResponse();
-    String collapsed = getOutput();
+    String collapsed = stripAnsi(getOutput());
     assertFalse(renderer.isLastResponseExpanded(), "Should be collapsed after second toggle");
     assertTrue(
         collapsed.contains("..."), "Collapsed should have truncation hint. Output: " + collapsed);
@@ -241,7 +243,7 @@ public class EventRendererTest {
   @Test
   void testToggleWithNoResponse() {
     renderer.toggleLastResponse();
-    String outputStr = getOutput();
+    String outputStr = stripAnsi(getOutput());
     assertTrue(
         outputStr.contains("No response"),
         "Should show 'No response' message. Output: " + outputStr);
@@ -331,5 +333,10 @@ public class EventRendererTest {
   private String getOutput() {
     terminal.writer().flush();
     return output.toString(StandardCharsets.UTF_8);
+  }
+
+  /** Strips ANSI escape sequences so tests can assert on plain text content. */
+  private static String stripAnsi(String s) {
+    return s.replaceAll("\033\\[[0-9;]*[A-Za-z]", "");
   }
 }
