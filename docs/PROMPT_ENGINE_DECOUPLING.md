@@ -1,25 +1,23 @@
-# PromptEngine 与 ContextSource 解耦架构设计
+# PromptEngine & ContextSource Decoupling Architecture
 
 > **Status:** In Development
 > **Version:** 0.1.7-SNAPSHOT
 >
-> **状态:** 已归档
-> **版本:** 1.1.0
-> **相关:** [Architecture](ARCHITECTURE.md), [Context Engine Design](CONTEXT_ENGINE_DESIGN.md), [Prompt Engine Refactoring](PROMPT_ENGINE_REFACTORING_DESIGN.md)
+> **Related:** [Architecture](ARCHITECTURE.md), [Context Engine Design](CONTEXT_ENGINE_DESIGN.md), [Prompt Engine Refactoring](PROMPT_ENGINE_REFACTORING_DESIGN.md)
 
-## 1. 核心设计思想
+## 1. Core Design Philosophy
 
-Ganglia 的提示词构建系统采用了“**观察者-被观察者**”模式的变体，核心目标是确保执行层（Tasks/Tools）和知识层（Skills）与提示词编排层（PromptEngine）完全解耦。
+Ganglia's prompt construction system uses a variant of the **Observer** pattern. The central goal is to ensure that the execution layer (Tasks/Tools) and the knowledge layer (Skills) are completely decoupled from the prompt orchestration layer (`PromptEngine`).
 
-### 1.1 角色定义
+### 1.1 Role Definitions
 
-* **PromptEngine (编排者/总编)**：面向 `ReActAgentLoop` 的唯一入口。它不生产内容，只负责**策略、调度和组装**。
-* **AgentTaskFactory (路由/桥梁)**：**（v1.1.0 新增）** 作为调度抽象层，它聚合了所有的能力定义（ToolDefinitions）。`PromptEngine` 通过它来获取当前 context 下可用的指令列表。
-* **ContextSource (适配器/专栏作家)**：领域内容的提供者。它负责将系统状态（如可用工具、激活技能、记忆片段）转化为模型可理解的文本。
+* **PromptEngine (Orchestrator)**: The sole entry point facing `ReActAgentLoop`. It does not produce content — it is responsible only for **strategy, scheduling, and assembly**.
+* **AgentTaskFactory (Router/Bridge)**: Acts as the scheduling abstraction layer, aggregating all capability definitions (`ToolDefinition`s). `PromptEngine` uses it to retrieve the list of available instructions for the current context.
+* **ContextSource (Adapter)**: A domain content provider. It translates system state (e.g., available tools, active skills, memory fragments) into text the model can understand.
 
-## 2. 依赖方向：单向隔离
+## 2. Dependency Direction: Unidirectional Isolation
 
-在这种架构下，依赖关系是单向的，通过 `AgentTaskFactory` 实现了更深层次的解耦。
+In this architecture, dependencies flow in a single direction, achieving deeper decoupling through `AgentTaskFactory`.
 
 ```mermaid
 graph TD
@@ -38,34 +36,34 @@ graph TD
     end
 
     subgraph "Execution & Resource Layer"
-        SF -.->|聚合定义| Tasks[AgentTask Tasks]
-        SF -.->|委托| Tools[Standard Tools]
-        SCS -.->|观察| Skills[Skill Packages]
-        MCS -.->|查询| KB[Knowledge Base]
+        SF -.->|aggregates definitions| Tasks[AgentTask Tasks]
+        SF -.->|delegates| Tools[Standard Tools]
+        SCS -.->|observes| Skills[Skill Packages]
+        MCS -.->|queries| KB[Knowledge Base]
     end
 ```
 
-### 2.1 工具与任务的无感知
+### 2.1 Tool & Task Transparency
 
-`PromptEngine` 不再直接询问 `ToolExecutor` 有哪些工具。它通过 `AgentTaskFactory` 获取定义。这使得 `PromptEngine` 甚至不需要知道它正在为”工具”生成提示词，还是在为”子 Agent”或”技能”生成提示词。
+`PromptEngine` no longer queries `ToolExecutor` directly for available tools. It obtains definitions via `AgentTaskFactory`. This means `PromptEngine` does not need to know whether it is generating prompts for a "tool", a "sub-agent", or a "skill".
 
-## 3. 架构优势
+## 3. Architectural Benefits
 
-### 3.1 极高的可测试性 (Testability)
+### 3.1 High Testability
 
-由于提示词引擎只依赖于抽象的 `AgentTaskFactory`，测试时可以轻松 Mock 所有的能力定义，验证提示词的裁剪和组装逻辑。
+Because the prompt engine only depends on the abstract `AgentTaskFactory`, all capability definitions can be easily mocked in tests to verify prompt trimming and assembly logic.
 
-### 3.2 指令集的动态性
+### 3.2 Dynamic Instruction Sets
 
-通过 `AgentTaskFactory`，系统可以根据当前的 `SessionContext`（如递归深度、当前 Persona）动态地隐藏或调整某些指令的定义，而无需修改 `PromptEngine` 的核心代码。
+Via `AgentTaskFactory`, the system can dynamically hide or adjust certain instruction definitions based on the current `SessionContext` (e.g., recursion depth, active persona) without modifying the core `PromptEngine` code.
 
-## 4. 协作协议：ContextFragment
+## 4. Collaboration Protocol: ContextFragment
 
-`PromptEngine` 与 `ContextSource` 之间通过 `ContextFragment` 这一标准协议通信：
-1.  **收集**：`PromptEngine` 并行调用所有 `ContextSource`。
-2.  **竞争**：各来源返回带有 `priority` (1-10) 的片段。
-3.  **仲裁**：`PromptEngine` 根据 Token 预算，按优先级从低到高（数字从小到大）进行强制截断。
+`PromptEngine` and `ContextSource` communicate via the `ContextFragment` standard protocol:
+1. **Collect**: `PromptEngine` invokes all `ContextSource` implementations in parallel.
+2. **Compete**: Each source returns fragments tagged with a `priority` (1–10).
+3. **Arbitrate**: `PromptEngine` enforces truncation by priority (lowest first) when the token budget is exceeded.
 
-## 5. 总结
+## 5. Summary
 
-这种设计确保了 Ganglia 拥有一个**强壮而纯粹的内核**。大脑（PromptEngine）负责统筹全局，`AgentTaskFactory` 负责能力的统一发现，而具体的执行逻辑则隐藏在各个 `AgentTask` 实现中。
+This design ensures that Ganglia has a **robust and pure kernel**. `PromptEngine` handles overall orchestration, `AgentTaskFactory` is responsible for unified capability discovery, and the concrete execution logic is encapsulated inside each `AgentTask` implementation.

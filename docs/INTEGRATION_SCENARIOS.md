@@ -54,4 +54,4 @@
 1. Call `list_directory` or `grep_search` to discover files.
 2. Call `grep_search` to find "Phase" in matched files.
 3. Call `read_file` to read `docs/plan.md`.
-*   **Verification**: Agent can精准 locate content from discovery to precision and finally read the full text.
+*   **Verification**: Agent can precisely locate content, navigating from discovery to targeted search to reading the full text.

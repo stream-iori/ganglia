@@ -1,4 +1,4 @@
-# 状态演进设计 (State Evolution & Immutability)
+# State Evolution & Immutability Design
 
 > **Status:** In Development
 > **Version:** 0.1.7-SNAPSHOT
@@ -6,51 +6,51 @@
 > **Package:** `work.ganglia.port.chat` (Models)
 > **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
 
-## 1. 核心设计哲学：不可变性 (Immutability)
+## 1. Core Design Philosophy: Immutability
 
-Ganglia 的核心状态对象（如 `SessionContext`, `Turn`, `Message`）全部采用 Java 17 的 `record` 实现。我们严格遵循**函数式更新 (Functional Updates)** 模式，即：**状态一旦创建，永不修改；任何状态的变更都通过产生一个新的副本（Snapshot）来完成。**
+All core state objects in Ganglia (e.g., `SessionContext`, `Turn`, `Message`) are implemented as Java 17 `record` types. We strictly follow the **Functional Update** pattern: **state, once created, is never mutated; any change produces a new snapshot**.
 
-### 1.1 态射与演进 (Morphism)
+### 1.1 Morphism & Evolution
 
-在数学和函数式编程中，这种模式被称为**自同态 (Endomorphism)**。
-*   **模式**：`f(InitialState, Event) -> NewState`
-*   **实现**：对象提供以 `with...` 开头的方法，返回一个新的记录实例。
+In mathematics and functional programming this pattern is called an **Endomorphism**:
+* **Pattern**: `f(InitialState, Event) -> NewState`
+* **Implementation**: Objects expose `with...` methods that return a new record instance.
 
 ```java
-// 示例：SessionContext 的链式演进
+// Example: chained evolution of SessionContext
 SessionContext nextContext = initialContext
     .withNewMessage(userMsg)
     .withToDoList(updatedList);
 ```
 
-## 2. 为什么选择不可变 Record？
+## 2. Why Immutable Records?
 
-### 2.1 彻底消灭竞态条件 (Concurrency Safety)
+### 2.1 Eliminating Race Conditions (Concurrency Safety)
 
-Ganglia 运行在 Vert.x 的异步非阻塞循环中。由于状态是不可变的，我们不需要任何 `synchronized` 关键字或复杂的锁机制。一个 `SessionContext` 副本可以在多个异步回调、EventBus 监听器中安全地传递，而不用担心它被中途篡改。
+Ganglia runs on Vert.x's async non-blocking event loop. Because state is immutable, no `synchronized` keywords or complex locking are needed. A `SessionContext` snapshot can be safely passed across multiple async callbacks and EventBus listeners without risk of mid-flight mutation.
 
-### 2.2 无损调试与回溯 (Time-travel Debugging)
+### 2.2 Lossless Debugging & Replay (Time-Travel Debugging)
 
-每一个副本都是 Agent 运行轨迹上的一个**快照**。
-*   **工程价值**：如果 Agent 在复杂的 ReAct 循环中“跑飞了”（逻辑出错），我们可以精确地提取出出错前那一刻的 `SessionContext` 序列化数据，进行本地重放和回归测试。
-*   **状态可追溯**：日志系统记录的是状态的演进序列，而不仅仅是最终结果。
+Every snapshot is a precise point on the agent's execution trace.
+* **Engineering value**: If the agent goes off-track during a complex ReAct cycle, the exact `SessionContext` at the moment of failure can be serialized, replayed locally, and used for regression testing.
+* **Auditability**: The logging system records the sequence of state transitions, not just the final outcome.
 
-### 2.3 简易版“透镜”模式 (Manual Lenses)
+### 2.3 Manual Lens Pattern
 
-对于深层嵌套的 Record（例如：`Context -> Turn -> Message -> ToolObservation`），我们通过在各层级手动实现 `with...` 方法，模拟了函数式语言中的 **Lens (透镜)** 模式。这使得修改深层属性时的代码依然保持高度的可读性和结构完整性。
+For deeply nested records (e.g., `Context -> Turn -> Message -> ToolObservation`), we simulate the functional **Lens** pattern by manually implementing `with...` methods at each level. This keeps code for modifying deep properties highly readable and structurally consistent.
 
-## 3. 结构稳定性 (Structural Integrity)
+## 3. Structural Integrity
 
-### 3.1 聚合与解耦
+### 3.1 Aggregation & Decoupling
 
-通过将特定角色的属性聚合到内部 Record 中（如 `Message` 里的 `ToolObservation`），我们确保了：
-1.  **语义清晰**：只有 `Role.TOOL` 的消息才包含工具观察数据。
-2.  **类型安全**：避免了大量的 null 检查或平铺字段导致的逻辑歧义。
+By aggregating role-specific attributes into inner records (e.g., `ToolObservation` inside `Message`), we ensure:
+1. **Semantic clarity**: Only `Role.TOOL` messages carry tool observation data.
+2. **Type safety**: Eliminates the need for null checks or ambiguity from flattened fields.
 
-### 3.2 逻辑纯粹性 (Purity)
+### 3.2 Logical Purity
 
-这种模式迫使开发者编写“纯函数”逻辑。`ReActAgentLoop` 不再是“修改状态”，而是在“编排状态的流动”。
+This pattern forces developers to write pure-function logic. `ReActAgentLoop` no longer "mutates state" — it "orchestrates the flow of state".
 
-## 4. 总结
+## 4. Summary
 
-在 Ganglia 中，`record` 不仅仅是数据容器，它是**状态机中的不可变节点**。通过这种仿函数式的设计，我们用“结构的稳定性”换取了“逻辑的强壮性”，确保了 Agent 在处理长时间、高并发的任务时，依然保持状态的清晰和可靠。
+In Ganglia, `record` is more than a data container — it is an **immutable node in the state machine**. Through this functional-style design, we trade structural stability for logical robustness, ensuring the agent remains coherent and reliable when processing long-running, highly concurrent tasks.
