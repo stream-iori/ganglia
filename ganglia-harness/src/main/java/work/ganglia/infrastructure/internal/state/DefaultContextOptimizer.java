@@ -2,6 +2,7 @@ package work.ganglia.infrastructure.internal.state;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,8 +14,10 @@ import work.ganglia.config.ModelConfigProvider;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.chat.Turn;
+import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.port.internal.state.ContextOptimizer;
+import work.ganglia.port.internal.state.ObservationDispatcher;
 import work.ganglia.util.TokenCounter;
 
 public class DefaultContextOptimizer implements ContextOptimizer {
@@ -24,16 +27,27 @@ public class DefaultContextOptimizer implements ContextOptimizer {
   private final AgentConfigProvider agentConfig;
   private final ContextCompressor compressor;
   private final TokenCounter tokenCounter;
+  private final ObservationDispatcher dispatcher;
 
   public DefaultContextOptimizer(
       ModelConfigProvider modelConfig,
       AgentConfigProvider agentConfig,
       ContextCompressor compressor,
       TokenCounter tokenCounter) {
+    this(modelConfig, agentConfig, compressor, tokenCounter, null);
+  }
+
+  public DefaultContextOptimizer(
+      ModelConfigProvider modelConfig,
+      AgentConfigProvider agentConfig,
+      ContextCompressor compressor,
+      TokenCounter tokenCounter,
+      ObservationDispatcher dispatcher) {
     this.modelConfig = modelConfig;
     this.agentConfig = agentConfig;
     this.compressor = compressor;
     this.tokenCounter = tokenCounter;
+    this.dispatcher = dispatcher;
   }
 
   @Override
@@ -54,14 +68,35 @@ public class DefaultContextOptimizer implements ContextOptimizer {
           "Context threshold reached ({} > {}). Triggering compression...",
           totalTokens,
           (int) (limit * threshold));
+      if (dispatcher != null) {
+        Map<String, Object> startData = new java.util.HashMap<>();
+        startData.put("beforeTokens", totalTokens);
+        startData.put("contextLimit", limit);
+        dispatcher.dispatch(
+            context.sessionId(),
+            ObservationType.CONTEXT_COMPRESSED,
+            "context_compression_started",
+            startData);
+      }
+      final int beforeTokens = totalTokens;
       return compressSession(context, 1)
           .map(
               compressedContext -> {
-                logger.info(
-                    "Compression complete. New token count: {}",
+                int afterTokens =
                     compressedContext.history().stream()
                         .mapToInt(m -> m.countTokens(tokenCounter))
-                        .sum());
+                        .sum();
+                logger.info("Compression complete. New token count: {}", afterTokens);
+                if (dispatcher != null) {
+                  Map<String, Object> finishData = new java.util.HashMap<>();
+                  finishData.put("beforeTokens", beforeTokens);
+                  finishData.put("afterTokens", afterTokens);
+                  dispatcher.dispatch(
+                      compressedContext.sessionId(),
+                      ObservationType.SYSTEM_EVENT,
+                      "context_compression_finished",
+                      finishData);
+                }
                 return compressedContext;
               });
     }

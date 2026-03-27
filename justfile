@@ -69,10 +69,22 @@ test-frontend:
 coverage: _run-coverage _print-coverage
 
 _run-coverage:
-    mvn test -pl ganglia-harness,ganglia-local-file-memory,ganglia-coding,ganglia-web,ganglia-terminal
+    mvn spotless:apply test -pl ganglia-harness,ganglia-local-file-memory,ganglia-coding,ganglia-web,ganglia-terminal
 
 _print-coverage:
     python3 scripts/print-coverage.py
+
+# Run unit tests + integration tests, merge exec files, and print combined harness coverage
+coverage-combined: _coverage-unit _coverage-it _coverage-merge
+
+_coverage-unit:
+    mvn spotless:apply test -pl ganglia-harness -q
+
+_coverage-it:
+    mvn verify -pl integration-test -q
+
+_coverage-merge:
+    python3 scripts/merge-coverage.py
 
 # --- Build & Deploy ---
 

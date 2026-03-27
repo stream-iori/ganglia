@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 
 import work.ganglia.config.AgentConfigProvider;
 import work.ganglia.infrastructure.external.llm.LLMException;
@@ -28,12 +29,14 @@ import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.external.tool.ToolCall;
+import work.ganglia.port.internal.memory.MemoryEvent;
 import work.ganglia.port.internal.prompt.PromptEngine;
 import work.ganglia.port.internal.state.AgentSignal;
 import work.ganglia.port.internal.state.ContextOptimizer;
 import work.ganglia.port.internal.state.ExecutionContext;
 import work.ganglia.port.internal.state.ObservationDispatcher;
 import work.ganglia.port.internal.state.SessionManager;
+import work.ganglia.util.Constants;
 
 /** Manages the ReAct reasoning loop. */
 public class ReActAgentLoop implements AgentLoop {
@@ -65,7 +68,9 @@ public class ReActAgentLoop implements AgentLoop {
     this.taskFactory = builder.taskFactory;
     this.faultTolerancePolicy = builder.faultTolerancePolicy;
     this.pipeline =
-        builder.pipeline != null ? builder.pipeline : new InterceptorPipeline(this.dispatcher);
+        builder.pipeline != null
+            ? builder.pipeline
+            : new InterceptorPipeline(this.dispatcher, builder.parentSessionId);
   }
 
   public static Builder builder() {
@@ -110,6 +115,12 @@ public class ReActAgentLoop implements AgentLoop {
     if (dispatcher != null) {
       dispatcher.dispatch(sessionId, ObservationType.SESSION_ENDED, null, data);
     }
+    // Publish SESSION_CLOSED memory event
+    if (vertx != null) {
+      MemoryEvent memEvent =
+          new MemoryEvent(MemoryEvent.EventType.SESSION_CLOSED, sessionId, null, null);
+      vertx.eventBus().publish(Constants.ADDRESS_MEMORY_EVENT, JsonObject.mapFrom(memEvent));
+    }
   }
 
   @Override
@@ -143,8 +154,14 @@ public class ReActAgentLoop implements AgentLoop {
             })
         .recover(
             err -> {
-              if (!(err instanceof AgentInterruptException)
-                  && !(err instanceof AgentAbortedException)) {
+              if (err instanceof AgentAbortedException) {
+                Map<String, Object> abortData = new HashMap<>();
+                abortData.put("reason", "abort_propagated");
+                if (dispatcher != null) {
+                  dispatcher.dispatch(
+                      initialContext.sessionId(), ObservationType.SESSION_ABORTED, null, abortData);
+                }
+              } else if (!(err instanceof AgentInterruptException)) {
                 publishObservation(
                     initialContext.sessionId(), ObservationType.ERROR, err.getMessage());
               }
@@ -157,6 +174,11 @@ public class ReActAgentLoop implements AgentLoop {
     if (signal != null) {
       logger.info("Aborting session via stop request: {}", sessionId);
       signal.abort();
+      Map<String, Object> abortData = new HashMap<>();
+      abortData.put("reason", "user_stop");
+      if (dispatcher != null) {
+        dispatcher.dispatch(sessionId, ObservationType.SESSION_ABORTED, null, abortData);
+      }
     }
   }
 
@@ -194,8 +216,14 @@ public class ReActAgentLoop implements AgentLoop {
             })
         .recover(
             err -> {
-              if (!(err instanceof AgentInterruptException)
-                  && !(err instanceof AgentAbortedException)) {
+              if (err instanceof AgentAbortedException) {
+                Map<String, Object> abortData = new HashMap<>();
+                abortData.put("reason", "abort_propagated");
+                if (dispatcher != null) {
+                  dispatcher.dispatch(
+                      initialContext.sessionId(), ObservationType.SESSION_ABORTED, null, abortData);
+                }
+              } else if (!(err instanceof AgentInterruptException)) {
                 publishObservation(
                     initialContext.sessionId(), ObservationType.ERROR, err.getMessage());
               }
@@ -380,7 +408,25 @@ public class ReActAgentLoop implements AgentLoop {
       SessionContext finalContext =
           sessionManager.completeTurn(currentContext, Message.assistant(content));
 
-      return sessionManager.persist(finalContext).map(v -> content);
+      return sessionManager
+          .persist(finalContext)
+          .map(
+              v -> {
+                // Publish TURN_COMPLETED memory event
+                if (vertx != null) {
+                  Turn completedTurn = finalContext.currentTurn();
+                  MemoryEvent memEvent =
+                      new MemoryEvent(
+                          MemoryEvent.EventType.TURN_COMPLETED,
+                          finalContext.sessionId(),
+                          null,
+                          completedTurn);
+                  vertx
+                      .eventBus()
+                      .publish(Constants.ADDRESS_MEMORY_EVENT, JsonObject.mapFrom(memEvent));
+                }
+                return content;
+              });
     }
   }
 
@@ -438,6 +484,7 @@ public class ReActAgentLoop implements AgentLoop {
           }
         };
 
+    final long toolStartMs = System.currentTimeMillis();
     return pipeline
         .executePreToolExecute(task.getToolCall(), originalContext)
         .compose(call -> task.execute(originalContext, execContext))
@@ -466,7 +513,8 @@ public class ReActAgentLoop implements AgentLoop {
 
               // Execute post-tool interceptors
               return pipeline
-                  .executePostToolExecute(task.getToolCall(), invokeResult, originalContext)
+                  .executePostToolExecute(
+                      task.getToolCall(), invokeResult, originalContext, toolStartMs)
                   .map(
                       interceptedResult ->
                           new AgentTaskResult(
@@ -557,6 +605,7 @@ public class ReActAgentLoop implements AgentLoop {
     private AgentTaskFactory taskFactory;
     private FaultTolerancePolicy faultTolerancePolicy;
     private InterceptorPipeline pipeline;
+    private String parentSessionId;
 
     private Builder() {}
 
@@ -607,6 +656,11 @@ public class ReActAgentLoop implements AgentLoop {
 
     public Builder pipeline(InterceptorPipeline pipeline) {
       this.pipeline = pipeline;
+      return this;
+    }
+
+    public Builder parentSessionId(String parentSessionId) {
+      this.parentSessionId = parentSessionId;
       return this;
     }
 

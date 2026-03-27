@@ -98,8 +98,17 @@ public class TokenUsageManager {
   }
 
   private void publishUsageUpdate(String sessionId, TokenUsage lastUsage, SessionUsage totalUsage) {
-    // Here we can publish an event or log it in a more structured way
-    // Currently, we just log it as debug.
+    vertx
+        .eventBus()
+        .publish(
+            Constants.ADDRESS_USAGE_UPDATE + sessionId,
+            new JsonObject()
+                .put("sessionId", sessionId)
+                .put("promptTokens", totalUsage.promptTokens())
+                .put("completionTokens", totalUsage.completionTokens())
+                .put("lastPromptTokens", lastUsage.promptTokens())
+                .put("lastCompletionTokens", lastUsage.completionTokens()));
+    logger.debug("Published usage update for session: {}", sessionId);
   }
 
   public SessionUsage getTotals(String sessionId) {

@@ -11,6 +11,7 @@ import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.port.external.tool.ToolExecutor;
 import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.skill.SkillService;
+import work.ganglia.port.internal.state.ObservationDispatcher;
 
 /**
  * SRP: Factory for creating AgentTask tasks from tool calls. Uses explicit dependencies and
@@ -23,6 +24,7 @@ public class DefaultAgentTaskFactory implements AgentTaskFactory {
   private final GraphExecutor graphExecutor; // Nullable
   private final SkillService skillService; // Nullable
   private final SkillRuntime skillRuntime; // Nullable
+  private final ObservationDispatcher dispatcher; // Nullable
 
   public DefaultAgentTaskFactory(
       AgentLoopFactory loopFactory,
@@ -30,11 +32,22 @@ public class DefaultAgentTaskFactory implements AgentTaskFactory {
       GraphExecutor graphExecutor,
       SkillService skillService,
       SkillRuntime skillRuntime) {
+    this(loopFactory, standardToolExecutor, graphExecutor, skillService, skillRuntime, null);
+  }
+
+  public DefaultAgentTaskFactory(
+      AgentLoopFactory loopFactory,
+      ToolExecutor standardToolExecutor,
+      GraphExecutor graphExecutor,
+      SkillService skillService,
+      SkillRuntime skillRuntime,
+      ObservationDispatcher dispatcher) {
     this.loopFactory = loopFactory;
     this.standardToolExecutor = standardToolExecutor;
     this.graphExecutor = graphExecutor;
     this.skillService = skillService;
     this.skillRuntime = skillRuntime;
+    this.dispatcher = dispatcher;
   }
 
   @Override
@@ -46,7 +59,7 @@ public class DefaultAgentTaskFactory implements AgentTaskFactory {
     } else if ("propose_task_graph".equals(toolName) && graphExecutor != null) {
       return new TaskGraphTask(call, graphExecutor);
     } else if (isSkillTool(toolName, context)) {
-      return new SkillTask(call, skillService, skillRuntime);
+      return new SkillTask(call, skillService, skillRuntime, dispatcher);
     } else {
       return new StandardToolTask(call, standardToolExecutor);
     }

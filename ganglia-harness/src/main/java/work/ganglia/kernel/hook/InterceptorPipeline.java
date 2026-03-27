@@ -26,9 +26,15 @@ public class InterceptorPipeline {
   private static final Logger logger = LoggerFactory.getLogger(InterceptorPipeline.class);
   private final List<AgentInterceptor> interceptors = new ArrayList<>();
   private final ObservationDispatcher dispatcher;
+  private final String parentSessionId;
 
   public InterceptorPipeline(ObservationDispatcher dispatcher) {
+    this(dispatcher, null);
+  }
+
+  public InterceptorPipeline(ObservationDispatcher dispatcher, String parentSessionId) {
     this.dispatcher = dispatcher;
+    this.parentSessionId = parentSessionId;
   }
 
   public void addInterceptor(AgentInterceptor interceptor) {
@@ -40,11 +46,13 @@ public class InterceptorPipeline {
   public Future<SessionContext> executePreTurn(SessionContext context, String userInput) {
     if (dispatcher != null) {
       if (context.previousTurns().isEmpty() && context.currentTurn() == null) {
+        Map<String, Object> sessionStartData = new HashMap<>();
+        sessionStartData.put("firstPrompt", userInput != null ? userInput : "");
+        if (parentSessionId != null) {
+          sessionStartData.put("parentSessionId", parentSessionId);
+        }
         dispatcher.dispatch(
-            context.sessionId(),
-            ObservationType.SESSION_STARTED,
-            userInput,
-            Map.of("firstPrompt", userInput != null ? userInput : ""));
+            context.sessionId(), ObservationType.SESSION_STARTED, userInput, sessionStartData);
       }
       int turnNumber = context.previousTurns().size() + 1;
       Map<String, Object> turnData = new HashMap<>();
@@ -78,8 +86,17 @@ public class InterceptorPipeline {
 
   public Future<ToolInvokeResult> executePostToolExecute(
       ToolCall call, ToolInvokeResult result, SessionContext context) {
+    return executePostToolExecute(call, result, context, -1L);
+  }
+
+  public Future<ToolInvokeResult> executePostToolExecute(
+      ToolCall call, ToolInvokeResult result, SessionContext context, long startMs) {
     if (dispatcher != null) {
-      Map<String, Object> resData = Map.of("toolCallId", call.id());
+      Map<String, Object> resData = new HashMap<>();
+      resData.put("toolCallId", call.id());
+      if (startMs >= 0) {
+        resData.put("durationMs", System.currentTimeMillis() - startMs);
+      }
       dispatcher.dispatch(
           context.sessionId(), ObservationType.TOOL_FINISHED, result.output(), resData);
     }

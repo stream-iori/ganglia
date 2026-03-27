@@ -1,7 +1,12 @@
 package work.ganglia.kernel.hook;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -12,10 +17,13 @@ import io.vertx.core.Future;
 import io.vertx.junit5.VertxTestContext;
 
 import work.ganglia.BaseGangliaTest;
+import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.internal.hook.AgentInterceptor;
+import work.ganglia.port.internal.state.ObservationDispatcher;
 
 class InterceptorPipelineTest extends BaseGangliaTest {
 
@@ -123,6 +131,48 @@ class InterceptorPipelineTest extends BaseGangliaTest {
                       () -> {
                         assertEquals(0, counter.get());
                         assertEquals("Blocked tool", err.getMessage());
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
+  void testToolDurationMsInObservation(VertxTestContext testContext) {
+    List<Map<String, Object>> observedData = Collections.synchronizedList(new ArrayList<>());
+
+    ObservationDispatcher capturingDispatcher =
+        new ObservationDispatcher() {
+          @Override
+          public void dispatch(String sessionId, ObservationType type, String content) {}
+
+          @Override
+          public void dispatch(
+              String sessionId, ObservationType type, String content, Map<String, Object> data) {
+            if (type == ObservationType.TOOL_FINISHED && data != null) {
+              observedData.add(data);
+            }
+          }
+        };
+
+    InterceptorPipeline pipelineWithDispatcher = new InterceptorPipeline(capturingDispatcher);
+
+    ToolCall call = new ToolCall("c1", "bash", Map.of("cmd", "ls"));
+    ToolInvokeResult result = ToolInvokeResult.success("file1.txt");
+    long startMs = System.currentTimeMillis();
+
+    pipelineWithDispatcher
+        .executePostToolExecute(call, result, context, startMs)
+        .onComplete(
+            testContext.succeeding(
+                res -> {
+                  testContext.verify(
+                      () -> {
+                        assertEquals(1, observedData.size());
+                        Map<String, Object> data = observedData.get(0);
+                        assertNotNull(data.get("durationMs"), "durationMs should be present");
+                        assertTrue(
+                            (Long) data.get("durationMs") >= 0,
+                            "durationMs should be non-negative");
                         testContext.completeNow();
                       });
                 }));

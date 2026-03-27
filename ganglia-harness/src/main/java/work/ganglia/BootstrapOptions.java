@@ -9,7 +9,6 @@ import work.ganglia.kernel.loop.AgentLoopObserver;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.tool.CommandExecutor;
 import work.ganglia.port.external.tool.ToolSet;
-import work.ganglia.port.external.tool.ToolSetProvider;
 import work.ganglia.port.internal.doctor.DoctorCheck;
 import work.ganglia.port.internal.prompt.ContextSource;
 
@@ -22,7 +21,6 @@ public final class BootstrapOptions {
   private final List<AgentLoopObserver> extraObservers;
   private final String projectRoot;
   private final List<ToolSet> extraToolSets;
-  private final List<ToolSetProvider> extraToolSetProviders;
   private final List<ContextSource> extraContextSources;
   private final CommandExecutor commandExecutor;
   private final List<DoctorCheck> doctorChecks;
@@ -34,7 +32,6 @@ public final class BootstrapOptions {
     this.extraObservers = builder.extraObservers;
     this.projectRoot = builder.projectRoot;
     this.extraToolSets = builder.extraToolSets;
-    this.extraToolSetProviders = builder.extraToolSetProviders;
     this.extraContextSources = builder.extraContextSources;
     this.commandExecutor = builder.commandExecutor;
     this.doctorChecks = builder.doctorChecks;
@@ -74,10 +71,6 @@ public final class BootstrapOptions {
     return extraToolSets;
   }
 
-  public List<ToolSetProvider> extraToolSetProviders() {
-    return extraToolSetProviders;
-  }
-
   public List<ContextSource> extraContextSources() {
     return extraContextSources;
   }
@@ -99,7 +92,6 @@ public final class BootstrapOptions {
         .extraObservers(extraObservers)
         .projectRoot(projectRoot)
         .extraToolSets(extraToolSets)
-        .extraToolSetProviders(extraToolSetProviders)
         .extraContextSources(extraContextSources)
         .commandExecutor(commandExecutor)
         .doctorChecks(doctorChecks);
@@ -112,7 +104,6 @@ public final class BootstrapOptions {
     private List<AgentLoopObserver> extraObservers = Collections.emptyList();
     private String projectRoot;
     private List<ToolSet> extraToolSets = Collections.emptyList();
-    private List<ToolSetProvider> extraToolSetProviders = Collections.emptyList();
     private List<ContextSource> extraContextSources = Collections.emptyList();
     private CommandExecutor commandExecutor;
     private List<DoctorCheck> doctorChecks = Collections.emptyList();
@@ -146,11 +137,6 @@ public final class BootstrapOptions {
 
     public Builder extraToolSets(List<ToolSet> extraToolSets) {
       this.extraToolSets = extraToolSets;
-      return this;
-    }
-
-    public Builder extraToolSetProviders(List<ToolSetProvider> extraToolSetProviders) {
-      this.extraToolSetProviders = extraToolSetProviders;
       return this;
     }
 

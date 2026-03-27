@@ -45,5 +45,23 @@ public enum ObservationType {
   SYSTEM_EVENT,
 
   /** The task plan (ToDoList) has been updated. */
-  PLAN_UPDATED
+  PLAN_UPDATED,
+
+  /** Skill tool call started (list_available_skills, activate_skill, or skill-provided tools). */
+  SKILL_STARTED,
+
+  /** Skill tool call finished. */
+  SKILL_FINISHED,
+
+  /** MCP tool call started. */
+  MCP_CALL_STARTED,
+
+  /** MCP tool call finished. */
+  MCP_CALL_FINISHED,
+
+  /** Session aborted (stop() called or AbortedException propagated). */
+  SESSION_ABORTED,
+
+  /** ContextOptimizer triggered context compression. */
+  CONTEXT_COMPRESSED
 }

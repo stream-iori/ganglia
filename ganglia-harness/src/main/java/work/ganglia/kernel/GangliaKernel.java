@@ -18,6 +18,8 @@ import work.ganglia.config.ConfigManager;
 import work.ganglia.infrastructure.external.llm.ModelGatewayFactory;
 import work.ganglia.infrastructure.external.llm.RetryingModelGateway;
 import work.ganglia.infrastructure.external.tool.DefaultToolExecutor;
+import work.ganglia.infrastructure.external.tool.InteractionTools;
+import work.ganglia.infrastructure.external.tool.KnowledgeBaseTools;
 import work.ganglia.infrastructure.external.tool.ToolsFactory;
 import work.ganglia.infrastructure.internal.prompt.StandardPromptEngine;
 import work.ganglia.infrastructure.internal.prompt.context.DailyContextSource;
@@ -43,9 +45,9 @@ import work.ganglia.kernel.subagent.DefaultGraphExecutor;
 import work.ganglia.kernel.subagent.GraphExecutor;
 import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.kernel.task.DefaultAgentTaskFactory;
+import work.ganglia.kernel.todo.ToDoTools;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.tool.ToolSet;
-import work.ganglia.port.external.tool.ToolSetProvider;
 import work.ganglia.port.internal.memory.MemorySystem;
 import work.ganglia.port.internal.memory.MemorySystemConfig;
 import work.ganglia.port.internal.memory.MemorySystemProvider;
@@ -223,10 +225,9 @@ public class GangliaKernel {
     if (mcpRegistry != null && mcpRegistry.toolSets() != null) {
       allExtraToolSets.addAll(mcpRegistry.toolSets());
     }
-    for (ToolSetProvider provider : options.extraToolSetProviders()) {
-      allExtraToolSets.add(
-          provider.create(vertx, memory.contextCompressor(), memory.longTermMemory(), projectRoot));
-    }
+    allExtraToolSets.add(new ToDoTools(vertx, memory.contextCompressor()));
+    allExtraToolSets.add(new KnowledgeBaseTools(vertx, memory.longTermMemory()));
+    allExtraToolSets.add(new InteractionTools(vertx));
     allExtraToolSets.add(
         new work.ganglia.infrastructure.external.tool.RecallMemoryTools(memory.memoryStore()));
 

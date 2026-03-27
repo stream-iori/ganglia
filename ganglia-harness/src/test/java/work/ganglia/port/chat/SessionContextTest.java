@@ -7,6 +7,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
+import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.util.TokenCounter;
 
 class SessionContextTest {
@@ -136,5 +137,87 @@ class SessionContextTest {
 
     assertEquals(1, pruned.size(), "Current turn must still be returned despite tiny budget");
     assertEquals(oversizedCurrent.userMessage().content(), pruned.get(0).content());
+  }
+
+  // -------------------------------------------------------------------------
+  // withNewMessage
+  // -------------------------------------------------------------------------
+
+  @Test
+  void withNewMessage_userRole_startsNewTurn() {
+    SessionContext ctx =
+        new SessionContext(
+            "sid",
+            Collections.emptyList(),
+            null,
+            Collections.emptyMap(),
+            Collections.emptyList(),
+            null);
+
+    SessionContext next = ctx.withNewMessage(Message.user("hello"));
+
+    assertNotNull(next.currentTurn());
+    assertEquals("hello", next.currentTurn().userMessage().content());
+  }
+
+  @Test
+  void withNewMessage_assistantRole_addsStep() {
+    SessionContext ctx =
+        new SessionContext(
+            "sid",
+            Collections.emptyList(),
+            null,
+            Collections.emptyMap(),
+            Collections.emptyList(),
+            null);
+
+    SessionContext next = ctx.withNewMessage(Message.assistant("thinking..."));
+
+    assertNotNull(next.currentTurn());
+    assertFalse(next.currentTurn().intermediateSteps().isEmpty());
+  }
+
+  // -------------------------------------------------------------------------
+  // withModelOptions
+  // -------------------------------------------------------------------------
+
+  @Test
+  void withModelOptions_replacesOptions() {
+    SessionContext ctx =
+        new SessionContext(
+            "sid",
+            Collections.emptyList(),
+            null,
+            Collections.emptyMap(),
+            Collections.emptyList(),
+            null);
+
+    ModelOptions opts = new ModelOptions(0.5, 1024, "gpt-4", true);
+    SessionContext next = ctx.withModelOptions(opts);
+
+    assertEquals(opts, next.modelOptions());
+    assertNull(ctx.modelOptions(), "Original must be unchanged");
+  }
+
+  // -------------------------------------------------------------------------
+  // completeTurn with null currentTurn
+  // -------------------------------------------------------------------------
+
+  @Test
+  void completeTurn_nullCurrentTurn_createsNewTurnWithResponse() {
+    SessionContext ctx =
+        new SessionContext(
+            "sid",
+            Collections.emptyList(),
+            null,
+            Collections.emptyMap(),
+            Collections.emptyList(),
+            null);
+
+    SessionContext next = ctx.completeTurn(Message.assistant("final answer"));
+
+    assertNotNull(next.currentTurn());
+    assertNotNull(next.currentTurn().finalResponse());
+    assertEquals("final answer", next.currentTurn().finalResponse().content());
   }
 }

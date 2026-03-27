@@ -1,5 +1,6 @@
 package work.ganglia.kernel.task;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -8,22 +9,34 @@ import java.util.stream.Collectors;
 import io.vertx.core.Future;
 
 import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.internal.skill.SkillManifest;
 import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.skill.SkillService;
 import work.ganglia.port.internal.state.ExecutionContext;
+import work.ganglia.port.internal.state.ObservationDispatcher;
 
 public class SkillTask implements AgentTask {
   private final ToolCall call;
   private final SkillService skillService;
   private final SkillRuntime skillRuntime;
+  private final ObservationDispatcher dispatcher;
 
   public SkillTask(ToolCall call, SkillService skillService, SkillRuntime skillRuntime) {
+    this(call, skillService, skillRuntime, null);
+  }
+
+  public SkillTask(
+      ToolCall call,
+      SkillService skillService,
+      SkillRuntime skillRuntime,
+      ObservationDispatcher dispatcher) {
     this.call = call;
     this.skillService = skillService;
     this.skillRuntime = skillRuntime;
+    this.dispatcher = dispatcher;
   }
 
   @Override
@@ -45,37 +58,64 @@ public class SkillTask implements AgentTask {
   public Future<AgentTaskResult> execute(
       SessionContext context, ExecutionContext executionContext) {
     String toolName = call.toolName();
+    long startMs = System.currentTimeMillis();
+    String sessionId = context.sessionId();
 
+    if (dispatcher != null) {
+      Map<String, Object> startData = new HashMap<>();
+      startData.put("toolName", toolName);
+      startData.put("sessionId", sessionId);
+      dispatcher.dispatch(sessionId, ObservationType.SKILL_STARTED, toolName, startData);
+    }
+
+    Future<AgentTaskResult> result;
     if ("list_available_skills".equals(toolName)) {
-      return listSkills();
+      result = listSkills();
     } else if ("activate_skill".equals(toolName)) {
-      return activateSkill(call.arguments(), context);
-    }
-
-    // Try tools from active skills
-    List<ToolSet> activeSkillTools = skillRuntime.getActiveSkillsTools(context);
-    for (ToolSet ts : activeSkillTools) {
-      if (ts.getDefinitions().stream().anyMatch(d -> d.name().equals(toolName))) {
-        return ts.execute(call, context, executionContext)
-            .map(
-                invokeResult -> {
-                  AgentTaskResult.Status status =
-                      switch (invokeResult.status()) {
-                        case SUCCESS -> AgentTaskResult.Status.SUCCESS;
-                        case ERROR -> AgentTaskResult.Status.ERROR;
-                        case EXCEPTION -> AgentTaskResult.Status.EXCEPTION;
-                        case INTERRUPT -> AgentTaskResult.Status.INTERRUPT;
-                      };
-                  return new AgentTaskResult(
-                      status,
-                      invokeResult.output(),
-                      invokeResult.modifiedContext(),
-                      invokeResult.data());
-                });
+      result = activateSkill(call.arguments(), context);
+    } else {
+      // Try tools from active skills
+      List<ToolSet> activeSkillTools = skillRuntime.getActiveSkillsTools(context);
+      Future<AgentTaskResult> found = null;
+      for (ToolSet ts : activeSkillTools) {
+        if (ts.getDefinitions().stream().anyMatch(d -> d.name().equals(toolName))) {
+          found =
+              ts.execute(call, context, executionContext)
+                  .map(
+                      invokeResult -> {
+                        AgentTaskResult.Status status =
+                            switch (invokeResult.status()) {
+                              case SUCCESS -> AgentTaskResult.Status.SUCCESS;
+                              case ERROR -> AgentTaskResult.Status.ERROR;
+                              case EXCEPTION -> AgentTaskResult.Status.EXCEPTION;
+                              case INTERRUPT -> AgentTaskResult.Status.INTERRUPT;
+                            };
+                        return new AgentTaskResult(
+                            status,
+                            invokeResult.output(),
+                            invokeResult.modifiedContext(),
+                            invokeResult.data());
+                      });
+          break;
+        }
       }
+      result =
+          found != null
+              ? found
+              : Future.succeededFuture(AgentTaskResult.error("Unknown skill tool: " + toolName));
     }
 
-    return Future.succeededFuture(AgentTaskResult.error("Unknown skill tool: " + toolName));
+    return result.map(
+        taskResult -> {
+          if (dispatcher != null) {
+            Map<String, Object> finishData = new HashMap<>();
+            finishData.put("toolName", toolName);
+            finishData.put("status", taskResult.status().name());
+            finishData.put("durationMs", System.currentTimeMillis() - startMs);
+            dispatcher.dispatch(sessionId, ObservationType.SKILL_FINISHED, toolName, finishData);
+          }
+          return taskResult;
+        });
   }
 
   private Future<AgentTaskResult> listSkills() {

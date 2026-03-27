@@ -7,16 +7,12 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 
 import work.ganglia.config.ConfigManager;
-import work.ganglia.infrastructure.external.tool.InteractionTools;
-import work.ganglia.infrastructure.external.tool.KnowledgeBaseTools;
 import work.ganglia.kernel.AgentEnv;
 import work.ganglia.kernel.GangliaKernel;
 import work.ganglia.kernel.loop.ReActAgentLoop;
 import work.ganglia.kernel.todo.ToDoContextSource;
-import work.ganglia.kernel.todo.ToDoTools;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.tool.ToolExecutor;
-import work.ganglia.port.external.tool.ToolSetProvider;
 import work.ganglia.port.internal.prompt.ContextSource;
 import work.ganglia.port.internal.state.SessionManager;
 
@@ -76,17 +72,10 @@ public record Ganglia(
    * @return A future that completes with the initialized Ganglia instance.
    */
   public static Future<Ganglia> bootstrap(Vertx vertx, BootstrapOptions options) {
-    // Inject Core general-purpose tools and contexts
-    List<ToolSetProvider> providers = new ArrayList<>(options.extraToolSetProviders());
-    providers.add((v, compressor, memory, root) -> new ToDoTools(v, compressor));
-    providers.add((v, compressor, memory, root) -> new KnowledgeBaseTools(v, memory));
-    providers.add((v, compressor, memory, root) -> new InteractionTools(v));
-
     List<ContextSource> contexts = new ArrayList<>(options.extraContextSources());
     contexts.add(new ToDoContextSource());
 
-    BootstrapOptions finalOptions =
-        options.toBuilder().extraToolSetProviders(providers).extraContextSources(contexts).build();
+    BootstrapOptions finalOptions = options.toBuilder().extraContextSources(contexts).build();
 
     return new GangliaKernel(vertx, finalOptions).init();
   }
