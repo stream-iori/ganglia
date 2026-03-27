@@ -94,7 +94,7 @@ public class TerminalApp implements AutoCloseable {
     MarkdownRenderer mdRenderer = new MarkdownRenderer();
     this.eventRenderer = new EventRenderer(terminal, mdRenderer, statusBar);
     this.eventRenderer.setTaskPanel(taskPanel);
-    this.detailView = new DetailView(terminal);
+    this.detailView = new DetailView(terminal, statusBar);
     this.slashCommandMenu = new SlashCommandMenu(terminal, statusBar);
 
     this.reader = LineReaderBuilder.builder().terminal(terminal).appName("Ganglia").build();
@@ -323,9 +323,8 @@ public class TerminalApp implements AutoCloseable {
           }
           // Ctrl+E detail view
           if (consumeDetailViewRequest()) {
-            statusBar.disable();
             detailView.show(eventRenderer.getLastToolCard());
-            statusBar.enable();
+            statusBar.refresh();
             statusBar.recalculateLayout();
             continue;
           }
@@ -383,7 +382,7 @@ public class TerminalApp implements AutoCloseable {
       return;
     }
     synchronized (statusBar.terminalWriteLock) {
-      writer.print(String.format("\033[%d;1H", statusBar.getScrollBottom()));
+      writer.print(AnsiCodes.moveTo(statusBar.getScrollBottom(), 1));
       writer.println();
       // Light gray background (256-color 237), bright white prompt text
       writer.println(
@@ -404,15 +403,14 @@ public class TerminalApp implements AutoCloseable {
     if ("dumb".equals(terminal.getType())) {
       return;
     }
-    int scrollBottom = statusBar.getScrollBottom();
-    writer.print(String.format("\033[%d;1H", scrollBottom));
+    writer.print(AnsiCodes.moveTo(statusBar.getScrollBottom(), 1));
     writer.flush();
   }
 
   /** Hides the terminal cursor (used during turn execution). */
   private void hideCursor() {
     if (!"dumb".equals(terminal.getType())) {
-      writer.print("\033[?25l");
+      writer.print(AnsiCodes.hideCursor());
       writer.flush();
     }
   }
@@ -420,7 +418,7 @@ public class TerminalApp implements AutoCloseable {
   /** Shows the terminal cursor (used before readLine). */
   private void showCursor() {
     if (!"dumb".equals(terminal.getType())) {
-      writer.print("\033[?25h");
+      writer.print(AnsiCodes.showCursor());
       writer.flush();
     }
   }
@@ -464,7 +462,7 @@ public class TerminalApp implements AutoCloseable {
         return true;
       }
       case "/clear" -> {
-        writer.print("\033[2J\033[H");
+        writer.print("\033[2J" + AnsiCodes.moveTo(1, 1));
         writer.flush();
         // Re-setup scroll region after clear
         statusBar.enable();

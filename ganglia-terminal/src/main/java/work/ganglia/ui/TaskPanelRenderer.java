@@ -5,6 +5,9 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.jline.utils.AttributedStringBuilder;
+import org.jline.utils.AttributedStyle;
+
 import io.vertx.core.json.JsonObject;
 
 import work.ganglia.kernel.todo.TaskStatus;
@@ -111,14 +114,21 @@ public class TaskPanelRenderer {
     if (activeTask != null) {
       String elapsed = formatElapsed();
       String header =
-          "\033[1m* "
-              + truncate(activeTask.description(), cols - elapsed.length() - 5)
-              + " "
-              + elapsed
-              + "\033[0m";
+          new AttributedStringBuilder()
+              .style(AttributedStyle.DEFAULT.bold())
+              .append(
+                  "* "
+                      + truncate(activeTask.description(), cols - elapsed.length() - 5)
+                      + " "
+                      + elapsed)
+              .toAnsi();
       writer.print(header);
     } else {
-      writer.print("\033[1m* Tasks\033[0m");
+      writer.print(
+          new AttributedStringBuilder()
+              .style(AttributedStyle.DEFAULT.bold())
+              .append("* Tasks")
+              .toAnsi());
     }
 
     // Render items (up to maxRows - 1 for header)
@@ -141,17 +151,42 @@ public class TaskPanelRenderer {
       int remaining = items.size() - itemCount;
       int row = startRow + itemCount;
       writer.print(AnsiCodes.moveAndClear(row));
-      writer.print("  \033[2m... " + remaining + " more\033[0m");
+      writer.print(
+          new AttributedStringBuilder()
+              .style(AttributedStyle.DEFAULT.faint())
+              .append("  ... " + remaining + " more")
+              .toAnsi());
     }
   }
 
   private String formatItem(ToDoItem item, int maxWidth) {
+    String desc = truncate(item.description(), maxWidth);
     return switch (item.status()) {
-      case DONE -> "\033[32m\033[9m\u2714 " + truncate(item.description(), maxWidth) + "\033[0m";
-      case IN_PROGRESS -> "\033[33m\u25a0 " + truncate(item.description(), maxWidth) + "\033[0m";
-      case FAILED -> "\033[31m\u2717 " + truncate(item.description(), maxWidth) + "\033[0m";
-      case SKIPPED -> "\033[2m\u2013 " + truncate(item.description(), maxWidth) + "\033[0m";
-      default -> "\033[2m\u25a1 " + truncate(item.description(), maxWidth) + "\033[0m";
+      case DONE ->
+          new AttributedStringBuilder()
+              .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN).crossedOut())
+              .append("\u2714 " + desc)
+              .toAnsi();
+      case IN_PROGRESS ->
+          new AttributedStringBuilder()
+              .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW))
+              .append("\u25a0 " + desc)
+              .toAnsi();
+      case FAILED ->
+          new AttributedStringBuilder()
+              .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.RED))
+              .append("\u2717 " + desc)
+              .toAnsi();
+      case SKIPPED ->
+          new AttributedStringBuilder()
+              .style(AttributedStyle.DEFAULT.faint())
+              .append("\u2013 " + desc)
+              .toAnsi();
+      default ->
+          new AttributedStringBuilder()
+              .style(AttributedStyle.DEFAULT.faint())
+              .append("\u25a1 " + desc)
+              .toAnsi();
     };
   }
 

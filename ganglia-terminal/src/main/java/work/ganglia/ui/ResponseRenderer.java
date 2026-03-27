@@ -9,8 +9,8 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
 /**
- * Renders assistant responses with dot-prefixed lines and supports collapse/expand toggling (both
- * append and in-place modes).
+ * Renders assistant responses with dot-prefixed lines and supports collapse/expand toggling via
+ * append mode.
  */
 public class ResponseRenderer {
 
@@ -25,8 +25,7 @@ public class ResponseRenderer {
 
   private String lastRenderedResponse = null;
   private boolean lastResponseExpanded = false;
-  private int lastResponseLineCount = 0;
-  private volatile boolean responseRendered = false;
+  private boolean responseRendered = false;
   private volatile boolean toggleRequested = false;
 
   public ResponseRenderer(
@@ -59,11 +58,10 @@ public class ResponseRenderer {
       }
       lastRenderedResponse = content;
       lastResponseExpanded = full;
-      lastResponseLineCount = lines.size();
     }
   }
 
-  /** Toggles between expanded and collapsed view (append mode). */
+  /** Toggles between expanded and collapsed view by appending the re-rendered response. */
   public void toggleAppend() {
     if (lastRenderedResponse == null) {
       writer.println("(No response to expand)");
@@ -74,68 +72,12 @@ public class ResponseRenderer {
     writer.flush();
   }
 
-  /**
-   * Toggles the last response in-place using cursor-relative partial refresh.
-   *
-   * <p>When the old (expanded) content was taller than the terminal, the cursor cannot move above
-   * row 1. We cap the upward movement to the visible area and only clear the stale lines that are
-   * actually on screen. We must NOT use {@code \033[J} (clear-to-end-of-screen) because the
-   * StatusBar lives below the scroll region and would be wiped.
-   */
-  public void toggleInPlace() {
-    if (lastRenderedResponse == null) {
-      return;
-    }
-
-    synchronized (statusBar.terminalWriteLock) {
-      boolean newExpanded = !lastResponseExpanded;
-      List<String> newLines = buildResponseLines(lastRenderedResponse, newExpanded);
-      if (newLines.isEmpty()) {
-        return;
-      }
-
-      int oldTotal = lastResponseLineCount + 1; // +1 for blank line after content
-      int newTotal = newLines.size() + 1;
-
-      // Cap upward movement to visible rows within the scroll region only.
-      int visibleRows = terminal.getHeight() - statusBar.getReservedRows();
-      int moveUp = (visibleRows > 0) ? Math.min(oldTotal, visibleRows - 1) : oldTotal;
-
-      writer.print("\033[2K");
-      writer.print(String.format("\033[%dA\r", moveUp));
-
-      for (String line : newLines) {
-        writer.print("\033[2K");
-        writer.println(line);
-      }
-      writer.print("\033[2K");
-      writer.println();
-
-      // Clear only the stale lines that remain visible below the new content.
-      // staleLines = (visible old lines) - (new lines) = (moveUp + 1) - newTotal
-      int staleLines = moveUp + 1 - newTotal;
-      if (staleLines > 0) {
-        for (int i = 0; i < staleLines; i++) {
-          writer.print("\033[2K\n");
-        }
-        writer.print(String.format("\033[%dA", staleLines));
-      }
-
-      writer.flush();
-
-      lastResponseExpanded = newExpanded;
-      lastResponseLineCount = newLines.size();
-    }
+  public boolean canToggle() {
+    return lastRenderedResponse != null;
   }
 
   public void requestToggle() {
-    if (lastRenderedResponse != null) {
-      toggleRequested = true;
-    }
-  }
-
-  public boolean canToggle() {
-    return lastRenderedResponse != null;
+    toggleRequested = true;
   }
 
   public boolean consumeToggleRequest() {

@@ -92,8 +92,7 @@ public class EventRenderer {
   private void handleReasoningStarted() {
     synchronized (statusBar.terminalWriteLock) {
       statusBar.setThinking();
-      // Move to scroll region before writing
-      writer.print(String.format("\033[%d;1H", statusBar.getScrollBottom()));
+      writer.print(AnsiCodes.moveTo(statusBar.getScrollBottom(), 1));
       writer.println();
       writer.println(
           new AttributedStringBuilder()
@@ -120,7 +119,7 @@ public class EventRenderer {
 
   private void handleError(ObservationEvent event) {
     synchronized (statusBar.terminalWriteLock) {
-      writer.print(String.format("\033[%d;1H", statusBar.getScrollBottom()));
+      writer.print(AnsiCodes.moveTo(statusBar.getScrollBottom(), 1));
       writer.println();
       writer.print(markdownRenderer.render("### ERROR\n" + event.content()));
       statusBar.setIdle();
@@ -145,15 +144,23 @@ public class EventRenderer {
 
   // ── Delegate methods (preserve public API for TerminalApp & tests) ───
 
+  /** Toggles the last response between expanded and collapsed by appending below. */
   public void toggleLastResponse() {
     response.toggleAppend();
   }
 
+  /**
+   * Alias kept for TerminalApp Ctrl+O handler — routes to append-based toggle.
+   *
+   * @deprecated Use {@link #toggleLastResponse()} directly.
+   */
   public void toggleLastResponseInPlace() {
-    response.toggleInPlace();
+    response.toggleAppend();
   }
 
   public void requestToggle() {
+    // Flag consumed by consumeToggleRequest(); nothing else needed since
+    // toggleAppend() handles everything at flush time.
     response.requestToggle();
   }
 

@@ -30,7 +30,8 @@ public class DetailViewTest {
             .encoding(StandardCharsets.UTF_8)
             .streams(new ByteArrayInputStream(new byte[0]), output)
             .build();
-    detailView = new DetailView(terminal);
+    StatusBar statusBar = new StatusBar(terminal);
+    detailView = new DetailView(terminal, statusBar);
   }
 
   @AfterEach

@@ -28,15 +28,6 @@ import org.slf4j.LoggerFactory;
 public class StatusBar {
   private static final Logger logger = LoggerFactory.getLogger(StatusBar.class);
 
-  // ── ANSI escape sequences ───────────────────────────────────────────
-
-  private static final String SAVE_CURSOR = "\033[s";
-  private static final String RESTORE_CURSOR = "\033[u";
-  private static final String RESET_SCROLL_REGION = "\033[r";
-
-  /** Move to row,col and clear the entire line. */
-  private static final String MOVE_AND_CLEAR = "\033[%d;1H\033[2K";
-
   private static final String DIM_ON = "\033[2m";
   private static final String STYLE_RESET = "\033[0m";
 
@@ -75,7 +66,7 @@ public class StatusBar {
 
   /**
    * Shared lock for all terminal write sequences. Any code that emits multi-call ANSI sequences
-   * (SAVE_CURSOR → writes → RESTORE_CURSOR) must synchronize on this lock to prevent interleaving
+   * (saveCursor → writes → restoreCursor) must synchronize on this lock to prevent interleaving
    * from concurrent threads.
    */
   public final Object terminalWriteLock = new Object();
@@ -119,7 +110,7 @@ public class StatusBar {
     if (!enabled || isDumb()) {
       return;
     }
-    writer.print(String.format("\033[%d;%dH", getInputRow(), INPUT_CURSOR_COL));
+    writer.print(AnsiCodes.moveTo(getInputRow(), INPUT_CURSOR_COL));
   }
 
   // ── Layout lifecycle ────────────────────────────────────────────────
@@ -154,7 +145,7 @@ public class StatusBar {
       return;
     }
     this.enabled = false;
-    writer.print(RESET_SCROLL_REGION);
+    writer.print(AnsiCodes.resetScrollRegion());
     clearRows(getRows() - reservedRows + 1, reservedRows);
     writer.flush();
   }
@@ -197,7 +188,7 @@ public class StatusBar {
         return;
       }
 
-      writer.print(SAVE_CURSOR);
+      writer.print(AnsiCodes.saveCursor());
 
       int row = rows - reservedRows + 1;
       row = renderTaskPanel(row, rows, cols);
@@ -205,7 +196,7 @@ public class StatusBar {
       row = renderStatusText(row, cols);
       renderPadding(row);
 
-      writer.print(RESTORE_CURSOR);
+      writer.print(AnsiCodes.restoreCursor());
       writer.flush();
     }
   }
@@ -266,7 +257,7 @@ public class StatusBar {
 
   /** Moves to the given row and clears it. */
   private void clearLine(int row) {
-    writer.print(String.format(MOVE_AND_CLEAR, row));
+    writer.print(AnsiCodes.moveAndClear(row));
   }
 
   /** Clears {@code count} consecutive rows starting at {@code startRow}. */
@@ -291,8 +282,8 @@ public class StatusBar {
       return;
     }
     int scrollBottom = rows - reservedRows;
-    writer.print(String.format("\033[1;%dr", scrollBottom));
-    writer.print(String.format("\033[%d;1H", scrollBottom));
+    writer.print(AnsiCodes.setScrollRegion(1, scrollBottom));
+    writer.print(AnsiCodes.moveTo(scrollBottom, 1));
     writer.flush();
   }
 
@@ -302,7 +293,7 @@ public class StatusBar {
     }
     synchronized (terminalWriteLock) {
       int rows = getRows();
-      writer.print(RESET_SCROLL_REGION);
+      writer.print(AnsiCodes.resetScrollRegion());
 
       int taskHeight = (taskPanel != null) ? taskPanel.getHeight(rows) : 0;
       reservedRows = BASE_RESERVED + taskHeight;
@@ -310,7 +301,7 @@ public class StatusBar {
       // Clear from a few rows above the reserved area to catch reflow artifacts
       int firstReserved = rows - reservedRows + 1;
       int safeStart = Math.max(1, firstReserved - RESIZE_MARGIN);
-      writer.print(String.format("\033[%d;1H\033[J", safeStart));
+      writer.print(AnsiCodes.moveTo(safeStart, 1) + "\033[J");
 
       setupScrollRegion();
       refresh();

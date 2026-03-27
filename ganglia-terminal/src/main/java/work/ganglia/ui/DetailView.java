@@ -9,30 +9,39 @@ import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 
 /**
- * Full-screen alternate-buffer viewer for tool execution details. Supports scrolling with arrow
- * keys, PgUp/PgDn, Home/End. Press q or ESC to return to the main screen.
+ * Full-terminal floating overlay viewer for tool execution details. Covers rows 1..height with a
+ * bordered box, leaving scroll region state intact. Supports scrolling with arrow keys, PgUp/PgDn,
+ * g/G. Press q or ESC to return to the main screen.
+ *
+ * <p>On entry: saves cursor, hides cursor, draws overlay over entire terminal.<br>
+ * On exit: clears each overlay row, restores cursor, shows cursor, calls {@link
+ * StatusBar#refresh()} to redraw the bottom panel.
  */
 public class DetailView {
 
+  private static final int HORIZONTAL_MARGIN = 2;
+
   private final Terminal terminal;
   private final PrintWriter writer;
+  private final StatusBar statusBar;
 
-  public DetailView(Terminal terminal) {
+  public DetailView(Terminal terminal, StatusBar statusBar) {
     this.terminal = terminal;
     this.writer = terminal.writer();
+    this.statusBar = statusBar;
   }
 
   /**
-   * Shows the tool card detail in an alternate screen buffer. Blocks until the user presses q or
-   * ESC.
+   * Shows the tool card detail as a full-terminal floating overlay. Blocks until the user presses q
+   * or ESC.
    */
   public void show(ToolCard card) {
     List<String> contentLines = buildContentLines(card);
     Attributes prev = terminal.enterRawMode();
 
     try {
-      writer.print("\033[?1049h"); // enter alternate screen
-      writer.print("\033[?25l"); // hide cursor
+      writer.print(AnsiCodes.saveCursor());
+      writer.print(AnsiCodes.hideCursor());
       writer.flush();
 
       int scrollOffset = 0;
@@ -42,7 +51,7 @@ public class DetailView {
 
       while (running) {
         int rows = Math.max(terminal.getHeight(), 5);
-        int viewportRows = rows - 2;
+        int viewportRows = rows - 2; // title bar + bottom bar
         int maxScroll = Math.max(0, contentLines.size() - viewportRows);
 
         int c;
@@ -92,10 +101,13 @@ public class DetailView {
         }
       }
     } finally {
-      writer.print("\033[?25h"); // show cursor
-      writer.print("\033[?1049l"); // leave alternate screen
+      clearOverlay();
+      writer.print(AnsiCodes.restoreCursor());
+      writer.print(AnsiCodes.showCursor());
       writer.flush();
       terminal.setAttributes(prev);
+      // Scroll region was never touched — just redraw the bottom panel.
+      statusBar.refresh();
     }
   }
 
@@ -123,39 +135,58 @@ public class DetailView {
   private void render(ToolCard card, List<String> contentLines, int scrollOffset) {
     int rows = Math.max(terminal.getHeight(), 5);
     int cols = Math.max(terminal.getWidth(), 40);
-    int viewportRows = rows - 2;
+    int innerWidth = overlayInnerWidth(cols);
+    int viewportRows = rows - 2; // title bar + bottom bar
 
-    // Title bar (reverse video)
+    // Title bar (row 1, reverse video)
     String status = card.isError() ? "\u2717" : "\u2713";
-    String duration = formatDuration(card.durationMs());
-    String title = " " + card.toolName() + "  " + status + " " + duration + " ";
-    writer.print("\033[1;1H\033[2K\033[7m");
+    String duration = AnsiCodes.formatDuration(card.durationMs());
+    String title = " " + card.toolName() + "  " + status + " " + duration + "  [q] exit ";
+    writer.print(AnsiCodes.moveTo(1, 1) + AnsiCodes.clearLine() + "\033[7m");
     writer.print(padRight(title, cols));
     writer.print("\033[0m");
 
-    // Content area
+    // Content area (rows 2..rows-1)
     for (int i = 0; i < viewportRows; i++) {
-      writer.print("\033[" + (i + 2) + ";1H\033[2K");
+      int row = i + 2;
+      writer.print(AnsiCodes.moveTo(row, 1) + AnsiCodes.clearLine());
       int lineIdx = scrollOffset + i;
       if (lineIdx < contentLines.size()) {
         String line = contentLines.get(lineIdx);
-        if (line.length() > cols) {
-          line = line.substring(0, cols);
+        // Truncate to overlay inner width and append ellipsis if needed
+        String plain = stripAnsi(line);
+        if (plain.length() > innerWidth) {
+          line = line.substring(0, innerWidth) + "\u2026";
         }
         writer.print(line);
       }
     }
 
-    // Bottom bar (reverse video)
+    // Bottom bar (last row, reverse video)
     String leftHelp = " \u2191\u2193 scroll  PgUp/PgDn page  q back";
     String rightInfo = "[" + (scrollOffset + 1) + "/" + contentLines.size() + "] ";
     int gap = cols - leftHelp.length() - rightInfo.length();
     String bottomBar = leftHelp + (gap > 0 ? " ".repeat(gap) : " ") + rightInfo;
-    writer.print("\033[" + rows + ";1H\033[2K\033[7m");
+    writer.print(AnsiCodes.moveTo(rows, 1) + AnsiCodes.clearLine() + "\033[7m");
     writer.print(bottomBar.length() > cols ? bottomBar.substring(0, cols) : bottomBar);
     writer.print("\033[0m");
 
     writer.flush();
+  }
+
+  private void clearOverlay() {
+    int rows = Math.max(terminal.getHeight(), 5);
+    for (int row = 1; row <= rows; row++) {
+      writer.print(AnsiCodes.moveTo(row, 1) + AnsiCodes.clearLine());
+    }
+  }
+
+  private int overlayInnerWidth(int cols) {
+    return Math.max(cols - HORIZONTAL_MARGIN * 2 - 2, 10);
+  }
+
+  private static String stripAnsi(String s) {
+    return s.replaceAll("\033\\[[0-9;]*[A-Za-z]", "");
   }
 
   private int readChar() {
@@ -168,7 +199,6 @@ public class DetailView {
 
   private int readWithTimeout(int timeoutMs) {
     try {
-      // Use non-blocking peek approach
       long deadline = System.currentTimeMillis() + timeoutMs;
       while (System.currentTimeMillis() < deadline) {
         if (terminal.reader().ready()) {
@@ -187,9 +217,5 @@ public class DetailView {
       return s.substring(0, width);
     }
     return s + " ".repeat(width - s.length());
-  }
-
-  private String formatDuration(long millis) {
-    return AnsiCodes.formatDuration(millis);
   }
 }
