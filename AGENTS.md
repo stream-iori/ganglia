@@ -49,18 +49,18 @@ integration-test, ganglia-example, ganglia-swe-bench
 
 ## 4. Build & Development Commands
 
-|             Command             |                                Description                                 |
-|---------------------------------|----------------------------------------------------------------------------|
-| `mvn clean install -DskipTests` | Full build (skip tests)                                                    |
+|             Command             |                                              Description                                              |
+|---------------------------------|-------------------------------------------------------------------------------------------------------|
+| `mvn clean install -DskipTests` | Full build (skip tests)                                                                               |
 | `just test-backend`             | Unit tests: ganglia-harness, ganglia-local-file-memory, ganglia-coding, ganglia-web, ganglia-terminal |
-| `just test-it`                  | Integration tests                                                          |
-| `just test-it-one <ClassName>`  | Single integration test                                                    |
-| `just frontend`                 | Vite dev server (port 5173)                                                |
-| `just backend`                  | WebUI backend (port 8080)                                                  |
-| `just ui-watch`                 | Frontend watch mode (auto-rebuild dist/)                                   |
-| `just coverage`                 | JaCoCo coverage report                                                     |
-| `just build-all`                | Full production build (UI + Backend JAR)                                   |
-| `just clean`                    | Clean all build artifacts                                                  |
+| `just test-it`                  | Integration tests                                                                                     |
+| `just test-it-one <ClassName>`  | Single integration test                                                                               |
+| `just frontend`                 | Vite dev server (port 5173)                                                                           |
+| `just backend`                  | WebUI backend (port 8080)                                                                             |
+| `just ui-watch`                 | Frontend watch mode (auto-rebuild dist/)                                                              |
+| `just coverage`                 | JaCoCo coverage report                                                                                |
+| `just build-all`                | Full production build (UI + Backend JAR)                                                              |
+| `just clean`                    | Clean all build artifacts                                                                             |
 
 ## 5. Architecture
 
