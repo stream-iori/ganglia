@@ -20,11 +20,16 @@
 - **Hexagonal Architecture:** Complete decoupling of core reasoning (Kernel) from model providers and technical implementations (Infrastructure), ensuring high testability and platform independence.
 - **Aspect-Oriented Hooks:** A unified `AgentInterceptor` pipeline allowing for transparent context enrichment, security validation, and post-turn reflection without cluttering core logic.
 - **Advanced Memory Subsystem:**
-  - **MemoryStore:** Hybrid search (text + metadata) for long-term knowledge retrieval.
+  - **MemoryStore:** Persistent observation storage with hybrid search (text + metadata).
   - **Observation Compression:** Real-time, LLM-powered summarization of large tool outputs (>4000 chars) to prevent context window bloat.
   - **Progressive Disclosure:** Automatic injection of memory indexes into prompts, allowing agents to recall full details on demand using unique IDs.
-  - **Timeline Ledger:** An automated system medical record (`TIMELINE.md`) tracking every major decision and architectural change.
-- **Native LLM Gateways:** Native implementations of OpenAI and Anthropic protocols using Vert.x WebClient. **Zero third-party SDK dependencies.**
+  - **Timeline Ledger:** Automated tracking of every major decision and architectural change in `TIMELINE.md`.
+  - **Daily Journals:** Cross-session summaries auto-written to `.ganglia/memory/daily-*.md`.
+- **Native LLM Gateways:** Native implementations of OpenAI, Anthropic, and Gemini protocols using Vert.x WebClient. **Zero third-party SDK dependencies.**
+- **Pluggable Memory via SPI:** Memory implementations are loaded via `java.util.ServiceLoader`, keeping the core framework clean and extensible.
+- **Dynamic Skill System:** Load external capabilities at runtime from filesystem directories or JAR files via a manifest-based skill system.
+- **Sub-Agent Orchestration:** Delegate specialized sub-tasks to isolated child agents, with support for DAG-based parallel execution.
+- **MCP Support:** Connect to external tool servers via the Model Context Protocol (stdio/SSE).
 - **Memory as Code:** Transparent, file-based memory system using Markdown (`.ganglia/memory/MEMORY.md` and Daily Journals).
 - **Modern React WebUI:** A high-performance dashboard built with **React 18**, **Zustand**, and **shadcn/ui** for real-time monitoring, continuous timeline tracking, and high-fidelity code/diff review.
 
@@ -36,10 +41,180 @@ Ganglia is organized into four clean hexagonal layers:
 
 1. **API / Adapter Layer**: Entry points like `WebUiVerticle` (WebSockets) and `TerminalUI` (Console).
 2. **Kernel Layer**: The heart of the reasoning loop, task scheduling, interceptor pipeline, and state evolution.
-3. **Port Layer**: Domain models (`Message`, `Turn`, `Context`, `MemoryEntry`) and strict service interfaces.
+3. **Port Layer**: Domain models (`Message`, `Turn`, `SessionContext`) and strict service interfaces.
 4. **Infrastructure Layer**: Technical implementations (LLM Gateways, File System, Memory Persistence).
 
 For more details, see the [Architecture Documentation](docs/ARCHITECTURE.md).
+
+---
+
+## 📦 Modules
+
+| Module | Description |
+|:---|:---|
+| `ganglia-harness` | Core framework: kernel, ports, infrastructure (no memory implementations) |
+| `ganglia-local-file-memory` | File-based memory SPI implementation |
+| `ganglia-coding` | Coding agent builder + tools (bash, file-edit, web-fetch) |
+| `ganglia-terminal` | JLine 3 terminal UI |
+| `ganglia-web` | WebSocket + JSON-RPC 2.0 web UI backend |
+| `ganglia-webui` | React 18 frontend (npm) |
+| `ganglia-example` | Demo applications |
+| `ganglia-swe-bench` | SWE-bench evaluation with Docker sandboxing |
+| `integration-test` | E2E simulation scenarios |
+
+---
+
+## 🧠 ganglia-harness Capabilities
+
+`ganglia-harness` is the core of the framework. It contains everything needed to build and run an agent.
+
+### Kernel
+
+| Component | Description |
+|:---|:---|
+| `ReActAgentLoop` | Iterative Thought → Action → Observation reasoning loop |
+| `AgentTaskFactory` / `DefaultAgentTaskFactory` | Maps LLM tool calls to executable `AgentTask` instances |
+| `InterceptorPipeline` | Sequential `AgentInterceptor` hooks for pre/post turn and tool execution |
+| `ObservationCompressionHook` | Compresses large tool outputs (>4000 chars) via LLM before storing |
+| `TokenAwareTruncator` | Prunes message history when token budget is exceeded |
+| `GraphExecutor` / `DefaultGraphExecutor` | DAG-based orchestration for parallel sub-agent execution |
+| `ToDoTools` | Built-in task planning tools (`todo_add`, `todo_list`, `todo_complete`) |
+
+### LLM Gateways
+
+| Gateway | Description |
+|:---|:---|
+| `OpenAIModelGateway` | Native OpenAI protocol (GPT-4o, etc.) |
+| `AnthropicModelGateway` | Native Anthropic protocol (Claude) |
+| `GeminiModelGateway` | Google Gemini via OpenAI-compatible API |
+| `FallbackModelGateway` | Primary + utility model fallback strategy |
+| `RetryingModelGateway` | Exponential backoff retry wrapper |
+| `ModelGatewayFactory` | Selects the correct gateway from configuration |
+
+### Built-in Tools
+
+| Tool | Description |
+|:---|:---|
+| `KnowledgeBaseTools` | `add_knowledge`, `search_knowledge` — long-term knowledge management |
+| `InteractionTools` | `ask_user` — pause loop and request user input |
+| `RecallMemoryTools` | Query the memory store for past observations |
+| `SkillTools` | `list_available_skills`, `activate_skill` — manage dynamic skills |
+| `ToDoTools` | `todo_add`, `todo_list`, `todo_complete` — in-loop task planning |
+
+### Prompt Engine & Context Sources
+
+`StandardPromptEngine` composes the system prompt from prioritized `ContextSource` fragments:
+
+| Source | Description |
+|:---|:---|
+| `PersonaContextSource` | Agent identity and persona |
+| `MandatesContextSource` | Instructions from `GANGLIA.md` |
+| `EnvironmentSource` | Runtime environment variables |
+| `FileContextSource` | Inject contents of specified files |
+| `SkillContextSource` | Active skill descriptions and tool schemas |
+| `ToolContextSource` | Available tool definitions |
+| `MemoryContextSource` | Memory index for progressive disclosure |
+| `DailyContextSource` | Daily journal fragments |
+| `ToDoContextSource` | Pending tasks |
+
+Fragments are prioritized (1–10) and pruned to fit the configured token budget.
+
+### Skill System
+
+Skills are external capability packages loadable at runtime:
+
+- **`FileSystemSkillLoader`** — loads skills from `.ganglia/skills/` directories
+- **`JarSkillLoader`** — loads skills packaged as JAR files
+- **`JavaSkillToolSet`** — executes Java-based skill tools
+- **`ScriptSkillToolSet`** — executes script-based skill tools
+- **Skill Manifest** — defines `id`, `version`, `name`, `description`, tools, prompt fragments, and activation triggers
+
+### Memory SPI
+
+Memory is pluggable via `java.util.ServiceLoader`:
+
+```
+MemorySystemProvider  (SPI in ganglia-harness)
+    └── FileSystemMemoryProvider  (impl in ganglia-local-file-memory)
+            └── MemorySystem record:
+                  MemoryStore, ObservationCompressor, ContextCompressor,
+                  TimelineLedger, DailyRecordManager, LongTermMemory,
+                  MemoryService, MemoryContextSource
+```
+
+### MCP (Model Context Protocol)
+
+- **`McpRegistry`** — registry of connected MCP servers
+- **`McpToolSet`** — exposes MCP server tools as a standard `ToolSet`
+- **`McpConfigManager`** — loads MCP server config from `.ganglia/.mcp.json`
+- Supports stdio and SSE transports with full JSON-RPC 2.0 message handling
+
+### State & Observability
+
+| Component | Description |
+|:---|:---|
+| `DefaultSessionManager` | Session lifecycle: create, persist, add steps, complete turns |
+| `FileStateEngine` | Persists session state to the filesystem |
+| `DefaultContextOptimizer` | Token-aware history pruning and message deduplication |
+| `TraceManager` | Records full request/response traces for debugging |
+| `TokenUsageManager` | Tracks cumulative token consumption per session |
+| `ObservationDispatcher` | Publishes all lifecycle events to the Vert.x EventBus |
+
+### Domain Model (Port Layer)
+
+All core models are immutable Java 17 `record` types using functional `with...` updates:
+
+| Model | Description |
+|:---|:---|
+| `SessionContext` | Full session state: turns, metadata, active skills, model options |
+| `Turn` | Single ReAct iteration containing messages and observations |
+| `Message` | A single user/assistant/tool message |
+| `AgentSignal` | Control signals: `INTERRUPT`, `ABORT`, `ACCEPT` |
+| `ToolDefinition` | Tool name, description, JSON schema, interrupt flag |
+| `ToolCall` / `AgentTaskResult` | Tool invocation and its result |
+| `ObservationType` | Full enum of lifecycle event types |
+
+---
+
+## 🔧 ganglia-coding Capabilities
+
+`ganglia-coding` provides a pre-assembled coding agent with a curated tool set:
+
+| Tool | Description |
+|:---|:---|
+| `BashTools` | `run_shell_command` — execute shell commands with streaming TTY output |
+| `FileEditTools` | `replace_in_file`, `write_file`, `apply_patch` — precise file editing with diff preview |
+| `NativeFileSystemTools` | `list_files`, `read_file`, `create_directory`, `exists` — filesystem navigation |
+| `WebFetchTools` | `fetch_url`, `fetch_file` — retrieve web content |
+
+Use `CodingAgentBuilder` to assemble a coding agent with optional `PathMapper` support for Docker/remote environments.
+
+---
+
+## 🖥 ganglia-terminal Capabilities
+
+Rich interactive terminal UI powered by **JLine 3**:
+
+- Real-time token streaming with append-only display
+- ANSI markdown rendering (`MarkdownRenderer`)
+- Overlay `DetailView` for inspecting long tool outputs
+- Slash command menu (`/`)
+- Visual `ToolCard` per tool invocation showing name, args, duration, and result
+- Task/ToDo panel rendered inline
+- Status bar with model name, token usage, and elapsed time
+
+---
+
+## 🌐 ganglia-web Capabilities
+
+WebSocket backend for the React dashboard:
+
+- Full-duplex **JSON-RPC 2.0 over WebSocket** protocol
+- `WebUIVerticle` serves both the API and the static React frontend from `webroot/`
+- `WebUIEventPublisher` fans out observation events to all connected clients
+- Multi-session management with history persistence
+- Methods: `SYNC`, `START`, `LIST_FILES`, `READ_FILE`, `RESPOND_ASK`, `CANCEL`, `RETRY`
+- Notifications: `server_event` (lifecycle stream), `tty_event` (shell output)
 
 ---
 
@@ -47,51 +222,44 @@ For more details, see the [Architecture Documentation](docs/ARCHITECTURE.md).
 
 The project uses the `just` command runner for common development tasks.
 
-| Command          | Description                                           |
-|:-----------------|:------------------------------------------------------|
-| `just setup`     | Initialize everything (Maven install + NPM install)   |
-| `just backend`   | Start the Java Backend (Interactive WebUI Demo)       |
-| `just frontend`  | Start the Frontend Dev Server (Vite)                  |
-| `just ui-watch`  | Build UI in watch mode (updates `dist/` continuously) |
-| `just build-all` | Full production build (UI + Backend JAR)              |
-| `just test`      | Run all tests (Backend & Frontend)                    |
+| Command | Description |
+|:---|:---|
+| `just setup` | Initialize everything (Maven install + NPM install) |
+| `just backend` | Start the Java Backend (Interactive WebUI Demo) |
+| `just frontend` | Start the Frontend Dev Server (Vite, port 5173) |
+| `just ui-watch` | Build UI in watch mode (updates `dist/` continuously) |
+| `just build-all` | Full production build (UI + Backend JAR) |
+| `just test` | Run all tests (Backend & Frontend) |
+| `just test-backend` | Unit tests for all Java modules |
+| `just test-it` | Integration tests |
+| `just coverage` | Generate JaCoCo coverage report |
 
 ---
 
 ## 🕹 Demos
 
-Ganglia provides several ways to interact with the reasoning engine:
-
 ### 1. WebUI Interactive Demo (`work.ganglia.example.WebUIDemo`)
 
-This is the recommended way to explore the agent's reasoning, tool use, and memory systems with a rich visual dashboard.
-
 ```bash
-# Start the full environment (Backend + Frontend)
 just backend
 ```
 
-Then open `http://localhost:8080`. For frontend development with HMR, use `just dev-all` and open `http://localhost:5173`.
+Open `http://localhost:8080`. For frontend HMR, use `just frontend` and open `http://localhost:5173`.
 
 ### 2. Interactive Terminal Chat (`work.ganglia.example.InteractiveChatDemo`)
 
-A feature-rich TTY interface for chatting with the agent directly from your terminal, featuring box-drawing responses and markdown rendering.
-
 ```bash
-# Start the terminal REPL
 just chat
 ```
 
 > [!NOTE]
-> Ensure you have an environment variable `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` set before running the demos. You can also configure providers in `.ganglia/config.json`.
+> Set `OPENAI_API_KEY` or `ANTHROPIC_API_KEY` before running. Alternatively, configure the provider in `.ganglia/config.json`.
 
 ---
 
 ## ⚙️ Configuration
 
-Ganglia is configured via a JSON file, typically located at `ganglia-example/.ganglia/config.json` in your project root. If the file doesn't exist, it will be automatically created with default values on the first run.
-
-### Example `.ganglia/config.json`
+Ganglia is configured via `.ganglia/config.json`. It is created automatically on first run.
 
 ```json
 {
@@ -121,18 +289,14 @@ Ganglia is configured via a JSON file, typically located at `ganglia-example/.ga
 }
 ```
 
-### Key Configuration Fields
-
-- **`agent`**:
-  - `maxIterations`: Maximum number of reasoning steps per turn.
-  - `instructionFile`: A Markdown file (e.g., `GANGLIA.md`) containing custom system instructions and persona rules.
-- **`models`**: Supports `primary` and `utility` (used for background tasks like compression).
-  - `type`: `openai`, `anthropic`, or `gemini` (via OpenAI compatibility).
-  - `apiKey`: Your provider API key. Environment variables like `OPENAI_API_KEY` are also supported.
+- **`agent.maxIterations`**: Maximum ReAct loop iterations per turn.
+- **`agent.compressionThreshold`**: Context compression trigger (0.7 = 70% of token budget).
+- **`agent.instructionFile`**: Custom instructions file parsed as priority-tagged `ContextFragment`s.
+- **`models.type`**: `openai`, `anthropic`, or `gemini`.
 
 ### Custom Instructions (`GANGLIA.md`)
 
-You can provide structured system instructions by creating a `GANGLIA.md` file. Ganglia parses **H2 headers** to extract individual context fragments:
+H2 headers are parsed as individual context fragments with optional priority and mandatory flags:
 
 ```markdown
 ## [Coding Style] (Priority: 8, Mandatory)
@@ -141,27 +305,6 @@ Always use Google Java Style for all code changes.
 ## [Security] (Priority: 10, Mandatory)
 Never log or commit secrets or API keys.
 ```
-
----
-
-## 🔌 Communication Protocol
-
-Ganglia uses **JSON-RPC 2.0** over **WebSockets** for all external client communication.
-
-### Client-to-Server Methods
-
-- **`SYNC`**: Request full session history and workspace configuration.
-- **`START`**: Begin a new reasoning turn with a natural language prompt.
-- **`LIST_FILES`**: Manually request a fresh workspace file tree snapshot.
-- **`READ_FILE`**: Retrieve the content of a specific file (with syntax highlighting metadata).
-- **`RESPOND_ASK`**: Provide user authorization or selection for an interactive tool.
-- **`CANCEL`**: Abort current agent execution and tool tasks.
-- **`RETRY`**: Re-trigger the last failed or interrupted turn.
-
-### Server-to-Client Notifications
-
-- **`server_event`**: Unified stream for thoughts, tool starts, results, and system errors.
-- **`tty_event`**: High-frequency streaming output for shell commands.
 
 ---
 
