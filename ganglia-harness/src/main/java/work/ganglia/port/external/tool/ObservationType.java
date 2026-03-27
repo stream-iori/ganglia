@@ -11,6 +11,9 @@ public enum ObservationType {
   /** Reasoning phase has started. */
   REASONING_STARTED,
 
+  /** The LLM request (messages, tools, options) has been prepared and is ready to be sent. */
+  REQUEST_PREPARED,
+
   /** A token has been received from the model (for streaming). */
   TOKEN_RECEIVED,
 

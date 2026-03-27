@@ -78,12 +78,61 @@ public class ReActAgentLoopObservationTest extends BaseKernelTest {
                                                         "Should observe REASONING_STARTED during resume");
                                                     assertTrue(
                                                         observedTypes.contains(
+                                                            ObservationType.REQUEST_PREPARED),
+                                                        "Should observe REQUEST_PREPARED during resume");
+                                                    assertTrue(
+                                                        observedTypes.contains(
                                                             ObservationType.TURN_FINISHED),
                                                         "Should observe TURN_FINISHED during resume");
                                                     testContext.completeNow();
                                                   });
                                             }));
                               }));
+                }));
+  }
+
+  @Test
+  void testToolStartedObservation(VertxTestContext testContext) {
+    ToolCall call = new ToolCall("c1", "bash", Map.of("command", "ls"));
+    model.addResponse(new ModelResponse("Executing...", List.of(call), null));
+    model.addResponse(new ModelResponse("Done.", Collections.emptyList(), null));
+    tools.registerHandler(
+        "bash",
+        tc ->
+            work.ganglia.infrastructure.external.tool.model.ToolInvokeResult.success("file1.txt"));
+
+    SessionContext context = createSessionContext();
+    List<ObservationType> observedTypes = Collections.synchronizedList(new ArrayList<>());
+
+    if (loop.getDispatcher() instanceof DefaultObservationDispatcher dod) {
+      dod.register(
+          new AgentLoopObserver() {
+            @Override
+            public void onObservation(
+                String sessionId, ObservationType type, String content, Map<String, Object> data) {
+              observedTypes.add(type);
+            }
+
+            @Override
+            public void onUsageRecorded(
+                String sessionId, work.ganglia.port.internal.state.TokenUsage usage) {}
+          });
+    }
+
+    loop.run("Run bash", context, new AgentSignal())
+        .onComplete(
+            testContext.succeeding(
+                res -> {
+                  testContext.verify(
+                      () -> {
+                        assertTrue(
+                            observedTypes.contains(ObservationType.TOOL_STARTED),
+                            "Should observe TOOL_STARTED");
+                        assertTrue(
+                            observedTypes.contains(ObservationType.TOOL_FINISHED),
+                            "Should observe TOOL_FINISHED");
+                        testContext.completeNow();
+                      });
                 }));
   }
 

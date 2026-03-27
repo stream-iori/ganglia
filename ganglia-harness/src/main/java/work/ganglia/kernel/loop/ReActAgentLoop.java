@@ -310,6 +310,14 @@ public class ReActAgentLoop implements AgentLoop {
                       promptRequest.options(),
                       signal);
 
+              // Publish observation of prepared request metadata
+              Map<String, Object> reqData = new HashMap<>();
+              reqData.put("messageCount", chatRequest.messages().size());
+              reqData.put("toolCount", chatRequest.tools().size());
+              reqData.put("model", chatRequest.options().modelName());
+              publishObservation(
+                  context.sessionId(), ObservationType.REQUEST_PREPARED, null, reqData);
+
               ExecutionContext execContext =
                   new ExecutionContext() {
                     @Override
@@ -430,7 +438,9 @@ public class ReActAgentLoop implements AgentLoop {
           }
         };
 
-    return task.execute(originalContext, execContext)
+    return pipeline
+        .executePreToolExecute(task.getToolCall(), originalContext)
+        .compose(call -> task.execute(originalContext, execContext))
         .timeout(configProvider.getToolTimeoutMs(), TimeUnit.MILLISECONDS)
         .recover(
             err ->

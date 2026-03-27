@@ -81,6 +81,18 @@ public class TraceManager {
       case REASONING_STARTED:
         sb.append("\n### \uD83D\uDCA1 Thought [").append(time).append("]\n");
         break;
+      case REQUEST_PREPARED:
+        if (event.data() != null) {
+          sb.append("- **Request Prepared:** ");
+          if (event.data().containsKey("messageCount"))
+            sb.append(event.data().get("messageCount")).append(" messages, ");
+          if (event.data().containsKey("toolCount"))
+            sb.append(event.data().get("toolCount")).append(" tools, ");
+          if (event.data().containsKey("model"))
+            sb.append("model: `").append(event.data().get("model")).append("`");
+          sb.append("\n");
+        }
+        break;
       case REASONING_FINISHED:
         if (event.content() != null && !event.content().isEmpty()) {
           sb.append(event.content()).append("\n");
