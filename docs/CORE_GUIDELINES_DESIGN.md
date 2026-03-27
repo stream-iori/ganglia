@@ -1,7 +1,7 @@
 # Ganglia Core Guidelines Design
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 >
 > **Related:** [Architecture](ARCHITECTURE.md), [Memory Architecture](MEMORY_ARCHITECTURE.md)
 

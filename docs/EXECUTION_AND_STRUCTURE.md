@@ -1,7 +1,7 @@
 # Ganglia Core: Architecture & Execution Flow
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 
 This document provides a comprehensive overview of the structural relationships and the execution sequences of the Ganglia core system.
 
@@ -17,13 +17,13 @@ graph TD
     end
 
     subgraph Kernel ["2. Kernel Layer (The Heart)"]
-        Loop["StandardAgentLoop"]
+        Loop["ReActAgentLoop"]
         Pipeline["InterceptorPipeline"]
         Dispatcher["ObservationDispatcher"]
-        SchedFactory["SchedulableFactory"]
+        SchedFactory["AgentTaskFactory"]
         
-        subgraph Tasks ["Tasks (Schedulable)"]
-            ToolTask["ToolTask"]
+        subgraph Tasks ["Tasks (AgentTask)"]
+            ToolTask["StandardToolTask"]
             SubAgentTask["SubAgentTask"]
             SkillTask["SkillTask"]
         end
@@ -74,7 +74,7 @@ A high-level view of the primary reasoning cycle, focusing on the core interacti
 sequenceDiagram
     autonumber
     actor User
-    participant Kernel as StandardAgentLoop
+    participant Kernel as ReActAgentLoop
     participant Prompt as PromptEngine
     participant LLM as ModelGateway
     participant Tool as Tool Executor
@@ -108,7 +108,7 @@ The following sequence diagram details the full lifecycle of a single user inter
 sequenceDiagram
     autonumber
     actor User
-    participant Kernel as StandardAgentLoop
+    participant Kernel as ReActAgentLoop
     participant Pipe as InterceptorPipeline
     participant Disp as ObservationDispatcher
     participant Prompt as PromptEngine

@@ -1,7 +1,7 @@
 # Ganglia Skill Architecture
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 >
 > **Package:** `work.ganglia.port.internal.skill` / `work.ganglia.infrastructure.internal.skill`
 > **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)

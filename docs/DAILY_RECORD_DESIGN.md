@@ -1,7 +1,7 @@
 # Ganglia Daily Record Architecture
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 >
 > **Module:** `ganglia-harness`
 > **Related:** [Memory Architecture](MEMORY_ARCHITECTURE.md), [Context Engine](CONTEXT_ENGINE_DESIGN.md)
@@ -19,7 +19,7 @@ To provide a project-wide "Daily Journal" that captures key accomplishments. Thi
 
 ### 3.1 Triggering
 
-When a `Turn` is completed, the `StandardAgentLoop` (Kernel) publishes a message to the EventBus.
+When a `Turn` is completed, the `ReActAgentLoop` (Kernel) publishes a message to the EventBus.
 - **Address**: `ganglia.memory.event` (Defined in `Constants.ADDRESS_MEMORY_EVENT`).
 
 ### 3.2 `MemoryService` (The Port Listener)

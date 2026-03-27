@@ -1,7 +1,7 @@
 # Ganglia Robustness Design
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 >
 > **Module:** `ganglia-harness`
 > **Related:** [Architecture](ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
@@ -73,7 +73,7 @@ Before executing any tool, the arguments are validated against the tool's JSON S
 
 - **Token Budgeting**: The `PromptEngine` calculates the budget for System Prompt, History, and Response.
 - **Payload Sanitization**: Before sending to LLM, history is sanitized to collapse consecutive user messages and remove orphaned tool calls (Assistant messages without results), preventing protocol violations (400 errors).
-- **Proactive Compression**: Implementation of a 70% threshold monitor in `StandardAgentLoop`. When history consumes >70% of the window, the `ContextCompressor` is triggered to replace older turns with concise summaries, ensuring continuity without overflow.
+- **Proactive Compression**: Implementation of a 70% threshold monitor in `ReActAgentLoop`. When history consumes >70% of the window, the `ContextCompressor` is triggered to replace older turns with concise summaries, ensuring continuity without overflow.
 - **Financial Guardrail**: A hard session-level token limit (e.g., 500k tokens) is enforced to prevent runaway costs.
 - **Tool Failure Circuit Breaker**: If a tool fails consecutively (3 times), the loop is aborted to prevent token waste on repetitive errors.
 

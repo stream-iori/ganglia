@@ -1,7 +1,7 @@
 # Prompt Engine Architecture
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 >
 > **Package:** `work.ganglia.port.internal.prompt` (Contract) / `work.ganglia.infrastructure.internal.prompt` (Impl)
 > **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)
@@ -50,16 +50,16 @@ Standardized provider for system prompt fragments (Persona, Mandates, Env, etc.)
 
 - **Context Composition:** Uses `ContextComposer` to aggregate fragments from various `ContextSource` implementations.
 - **History Pruning:** Intelligently prunes `Turn` history based on `contextLimit` from configuration.
-- **Factory Integration:** Collaborates with `SchedulableFactory` to fetch `ToolDefinition` objects relevant to the active context (e.g., skill-specific tools).
+- **Factory Integration:** Collaborates with `AgentTaskFactory` to fetch `ToolDefinition` objects relevant to the active context (e.g., skill-specific tools).
 
 ## 5. Interaction Flow
 
 ```mermaid
 sequenceDiagram
-    participant Loop as StandardAgentLoop
+    participant Loop as ReActAgentLoop
     participant PE as StandardPromptEngine
     participant CC as ContextComposer
-    participant SF as SchedulableFactory
+    participant SF as AgentTaskFactory
 
     Loop->>PE: prepareRequest(SessionContext, iteration)
     PE->>CC: buildSystemPrompt(SessionContext)

@@ -1,7 +1,7 @@
 # Ganglia Integration Test Scenarios
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 >
 > **Goal**: Validate Agent's multi-tool collaboration, memory capabilities, and low-latency response in complex tasks.
 > **Implementation**: These scenarios are verified using the **E2ETestHarness**, which simulates LLM responses to ensure deterministic and cost-effective testing.

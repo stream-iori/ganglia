@@ -4,7 +4,7 @@
 
 ![Status](https://img.shields.io/badge/status-In_Development-yellow)
 ![CI](https://github.com/stream-iori/ganglia/actions/workflows/ci.yml/badge.svg)
-![Version](https://img.shields.io/badge/version-0.1.5-blue)
+![Version](https://img.shields.io/badge/version-0.1.7--SNAPSHOT-blue)
 ![Java](https://img.shields.io/badge/Java-17-orange)
 ![Vert.x](https://img.shields.io/badge/Vert.x-5.0.6-purple)
 ![License](https://img.shields.io/badge/license-MIT-green)

@@ -1,7 +1,7 @@
 # Ganglia Requirements Documentation
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 
 ## 1. Functional Requirements (Functionality)
 

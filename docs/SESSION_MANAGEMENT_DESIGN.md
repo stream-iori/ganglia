@@ -1,7 +1,7 @@
 # Ganglia Session Management
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 >
 > **Package:** `work.ganglia.port.internal.state` (Contract) / `work.ganglia.infrastructure.internal.state` (Impl)
 > **Related:** [Architecture](../ARCHITECTURE.md), [Core Kernel](CORE_KERNEL_DESIGN.md)

@@ -1,7 +1,7 @@
 # Ganglia Module Decomposition
 
 > **Status:** In Development
-> **Version:** 0.1.6
+> **Version:** 0.1.7-SNAPSHOT
 
 ## 1. Core Framework (Module: `ganglia-harness`)
 
@@ -9,10 +9,10 @@
 
 ### 1.1 Kernel (`work.ganglia.kernel`)
 
-- **Reasoning Loop**: `StandardAgentLoop` (Thought -> Task -> Observation).
+- **Reasoning Loop**: `ReActAgentLoop` (Thought -> Task -> Observation).
 - **Dependency Assembly (0.1.6)**: `GangliaKernel` handles the decoupled assembly of loops and factories using late-binding via `AgentEnv`.
-- **Task System**: `Schedulable` abstraction and concrete task types (`ToolTask`, `SubAgentTask`, `SkillTask`).
-- **Scheduling**: `SchedulableFactory` for mapping intents to execution.
+- **Task System**: `AgentTask` abstraction and concrete task types (`StandardToolTask`, `SubAgentTask`, `SkillTask`).
+- **Scheduling**: `AgentTaskFactory` / `DefaultAgentTaskFactory` for mapping intents to execution.
 - **Observation**: `DefaultObservationDispatcher` for unified event routing.
 
 ### 1.2 Port Layer (`work.ganglia.port`)
@@ -38,7 +38,7 @@
 ## 3. Web UI (Module: `ganglia-webui`)
 
 **Responsibility:** Modern browser-based control center.
-- **Frontend**: Vue 3 + Vite + Tailwind CSS. Implements the 3x3 Interaction Matrix.
+- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui. Implements the 3x3 Interaction Matrix.
 - **Advanced Features**: Multi-session history management, terminal log filtering, integrated Diff review, and reactive workspace file tree.
 - **Backend API**: `WebUiVerticle` (in `ganglia-web`) providing a native WebSocket server with JSON-RPC 2.0 protocol support and recursive file system monitoring.
 
@@ -58,6 +58,6 @@
 
 - **Reactive Runtime**: Vert.x 5.0.6 (Event Loop, EventBus, Futures).
 - **LLM Protocols**: Native HTTP/SSE implementation (No SDKs).
-- **UI & Rendering**: JLine 3, Vue 3, Flexmark.
+- **UI & Rendering**: JLine 3, React 18 + TypeScript + shadcn/ui, Flexmark.
 - **Testing**: JUnit 5, Mockito, Vertx-JUnit5.
 

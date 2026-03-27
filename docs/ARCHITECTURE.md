@@ -1,7 +1,7 @@
 # Ganglia Architecture Documentation
 
 > **Status:** In Development
-> **Version:** 0.1.6
+> **Version:** 0.1.7-SNAPSHOT
 
 ## 1. System Overview
 
@@ -45,9 +45,9 @@ graph TD
     end
 
     subgraph Kernel ["2. Kernel Layer (The Heart)"]
-        Loop["StandardAgentLoop (Reasoning)"]
+        Loop["ReActAgentLoop (Reasoning)"]
         Dispatcher["ObservationDispatcher (Unified Routing)"]
-        SchedFactory["SchedulableFactory (Orchestration)"]
+        SchedFactory["AgentTaskFactory (Orchestration)"]
     end
 
     subgraph Port ["3. Port Layer (Contracts & Domain)"]
@@ -73,7 +73,7 @@ graph TD
 
 ### 3.1 The Kernel Layer ("The Brain")
 
-- **Reasoning Loop:** `StandardAgentLoop` manages the iterative cycle of Thought, Action, and Observation.
+- **Reasoning Loop:** `ReActAgentLoop` manages the iterative cycle of Thought, Action, and Observation.
 - **Observation Dispatcher:** `DefaultObservationDispatcher` acts as the central hub for all events. It broadcasts macro events (from the loop) and micro events (from tools via `ExecutionContext`) to a unified EventBus topic (`ganglia.observations.*`).
 - **Robustness:** Includes failure policies, jittered exponential backoff retries, and configurable timeouts.
 

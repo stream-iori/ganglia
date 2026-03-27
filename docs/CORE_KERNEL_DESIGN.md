@@ -1,7 +1,7 @@
 # Ganglia Core Kernel Architecture
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 >
 > **Module:** `ganglia-harness`
 > **Package:** `work.ganglia.kernel`
@@ -20,9 +20,9 @@ classDiagram
         +stop(sessionId: String)
     }
     
-    class StandardAgentLoop {
+    class ReActAgentLoop {
         -model: ModelGateway
-        -scheduleableFactory: SchedulableFactory
+        -taskFactory: AgentTaskFactory
         -sessionManager: SessionManager
         -promptEngine: PromptEngine
         -dispatcher: ObservationDispatcher
@@ -30,26 +30,26 @@ classDiagram
         +resume(...)
         -runLoop(...)
     }
-    
-    AgentLoop <|.. StandardAgentLoop
-    
-    class Schedulable {
+
+    AgentLoop <|.. ReActAgentLoop
+
+    class AgentTask {
         <<Interface>>
         +id() String
-        +execute(context: SessionContext, executionContext: ExecutionContext) Future~SchedulableResult~
+        +execute(context: SessionContext, executionContext: ExecutionContext) Future~AgentTaskResult~
     }
 
     subgraph Tasks [Kernel Tasks]
-        class ToolTask
+        class StandardToolTask
         class SubAgentTask
         class SkillTask
         class TaskGraphTask
     end
 
-    Schedulable <|.. ToolTask
-    Schedulable <|.. SubAgentTask
-    Schedulable <|.. SkillTask
-    Schedulable <|.. TaskGraphTask
+    AgentTask <|.. StandardToolTask
+    AgentTask <|.. SubAgentTask
+    AgentTask <|.. SkillTask
+    AgentTask <|.. TaskGraphTask
 
     subgraph Port [Port Layer - work.ganglia.port]
         class ModelGateway { <<Interface>> }
@@ -60,12 +60,12 @@ classDiagram
         class ExecutionContext { <<Interface>> }
     end
 
-    StandardAgentLoop --> ModelGateway : uses
-    StandardAgentLoop --> SessionManager : uses
-    StandardAgentLoop --> PromptEngine : uses
-    StandardAgentLoop --> ObservationDispatcher : uses
-    ToolTask --> ToolSet : uses
-    ToolTask ..> ExecutionContext : provides
+    ReActAgentLoop --> ModelGateway : uses
+    ReActAgentLoop --> SessionManager : uses
+    ReActAgentLoop --> PromptEngine : uses
+    ReActAgentLoop --> ObservationDispatcher : uses
+    StandardToolTask --> ToolSet : uses
+    StandardToolTask ..> ExecutionContext : provides
 ```
 
 ## 2. Sequence Diagram: The ReAct Loop
@@ -76,10 +76,10 @@ The Kernel coordinates the flow between Prompt preparation, Model interaction, a
 sequenceDiagram
     autonumber
     participant User
-    participant Loop as StandardAgentLoop
+    participant Loop as ReActAgentLoop
     participant Disp as ObservationDispatcher
     participant Port as PortLayer (Prompt/Model/Session)
-    participant Task as SchedulableTask
+    participant Task as AgentTask
 
     User->>Loop: run(userInput, context, signal)
     Loop->>Disp: dispatch(TURN_STARTED)
@@ -111,7 +111,7 @@ sequenceDiagram
                     Task->>Disp: dispatch(TOOL_OUTPUT_STREAM)
                 end
                 
-                Task-->>Loop: SchedulableResult (Observation)
+                Task-->>Loop: AgentTaskResult (Observation)
                 Loop->>Disp: dispatch(TOOL_FINISHED)
             end
             

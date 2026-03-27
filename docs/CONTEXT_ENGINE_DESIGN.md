@@ -1,7 +1,7 @@
 # Ganglia Context Management Architecture
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 >
 > **Module**: `ganglia-harness` (Prompt Enhancement)
 > **Related**: [Architecture](ARCHITECTURE.md), [Core Guidelines](CORE_GUIDELINES_DESIGN.md)

@@ -1,7 +1,7 @@
 # Ganglia Sub-Agent Architecture
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 >
 > **Module:** `ganglia-harness`
 > **Package:** `work.ganglia.kernel.task` (SubAgentTask)
@@ -13,13 +13,13 @@ To enable complex task decomposition by allowing a primary Orchestrator Agent to
 
 ## 2. Core Implementation Logic
 
-Sub-Agents are implemented as a first-class `Schedulable` task type (`SubAgentTask`), decoupling their execution from the parent loop.
+Sub-Agents are implemented as a first-class `AgentTask` type (`SubAgentTask`), decoupling their execution from the parent loop.
 
 ### 2.1 Delegation Mechanism
 
 - **Trigger**: The Orchestrator calls the `call_sub_agent` tool.
-- **Scheduling**: `SchedulableFactory` creates a `SubAgentTask`.
-- **Execution**: The task instantiates a fresh `StandardAgentLoop` with a scoped context.
+- **Scheduling**: `AgentTaskFactory` creates a `SubAgentTask`.
+- **Execution**: The task instantiates a fresh `ReActAgentLoop` with a scoped context.
 
 ### 2.2 Context Scoping (Isolation)
 
@@ -51,6 +51,6 @@ sequenceDiagram
 
 ## 4. Key Components
 
-1. **`SubAgentTask`**: The Schedulable entry point in the Kernel.
+1. **`SubAgentTask`**: The `AgentTask` entry point in the Kernel.
 2. **`DefaultGraphExecutor`**: Infrastructure used when multiple sub-agents are orchestrated in a DAG.
 

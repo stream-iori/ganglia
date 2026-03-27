@@ -1,7 +1,7 @@
 # Ganglia Sub-Agent Graph Orchestration
 
 > **Status:** In Development
-> **Version:** 0.1.5
+> **Version:** 0.1.7-SNAPSHOT
 >
 > **Module:** `ganglia-harness`
 > **Package:** `work.ganglia.kernel.task` (TaskGraphTask)
@@ -17,7 +17,7 @@ To enable complex task decomposition by allowing the primary Orchestrator to del
 
 The Kernel handles the "Proposal" phase of a graph.
 - **Argument**: `nodes` (List of task nodes), `approved` (boolean).
-- **Interrupt**: If `approved=false`, the Kernel returns `SchedulableResult.INTERRUPT`, allowing the user to review the plan in the UI.
+- **Interrupt**: If `approved=false`, the Kernel returns `AgentTaskResult.INTERRUPT`, allowing the user to review the plan in the UI.
 
 ### 2.2 `GraphExecutor` (Infrastructure Port)
 

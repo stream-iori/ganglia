@@ -4,7 +4,7 @@
 
 Ganglia is a **Java 17** AI Agent framework built on **Vert.x 5.0.6**, designed for high-performance, non-blocking agentic workflows. It follows a **Hexagonal (Ports & Adapters)** architecture with a robust ReAct reasoning loop, pluggable memory via SPI, and multi-frontend support (Terminal, WebUI).
 
-**Version:** 0.1.6
+**Version:** 0.1.7-SNAPSHOT
 
 ## 2. Technology Stack
 
@@ -14,7 +14,7 @@ Ganglia is a **Java 17** AI Agent framework built on **Vert.x 5.0.6**, designed 
 | Core            | Vert.x 5.0.6 (Reactive, Non-blocking I/O)                             |
 | LLM Integration | Native OpenAI & Anthropic protocol (no third-party SDKs)              |
 | Terminal UI     | JLine 3.25.1, CommonMark (ANSI Markdown)                              |
-| Web UI          | Vue 3 (Vite), Vert.x Web (WebSocket + JSON-RPC 2.0)                   |
+| Web UI          | React 18 + TypeScript (Vite), Vert.x Web (WebSocket + JSON-RPC 2.0)   |
 | Networking      | Vert.x WebClient 5.0.6                                                |
 | Logging         | SLF4J 2.0.16 + Log4j2                                                 |
 | Testing         | JUnit 5, Mockito, Vertx-JUnit5, E2E Simulation Harness                |
@@ -52,7 +52,7 @@ integration-test, ganglia-example, ganglia-swe-bench
 |             Command             |                                Description                                 |
 |---------------------------------|----------------------------------------------------------------------------|
 | `mvn clean install -DskipTests` | Full build (skip tests)                                                    |
-| `just test-backend`             | Unit tests: ganglia-harness, ganglia-memory, ganglia-web, ganglia-terminal |
+| `just test-backend`             | Unit tests: ganglia-harness, ganglia-local-file-memory, ganglia-coding, ganglia-web, ganglia-terminal |
 | `just test-it`                  | Integration tests                                                          |
 | `just test-it-one <ClassName>`  | Single integration test                                                    |
 | `just frontend`                 | Vite dev server (port 5173)                                                |
@@ -69,7 +69,7 @@ integration-test, ganglia-example, ganglia-swe-bench
 - **Kernel** (`ganglia-harness/kernel/`): ReAct reasoning loop, task scheduling, sub-agents
   - `GangliaKernel` — Main orchestrator, late-binding assembly via `AgentEnv`
   - `ReActAgentLoop` — Iterative Thought → Action → Observation cycle
-  - `SchedulableFactory` — Maps LLM tool calls to executable tasks
+  - `AgentTaskFactory` / `DefaultAgentTaskFactory` — Maps LLM tool calls to executable tasks
 - **Port** (`ganglia-harness/port/`): Domain interfaces and models
   - `chat/` — Message, Turn, SessionContext (immutable records)
   - `internal/` — PromptEngine, ModelGateway, ContextOptimizer, SessionManager, StateEngine
@@ -136,7 +136,7 @@ All system activities flow through `ObservationDispatcher` → Vert.x EventBus. 
 - **Logger field:** Always named `logger` (not `log`)
 - **Java 17 features:** Text blocks for JSON schemas and large strings
 - **Immutable domain:** Use Java records for domain models (Message, Turn, SessionContext)
-- **Sequential task execution:** Within the loop via `Schedulable` interface
+- **Sequential task execution:** Within the loop via `AgentTask` interface
 
 ### Architecture Rules
 
