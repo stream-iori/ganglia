@@ -127,7 +127,6 @@ public class ReActAgentLoop implements AgentLoop {
   public Future<String> run(String userInput, SessionContext initialContext, AgentSignal signal) {
     sessionSignals.put(initialContext.sessionId(), signal);
     sessionStartTimes.put(initialContext.sessionId(), System.currentTimeMillis());
-    publishObservation(initialContext.sessionId(), ObservationType.TURN_STARTED, userInput);
 
     return pipeline
         .executePreTurn(initialContext, userInput)
@@ -415,8 +414,6 @@ public class ReActAgentLoop implements AgentLoop {
           .persist(finalContext)
           .map(
               v -> {
-                publishObservation(
-                    finalContext.sessionId(), ObservationType.TURN_FINISHED, content);
                 // Publish TURN_COMPLETED memory event
                 if (vertx != null) {
                   Turn completedTurn = finalContext.currentTurn();

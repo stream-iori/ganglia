@@ -91,6 +91,9 @@ public class EventRenderer {
 
   private void handleReasoningStarted() {
     synchronized (statusBar.terminalWriteLock) {
+      // Reset per-iteration state: each reasoning phase accumulates its own tokens.
+      accumulatedTokens.setLength(0);
+      response.resetForNewTurn();
       statusBar.setThinking();
       writer.print(AnsiCodes.moveTo(statusBar.getScrollBottom(), 1));
       writer.println();
