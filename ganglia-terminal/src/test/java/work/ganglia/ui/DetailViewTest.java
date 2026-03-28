@@ -12,6 +12,7 @@ import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 public class DetailViewTest {
@@ -100,5 +101,129 @@ public class DetailViewTest {
     assertEquals("a.txt", lines.get(2));
     assertEquals("b.txt", lines.get(3));
     assertEquals(4, lines.size());
+  }
+
+  // ── buildContentLines(String) tests ──────────────────────────────────
+
+  @Test
+  @DisplayName("buildContentLines(String) splits on newlines")
+  void testBuildContentLinesFromStringSplitsOnNewlines() {
+    List<String> lines = detailView.buildContentLines("line1\nline2\nline3");
+
+    assertEquals(3, lines.size());
+    assertEquals("line1", lines.get(0));
+    assertEquals("line2", lines.get(1));
+    assertEquals("line3", lines.get(2));
+  }
+
+  @Test
+  @DisplayName("buildContentLines(String) returns empty list for null input")
+  void testBuildContentLinesFromStringNull() {
+    List<String> lines = detailView.buildContentLines((String) null);
+
+    assertTrue(lines.isEmpty());
+  }
+
+  @Test
+  @DisplayName("buildContentLines(String) returns empty list for empty string")
+  void testBuildContentLinesFromStringEmpty() {
+    List<String> lines = detailView.buildContentLines("");
+
+    assertTrue(lines.isEmpty());
+  }
+
+  @Test
+  @DisplayName("buildContentLines(String) preserves blank lines within content")
+  void testBuildContentLinesFromStringPreservesBlankLines() {
+    List<String> lines = detailView.buildContentLines("first\n\nthird");
+
+    assertEquals(3, lines.size());
+    assertEquals("first", lines.get(0));
+    assertEquals("", lines.get(1));
+    assertEquals("third", lines.get(2));
+  }
+
+  @Test
+  @DisplayName("buildContentLines(String) handles single line with no newline")
+  void testBuildContentLinesFromStringSingleLine() {
+    List<String> lines = detailView.buildContentLines("only one line");
+
+    assertEquals(1, lines.size());
+    assertEquals("only one line", lines.get(0));
+  }
+
+  // ── show(String, String) tests ────────────────────────────────────────
+
+  @Test
+  @DisplayName("show(title, content) on dumb terminal prints inline without throwing")
+  void testShowResponseOverlayDumbTerminalPrintsInline() throws IOException {
+    // Dumb terminal skips the alternate-screen overlay and prints inline.
+    // No input is needed since nothing blocks for user input.
+    assertDoesNotThrow(() -> detailView.show("Response", "Hello\nWorld"));
+
+    String written = output.toString(StandardCharsets.UTF_8);
+    assertTrue(written.contains("Response"), "Should print title");
+    assertTrue(written.contains("Hello"), "Should print content line 1");
+    assertTrue(written.contains("World"), "Should print content line 2");
+  }
+
+  @Test
+  @DisplayName("show(title, content) on dumb terminal with empty content completes without error")
+  void testShowResponseOverlayDumbTerminalEmptyContent() {
+    assertDoesNotThrow(() -> detailView.show("Empty", ""));
+  }
+
+  @Test
+  @DisplayName(
+      "show(title, content) on non-dumb terminal emits alternate-screen sequences and exits on 'q'")
+  void testShowResponseOverlayAltScreenSequences() throws IOException {
+    // Use a non-dumb terminal with 'q' as input so the overlay reads one key and exits.
+    byte[] input = "q".getBytes(StandardCharsets.UTF_8);
+    ByteArrayOutputStream nonDumbOutput = new ByteArrayOutputStream();
+    Terminal nonDumbTerminal =
+        TerminalBuilder.builder()
+            .system(false)
+            .type("xterm-256color")
+            .encoding(StandardCharsets.UTF_8)
+            .streams(new ByteArrayInputStream(input), nonDumbOutput)
+            .build();
+    StatusBar sb = new StatusBar(nonDumbTerminal);
+    DetailView dv = new DetailView(nonDumbTerminal, sb);
+
+    assertDoesNotThrow(() -> dv.show("Response", "line1\nline2\nline3"));
+
+    String written = nonDumbOutput.toString(StandardCharsets.UTF_8);
+    // Alternate screen enter/exit sequences must be present
+    assertTrue(written.contains("\033[?1049h"), "Should emit enter-alt-screen sequence");
+    assertTrue(written.contains("\033[?1049l"), "Should emit exit-alt-screen sequence");
+
+    nonDumbTerminal.close();
+  }
+
+  @Test
+  @DisplayName("show(ToolCard) on non-dumb terminal emits alternate-screen sequences")
+  void testShowToolCardAltScreenSequences() throws IOException {
+    byte[] input = "q".getBytes(StandardCharsets.UTF_8);
+    ByteArrayOutputStream nonDumbOutput = new ByteArrayOutputStream();
+    Terminal nonDumbTerminal =
+        TerminalBuilder.builder()
+            .system(false)
+            .type("xterm-256color")
+            .encoding(StandardCharsets.UTF_8)
+            .streams(new ByteArrayInputStream(input), nonDumbOutput)
+            .build();
+    StatusBar sb = new StatusBar(nonDumbTerminal);
+    DetailView dv = new DetailView(nonDumbTerminal, sb);
+
+    ToolCard card =
+        new ToolCard(
+            "read_file", "path=pom.xml", List.of("<project>", "</project>"), "ok", false, 50);
+    assertDoesNotThrow(() -> dv.show(card));
+
+    String written = nonDumbOutput.toString(StandardCharsets.UTF_8);
+    assertTrue(written.contains("\033[?1049h"), "Should emit enter-alt-screen sequence");
+    assertTrue(written.contains("\033[?1049l"), "Should emit exit-alt-screen sequence");
+
+    nonDumbTerminal.close();
   }
 }

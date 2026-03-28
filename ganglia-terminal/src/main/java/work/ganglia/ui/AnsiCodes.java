@@ -57,6 +57,19 @@ public final class AnsiCodes {
     return String.format("\033[%dA", n);
   }
 
+  /**
+   * Switches to the alternate screen buffer. The main screen content is preserved and restored when
+   * {@link #exitAltScreen()} is called.
+   */
+  public static String enterAltScreen() {
+    return "\033[?1049h";
+  }
+
+  /** Exits the alternate screen buffer, restoring the main screen exactly as it was left. */
+  public static String exitAltScreen() {
+    return "\033[?1049l";
+  }
+
   /** Formats a duration in milliseconds as a human-readable string (e.g. "42ms", "1.3s"). */
   public static String formatDuration(long millis) {
     if (millis < 1000) {

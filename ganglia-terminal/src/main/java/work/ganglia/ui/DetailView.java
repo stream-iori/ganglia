@@ -1,23 +1,31 @@
 package work.ganglia.ui;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
+import org.jline.utils.NonBlocking;
+import org.jline.utils.NonBlockingReader;
 
 /**
- * Full-terminal floating overlay viewer for tool execution details. Covers rows 1..height with a
- * bordered box, leaving scroll region state intact. Supports scrolling with arrow keys, PgUp/PgDn,
- * g/G. Press q or ESC to return to the main screen.
+ * Full-terminal overlay viewer for tool cards and response text.
  *
- * <p>On entry: saves cursor, hides cursor, draws overlay over entire terminal.<br>
- * On exit: clears each overlay row, restores cursor, shows cursor, calls {@link
- * StatusBar#refresh()} to redraw the bottom panel.
+ * <p>Uses the <em>alternate screen buffer</em> ({@code \033[?1049h} / {@code \033[?1049l}) so the
+ * main screen — scroll region, conversation history, status bar — is fully preserved and
+ * automatically restored when the overlay closes. No manual screen-save/restore is needed.
+ *
+ * <p>Input is read via JLine's {@link NonBlockingReader}, which correctly handles multi-byte escape
+ * sequences (arrow keys) with a real timeout rather than polling {@code ready()}.
+ *
+ * <p>Supports: j/k or ↑/↓ (line scroll), g/G or Home/End (top/bottom), PgUp/PgDn (page), q or ESC
+ * to exit.
  */
 public class DetailView {
+
+  /** Timeout in milliseconds when reading the rest of an escape sequence after the ESC byte. */
+  private static final int ESC_TIMEOUT_MS = 50;
 
   private static final int HORIZONTAL_MARGIN = 2;
 
@@ -32,86 +40,36 @@ public class DetailView {
   }
 
   /**
-   * Shows the tool card detail as a full-terminal floating overlay. Blocks until the user presses q
-   * or ESC.
+   * Shows arbitrary text content as a full-terminal overlay. Blocks until the user presses q or
+   * ESC.
    */
-  public void show(ToolCard card) {
-    List<String> contentLines = buildContentLines(card);
-    Attributes prev = terminal.enterRawMode();
-
-    try {
-      writer.print(AnsiCodes.saveCursor());
-      writer.print(AnsiCodes.hideCursor());
-      writer.flush();
-
-      int scrollOffset = 0;
-      boolean running = true;
-
-      render(card, contentLines, scrollOffset);
-
-      while (running) {
-        int rows = Math.max(terminal.getHeight(), 5);
-        int viewportRows = rows - 2; // title bar + bottom bar
-        int maxScroll = Math.max(0, contentLines.size() - viewportRows);
-
-        int c;
-        try {
-          c = terminal.reader().read();
-        } catch (IOException e) {
-          break;
-        }
-        if (c == -1) {
-          break;
-        }
-
-        switch (c) {
-          case 'q', 'Q' -> running = false;
-          case 'j' -> scrollOffset = Math.min(maxScroll, scrollOffset + 1);
-          case 'k' -> scrollOffset = Math.max(0, scrollOffset - 1);
-          case 'g' -> scrollOffset = 0;
-          case 'G' -> scrollOffset = maxScroll;
-          case '\033' -> { // ESC or escape sequence
-            int next = readWithTimeout(50);
-            if (next == -1 || next == '\033') {
-              running = false;
-            } else if (next == '[') {
-              int code = readChar();
-              switch (code) {
-                case 'A' -> scrollOffset = Math.max(0, scrollOffset - 1);
-                case 'B' -> scrollOffset = Math.min(maxScroll, scrollOffset + 1);
-                case '5' -> {
-                  readChar();
-                  scrollOffset = Math.max(0, scrollOffset - viewportRows);
-                }
-                case '6' -> {
-                  readChar();
-                  scrollOffset = Math.min(maxScroll, scrollOffset + viewportRows);
-                }
-                case 'H' -> scrollOffset = 0;
-                case 'F' -> scrollOffset = maxScroll;
-                default -> {}
-              }
-            }
-          }
-          default -> {}
-        }
-
-        if (running) {
-          render(card, contentLines, scrollOffset);
-        }
-      }
-    } finally {
-      clearOverlay();
-      writer.print(AnsiCodes.restoreCursor());
-      writer.print(AnsiCodes.showCursor());
-      writer.flush();
-      terminal.setAttributes(prev);
-      // Scroll region was never touched — just redraw the bottom panel.
-      statusBar.refresh();
-    }
+  public void show(String title, String content) {
+    showOverlay(title, buildContentLines(content));
   }
 
-  /** Builds the content lines displayed in the scrollable area. Package-private for testing. */
+  /**
+   * Shows the tool card detail as a full-terminal overlay. Blocks until the user presses q or ESC.
+   */
+  public void show(ToolCard card) {
+    String status = card.isError() ? "\u2717" : "\u2713";
+    String duration = AnsiCodes.formatDuration(card.durationMs());
+    showOverlay(card.toolName() + "  " + status + " " + duration, buildContentLines(card));
+  }
+
+  // ── Content builders (package-private for tests) ────────────────────
+
+  /**
+   * Splits a plain text string on newlines into display lines. Returns an empty list for null/empty
+   * input.
+   */
+  List<String> buildContentLines(String content) {
+    if (content == null || content.isEmpty()) {
+      return List.of();
+    }
+    return List.of(content.split("\n", -1));
+  }
+
+  /** Builds display lines from a tool card (params → output → result). */
   List<String> buildContentLines(ToolCard card) {
     List<String> lines = new ArrayList<>();
 
@@ -132,38 +90,112 @@ public class DetailView {
     return lines;
   }
 
-  private void render(ToolCard card, List<String> contentLines, int scrollOffset) {
+  // ── Overlay lifecycle ────────────────────────────────────────────────
+
+  private void showOverlay(String title, List<String> contentLines) {
+    if (isDumb()) {
+      // Dumb terminals don't support alternate screen — print inline and return.
+      printInline(title, contentLines);
+      return;
+    }
+
+    Attributes prev = terminal.enterRawMode();
+    NonBlockingReader nbReader = NonBlocking.nonBlocking("detail-view", terminal.reader());
+
+    try {
+      // Enter alternate screen: main screen is fully preserved.
+      writer.print(AnsiCodes.enterAltScreen());
+      writer.print(AnsiCodes.hideCursor());
+      writer.flush();
+
+      int scrollOffset = 0;
+      boolean running = true;
+      renderOverlay(title, contentLines, scrollOffset);
+
+      while (running) {
+        int rows = Math.max(terminal.getHeight(), 5);
+        int viewportRows = rows - 2;
+        int maxScroll = Math.max(0, contentLines.size() - viewportRows);
+
+        int c = readChar(nbReader);
+        if (c == NonBlockingReader.EOF) {
+          break;
+        }
+
+        switch (c) {
+          case 'q', 'Q' -> running = false;
+          case 'j' -> scrollOffset = Math.min(maxScroll, scrollOffset + 1);
+          case 'k' -> scrollOffset = Math.max(0, scrollOffset - 1);
+          case 'g' -> scrollOffset = 0;
+          case 'G' -> scrollOffset = maxScroll;
+          case '\033' -> {
+            int next = readCharTimeout(nbReader, ESC_TIMEOUT_MS);
+            if (next == NonBlockingReader.EOF || next == NonBlockingReader.READ_EXPIRED) {
+              // Bare ESC — exit overlay
+              running = false;
+            } else if (next == '[') {
+              int code = readChar(nbReader);
+              switch (code) {
+                case 'A' -> scrollOffset = Math.max(0, scrollOffset - 1); // up arrow
+                case 'B' -> scrollOffset = Math.min(maxScroll, scrollOffset + 1); // down arrow
+                case 'H' -> scrollOffset = 0; // Home
+                case 'F' -> scrollOffset = maxScroll; // End
+                case '5' -> { // PgUp — consume trailing '~'
+                  readChar(nbReader);
+                  scrollOffset = Math.max(0, scrollOffset - viewportRows);
+                }
+                case '6' -> { // PgDn — consume trailing '~'
+                  readChar(nbReader);
+                  scrollOffset = Math.min(maxScroll, scrollOffset + viewportRows);
+                }
+                default -> {}
+              }
+            }
+          }
+          default -> {}
+        }
+
+        if (running) {
+          renderOverlay(title, contentLines, scrollOffset);
+        }
+      }
+    } finally {
+      // Exit alternate screen: main screen is restored exactly as we left it.
+      writer.print(AnsiCodes.exitAltScreen());
+      writer.print(AnsiCodes.showCursor());
+      writer.flush();
+      terminal.setAttributes(prev);
+    }
+  }
+
+  // ── Rendering ────────────────────────────────────────────────────────
+
+  private void renderOverlay(String title, List<String> contentLines, int scrollOffset) {
     int rows = Math.max(terminal.getHeight(), 5);
     int cols = Math.max(terminal.getWidth(), 40);
     int innerWidth = overlayInnerWidth(cols);
-    int viewportRows = rows - 2; // title bar + bottom bar
+    int viewportRows = rows - 2;
 
-    // Title bar (row 1, reverse video)
-    String status = card.isError() ? "\u2717" : "\u2713";
-    String duration = AnsiCodes.formatDuration(card.durationMs());
-    String title = " " + card.toolName() + "  " + status + " " + duration + "  [q] exit ";
+    // Title bar — row 1, reverse video
     writer.print(AnsiCodes.moveTo(1, 1) + AnsiCodes.clearLine() + "\033[7m");
-    writer.print(padRight(title, cols));
+    writer.print(padRight(" " + title + "  [q] exit ", cols));
     writer.print("\033[0m");
 
-    // Content area (rows 2..rows-1)
+    // Content rows 2..rows-1
     for (int i = 0; i < viewportRows; i++) {
-      int row = i + 2;
-      writer.print(AnsiCodes.moveTo(row, 1) + AnsiCodes.clearLine());
+      writer.print(AnsiCodes.moveTo(i + 2, 1) + AnsiCodes.clearLine());
       int lineIdx = scrollOffset + i;
       if (lineIdx < contentLines.size()) {
         String line = contentLines.get(lineIdx);
-        // Truncate to overlay inner width and append ellipsis if needed
-        String plain = stripAnsi(line);
-        if (plain.length() > innerWidth) {
+        if (stripAnsi(line).length() > innerWidth) {
           line = line.substring(0, innerWidth) + "\u2026";
         }
         writer.print(line);
       }
     }
 
-    // Bottom bar (last row, reverse video)
-    String leftHelp = " \u2191\u2193 scroll  PgUp/PgDn page  q back";
+    // Bottom bar — last row, reverse video
+    String leftHelp = " \u2191\u2193/jk scroll  PgUp/PgDn page  g/G top/bottom  q back";
     String rightInfo = "[" + (scrollOffset + 1) + "/" + contentLines.size() + "] ";
     int gap = cols - leftHelp.length() - rightInfo.length();
     String bottomBar = leftHelp + (gap > 0 ? " ".repeat(gap) : " ") + rightInfo;
@@ -174,10 +206,31 @@ public class DetailView {
     writer.flush();
   }
 
-  private void clearOverlay() {
-    int rows = Math.max(terminal.getHeight(), 5);
-    for (int row = 1; row <= rows; row++) {
-      writer.print(AnsiCodes.moveTo(row, 1) + AnsiCodes.clearLine());
+  /** Fallback for dumb terminals: print content inline without any overlay mechanics. */
+  private void printInline(String title, List<String> contentLines) {
+    writer.println("=== " + title + " ===");
+    for (String line : contentLines) {
+      writer.println(line);
+    }
+    writer.println("=== end ===");
+    writer.flush();
+  }
+
+  // ── Helpers ──────────────────────────────────────────────────────────
+
+  private int readChar(NonBlockingReader nbReader) {
+    try {
+      return nbReader.read();
+    } catch (Exception e) {
+      return NonBlockingReader.EOF;
+    }
+  }
+
+  private int readCharTimeout(NonBlockingReader nbReader, long timeoutMs) {
+    try {
+      return nbReader.read(timeoutMs);
+    } catch (Exception e) {
+      return NonBlockingReader.EOF;
     }
   }
 
@@ -189,33 +242,14 @@ public class DetailView {
     return s.replaceAll("\033\\[[0-9;]*[A-Za-z]", "");
   }
 
-  private int readChar() {
-    try {
-      return terminal.reader().read();
-    } catch (IOException e) {
-      return -1;
-    }
-  }
-
-  private int readWithTimeout(int timeoutMs) {
-    try {
-      long deadline = System.currentTimeMillis() + timeoutMs;
-      while (System.currentTimeMillis() < deadline) {
-        if (terminal.reader().ready()) {
-          return terminal.reader().read();
-        }
-        Thread.sleep(5);
-      }
-      return -1;
-    } catch (Exception e) {
-      return -1;
-    }
-  }
-
   private String padRight(String s, int width) {
     if (s.length() >= width) {
       return s.substring(0, width);
     }
     return s + " ".repeat(width - s.length());
+  }
+
+  private boolean isDumb() {
+    return "dumb".equals(terminal.getType());
   }
 }

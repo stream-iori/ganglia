@@ -78,6 +78,7 @@ public class TerminalApp implements AutoCloseable {
   private final AtomicReference<AgentSignal> currentSignal = new AtomicReference<>();
   private volatile boolean running = true;
   private volatile boolean detailViewRequested = false;
+  private volatile boolean responseOverlayRequested = false;
   private volatile boolean slashMenuRequested = false;
   private final SlashCommandMenu slashCommandMenu;
 
@@ -115,21 +116,21 @@ public class TerminalApp implements AutoCloseable {
             });
     reader.getKeyMaps().get("main").bind(new Reference("slash-auto-complete"), "/");
 
-    // Bind Ctrl+O to expand collapsed response.
-    // Sets a flag and exits readLine via SEND_BREAK so the expand
-    // happens outside of JLine (no display state corruption).
+    // Bind Ctrl+O to open the full-screen overlay for the last response.
+    // Sets a flag and exits readLine via UserInterruptException so the overlay
+    // opens outside of JLine (no display state corruption).
     reader
         .getWidgets()
         .put(
-            "expand-response",
+            "response-overlay",
             () -> {
-              if (eventRenderer.canToggle()) {
-                eventRenderer.requestToggle();
+              if (eventRenderer.getLastRenderedResponse() != null) {
+                responseOverlayRequested = true;
                 throw new UserInterruptException("");
               }
               return true;
             });
-    reader.getKeyMaps().get("main").bind(new Reference("expand-response"), KeyMap.ctrl('O'));
+    reader.getKeyMaps().get("main").bind(new Reference("response-overlay"), KeyMap.ctrl('O'));
 
     // Bind Ctrl+E to open detail view for last tool card
     reader
@@ -188,7 +189,7 @@ public class TerminalApp implements AutoCloseable {
     String modelText = "Model:   " + model + " (" + provider + ")";
     String sessionText = "Session: " + sessionId;
     String ctrlCText = "Ctrl+C    Interrupt current turn";
-    String ctrlOText = "Ctrl+O    Expand collapsed response";
+    String ctrlOText = "Ctrl+O    View full response overlay";
     String ctrlEText = "Ctrl+E    View last tool output";
     String ctrlDText = "Ctrl+D    Exit";
     String helpText = "/help     List commands";
@@ -311,14 +312,14 @@ public class TerminalApp implements AutoCloseable {
             }
             continue;
           }
-          // Ctrl+O toggle fires UserInterruptException to exit readLine cleanly
-          if (eventRenderer.consumeToggleRequest()) {
-            moveToScrollBottom();
-            eventRenderer.toggleLastResponseInPlace();
-            // Re-establish scroll region + status bar in case
-            // expanded content scrolled beyond the visible area.
-            statusBar.enable();
-            statusBar.recalculateLayout();
+          // Ctrl+O opens the full-screen overlay for the last response
+          if (consumeResponseOverlayRequest()) {
+            String response = eventRenderer.getLastRenderedResponse();
+            if (response != null) {
+              detailView.show("Response", response);
+              statusBar.refresh();
+              statusBar.recalculateLayout();
+            }
             continue;
           }
           // Ctrl+E detail view
@@ -454,7 +455,7 @@ public class TerminalApp implements AutoCloseable {
                 .append("Keyboard shortcuts:")
                 .toAnsi());
         writer.println("  Ctrl+C    Interrupt current turn");
-        writer.println("  Ctrl+O    Expand collapsed response");
+        writer.println("  Ctrl+O    View full response overlay");
         writer.println("  Ctrl+E    View last tool output");
         writer.println("  Ctrl+D    Exit");
         writer.println();
@@ -470,7 +471,12 @@ public class TerminalApp implements AutoCloseable {
         return true;
       }
       case "/expand" -> {
-        eventRenderer.toggleLastResponseInPlace();
+        String response = eventRenderer.getLastRenderedResponse();
+        if (response != null) {
+          detailView.show("Response", response);
+          statusBar.refresh();
+          statusBar.recalculateLayout();
+        }
         return true;
       }
       case "/exit" -> {
@@ -496,6 +502,14 @@ public class TerminalApp implements AutoCloseable {
   private boolean consumeDetailViewRequest() {
     if (detailViewRequested) {
       detailViewRequested = false;
+      return true;
+    }
+    return false;
+  }
+
+  private boolean consumeResponseOverlayRequest() {
+    if (responseOverlayRequested) {
+      responseOverlayRequested = false;
       return true;
     }
     return false;
@@ -556,6 +570,59 @@ public class TerminalApp implements AutoCloseable {
       // Restore previous handler so JLine's readLine() handles Ctrl+C normally
       terminal.handle(Terminal.Signal.INT, prevHandler);
     }
+
+    // After the turn (possibly interrupted), check for a pending ask_selection
+    handlePendingAsk(signal);
+  }
+
+  /**
+   * If a USER_INTERACTION_REQUIRED event was emitted during the last turn, renders the selection
+   * UI, collects the user's answer, and resumes the agent loop.
+   */
+  private void handlePendingAsk(AgentSignal previousSignal) {
+    EventRenderer.PendingAsk ask = eventRenderer.consumePendingAsk();
+    if (ask == null) {
+      return;
+    }
+
+    SelectionRenderer selectionRenderer = new SelectionRenderer(writer, reader, statusBar);
+    String answer = selectionRenderer.renderAndCollect(ask.questions());
+
+    // Echo the answer into the scroll region for visibility
+    if (!answer.isBlank()) {
+      echoUserInput(answer);
+    }
+
+    // Resume the agent loop with the collected answer
+    AgentSignal resumeSignal = new AgentSignal();
+    currentSignal.set(resumeSignal);
+    CompletableFuture<Void> resumeDone = new CompletableFuture<>();
+
+    vertx.runOnContext(
+        v ->
+            ganglia
+                .sessionManager()
+                .getSession(sessionId)
+                .compose(ctx -> ganglia.agentLoop().resume(ask.askId(), answer, ctx, resumeSignal))
+                .onComplete(
+                    ar -> {
+                      currentSignal.set(null);
+                      if (ar.failed() && ar.cause() instanceof AgentAbortedException) {
+                        writer.println("\n[Turn aborted]");
+                        writer.flush();
+                      }
+                      resumeDone.complete(null);
+                    }));
+
+    try {
+      resumeDone.get();
+    } catch (Exception e) {
+      writer.println("\nError resuming: " + e.getMessage());
+      writer.flush();
+    }
+
+    // Recursively handle nested asks (agent may ask again after resume)
+    handlePendingAsk(resumeSignal);
   }
 
   public String getSessionId() {

@@ -1,7 +1,10 @@
 package work.ganglia.ui;
 
 import java.io.PrintWriter;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
@@ -25,6 +28,23 @@ public class EventRenderer {
   private TaskPanelRenderer taskPanel;
 
   private final StringBuilder accumulatedTokens = new StringBuilder();
+
+  /** Holds the pending ask data when a USER_INTERACTION_REQUIRED event is received. */
+  private final AtomicReference<PendingAsk> pendingAsk = new AtomicReference<>();
+
+  /** Callback invoked on the Vert.x event loop when an ask event arrives. */
+  private Consumer<PendingAsk> askHandler;
+
+  /** Encapsulates the data from a USER_INTERACTION_REQUIRED event. */
+  public record PendingAsk(String askId, List<Map<String, Object>> questions, String toolCallId) {}
+
+  public void setAskHandler(Consumer<PendingAsk> handler) {
+    this.askHandler = handler;
+  }
+
+  public PendingAsk consumePendingAsk() {
+    return pendingAsk.getAndSet(null);
+  }
 
   public EventRenderer(Terminal terminal, MarkdownRenderer markdownRenderer, StatusBar statusBar) {
     this.terminal = terminal;
@@ -50,6 +70,7 @@ public class EventRenderer {
       case TOOL_OUTPUT_STREAM -> toolCard.appendOutput(event);
       case TOOL_FINISHED -> toolCard.finish(event);
       case PLAN_UPDATED -> handlePlanUpdated(event);
+      case USER_INTERACTION_REQUIRED -> handleUserInteractionRequired(event);
       case ERROR -> handleError(event);
       case TURN_FINISHED -> handleTurnFinished();
       default -> {}
@@ -74,6 +95,25 @@ public class EventRenderer {
     if (data != null && data.containsKey("plan")) {
       taskPanel.updatePlanFromData(data.get("plan"));
       statusBar.recalculateLayout();
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  private void handleUserInteractionRequired(ObservationEvent event) {
+    Map<String, Object> data = event.data();
+    if (data == null) {
+      return;
+    }
+    String askId = (String) data.get("askId");
+    String toolCallId = (String) data.get("toolCallId");
+    List<Map<String, Object>> questions = (List<Map<String, Object>>) data.get("questions");
+    if (askId == null || questions == null || questions.isEmpty()) {
+      return;
+    }
+    PendingAsk ask = new PendingAsk(askId, questions, toolCallId);
+    pendingAsk.set(ask);
+    if (askHandler != null) {
+      askHandler.accept(ask);
     }
   }
 

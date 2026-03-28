@@ -49,9 +49,9 @@ public class MarkdownRenderer {
     } else if (node instanceof IndentedCodeBlock indented) {
       renderCodeBlock(sb, indented.getLiteral(), null);
     } else if (node instanceof HtmlBlock htmlBlock) {
-      sb.style(style).append(htmlBlock.getLiteral());
+      renderCodeBlock(sb, htmlBlock.getLiteral(), "xml");
     } else if (node instanceof HtmlInline htmlInline) {
-      sb.style(style).append(htmlInline.getLiteral());
+      sb.style(INLINE_CODE).append(" ").append(htmlInline.getLiteral()).append(" ");
     } else if (node instanceof Heading heading) {
       renderHeading(heading, sb, style);
     } else if (node instanceof BulletList || node instanceof OrderedList) {
