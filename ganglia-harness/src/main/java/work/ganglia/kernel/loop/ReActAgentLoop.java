@@ -511,7 +511,7 @@ public class ReActAgentLoop implements AgentLoop {
                       null, // AgentTaskResult doesn't carry ToolErrorResult details
                       taskResult.modifiedContext(),
                       null, // AgentTaskResult doesn't carry diff
-                      taskResult.data());
+                      taskResult.metadata());
 
               // Execute post-tool interceptors
               return pipeline
@@ -523,7 +523,7 @@ public class ReActAgentLoop implements AgentLoop {
                               AgentTaskResult.Status.valueOf(interceptedResult.status().name()),
                               interceptedResult.output(),
                               interceptedResult.modifiedContext(),
-                              interceptedResult.data()));
+                              interceptedResult.metadata()));
             })
         .compose(
             result -> {
@@ -533,8 +533,8 @@ public class ReActAgentLoop implements AgentLoop {
                 String askId = "ask-" + UUID.randomUUID().toString().substring(0, 8);
                 pendingAsks.put(askId, task.id());
                 Map<String, Object> interruptData = new HashMap<>(resData);
-                if (result.data() != null) {
-                  interruptData.putAll(result.data());
+                if (result.metadata() != null) {
+                  interruptData.putAll(result.metadata());
                 }
                 interruptData.put("askId", askId);
 
@@ -557,7 +557,14 @@ public class ReActAgentLoop implements AgentLoop {
                                 new AgentInterruptException(result.output(), askId)));
               }
 
-              Message toolMsg = Message.tool(task.id(), task.name(), result.output());
+              boolean outputCapped =
+                  result.metadata() != null
+                      && Boolean.TRUE.equals(
+                          result.metadata().get(ToolInvokeResult.KEY_OUTPUT_CAPPED));
+              Message toolMsg =
+                  outputCapped
+                      ? Message.toolCapped(task.id(), task.name(), result.output())
+                      : Message.tool(task.id(), task.name(), result.output());
               SessionContext ctxToUse =
                   result.modifiedContext() != null ? result.modifiedContext() : originalContext;
 

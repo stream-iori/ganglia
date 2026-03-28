@@ -177,8 +177,8 @@ public class StandardPromptEngine implements PromptEngine {
 
   /**
    * Caps oversized TOOL messages to {@link #MAX_TOOL_OUTPUT_TOKENS} tokens so they don't consume
-   * the entire context window. Message structure is preserved; only the content string is
-   * truncated.
+   * the entire context window. Messages already capped by {@code ObservationCompressionHook} (i.e.
+   * {@link Message.ToolObservation#outputCapped()} is true) are skipped to avoid double-truncation.
    */
   private List<Message> capToolMessages(List<Message> messages) {
     return messages.stream()
@@ -186,11 +186,13 @@ public class StandardPromptEngine implements PromptEngine {
             m -> {
               if (m.role() != Role.TOOL) return m;
               if (m.content() == null) return m;
+              // Skip messages already processed by ObservationCompressionHook
+              if (m.toolObservation() != null && m.toolObservation().outputCapped()) return m;
               String toolName =
                   m.toolObservation() != null ? m.toolObservation().toolName() : "tool-output";
               String capped = toolOutputTruncator.truncate(m.content(), toolName);
               if (capped == m.content()) return m; // unchanged reference — no truncation needed
-              return Message.tool(
+              return Message.toolCapped(
                   m.toolObservation().toolCallId(), m.toolObservation().toolName(), capped);
             })
         .toList();

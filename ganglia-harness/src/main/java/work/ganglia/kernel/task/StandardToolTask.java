@@ -50,7 +50,7 @@ public class StandardToolTask implements AgentTask {
                   status,
                   invokeResult.output(),
                   invokeResult.modifiedContext(),
-                  invokeResult.data());
+                  invokeResult.metadata());
             });
   }
 }

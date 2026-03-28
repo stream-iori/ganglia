@@ -35,8 +35,18 @@ public record Message(
     return tokens;
   }
 
-  /** Aggregates attributes related to a tool execution result. */
-  public record ToolObservation(String toolCallId, String toolName) {}
+  /**
+   * Aggregates attributes related to a tool execution result.
+   *
+   * @param outputCapped true when the content has already been size-capped by
+   *     ObservationCompressionHook; prevents a second truncation pass in StandardPromptEngine.
+   */
+  public record ToolObservation(String toolCallId, String toolName, boolean outputCapped) {
+    /** Convenience constructor for the common case where no capping has occurred. */
+    public ToolObservation(String toolCallId, String toolName) {
+      this(toolCallId, toolName, false);
+    }
+  }
 
   public static Message user(String content) {
     return new Message(UUID.randomUUID().toString(), Role.USER, content, null, null, Instant.now());
@@ -67,6 +77,20 @@ public record Message(
         content,
         null,
         new ToolObservation(toolCallId, toolName),
+        Instant.now());
+  }
+
+  /**
+   * Creates a TOOL message whose output has already been size-capped by the interceptor pipeline.
+   * {@code StandardPromptEngine} will skip the redundant truncation pass for such messages.
+   */
+  public static Message toolCapped(String toolCallId, String toolName, String content) {
+    return new Message(
+        UUID.randomUUID().toString(),
+        Role.TOOL,
+        content,
+        null,
+        new ToolObservation(toolCallId, toolName, true),
         Instant.now());
   }
 }

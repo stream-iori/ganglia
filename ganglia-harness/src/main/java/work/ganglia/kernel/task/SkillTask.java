@@ -94,7 +94,7 @@ public class SkillTask implements AgentTask {
                             status,
                             invokeResult.output(),
                             invokeResult.modifiedContext(),
-                            invokeResult.data());
+                            invokeResult.metadata());
                       });
           break;
         }

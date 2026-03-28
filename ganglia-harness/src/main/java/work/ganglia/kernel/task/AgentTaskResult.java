@@ -6,7 +6,7 @@ import work.ganglia.port.chat.SessionContext;
 
 /** Represents the result of executing a AgentTask task. */
 public record AgentTaskResult(
-    Status status, String output, SessionContext modifiedContext, Map<String, Object> data) {
+    Status status, String output, SessionContext modifiedContext, Map<String, Object> metadata) {
 
   public enum Status {
     SUCCESS,
@@ -31,7 +31,7 @@ public record AgentTaskResult(
     return new AgentTaskResult(Status.INTERRUPT, message, null, null);
   }
 
-  public static AgentTaskResult interrupt(String message, Map<String, Object> data) {
-    return new AgentTaskResult(Status.INTERRUPT, message, null, data);
+  public static AgentTaskResult interrupt(String message, Map<String, Object> metadata) {
+    return new AgentTaskResult(Status.INTERRUPT, message, null, metadata);
   }
 }
