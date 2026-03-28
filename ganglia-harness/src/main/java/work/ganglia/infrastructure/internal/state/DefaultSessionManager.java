@@ -6,6 +6,9 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import io.vertx.core.Future;
 
 import work.ganglia.config.ModelConfigProvider;
@@ -21,6 +24,7 @@ import work.ganglia.port.internal.state.LogManager;
 import work.ganglia.port.internal.state.StateEngine;
 
 public class DefaultSessionManager implements SessionManager {
+  private static final Logger logger = LoggerFactory.getLogger(DefaultSessionManager.class);
   private final StateEngine stateEngine;
   private final LogManager logManager;
   private final ModelConfigProvider modelConfig;
@@ -39,7 +43,14 @@ public class DefaultSessionManager implements SessionManager {
     return stateEngine
         .loadSession(sessionId)
         .map(this::ensureModelOptions)
-        .recover(err -> Future.succeededFuture(createSession(sessionId)));
+        .recover(
+            err -> {
+              logger.warn(
+                  "Failed to load session '{}', starting a new blank session. Cause: {}",
+                  sessionId,
+                  err.getMessage());
+              return Future.succeededFuture(createSession(sessionId));
+            });
   }
 
   private SessionContext ensureModelOptions(SessionContext context) {

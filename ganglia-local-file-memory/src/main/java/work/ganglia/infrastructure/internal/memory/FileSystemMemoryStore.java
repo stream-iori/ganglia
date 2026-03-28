@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
+import io.vertx.core.file.CopyOptions;
 import io.vertx.core.json.Json;
 
 import work.ganglia.port.internal.memory.MemoryStore;
@@ -43,18 +44,31 @@ public class FileSystemMemoryStore implements MemoryStore {
   private void loadIndex() {
     // Load existing index items from the directory synchronously during initialization
     List<String> files = vertx.fileSystem().readDirBlocking(memoryDir.toString(), ".*\\.json");
+    int loaded = 0;
+    List<String> corrupted = new ArrayList<>();
     for (String file : files) {
+      // Skip .tmp files left from interrupted writes
+      if (file.endsWith(".tmp")) continue;
       try {
         String content = vertx.fileSystem().readFileBlocking(file).toString();
         MemoryEntry entry = Json.decodeValue(content, MemoryEntry.class);
         index.add(
             new MemoryIndexItem(entry.id(), entry.title(), entry.category(), entry.timestamp()));
+        loaded++;
       } catch (Exception e) {
-        log.warn("Failed to load memory entry from {}", file, e);
+        corrupted.add(file);
+        log.warn("Failed to load memory entry from {}: {}", file, e.getMessage());
       }
     }
     sortIndex();
-    log.info("Loaded {} memory entries into index", index.size());
+    log.info("Loaded {} memory entries into index", loaded);
+    if (!corrupted.isEmpty()) {
+      log.error(
+          "{} memory file(s) are corrupted and were skipped — data may be lost. "
+              + "Corrupted files: {}",
+          corrupted.size(),
+          corrupted);
+    }
   }
 
   private void sortIndex() {
@@ -64,14 +78,20 @@ public class FileSystemMemoryStore implements MemoryStore {
   @Override
   public Future<Void> store(MemoryEntry entry) {
     String filePath = memoryDir.resolve(entry.id() + ".json").toString();
+    String tmpPath = filePath + ".tmp";
     String json = Json.encodePrettily(entry);
 
+    // #6 fix: write to .tmp then atomically move to final path (mirrors FileStateEngine)
     return vertx
         .fileSystem()
-        .writeFile(filePath, io.vertx.core.buffer.Buffer.buffer(json))
+        .writeFile(tmpPath, io.vertx.core.buffer.Buffer.buffer(json))
+        .compose(
+            v ->
+                vertx
+                    .fileSystem()
+                    .move(tmpPath, filePath, new CopyOptions().setReplaceExisting(true)))
         .onSuccess(
             v -> {
-              // Remove existing item with same id if it exists
               index.removeIf(item -> item.id().equals(entry.id()));
               index.add(
                   new MemoryIndexItem(
@@ -79,6 +99,13 @@ public class FileSystemMemoryStore implements MemoryStore {
               sortIndex();
               log.debug("Stored memory entry: {}", entry.id());
             })
+        .onFailure(
+            // #7 fix: log ERROR (not silent) so operators can detect disk-full or permission issues
+            err ->
+                log.error(
+                    "Failed to store memory entry '{}' — index unchanged, data not persisted: {}",
+                    entry.id(),
+                    err.getMessage()))
         .mapEmpty();
   }
 
@@ -92,6 +119,7 @@ public class FileSystemMemoryStore implements MemoryStore {
               vertx.fileSystem().readDirBlocking(memoryDir.toString(), ".*\\.json");
 
           for (String file : files) {
+            if (file.endsWith(".tmp")) continue;
             try {
               String content = vertx.fileSystem().readFileBlocking(file).toString();
               MemoryEntry entry = Json.decodeValue(content, MemoryEntry.class);
