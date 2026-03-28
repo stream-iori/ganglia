@@ -1,31 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-
   <parent>
     <groupId>work.ganglia</groupId>
     <artifactId>ganglia-parent</artifactId>
     <version>0.1.7-SNAPSHOT</version>
   </parent>
 
-  <artifactId>ganglia-web</artifactId>
+  <artifactId>ganglia-observability</artifactId>
 
   <dependencies>
     <dependency>
       <groupId>work.ganglia</groupId>
       <artifactId>ganglia-harness</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>work.ganglia</groupId>
-      <artifactId>ganglia-local-file-memory</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>work.ganglia</groupId>
-      <artifactId>ganglia-coding</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>work.ganglia</groupId>
-      <artifactId>ganglia-observability</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -33,35 +20,21 @@
       <artifactId>vertx-web</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.vertx</groupId>
-      <artifactId>vertx-web-client</artifactId>
-    </dependency>
-
-    <!-- Logging -->
-    <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
     </dependency>
-    <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-slf4j2-impl</artifactId>
-    </dependency>
 
     <!-- Test dependencies -->
-    <dependency>
-      <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>io.vertx</groupId>
       <artifactId>vertx-junit5</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-web-client</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
+
 </project>

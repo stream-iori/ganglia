@@ -8,17 +8,17 @@ Ganglia is a **Java 17** AI Agent framework built on **Vert.x 5.0.6**, designed 
 
 ## 2. Technology Stack
 
-|    Category     |                              Technology                               |
-|-----------------|-----------------------------------------------------------------------|
-| Runtime         | Java 17-zulu (SDKMAN! managed)                                        |
-| Core            | Vert.x 5.0.6 (Reactive, Non-blocking I/O)                             |
-| LLM Integration | Native OpenAI & Anthropic protocol (no third-party SDKs)              |
-| Terminal UI     | JLine 3.25.1, CommonMark (ANSI Markdown)                              |
-| Web UI          | React 18 + TypeScript (Vite), Vert.x Web (WebSocket + JSON-RPC 2.0)   |
-| Networking      | Vert.x WebClient 5.0.6                                                |
-| Logging         | SLF4J 2.0.16 + Log4j2                                                 |
-| Testing         | JUnit 5, Mockito, Vertx-JUnit5, E2E Simulation Harness                |
-| Code Quality    | Spotless (Google Java Format), Checkstyle (google_checks.xml), JaCoCo |
+|    Category     |                                   Technology                                    |
+|-----------------|---------------------------------------------------------------------------------|
+| Runtime         | Java 17-zulu (SDKMAN! managed)                                                  |
+| Core            | Vert.x 5.0.6 (Reactive, Non-blocking I/O)                                       |
+| LLM Integration | Native OpenAI & Anthropic protocol (no third-party SDKs)                        |
+| Terminal UI     | JLine 3.25.1, CommonMark (ANSI Markdown)                                        |
+| Web UI          | React 18 + TypeScript (Vite), Vert.x Web (WebSocket + JSON-RPC 2.0)             |
+| Networking      | Vert.x WebClient 5.0.6                                                          |
+| Logging         | SLF4J 2.0.16 + Log4j2                                                           |
+| Testing         | JUnit 5, Mockito, Vertx-JUnit5, E2E Simulation Harness                          |
+| Code Quality    | Spotless (Google Java Format), Checkstyle (google_checks.xml), SpotBugs, JaCoCo |
 
 ## 3. Module Structure
 
@@ -27,9 +27,10 @@ ganglia-parent (pom.xml)
 ├── ganglia-harness          # Core: kernel, ports, infrastructure (no memory impl)
 ├── ganglia-local-file-memory # File-based memory SPI implementation
 ├── ganglia-coding           # Coding agent builder + tools (bash, file-edit, web-fetch)
+├── ganglia-observability    # Independent Trace Studio backend and REST API
 ├── ganglia-terminal         # JLine 3 terminal UI
 ├── ganglia-web              # WebSocket + JSON-RPC 2.0 web UI backend
-├── ganglia-webui            # React frontend (npm)
+├── ganglia-webui            # React multi-page frontend (Coding + Trace Studio)
 ├── ganglia-example          # Demo apps (WebUIDemo)
 ├── ganglia-swe-bench        # SWE-bench evaluation with Docker sandboxing
 └── integration-test         # E2E simulation scenarios
@@ -42,7 +43,7 @@ ganglia-harness
     ↑
 ganglia-local-file-memory
     ↑
-ganglia-coding, ganglia-web, ganglia-terminal
+ganglia-coding, ganglia-web, ganglia-terminal, ganglia-observability
     ↑
 integration-test, ganglia-example, ganglia-swe-bench
 ```
@@ -57,6 +58,7 @@ integration-test, ganglia-example, ganglia-swe-bench
 | `just test-it-one <ClassName>`  | Single integration test                                                                               |
 | `just frontend`                 | Vite dev server (port 5173)                                                                           |
 | `just backend`                  | WebUI backend (port 8080)                                                                             |
+| `just obs`                      | Observability Studio backend (port 8081)                                                              |
 | `just ui-watch`                 | Frontend watch mode (auto-rebuild dist/)                                                              |
 | `just coverage`                 | JaCoCo coverage report                                                                                |
 | `just build-all`                | Full production build (UI + Backend JAR)                                                              |
@@ -70,6 +72,9 @@ integration-test, ganglia-example, ganglia-swe-bench
   - `GangliaKernel` — Main orchestrator, late-binding assembly via `AgentEnv`
   - `ReActAgentLoop` — Iterative Thought → Action → Observation cycle
   - `AgentTaskFactory` / `DefaultAgentTaskFactory` — Maps LLM tool calls to executable tasks
+- **Observability** (`ganglia-observability/`): Trace Studio, hierarchical execution tracking
+  - `ObservabilityVerticle` — Independent REST API and UI server (Port 8081)
+  - `StructuredTraceManager` — Writes JSONL traces with parent-child span relationships
 - **Port** (`ganglia-harness/port/`): Domain interfaces and models
   - `chat/` — Message, Turn, SessionContext (immutable records)
   - `internal/` — PromptEngine, ModelGateway, ContextOptimizer, SessionManager, StateEngine
@@ -136,12 +141,13 @@ All system activities flow through `ObservationDispatcher` → Vert.x EventBus. 
 - **Logger field:** Always named `logger` (not `log`)
 - **Java 17 features:** Text blocks for JSON schemas and large strings
 - **Immutable domain:** Use Java records for domain models (Message, Turn, SessionContext)
+- **Defensive Copying:** Core domain objects MUST use `List.copyOf()` or `Map.copyOf()` in constructors to ensure immutability
 - **Sequential task execution:** Within the loop via `AgentTask` interface
 
 ### Architecture Rules
 
-- **Unified Observation Stream:** All observations go through `ObservationDispatcher` or `ExecutionContext`
-- **Network Resilience:** LLM requests enforce timeout (default 60s), retries via `RetryingModelGateway`
+- **Unified Observation Stream:** All observations go through `ObservationDispatcher` or `ExecutionContext`. Every event MUST include `spanId` and `parentSpanId` for tree visualization.
+- **Network Resilience:** LLM requests enforce timeout (default 60s), retries via `RetryingModelGateway` with child span tracking
 - **Memory Isolation:** Memory implementations live in `ganglia-local-file-memory`, not in `ganglia-harness`
 - **SPI for Extensibility:** Pluggable subsystems use `ServiceLoader` (e.g., `MemorySystemProvider`)
 

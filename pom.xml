@@ -12,6 +12,7 @@
     <module>ganglia-local-file-memory</module>
     <module>ganglia-coding</module>
     <module>ganglia-web</module>
+    <module>ganglia-observability</module>
     <module>ganglia-terminal</module>
     <module>integration-test</module>
     <module>ganglia-example</module>
@@ -239,6 +240,7 @@
                 <exclude>**/target/**</exclude>
                 <exclude>**/venv/**</exclude>
                 <exclude>**/tsconfig*.json</exclude>
+                <exclude>**/package-lock.json</exclude>
                 <exclude>**/.ganglia/**</exclude>
               </excludes>
               <jackson/>

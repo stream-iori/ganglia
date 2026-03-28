@@ -1,0 +1,129 @@
+package work.ganglia.observability;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.Promise;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.CorsHandler;
+import io.vertx.ext.web.handler.StaticHandler;
+
+/** Verticle responsible for serving Trace Studio data and UI. */
+public class ObservabilityVerticle extends AbstractVerticle {
+  private static final Logger logger = LoggerFactory.getLogger(ObservabilityVerticle.class);
+
+  private final int port;
+  private final String webroot;
+  private int actualPort;
+
+  public ObservabilityVerticle(int port, String webroot) {
+    this.port = port;
+    this.webroot = webroot;
+  }
+
+  @Override
+  public void start(Promise<Void> startPromise) {
+    Router router = setupRouter();
+
+    vertx
+        .createHttpServer()
+        .requestHandler(router)
+        .listen(port)
+        .onSuccess(
+            server -> {
+              this.actualPort = server.actualPort();
+              logger.info("Observability Studio started on port {}", actualPort);
+              startPromise.complete();
+            })
+        .onFailure(startPromise::fail);
+  }
+
+  private Router setupRouter() {
+    Router router = Router.router(vertx);
+
+    router
+        .route()
+        .handler(
+            CorsHandler.create()
+                .addOriginWithRegex(
+                    "^https?://(localhost|127\\.0\\.0\\.1|\\[::1\\]|0\\.0\\.0\\.0)(:\\d+)?$")
+                .allowedMethod(io.vertx.core.http.HttpMethod.GET)
+                .allowedMethod(io.vertx.core.http.HttpMethod.POST)
+                .allowedMethod(io.vertx.core.http.HttpMethod.OPTIONS)
+                .allowedHeader("Access-Control-Allow-Origin")
+                .allowedHeader("Content-Type"));
+
+    router.route().handler(BodyHandler.create());
+
+    // API Endpoints
+    router.get("/api/traces").handler(this::handleListTraceFiles);
+    router.get("/api/traces/:filename").handler(this::handleGetTraceFile);
+
+    // Serve Static UI
+    String resolvedWebroot = Files.isDirectory(Path.of(webroot)) ? webroot : "webroot";
+    logger.info("Serving Observability UI from: {}", resolvedWebroot);
+
+    // We expect trace.html to be the entry point or a dedicated build
+    router.route().handler(StaticHandler.create(resolvedWebroot).setIndexPage("trace.html"));
+
+    return router;
+  }
+
+  private void handleListTraceFiles(RoutingContext ctx) {
+    String traceDir = ".ganglia/trace";
+    vertx
+        .fileSystem()
+        .readDir(traceDir, ".*\\.jsonl")
+        .onSuccess(
+            files -> {
+              JsonArray result = new JsonArray();
+              for (String f : files) {
+                result.add(Path.of(f).getFileName().toString());
+              }
+              ctx.response().putHeader("content-type", "application/json").end(result.encode());
+            })
+        .onFailure(
+            err -> {
+              ctx.response().putHeader("content-type", "application/json").end("[]");
+            });
+  }
+
+  private void handleGetTraceFile(RoutingContext ctx) {
+    String filename = ctx.pathParam("filename");
+    if (filename == null || filename.contains("..") || !filename.endsWith(".jsonl")) {
+      ctx.response().setStatusCode(400).end();
+      return;
+    }
+    String filepath = ".ganglia/trace/" + filename;
+    vertx
+        .fileSystem()
+        .readFile(filepath)
+        .onSuccess(
+            buffer -> {
+              String content = buffer.toString("UTF-8");
+              JsonArray arr = new JsonArray();
+              for (String line : content.split("\n")) {
+                if (!line.trim().isEmpty()) {
+                  arr.add(new JsonObject(line));
+                }
+              }
+              ctx.response().putHeader("content-type", "application/json").end(arr.encode());
+            })
+        .onFailure(
+            err -> {
+              ctx.response().setStatusCode(404).end();
+            });
+  }
+
+  public int getActualPort() {
+    return actualPort;
+  }
+}

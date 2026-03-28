@@ -26,6 +26,10 @@ backend:
 chat:
     cd {{example_dir}} && mvn exec:java -Dexec.mainClass="work.ganglia.example.InteractiveChatDemo"
 
+# Start the Observability Studio (port 8081)
+obs:
+    cd {{example_dir}} && mvn exec:java -Dexec.mainClass="work.ganglia.example.WebUIDemo" -Dganglia.config=".ganglia/config.json"
+
 # Start the Frontend Dev Server (Vite on 5173) with HMR
 frontend:
     cd {{frontend_dir}} && npm run dev
@@ -49,7 +53,7 @@ test: test-backend test-frontend
 
 # Run Java backend unit tests
 test-backend:
-    mvn test -pl ganglia-harness,ganglia-local-file-memory,ganglia-coding,ganglia-web,ganglia-terminal
+    mvn test -pl ganglia-harness,ganglia-local-file-memory,ganglia-coding,ganglia-web,ganglia-terminal,ganglia-observability
 
 # Run Java integration tests
 test-it:
@@ -59,7 +63,7 @@ test-it:
 test-it-one test_name:
     mvn verify -Dit.test={{test_name}} -pl integration-test
 
-# Run Vue frontend tests
+# Run React frontend tests
 test-frontend:
     cd {{frontend_dir}} && npx vitest run
 
@@ -69,7 +73,7 @@ test-frontend:
 coverage: _run-coverage _print-coverage
 
 _run-coverage:
-    mvn spotless:apply test -pl ganglia-harness,ganglia-local-file-memory,ganglia-coding,ganglia-web,ganglia-terminal
+    mvn spotless:apply test -pl ganglia-harness,ganglia-local-file-memory,ganglia-coding,ganglia-web,ganglia-terminal,ganglia-observability
 
 _print-coverage:
     python3 scripts/print-coverage.py

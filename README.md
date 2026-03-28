@@ -30,6 +30,7 @@
 - **Dynamic Skill System:** Load external capabilities at runtime from filesystem directories or JAR files via a manifest-based skill system.
 - **Sub-Agent Orchestration:** Delegate specialized sub-tasks to isolated child agents, with support for DAG-based parallel execution.
 - **MCP Support:** Connect to external tool servers via the Model Context Protocol (stdio/SSE).
+- **Native Observability (Trace Studio):** A professional-grade, self-developed execution tracer (inspired by Arize Phoenix) that visualizes the hierarchical tree of Agent thoughts, tool calls, MCP interactions, and context compressions with precise metrics and retry tracking.
 - **Memory as Code:** Transparent, file-based memory system using Markdown (`.ganglia/memory/MEMORY.md` and Daily Journals).
 - **Modern React WebUI:** A high-performance dashboard built with **React 18**, **Zustand**, and **shadcn/ui** for real-time monitoring, continuous timeline tracking, and high-fidelity code/diff review.
 
@@ -40,9 +41,10 @@
 Ganglia is organized into four clean hexagonal layers:
 
 1. **API / Adapter Layer**: Entry points like `WebUiVerticle` (WebSockets) and `TerminalUI` (Console).
-2. **Kernel Layer**: The heart of the reasoning loop, task scheduling, interceptor pipeline, and state evolution.
-3. **Port Layer**: Domain models (`Message`, `Turn`, `SessionContext`) and strict service interfaces.
-4. **Infrastructure Layer**: Technical implementations (LLM Gateways, File System, Memory Persistence).
+2. **Observability Layer**: Independent `ObservabilityVerticle` providing a dedicated Trace Studio dashboard (Port 8081).
+3. **Kernel Layer**: The heart of the reasoning loop, task scheduling, interceptor pipeline, and state evolution.
+4. **Port Layer**: Domain models (`Message`, `Turn`, `SessionContext`) and strict service interfaces.
+5. **Infrastructure Layer**: Technical implementations (LLM Gateways, File System, Memory Persistence).
 
 For more details, see the [Architecture Documentation](docs/ARCHITECTURE.md).
 
@@ -55,9 +57,10 @@ For more details, see the [Architecture Documentation](docs/ARCHITECTURE.md).
 | `ganglia-harness`           | Core framework: kernel, ports, infrastructure (no memory implementations) |
 | `ganglia-local-file-memory` | File-based memory SPI implementation                                      |
 | `ganglia-coding`            | Coding agent builder + tools (bash, file-edit, web-fetch)                 |
+| `ganglia-observability`     | Dedicated Trace Studio backend and observability API                      |
 | `ganglia-terminal`          | JLine 3 terminal UI                                                       |
 | `ganglia-web`               | WebSocket + JSON-RPC 2.0 web UI backend                                   |
-| `ganglia-webui`             | React 18 frontend (npm)                                                   |
+| `ganglia-webui`             | React 18 multi-page frontend (Coding UI + Trace Studio)                   |
 | `ganglia-example`           | Demo applications                                                         |
 | `ganglia-swe-bench`         | SWE-bench evaluation with Docker sandboxing                               |
 | `integration-test`          | E2E simulation scenarios                                                  |

@@ -10,6 +10,7 @@ import io.vertx.core.Vertx;
 import work.ganglia.BootstrapOptions;
 import work.ganglia.coding.CodingAgentBuilder;
 import work.ganglia.config.model.GangliaConfig;
+import work.ganglia.observability.ObservabilityVerticle;
 
 /** Main entry point for the Ganglia Web UI server. */
 public class GangliaWebMain {
@@ -18,7 +19,6 @@ public class GangliaWebMain {
   public static void main(String[] args) {
     Vertx vertx = Vertx.vertx();
     String configPath = System.getProperty("ganglia.config", ".ganglia/config.json");
-    String projectRoot = System.getProperty("user.dir");
 
     BootstrapOptions options =
         BootstrapOptions.builder()
@@ -56,6 +56,23 @@ public class GangliaWebMain {
                         });
               } else {
                 logger.warn("WebUI is disabled in configuration.");
+              }
+
+              // Deploy Observability Studio
+              work.ganglia.config.model.ObservabilityConfig obsConfig =
+                  ganglia.configManager().getGangliaConfig().observability();
+              if (obsConfig != null && obsConfig.webUIEnabled()) {
+                int port = obsConfig.port();
+                String webroot =
+                    ganglia.configManager().getGangliaConfig().webui() != null
+                        ? ganglia.configManager().getGangliaConfig().webui().webroot()
+                        : "webroot";
+
+                ObservabilityVerticle obsVerticle = new ObservabilityVerticle(port, webroot);
+                vertx
+                    .deployVerticle(obsVerticle)
+                    .onSuccess(id -> logger.info("Observability Studio deployed on port {}", port))
+                    .onFailure(err -> logger.error("Failed to deploy Observability Studio", err));
               }
             })
         .onFailure(

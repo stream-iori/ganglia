@@ -35,14 +35,26 @@
 - **TerminalUI**: JLine 3 based controller with EventBus streaming support.
 - **MarkdownRenderer**: ANSI renderer for console output.
 
-## 3. Web UI (Module: `ganglia-webui`)
+## 3. Observability (Module: `ganglia-observability`)
+
+**Responsibility:** Advanced execution tracing and diagnostic UI.
+- **ObservabilityVerticle**: Dedicated REST API and static file server for Trace Studio (Port 8081).
+- **Trace Persistence**: Structured logging of spans and metrics to JSONL.
+
+## 4. Web UI (Module: `ganglia-webui`)
 
 **Responsibility:** Modern browser-based control center.
-- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui. Implements the 3x3 Interaction Matrix.
-- **Advanced Features**: Multi-session history management, terminal log filtering, integrated Diff review, and reactive workspace file tree.
-- **Backend API**: `WebUiVerticle` (in `ganglia-web`) providing a native WebSocket server with JSON-RPC 2.0 protocol support and recursive file system monitoring.
+- **Multi-Page Entry**: Supports both `index.html` (Coding/Chat) and `trace.html` (Trace Studio).
+- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS + shadcn/ui.
+- **Advanced Features**: Multi-session history management, terminal log filtering, integrated Diff review, and tree-based execution visualization.
 
-## 4. Integration Testing (Module: `integration-test`)
+## 5. Web UI Backend (Module: `ganglia-web`)
+
+**Responsibility:** WebSocket server for the Coding UI.
+- **WebUiVerticle**: Native WebSocket server with JSON-RPC 2.0 protocol support.
+- **System Assembler**: Orchestrates coding-specific toolsets and agents.
+
+## 6. Integration Testing (Module: `integration-test`)
 
 **Responsibility:** Cross-module verification and complex scenario simulation.
 - **E2ETestHarness**: Declarative scenario testing using `StubModelGateway`.

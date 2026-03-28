@@ -83,8 +83,9 @@
 
 ### 2.3 Observability & Debugging
 
-* **Tracing:** The system shall emit OpenTelemetry traces for every ReAct step and tool execution.
-* **Logging:** Detailed logs of raw prompts and LLM completions shall be available (configurable) for debugging.
+* **Native Tracing (Trace Studio):** The system shall provide a native, hierarchical execution tracer that visualizes the relationship between turns, model calls, and tool executions. It shall capture duration, token metrics, and retry attempts for every span. [DONE]
+* **Structured Trace Data:** Trace logs shall be stored in machine-readable JSONL format to enable external analysis and UI reconstruction. [DONE]
+* **Raw Logging:** Detailed logs of raw prompts and LLM completions shall be available (configurable) for debugging.
 * **Audit Trail:** The markdown log files shall serve as a human-readable audit trail of all agent actions.
 
 ### 2.4 Security

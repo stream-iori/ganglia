@@ -12,11 +12,15 @@ Ganglia follows a strict **Hexagonal (Ports and Adapters) Architecture**. The Ke
 ```mermaid
 graph TD
     subgraph API ["1. API / Adapter Layer"]
-        WebUI["WebUI / WebSocket / JSON-RPC"]
+        WebUI["WebUI (Coding/Chat)"]
         TUI["TerminalUI"]
     end
 
-    subgraph Kernel ["2. Kernel Layer (The Heart)"]
+    subgraph Obs ["2. Observability Module"]
+        TraceStudio["Trace Studio (Tree View / Metrics)"]
+    end
+
+    subgraph Kernel ["3. Kernel Layer (The Heart)"]
         Loop["ReActAgentLoop"]
         Pipeline["InterceptorPipeline"]
         Dispatcher["ObservationDispatcher"]
@@ -29,7 +33,7 @@ graph TD
         end
     end
 
-    subgraph Port ["3. Port Layer (Contracts)"]
+    subgraph Port ["4. Port Layer (Contracts)"]
         PromptPort["PromptEngine"]
         ModelPort["ModelGateway"]
         SessionPort["SessionManager"]
@@ -38,17 +42,19 @@ graph TD
         HookPort["AgentInterceptor"]
     end
 
-    subgraph Infra ["4. Infrastructure Layer (Implementations)"]
+    subgraph Infra ["5. Infrastructure Layer (Implementations)"]
         NativeLLM["Native OpenAI/Anthropic Gateway"]
         LocalTools["BashTools / FileEditTools"]
         MCP["MCP Client Tools"]
         FSStore["FileSystemMemoryStore"]
         StateEngine["FileStateEngine"]
         ObservationHooks["ObservationCompressionHook"]
+        TraceStore["Structured JSONL Traces"]
     end
 
     %% Relationships
     API -->|Sends Input| Loop
+    TraceStudio -.->|Reads| TraceStore
     Loop --> Pipeline
     Loop --> SchedFactory
     SchedFactory --> Tasks

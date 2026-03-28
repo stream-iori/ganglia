@@ -44,34 +44,44 @@ graph TD
         Demos["Example Applications"]
     end
 
-    subgraph Kernel ["2. Kernel Layer (The Heart)"]
+    subgraph Obs ["2. Observability Layer"]
+        TraceStudio["ObservabilityVerticle (Trace Studio REST/UI)"]
+    end
+
+    subgraph Kernel ["3. Kernel Layer (The Heart)"]
         Loop["ReActAgentLoop (Reasoning)"]
         Dispatcher["ObservationDispatcher (Unified Routing)"]
         SchedFactory["AgentTaskFactory (Orchestration)"]
     end
 
-    subgraph Port ["3. Port Layer (Contracts & Domain)"]
+    subgraph Port ["4. Port Layer (Contracts & Domain)"]
         Chat["Chat Domain (Message, Turn, Context)"]
         IntPorts["Internal Ports (Memory, Prompt, ExecutionContext)"]
         ExtPorts["External Ports (ModelGateway, ToolSet)"]
     end
 
-    subgraph Infra ["4. Infrastructure Layer (Implementation)"]
+    subgraph Infra ["5. Infrastructure Layer (Implementation)"]
         Gateways["Native LLM Gateways (OpenAI, Anthropic Protocols)"]
         Tools["Standard Tool Implementations (Bash, FS)"]
         MCP["MCP Client (Stdio / SSE)"]
-        Observability["TraceManager & WebUiEventPublisher (Event Consumers)"]
         Vertx["Vert.x Core (EventBus, WebClient)"]
     end
 
     API --> Kernel
+    Obs -.->|Fetches Traces| Infra
     Kernel --> Port
     Infra -- implements --> Port
     Kernel -.-> Port
-    Observability -.->|Consumes| Dispatcher
 ```
 
-### 3.1 The Kernel Layer ("The Brain")
+### 3.1 The Observability Layer (Trace Studio)
+
+Introduced in 0.1.7, the **Observability Layer** is a standalone system for deep diagnostic analysis:
+- **Trace Studio Verticle:** Operates on an independent port (default 8081) to serve execution data without interfering with primary coding workflows.
+- **Hierarchical Spans:** Every activity (Turn -> Model Call -> Retry -> Tool Execution) is assigned a `spanId` and linked to a `parentSpanId`, allowing the UI to reconstruct a full execution tree.
+- **Structured Persistence:** Writes `trace-*.jsonl` files alongside Markdown logs for efficient machine parsing and tree reconstruction.
+
+### 3.2 The Kernel Layer ("The Brain")
 
 - **Reasoning Loop:** `ReActAgentLoop` manages the iterative cycle of Thought, Action, and Observation.
 - **Observation Dispatcher:** `DefaultObservationDispatcher` acts as the central hub for all events. It broadcasts macro events (from the loop) and micro events (from tools via `ExecutionContext`) to a unified EventBus topic (`ganglia.observations.*`).
