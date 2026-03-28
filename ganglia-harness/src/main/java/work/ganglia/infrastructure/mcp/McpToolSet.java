@@ -80,8 +80,16 @@ public class McpToolSet implements ToolSet {
     if (dispatcher != null && sessionId != null) {
       Map<String, Object> startData = new HashMap<>();
       startData.put("toolName", toolName);
-      if (serverName != null) startData.put("serverName", serverName);
-      dispatcher.dispatch(sessionId, ObservationType.MCP_CALL_STARTED, toolName, startData);
+      if (serverName != null) {
+        startData.put("serverName", serverName);
+      }
+      dispatcher.dispatch(
+          sessionId,
+          ObservationType.MCP_CALL_STARTED,
+          toolName,
+          startData,
+          "mcp-" + java.util.UUID.randomUUID().toString().substring(0, 8),
+          executionContext.spanId());
     }
 
     McpCallToolRequest request = new McpCallToolRequest(toolName, args);

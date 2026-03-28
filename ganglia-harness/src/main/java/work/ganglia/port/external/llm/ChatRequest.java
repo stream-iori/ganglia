@@ -9,7 +9,12 @@ import work.ganglia.port.internal.state.AgentSignal;
 
 /** Encapsulates all data required for an LLM chat request. */
 public record ChatRequest(
-    List<Message> messages, List<ToolDefinition> tools, ModelOptions options, AgentSignal signal) {
+    String sessionId,
+    List<Message> messages,
+    List<ToolDefinition> tools,
+    ModelOptions options,
+    AgentSignal signal,
+    String spanId) {
   public ChatRequest {
     if (messages == null) {
       messages = Collections.emptyList();
@@ -20,5 +25,13 @@ public record ChatRequest(
     if (signal == null) {
       signal = new AgentSignal();
     }
+  }
+
+  public ChatRequest(
+      List<Message> messages,
+      List<ToolDefinition> tools,
+      ModelOptions options,
+      AgentSignal signal) {
+    this(null, messages, tools, options, signal, null);
   }
 }

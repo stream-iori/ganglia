@@ -11,6 +11,13 @@ public interface ExecutionContext {
   String sessionId();
 
   /**
+   * @return The ID of the current span.
+   */
+  default String spanId() {
+    return null;
+  }
+
+  /**
    * Emits a chunk of streaming output (e.g., TTY logs or generated tokens).
    *
    * @param chunk The output chunk.

@@ -383,10 +383,12 @@ public class ReActAgentLoop implements AgentLoop {
 
               ChatRequest chatRequest =
                   new ChatRequest(
+                      context.sessionId(),
                       promptRequest.messages(),
                       promptRequest.tools(),
                       promptRequest.options(),
-                      signal);
+                      signal,
+                      modelSpanId);
 
               // Publish observation of prepared request metadata
               Map<String, Object> reqData = new HashMap<>();
@@ -401,6 +403,11 @@ public class ReActAgentLoop implements AgentLoop {
                     @Override
                     public String sessionId() {
                       return context.sessionId();
+                    }
+
+                    @Override
+                    public String spanId() {
+                      return modelSpanId;
                     }
 
                     @Override
@@ -540,6 +547,11 @@ public class ReActAgentLoop implements AgentLoop {
           @Override
           public String sessionId() {
             return originalContext.sessionId();
+          }
+
+          @Override
+          public String spanId() {
+            return toolSpanId;
           }
 
           @Override

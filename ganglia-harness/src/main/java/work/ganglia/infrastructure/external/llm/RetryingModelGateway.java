@@ -55,9 +55,48 @@ public class RetryingModelGateway implements ModelGateway {
     if (request.signal().isAborted()) {
       return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
     }
+
+    final String sessionId = request.sessionId();
+    final String attemptSpanId = "call-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+
+    if (dispatcher != null && sessionId != null) {
+      Map<String, Object> data = new HashMap<>();
+      data.put("model", request.options().modelName());
+      data.put("attempt", attempt + 1);
+      data.put("streaming", false);
+      dispatcher.dispatch(
+          sessionId,
+          ObservationType.MODEL_CALL_STARTED,
+          request.options().modelName(),
+          data,
+          attemptSpanId,
+          request.spanId());
+    }
+
+    long startMs = System.currentTimeMillis();
     return delegate
         .chat(request)
-        .recover(err -> handleRetry(err, attempt, () -> retryChat(request, attempt + 1), null));
+        .onSuccess(
+            res -> {
+              if (dispatcher != null && sessionId != null) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("model", request.options().modelName());
+                data.put("attempt", attempt + 1);
+                data.put("durationMs", System.currentTimeMillis() - startMs);
+                data.put("status", "success");
+                dispatcher.dispatch(
+                    sessionId,
+                    ObservationType.MODEL_CALL_FINISHED,
+                    request.options().modelName(),
+                    data,
+                    attemptSpanId,
+                    request.spanId());
+              }
+            })
+        .recover(
+            err ->
+                handleRetry(
+                    err, attempt, () -> retryChat(request, attempt + 1), null, attemptSpanId));
   }
 
   private Future<ModelResponse> retryChatStream(
@@ -66,40 +105,48 @@ public class RetryingModelGateway implements ModelGateway {
       return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
     }
 
-    if (dispatcher != null) {
+    final String sessionId = context.sessionId();
+    final String attemptSpanId = "call-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+
+    if (dispatcher != null && sessionId != null) {
       Map<String, Object> data = new HashMap<>();
       data.put("model", request.options().modelName());
       data.put("attempt", attempt + 1);
       data.put("streaming", true);
       dispatcher.dispatch(
-          context.sessionId(),
+          sessionId,
           ObservationType.MODEL_CALL_STARTED,
           request.options().modelName(),
-          data);
+          data,
+          attemptSpanId,
+          context.spanId());
     }
     long startMs = System.currentTimeMillis();
 
     return delegate
         .chatStream(request, context)
-        .map(
+        .onSuccess(
             response -> {
-              if (dispatcher != null) {
+              if (dispatcher != null && sessionId != null) {
                 Map<String, Object> data = new HashMap<>();
                 data.put("model", request.options().modelName());
                 data.put("attempt", attempt + 1);
                 data.put("durationMs", System.currentTimeMillis() - startMs);
                 data.put("status", "success");
                 dispatcher.dispatch(
-                    context.sessionId(),
+                    sessionId,
                     ObservationType.MODEL_CALL_FINISHED,
                     request.options().modelName(),
-                    data);
+                    data,
+                    attemptSpanId,
+                    context.spanId());
               }
-              return response;
             })
         .recover(
             err -> {
-              if (dispatcher != null && (!shouldRetry(err) || attempt >= maxRetries)) {
+              if (dispatcher != null
+                  && sessionId != null
+                  && (!shouldRetry(err) || attempt >= maxRetries)) {
                 Map<String, Object> data = new HashMap<>();
                 data.put("model", request.options().modelName());
                 data.put("attempt", attempt + 1);
@@ -107,13 +154,19 @@ public class RetryingModelGateway implements ModelGateway {
                 data.put("status", "failed");
                 data.put("error", err.getMessage());
                 dispatcher.dispatch(
-                    context.sessionId(),
+                    sessionId,
                     ObservationType.MODEL_CALL_FINISHED,
                     request.options().modelName(),
-                    data);
+                    data,
+                    attemptSpanId,
+                    context.spanId());
               }
               return handleRetry(
-                  err, attempt, () -> retryChatStream(request, context, attempt + 1), context);
+                  err,
+                  attempt,
+                  () -> retryChatStream(request, context, attempt + 1),
+                  context,
+                  attemptSpanId);
             });
   }
 
@@ -121,7 +174,8 @@ public class RetryingModelGateway implements ModelGateway {
       Throwable err,
       int attempt,
       java.util.function.Supplier<Future<ModelResponse>> nextAttempt,
-      ExecutionContext context) {
+      ExecutionContext context,
+      String spanId) {
     if (shouldRetry(err) && attempt < maxRetries) {
       long delay = calculateDelay(attempt);
       logger.warn(

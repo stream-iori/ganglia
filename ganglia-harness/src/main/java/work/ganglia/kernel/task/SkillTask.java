@@ -65,7 +65,13 @@ public class SkillTask implements AgentTask {
       Map<String, Object> startData = new HashMap<>();
       startData.put("toolName", toolName);
       startData.put("sessionId", sessionId);
-      dispatcher.dispatch(sessionId, ObservationType.SKILL_STARTED, toolName, startData);
+      dispatcher.dispatch(
+          sessionId,
+          ObservationType.SKILL_STARTED,
+          toolName,
+          startData,
+          "skill-" + java.util.UUID.randomUUID().toString().substring(0, 8),
+          executionContext.spanId());
     }
 
     Future<AgentTaskResult> result;
