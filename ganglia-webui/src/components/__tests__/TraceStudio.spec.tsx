@@ -52,15 +52,17 @@ describe('TraceStudio Component', () => {
 
     // Verify events are rendered
     await waitFor(() => {
-      expect(screen.getByText('SESSION_STARTED')).toBeInTheDocument();
+      expect(screen.getByText('SESSION')).toBeInTheDocument();
       expect(screen.getByText('Initial prompt')).toBeInTheDocument();
-      expect(screen.getByText('TOOL_STARTED')).toBeInTheDocument();
+      expect(screen.getByText('TOOL')).toBeInTheDocument();
       expect(screen.getByText('read_file')).toBeInTheDocument();
     });
 
-    // Check if data is rendered (now rendered as a block or JSON string)
-    expect(screen.getByText(/"sessionId":"s1"/)).toBeInTheDocument();
-    expect(screen.getByText(/"path":"test.txt"/)).toBeInTheDocument();
+    // Check if data is rendered (now rendered as key-value pairs)
+    expect(screen.getByText(/sessionId/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/s1/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/path/i)).toBeInTheDocument();
+    expect(screen.getByText(/test\.txt/i)).toBeInTheDocument();
   });
 
   it('shows empty state when no file is selected', () => {

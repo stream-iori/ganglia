@@ -76,70 +76,122 @@ export default function TraceStudio() {
 
   const renderSpan = (node: SpanNode, depth = 0) => {
     const ev = node.event;
+    const duration = ev.data?.durationMs as number | undefined;
+    const attempt = ev.data?.attempt as number | undefined;
+    const model = ev.data?.model as string | undefined;
+    const status = ev.data?.status as string | undefined;
+
     return (
       <div key={ev.spanId || Math.random()} className="mb-2">
         <div
-          className="border border-slate-200 dark:border-slate-700 p-3 rounded-md bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
-          style={{ marginLeft: `${depth * 24}px` }}
+          className="border border-slate-200 dark:border-slate-700 p-3 rounded-md bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer group"
+          style={{ marginLeft: `${depth * 20}px` }}
         >
-          <div className="flex justify-between items-center mb-1">
-            <div className="flex items-center gap-2">
+          <div className="flex justify-between items-start mb-1">
+            <div className="flex flex-wrap items-center gap-2">
               <span
-                className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
                   ev.type.includes('ERROR')
-                    ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-200'
-                    : ev.type.includes('TOOL')
-                      ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-200'
-                      : ev.type.includes('MODEL') || ev.type.includes('REASON')
-                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-200'
-                        : ev.type.includes('COMPRESS')
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-200'
-                          : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                    ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-200'
+                    : ev.type.includes('SKILL')
+                      ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-200'
+                      : ev.type.includes('MCP')
+                        ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-200'
+                        : ev.type.includes('TOOL')
+                          ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200'
+                          : ev.type.includes('MODEL') || ev.type.includes('REASON')
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200'
+                            : ev.type.includes('COMPRESS')
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200'
+                              : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
                 }`}
               >
-                {ev.type}
+                {ev.type.replace('_STARTED', '').replace('_FINISHED', '').replace('_RECORDED', '')}
               </span>
-              <span className="font-mono text-xs text-slate-500 dark:text-slate-300">
+              <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
                 {ev.spanId}
               </span>
+
+              {model && (
+                <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-200/50 dark:bg-slate-800 px-1 rounded">
+                  {model}
+                </span>
+              )}
+
+              {attempt && attempt > 1 && (
+                <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                  Retry #{attempt}
+                </span>
+              )}
             </div>
-            <span className="text-[10px] text-slate-400 dark:text-slate-500">
-              {new Date(ev.timestamp).toLocaleTimeString()}
-            </span>
+
+            <div className="flex items-center gap-3">
+              {duration !== undefined && (
+                <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-500 font-bold">
+                  {duration}ms
+                </span>
+              )}
+              <span className="text-[10px] text-slate-400 dark:text-slate-500">
+                {new Date(ev.timestamp).toLocaleTimeString()}
+              </span>
+            </div>
           </div>
 
-          {ev.content && (
-            <div className="text-sm text-slate-700 dark:text-slate-300 line-clamp-2 font-sans">
+          <div className="flex items-center gap-2">
+            {status === 'failed' && <span className="text-red-500 text-xs">⚠️</span>}
+            <div className="text-sm text-slate-700 dark:text-slate-300 font-sans font-medium">
               {ev.type === 'CONTEXT_COMPRESSED'
                 ? '🔄 Context Compression Triggered'
                 : ev.content === 'context_compression_finished'
                   ? '✅ Context Compression Finished'
-                  : ev.content}
+                  : ev.content || (ev.type === 'REASONING_STARTED' ? 'Thinking...' : '')}
             </div>
-          )}
+          </div>
 
           {ev.data && Object.keys(ev.data).length > 0 && (
-            <div className="mt-2 text-[10px] text-slate-500 font-mono bg-white/50 dark:bg-black/30 border border-slate-100 dark:border-transparent p-1 rounded">
+            <div className="mt-2 text-[10px] text-slate-500 font-mono bg-white/50 dark:bg-black/30 border border-slate-100 dark:border-transparent p-2 rounded overflow-hidden">
               {ev.type === 'CONTEXT_COMPRESSED' || ev.content === 'context_compression_finished' ? (
                 <div className="flex gap-4">
-                  {ev.data.beforeTokens && (
+                  {ev.data.beforeTokens !== undefined && (
                     <span>
                       Before:{' '}
-                      <b className="text-slate-700 dark:text-slate-300">{ev.data.beforeTokens}</b>
-                    </span>
-                  )}
-                  {ev.data.afterTokens && (
-                    <span>
-                      After:{' '}
-                      <b className="text-emerald-600 dark:text-emerald-400">
-                        {ev.data.afterTokens}
+                      <b className="text-slate-700 dark:text-slate-300">
+                        {ev.data.beforeTokens as number}
                       </b>
                     </span>
                   )}
-                  {ev.data.contextLimit && <span>Limit: {ev.data.contextLimit}</span>}
+                  {ev.data.afterTokens !== undefined && (
+                    <span>
+                      After:{' '}
+                      <b className="text-emerald-600 dark:text-emerald-400">
+                        {ev.data.afterTokens as number}
+                      </b>
+                    </span>
+                  )}
+                  {ev.data.contextLimit !== undefined && (
+                    <span>Limit: {ev.data.contextLimit as number}</span>
+                  )}
+                </div>
+              ) : ev.type === 'TOKEN_USAGE_RECORDED' ? (
+                <div className="flex gap-4 text-blue-600 dark:text-blue-400 font-bold">
+                  <span>Prompt: {ev.data.promptTokens as number}</span>
+                  <span>Completion: {ev.data.completionTokens as number}</span>
+                  <span>Total: {ev.data.totalTokens as number}</span>
                 </div>
               ) : (
-                JSON.stringify(ev.data)
+                <div className="max-h-24 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
+                  {Object.entries(ev.data).map(([k, v]) => {
+                    if (['durationMs', 'attempt', 'model', 'status'].includes(k)) return null;
+                    return (
+                      <div key={k} className="flex gap-2">
+                        <span className="text-slate-400 dark:text-slate-600 shrink-0">{k}:</span>
+                        <span className="text-slate-600 dark:text-slate-400 break-all">
+                          {typeof v === 'object' ? JSON.stringify(v) : String(v)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
           )}
