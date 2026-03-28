@@ -21,7 +21,7 @@ export default function TraceStudio() {
   const [events, setEvents] = useState<TraceEvent[]>([]);
 
   useEffect(() => {
-    fetch('http://localhost:8080/api/traces')
+    fetch('/api/traces')
       .then((res) => res.json())
       .then((data) => setFiles(data))
       .catch((err) => console.error(err));
@@ -29,7 +29,7 @@ export default function TraceStudio() {
 
   useEffect(() => {
     if (selectedFile) {
-      fetch(`http://localhost:8080/api/traces/${selectedFile}`)
+      fetch(`/api/traces/${selectedFile}`)
         .then((res) => res.json())
         .then((data) => setEvents(data))
         .catch((err) => console.error(err));

@@ -48,51 +48,25 @@ const Sidebar: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex gap-2">
-          <button
-            onClick={() =>
-              systemStore.setCurrentView(systemStore.currentView === 'chat' ? 'traces' : 'chat')
-            }
-            className="text-slate-600 hover:text-emerald-500 transition-colors p-1"
-            title="Toggle Trace Studio"
+        <button
+          onClick={newSession}
+          className="text-slate-600 hover:text-emerald-500 transition-colors p-1"
+          title="New Session"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-              <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
-              <path d="M16 21v-5h5" />
-            </svg>
-          </button>
-          <button
-            onClick={newSession}
-            className="text-slate-600 hover:text-emerald-500 transition-colors p-1"
-            title="New Session"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </button>
-        </div>
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+        </button>
       </div>
 
       <div className="flex border-b border-slate-800 px-2 bg-slate-950/30">
