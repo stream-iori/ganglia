@@ -13,4 +13,14 @@ public interface ObservationDispatcher {
   void dispatch(String sessionId, ObservationType type, String content);
 
   void dispatch(String sessionId, ObservationType type, String content, Map<String, Object> data);
+
+  default void dispatch(
+      String sessionId,
+      ObservationType type,
+      String content,
+      Map<String, Object> data,
+      String spanId,
+      String parentSpanId) {
+    dispatch(sessionId, type, content, data);
+  }
 }

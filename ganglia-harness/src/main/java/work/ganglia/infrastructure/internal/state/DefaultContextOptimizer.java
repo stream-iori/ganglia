@@ -52,6 +52,11 @@ public class DefaultContextOptimizer implements ContextOptimizer {
 
   @Override
   public Future<SessionContext> optimizeIfNeeded(SessionContext context) {
+    return optimizeIfNeeded(context, null);
+  }
+
+  @Override
+  public Future<SessionContext> optimizeIfNeeded(SessionContext context, String parentSpanId) {
     int historyTokens = context.history().stream().mapToInt(m -> m.countTokens(tokenCounter)).sum();
     int totalTokens = historyTokens + agentConfig.getSystemOverheadTokens();
 
@@ -69,6 +74,10 @@ public class DefaultContextOptimizer implements ContextOptimizer {
           "Context threshold reached ({} > {}). Triggering compression...",
           totalTokens,
           (int) (limit * threshold));
+
+      final String compressSpanId =
+          "compress-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+
       if (dispatcher != null) {
         Map<String, Object> startData = new java.util.HashMap<>();
         startData.put("beforeTokens", totalTokens);
@@ -77,7 +86,9 @@ public class DefaultContextOptimizer implements ContextOptimizer {
             context.sessionId(),
             ObservationType.CONTEXT_COMPRESSED,
             "context_compression_started",
-            startData);
+            startData,
+            compressSpanId,
+            parentSpanId);
       }
       final int beforeTokens = totalTokens;
       int turnsToKeep = calculateTurnsToKeep(context);
@@ -97,7 +108,9 @@ public class DefaultContextOptimizer implements ContextOptimizer {
                       compressedContext.sessionId(),
                       ObservationType.SYSTEM_EVENT,
                       "context_compression_finished",
-                      finishData);
+                      finishData,
+                      compressSpanId,
+                      parentSpanId);
                 }
                 return compressedContext;
               });

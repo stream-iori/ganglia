@@ -11,6 +11,17 @@ public interface AgentLoopObserver {
   void onObservation(
       String sessionId, ObservationType type, String content, Map<String, Object> data);
 
+  /** Called when a specific observation event with span information occurs. */
+  default void onObservation(
+      String sessionId,
+      ObservationType type,
+      String content,
+      Map<String, Object> data,
+      String spanId,
+      String parentSpanId) {
+    onObservation(sessionId, type, content, data);
+  }
+
   /** Called when LLM token usage is reported. */
   void onUsageRecorded(String sessionId, TokenUsage usage);
 }

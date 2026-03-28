@@ -14,5 +14,16 @@ public interface ContextOptimizer {
    * @param context The current session context.
    * @return A Future containing the optimized (or original) SessionContext.
    */
-  Future<SessionContext> optimizeIfNeeded(SessionContext context);
+  default Future<SessionContext> optimizeIfNeeded(SessionContext context) {
+    return optimizeIfNeeded(context, null);
+  }
+
+  /**
+   * Checks if the context needs optimization and performs it if necessary.
+   *
+   * @param context The current session context.
+   * @param parentSpanId The ID of the parent span (e.g. Turn span).
+   * @return A Future containing the optimized (or original) SessionContext.
+   */
+  Future<SessionContext> optimizeIfNeeded(SessionContext context, String parentSpanId);
 }

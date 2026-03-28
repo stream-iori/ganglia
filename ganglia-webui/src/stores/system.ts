@@ -12,6 +12,7 @@ interface SystemState {
   sessionHistory: string[];
   workspacePath: string;
   currentPhase: AgentPhase;
+  currentView: 'chat' | 'traces';
   isInspectorOpen: boolean;
   inspectorToolCallId: string | null;
   inspectFile: string | null;
@@ -26,6 +27,7 @@ interface SystemState {
 
   // Actions
   setStatus: (status: ConnectionStatus) => void;
+  setCurrentView: (view: 'chat' | 'traces') => void;
   setSessionId: (id: string) => void;
   switchSession: (id: string) => void;
   setWorkspacePath: (path: string) => void;
@@ -66,6 +68,7 @@ export const useSystemStore = create<SystemState>((set, get) => {
     sessionHistory: initial.sessionHistory,
     workspacePath: 'Loading...',
     currentPhase: 'IDLE',
+    currentView: 'chat',
     isInspectorOpen: false,
     inspectorToolCallId: null,
     inspectFile: null,
@@ -79,6 +82,7 @@ export const useSystemStore = create<SystemState>((set, get) => {
     theme: initial.theme,
 
     setStatus: (status) => set({ status }),
+    setCurrentView: (view) => set({ currentView: view }),
     setSessionId: (id) => {
       set((state) => {
         localStorage.setItem('ganglia_session_id', id);

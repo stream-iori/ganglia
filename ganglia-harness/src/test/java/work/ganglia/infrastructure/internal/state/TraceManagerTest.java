@@ -198,7 +198,7 @@ class TraceManagerTest {
         id ->
             testContext.verify(
                 () -> {
-                  File[] files = tmp.listFiles();
+                  File[] files = tmp.listFiles((d, name) -> name.endsWith(".md"));
                   assertTrue(files != null && files.length > 0, "Trace file should be created");
                   String content = Files.readString(files[0].toPath());
                   assertTrue(
@@ -216,6 +216,19 @@ class TraceManagerTest {
                   assertTrue(
                       content.contains("_Memory updated:_") && content.contains("TURN_COMPLETED"),
                       "Should contain MEMORY_UPDATED with event type");
+
+                  // Verify JSONL file
+                  File[] jsonlFiles = tmp.listFiles((d, name) -> name.endsWith(".jsonl"));
+                  assertTrue(
+                      jsonlFiles != null && jsonlFiles.length > 0, "JSONL file should be created");
+                  String jsonlContent = Files.readString(jsonlFiles[0].toPath());
+                  assertTrue(
+                      jsonlContent.contains("\"type\":\"MODEL_CALL_STARTED\""),
+                      "JSONL should contain event type");
+                  assertTrue(
+                      jsonlContent.contains("\"model\":\"claude-3-5\""),
+                      "JSONL should contain model name");
+
                   testContext.completeNow();
                 }));
   }

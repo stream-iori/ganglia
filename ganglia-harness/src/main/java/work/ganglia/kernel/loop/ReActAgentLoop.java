@@ -58,6 +58,8 @@ public class ReActAgentLoop implements AgentLoop {
   private final ConcurrentHashMap<String, AgentSignal> sessionSignals = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, String> pendingAsks = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, Long> sessionStartTimes = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, String> currentSpanIds = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, String> currentParentSpanIds = new ConcurrentHashMap<>();
 
   private ReActAgentLoop(Builder builder) {
     this.vertx = builder.vertx;
@@ -94,7 +96,6 @@ public class ReActAgentLoop implements AgentLoop {
     AgentSignal signal = sessionSignals.get(sessionId);
 
     // If turn is finished (signal removed) or signal is aborted, ignore most events.
-    // We only allow ERROR, TURN_FINISHED, and SYSTEM_EVENT to pass through.
     if (signal == null || signal.isAborted()) {
       if (type != ObservationType.ERROR
           && type != ObservationType.TURN_FINISHED
@@ -104,9 +105,29 @@ public class ReActAgentLoop implements AgentLoop {
       }
     }
 
+    String spanId = currentSpanIds.get(sessionId);
+    String parentSpanId = currentParentSpanIds.get(sessionId);
+
     logger.debug("Publishing observation: {} for session: {}", type, sessionId);
     if (dispatcher != null) {
-      dispatcher.dispatch(sessionId, type, content, data);
+      dispatcher.dispatch(sessionId, type, content, data, spanId, parentSpanId);
+    }
+  }
+
+  private void startSpan(String sessionId, String spanId) {
+    String current = currentSpanIds.get(sessionId);
+    if (current != null) {
+      currentParentSpanIds.put(sessionId, current);
+    }
+    currentSpanIds.put(sessionId, spanId);
+  }
+
+  private void endSpan(String sessionId) {
+    String parent = currentParentSpanIds.remove(sessionId);
+    if (parent != null) {
+      currentSpanIds.put(sessionId, parent);
+    } else {
+      currentSpanIds.remove(sessionId);
     }
   }
 
@@ -131,6 +152,10 @@ public class ReActAgentLoop implements AgentLoop {
     sessionSignals.put(initialContext.sessionId(), signal);
     sessionStartTimes.put(initialContext.sessionId(), System.currentTimeMillis());
 
+    String turnSpanId = "turn-" + UUID.randomUUID().toString().substring(0, 8);
+    startSpan(initialContext.sessionId(), turnSpanId);
+    publishObservation(initialContext.sessionId(), ObservationType.TURN_STARTED, userInput);
+
     return pipeline
         .executePreTurn(initialContext, userInput)
         .compose(
@@ -147,11 +172,19 @@ public class ReActAgentLoop implements AgentLoop {
                         pipeline
                             .executePostTurn(initialContext, Message.assistant(finalResponse))
                             .onFailure(err -> logger.warn("PostTurn hook failed", err));
+                        publishObservation(
+                            initialContext.sessionId(),
+                            ObservationType.TURN_FINISHED,
+                            finalResponse);
+                        endSpan(initialContext.sessionId());
                         return Future.succeededFuture(finalResponse);
                       });
             })
         .onComplete(
             v -> {
+              if (v.failed()) {
+                endSpan(initialContext.sessionId());
+              }
               sessionSignals.remove(initialContext.sessionId());
               publishSessionEnded(initialContext.sessionId());
             })
@@ -278,7 +311,7 @@ public class ReActAgentLoop implements AgentLoop {
     }
 
     return contextOptimizer
-        .optimizeIfNeeded(currentContext)
+        .optimizeIfNeeded(currentContext, currentSpanIds.get(currentContext.sessionId()))
         .compose(
             optimizedContext -> {
               final SessionContext contextForReasoning = optimizedContext;
@@ -333,6 +366,9 @@ public class ReActAgentLoop implements AgentLoop {
       return Future.failedFuture(new AgentAbortedException());
     }
 
+    String modelSpanId = "model-" + UUID.randomUUID().toString().substring(0, 8);
+    startSpan(context.sessionId(), modelSpanId);
+
     int iteration = context.getIterationCount();
     publishObservation(context.sessionId(), ObservationType.REASONING_STARTED, null);
 
@@ -341,6 +377,7 @@ public class ReActAgentLoop implements AgentLoop {
         .compose(
             promptRequest -> {
               if (signal.isAborted()) {
+                endSpan(context.sessionId());
                 return Future.failedFuture(new AgentAbortedException());
               }
 
@@ -381,11 +418,16 @@ public class ReActAgentLoop implements AgentLoop {
                     }
                   };
 
+              Future<ModelResponse> responseFuture;
               if (chatRequest.options().stream()) {
-                return modelGateway.chatStream(chatRequest, execContext);
+                responseFuture = modelGateway.chatStream(chatRequest, execContext);
               } else {
-                return modelGateway.chat(chatRequest);
+                responseFuture = modelGateway.chat(chatRequest);
               }
+
+              return responseFuture
+                  .onSuccess(r -> endSpan(context.sessionId()))
+                  .onFailure(e -> endSpan(context.sessionId()));
             });
   }
 
@@ -481,11 +523,16 @@ public class ReActAgentLoop implements AgentLoop {
     }
 
     AgentTask task = tasks.get(index);
+    String toolSpanId = "tool-" + UUID.randomUUID().toString().substring(0, 8);
+    startSpan(currentContext.sessionId(), toolSpanId);
+
     Map<String, Object> toolData = new HashMap<>();
     toolData.put("toolCallId", task.id());
     if (task.getToolCall() != null && task.getToolCall().arguments() != null) {
       toolData.putAll(task.getToolCall().arguments());
     }
+    publishObservation(
+        currentContext.sessionId(), ObservationType.TOOL_STARTED, task.name(), toolData);
 
     final SessionContext originalContext = currentContext;
     ExecutionContext execContext =
@@ -617,6 +664,12 @@ public class ReActAgentLoop implements AgentLoop {
               }
 
               SessionContext successCtx = faultTolerancePolicy.onSuccess(ctxToUse, task);
+              publishObservation(
+                  originalContext.sessionId(),
+                  ObservationType.TOOL_FINISHED,
+                  result.status().name());
+              endSpan(originalContext.sessionId());
+
               return sessionManager
                   .addStep(successCtx, toolMsg)
                   .persistWith(sessionManager)

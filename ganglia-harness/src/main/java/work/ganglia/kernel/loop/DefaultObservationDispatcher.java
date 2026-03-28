@@ -42,6 +42,17 @@ public class DefaultObservationDispatcher implements ObservationDispatcher, Agen
   @Override
   public void dispatch(
       String sessionId, ObservationType type, String content, Map<String, Object> data) {
+    dispatch(sessionId, type, content, data, null, null);
+  }
+
+  @Override
+  public void dispatch(
+      String sessionId,
+      ObservationType type,
+      String content,
+      Map<String, Object> data,
+      String spanId,
+      String parentSpanId) {
     if (type == ObservationType.REASONING_STARTED) {
       logger.info("[SESSION:{}] Agent triggered reasoning loop.", sessionId);
     }
@@ -49,14 +60,15 @@ public class DefaultObservationDispatcher implements ObservationDispatcher, Agen
     // 1. Notify local observers directly (Synchronous/Reliable)
     for (AgentLoopObserver observer : localObservers) {
       try {
-        observer.onObservation(sessionId, type, content, data);
+        observer.onObservation(sessionId, type, content, data, spanId, parentSpanId);
       } catch (Exception e) {
         // Ignore observer errors
       }
     }
 
     // 2. Publish to EventBus (Asynchronous/Decoupled)
-    ObservationEvent event = ObservationEvent.of(sessionId, type, content, data);
+    ObservationEvent event =
+        ObservationEvent.of(sessionId, type, content, data, spanId, parentSpanId);
     JsonObject json = JsonObject.mapFrom(event);
     vertx.eventBus().publish(Constants.ADDRESS_OBSERVATIONS_PREFIX + sessionId, json);
     vertx.eventBus().publish(Constants.ADDRESS_OBSERVATIONS_ALL, json);
@@ -67,7 +79,18 @@ public class DefaultObservationDispatcher implements ObservationDispatcher, Agen
   @Override
   public void onObservation(
       String sessionId, ObservationType type, String content, Map<String, Object> data) {
-    dispatch(sessionId, type, content, data);
+    dispatch(sessionId, type, content, data, null, null);
+  }
+
+  @Override
+  public void onObservation(
+      String sessionId,
+      ObservationType type,
+      String content,
+      Map<String, Object> data,
+      String spanId,
+      String parentSpanId) {
+    dispatch(sessionId, type, content, data, spanId, parentSpanId);
   }
 
   @Override

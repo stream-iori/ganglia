@@ -43,6 +43,8 @@ public class TraceManager {
     ObservationEvent event = message.body().mapTo(ObservationEvent.class);
     String markdown = formatEventToMarkdown(event);
     String filename = getTraceFileName();
+    String jsonlFilename = getJsonlFileName();
+    String jsonl = message.body().encode() + "\n";
 
     ensureDirExists(configProvider.getTracePath());
 
@@ -52,6 +54,13 @@ public class TraceManager {
         .compose(
             asyncFile -> asyncFile.write(Buffer.buffer(markdown)).compose(v -> asyncFile.close()))
         .onFailure(err -> logger.error("Failed to write to trace file: {}", filename, err));
+
+    vertx
+        .fileSystem()
+        .open(jsonlFilename, new OpenOptions().setAppend(true).setCreate(true))
+        .compose(asyncFile -> asyncFile.write(Buffer.buffer(jsonl)).compose(v -> asyncFile.close()))
+        .onFailure(
+            err -> logger.error("Failed to write to jsonl trace file: {}", jsonlFilename, err));
   }
 
   private String formatEventToMarkdown(ObservationEvent event) {
@@ -187,6 +196,11 @@ public class TraceManager {
   private String getTraceFileName() {
     String date = LocalDate.now().format(DateTimeFormatter.ISO_DATE);
     return configProvider.getTracePath() + "/trace-" + date + ".md";
+  }
+
+  private String getJsonlFileName() {
+    String date = LocalDate.now().format(DateTimeFormatter.ISO_DATE);
+    return configProvider.getTracePath() + "/trace-" + date + ".jsonl";
   }
 
   private void ensureDirExists(String path) {
