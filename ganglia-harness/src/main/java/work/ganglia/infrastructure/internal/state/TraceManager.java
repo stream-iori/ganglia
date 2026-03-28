@@ -188,6 +188,8 @@ public class TraceManager {
         sb.append("- _Memory updated:_ ").append(event.content() != null ? event.content() : "");
         sb.append("\n");
         break;
+      default:
+        break;
     }
 
     return sb.toString();
@@ -206,7 +208,9 @@ public class TraceManager {
   private void ensureDirExists(String path) {
     File dir = new File(path);
     if (!dir.exists()) {
-      dir.mkdirs();
+      if (!dir.mkdirs()) {
+        logger.warn("Failed to create directory: {}", path);
+      }
     }
   }
 }

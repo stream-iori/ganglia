@@ -90,7 +90,8 @@ public class JarSkillLoader implements SkillLoader {
             }
 
             try (InputStream is = jar.getInputStream(entry)) {
-              String content = new String(is.readAllBytes());
+              String content =
+                  new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
               String filename = Path.of(jarPath).getFileName().toString();
               String folderId = filename.substring(0, filename.length() - 4);
               return SkillManifest.fromMarkdown(folderId, content, null, jarPath);

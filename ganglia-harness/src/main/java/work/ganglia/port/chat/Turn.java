@@ -21,9 +21,8 @@ public record Turn(
     List<Message> intermediateSteps, // Thoughts, ToolCalls, ToolResults
     Message finalResponse) {
   public Turn {
-    if (intermediateSteps == null) {
-      intermediateSteps = Collections.emptyList();
-    }
+    intermediateSteps =
+        intermediateSteps == null ? Collections.emptyList() : List.copyOf(intermediateSteps);
   }
 
   public static Turn newTurn(String id, Message msg) {

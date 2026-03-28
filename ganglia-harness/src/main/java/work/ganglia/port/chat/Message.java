@@ -18,9 +18,7 @@ public record Message(
     Instant timestamp) {
 
   public Message {
-    if (toolCalls == null) {
-      toolCalls = Collections.emptyList();
-    }
+    toolCalls = toolCalls == null ? Collections.emptyList() : List.copyOf(toolCalls);
     if (timestamp == null) {
       timestamp = Instant.now();
     }

@@ -27,15 +27,9 @@ public record SessionContext(
     if (sessionId == null) {
       sessionId = UUID.randomUUID().toString();
     }
-    if (previousTurns == null) {
-      previousTurns = Collections.emptyList();
-    }
-    if (metadata == null) {
-      metadata = Collections.emptyMap();
-    }
-    if (activeSkillIds == null) {
-      activeSkillIds = Collections.emptyList();
-    }
+    previousTurns = previousTurns == null ? Collections.emptyList() : List.copyOf(previousTurns);
+    metadata = metadata == null ? Collections.emptyMap() : Map.copyOf(metadata);
+    activeSkillIds = activeSkillIds == null ? Collections.emptyList() : List.copyOf(activeSkillIds);
   }
 
   public SessionContext withNewMessage(Message msg) {

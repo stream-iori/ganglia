@@ -14,6 +14,12 @@ public record ToolInvokeResult(
     String diff, // Optional: unified diff of changes
     Map<String, Object> metadata // Optional: extension metadata (flags, structured payloads)
     ) {
+  public ToolInvokeResult {
+    if (metadata != null) {
+      metadata = Map.copyOf(metadata);
+    }
+  }
+
   public enum Status {
     SUCCESS, // Tool executed and returned successfully
     ERROR, // Tool executed but returned a logical error (e.g., file not found)

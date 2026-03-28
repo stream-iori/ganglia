@@ -201,9 +201,13 @@ public class ObservationCompressionHook implements AgentInterceptor {
 
   private ToolInvokeResult truncateResult(
       ToolCall call, ToolInvokeResult result, String rawOutput) {
-    if (truncator == null) return result;
+    if (truncator == null) {
+      return result;
+    }
     String truncated = truncator.truncate(rawOutput, call.toolName());
-    if (truncated == rawOutput) return result; // unchanged reference means no truncation needed
+    if (truncated.equals(rawOutput)) {
+      return result; // unchanged content means no truncation needed
+    }
     log.debug(
         "Truncated output from tool '{}' to {} tokens.", call.toolName(), truncator.getMaxTokens());
     return withOutput(result, truncated);
@@ -216,13 +220,17 @@ public class ObservationCompressionHook implements AgentInterceptor {
    */
   private ToolInvokeResult truncateWithHint(
       ToolCall call, ToolInvokeResult result, String rawOutput) {
-    if (truncator == null) return result;
+    if (truncator == null) {
+      return result;
+    }
     String hint =
         "Re-invoke '"
             + call.toolName()
             + "' with offset/limit parameters to read the remaining content.";
     String truncated = truncator.truncate(rawOutput, call.toolName(), hint);
-    if (truncated == rawOutput) return result; // within limit — no change
+    if (truncated.equals(rawOutput)) {
+      return result; // within limit — no change
+    }
     log.debug(
         "Truncated reproducible output from tool '{}' to {} tokens (with re-run hint).",
         call.toolName(),

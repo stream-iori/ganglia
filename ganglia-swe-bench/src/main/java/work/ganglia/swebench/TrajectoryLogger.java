@@ -30,7 +30,9 @@ public class TrajectoryLogger implements AgentLoopObserver {
     this.instanceId = instanceId;
     File logDir = new File("target/e2e-logs");
     if (!logDir.exists()) {
-      logDir.mkdirs();
+      if (!logDir.mkdirs()) {
+        log.warn("Failed to create log directory: {}", logDir.getAbsolutePath());
+      }
     }
     this.logFile = new File(logDir, instanceId + "_trajectory.json");
   }

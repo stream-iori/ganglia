@@ -188,7 +188,7 @@ public class RetryingModelGateway implements ModelGateway {
       if (context != null) {
         String retryNotification =
             String.format(
-                "\n\n⚠️ Network error: %s. Retrying attempt %d of %d...\n\n",
+                "%n%n⚠️ Network error: %s. Retrying attempt %d of %d...%n%n",
                 err.getMessage(), attempt + 1, maxRetries);
         context.emitStream(retryNotification);
       }

@@ -191,7 +191,9 @@ public class StandardPromptEngine implements PromptEngine {
               String toolName =
                   m.toolObservation() != null ? m.toolObservation().toolName() : "tool-output";
               String capped = toolOutputTruncator.truncate(m.content(), toolName);
-              if (capped == m.content()) return m; // unchanged reference — no truncation needed
+              if (capped.equals(m.content())) {
+                return m; // unchanged — no truncation needed
+              }
               return Message.toolCapped(
                   m.toolObservation().toolCallId(), m.toolObservation().toolName(), capped);
             })

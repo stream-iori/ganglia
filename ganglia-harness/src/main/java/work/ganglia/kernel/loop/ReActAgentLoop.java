@@ -115,20 +115,23 @@ public class ReActAgentLoop implements AgentLoop {
   }
 
   private void startSpan(String sessionId, String spanId) {
-    String current = currentSpanIds.get(sessionId);
-    if (current != null) {
-      currentParentSpanIds.put(sessionId, current);
-    }
-    currentSpanIds.put(sessionId, spanId);
+    currentSpanIds.compute(
+        sessionId,
+        (k, current) -> {
+          if (current != null) {
+            currentParentSpanIds.put(sessionId, current);
+          }
+          return spanId;
+        });
   }
 
   private void endSpan(String sessionId) {
-    String parent = currentParentSpanIds.remove(sessionId);
-    if (parent != null) {
-      currentSpanIds.put(sessionId, parent);
-    } else {
-      currentSpanIds.remove(sessionId);
-    }
+    currentSpanIds.compute(
+        sessionId,
+        (k, current) -> {
+          String parent = currentParentSpanIds.remove(sessionId);
+          return parent; // returns null if no parent, effectively removing from currentSpanIds
+        });
   }
 
   private void publishSessionEnded(String sessionId) {

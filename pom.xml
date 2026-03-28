@@ -30,6 +30,7 @@
     <jackson.version>2.18.2</jackson.version>
     <spotless.version>2.44.3</spotless.version>
     <checkstyle.version>3.6.0</checkstyle.version>
+    <spotbugs.version>4.9.1.0</spotbugs.version>
   </properties>
 
   <dependencyManagement>
@@ -275,6 +276,17 @@
             <linkXRef>false</linkXRef>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>com.github.spotbugs</groupId>
+          <artifactId>spotbugs-maven-plugin</artifactId>
+          <version>${spotbugs.version}</version>
+          <configuration>
+            <effort>Max</effort>
+            <threshold>Low</threshold>
+            <xmlOutput>true</xmlOutput>
+            <excludeFilterFile>config/spotbugs-exclude.xml</excludeFilterFile>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -317,6 +329,10 @@
             <phase>compile</phase>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
       </plugin>
     </plugins>
   </build>

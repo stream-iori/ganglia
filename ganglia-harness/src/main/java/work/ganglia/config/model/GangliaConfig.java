@@ -8,6 +8,15 @@ public record GangliaConfig(
     Map<String, ModelConfig> models,
     ObservabilityConfig observability,
     WebUIConfig webui) {
+  public GangliaConfig {
+    models = models == null ? Map.of() : Map.copyOf(models);
+  }
+
+  @Override
+  public Map<String, ModelConfig> models() {
+    return models;
+  }
+
   public ModelConfig getModel(String key) {
     return models != null ? models.get(key) : null;
   }

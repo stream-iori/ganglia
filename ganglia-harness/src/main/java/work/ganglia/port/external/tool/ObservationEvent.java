@@ -11,6 +11,13 @@ public record ObservationEvent(
     long timestamp,
     String spanId,
     String parentSpanId) {
+
+  public ObservationEvent {
+    if (data != null) {
+      data = Map.copyOf(data);
+    }
+  }
+
   public static ObservationEvent of(String sessionId, ObservationType type, String content) {
     return new ObservationEvent(
         sessionId, type, content, null, System.currentTimeMillis(), null, null);

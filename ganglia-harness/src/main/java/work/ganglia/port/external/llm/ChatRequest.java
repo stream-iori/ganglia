@@ -16,12 +16,8 @@ public record ChatRequest(
     AgentSignal signal,
     String spanId) {
   public ChatRequest {
-    if (messages == null) {
-      messages = Collections.emptyList();
-    }
-    if (tools == null) {
-      tools = Collections.emptyList();
-    }
+    messages = messages == null ? Collections.emptyList() : List.copyOf(messages);
+    tools = tools == null ? Collections.emptyList() : List.copyOf(tools);
     if (signal == null) {
       signal = new AgentSignal();
     }

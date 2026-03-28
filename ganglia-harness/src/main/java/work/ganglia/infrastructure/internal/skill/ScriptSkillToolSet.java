@@ -85,7 +85,9 @@ public class ScriptSkillToolSet implements ToolSet {
 
             StringBuilder output = new StringBuilder();
             try (BufferedReader reader =
-                new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                new BufferedReader(
+                    new InputStreamReader(
+                        process.getInputStream(), java.nio.charset.StandardCharsets.UTF_8))) {
               String line;
               while ((line = reader.readLine()) != null) {
                 output.append(line).append("\n");
@@ -94,7 +96,9 @@ public class ScriptSkillToolSet implements ToolSet {
 
             StringBuilder error = new StringBuilder();
             try (BufferedReader errReader =
-                new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+                new BufferedReader(
+                    new InputStreamReader(
+                        process.getErrorStream(), java.nio.charset.StandardCharsets.UTF_8))) {
               String line;
               while ((line = errReader.readLine()) != null) {
                 error.append(line).append("\n");
