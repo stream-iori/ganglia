@@ -87,6 +87,13 @@ public class DefaultObservationDispatcher implements ObservationDispatcher, Agen
           .publish(
               Constants.ADDRESS_USAGE_RECORD,
               new JsonObject().put("sessionId", sessionId).put("usage", JsonObject.mapFrom(usage)));
+
+      // Unify token usage into the observation flow
+      Map<String, Object> usageData = new java.util.HashMap<>();
+      usageData.put("promptTokens", usage.promptTokens());
+      usageData.put("completionTokens", usage.completionTokens());
+      usageData.put("totalTokens", usage.promptTokens() + usage.completionTokens());
+      dispatch(sessionId, ObservationType.TOKEN_USAGE_RECORDED, null, usageData);
     }
   }
 }

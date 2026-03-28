@@ -192,6 +192,11 @@ public class GangliaKernel {
 
     DefaultObservationDispatcher dispatcher = new DefaultObservationDispatcher(vertx);
 
+    // Wire dispatcher into RetryingModelGateway for MODEL_CALL observations
+    if (modelGateway instanceof RetryingModelGateway retrying) {
+      retrying.setDispatcher(dispatcher);
+    }
+
     // Register extra observers directly
     for (work.ganglia.kernel.loop.AgentLoopObserver observer : options.extraObservers()) {
       dispatcher.register(observer);

@@ -304,6 +304,16 @@ public class ReActAgentLoop implements AgentLoop {
                               .httpStatusCode()
                               .ifPresent(status -> errorData.put("httpStatusCode", status));
                           llmErr.requestId().ifPresent(id -> errorData.put("requestId", id));
+                          errorData.put("errorType", "llm_error");
+                          int status = llmErr.httpStatusCode().orElse(0);
+                          errorData.put(
+                              "recoverable", status == 429 || (status >= 500 && status < 600));
+                        } else if (err instanceof AgentAbortedException) {
+                          errorData.put("errorType", "abort");
+                          errorData.put("recoverable", false);
+                        } else {
+                          errorData.put("errorType", "system_error");
+                          errorData.put("recoverable", false);
                         }
                         publishObservation(
                             contextForReasoning.sessionId(),

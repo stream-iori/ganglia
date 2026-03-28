@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ import work.ganglia.BaseGangliaTest;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.internal.hook.AgentInterceptor;
@@ -176,5 +178,49 @@ class InterceptorPipelineTest extends BaseGangliaTest {
                         testContext.completeNow();
                       });
                 }));
+  }
+
+  @Test
+  void testSessionStartedIncludesModel(VertxTestContext testContext) {
+    AtomicReference<Map<String, Object>> capturedData = new AtomicReference<>();
+
+    ObservationDispatcher capturingDispatcher =
+        new ObservationDispatcher() {
+          @Override
+          public void dispatch(String sessionId, ObservationType type, String content) {}
+
+          @Override
+          public void dispatch(
+              String sessionId, ObservationType type, String content, Map<String, Object> data) {
+            if (type == ObservationType.SESSION_STARTED) {
+              capturedData.set(data);
+            }
+          }
+        };
+
+    InterceptorPipeline pipelineWithDispatcher = new InterceptorPipeline(capturingDispatcher);
+
+    // Create a session context with model options
+    SessionContext ctxWithModel =
+        context.withModelOptions(new ModelOptions(0.7, 4096, "claude-opus-4-20250514", true));
+
+    pipelineWithDispatcher
+        .executePreTurn(ctxWithModel, "Hello")
+        .onComplete(
+            testContext.succeeding(
+                res ->
+                    testContext.verify(
+                        () -> {
+                          assertNotNull(capturedData.get(), "SESSION_STARTED data should exist");
+                          assertEquals(
+                              "claude-opus-4-20250514",
+                              capturedData.get().get("model"),
+                              "SESSION_STARTED should include model name");
+                          assertEquals(
+                              "Hello",
+                              capturedData.get().get("firstPrompt"),
+                              "SESSION_STARTED should include first prompt");
+                          testContext.completeNow();
+                        })));
   }
 }

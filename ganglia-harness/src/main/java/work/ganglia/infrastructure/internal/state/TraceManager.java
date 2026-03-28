@@ -144,6 +144,41 @@ public class TraceManager {
       case TOKEN_RECEIVED:
         sb.append(event.content());
         break;
+      case MODEL_CALL_STARTED:
+        sb.append("- **API Call** [").append(time).append("]");
+        if (event.data() != null) {
+          if (event.data().containsKey("model"))
+            sb.append(" model: `").append(event.data().get("model")).append("`");
+          if (event.data().containsKey("attempt"))
+            sb.append(" attempt: ").append(event.data().get("attempt"));
+        }
+        sb.append("\n");
+        break;
+      case MODEL_CALL_FINISHED:
+        sb.append("- **API Call Finished** [").append(time).append("]");
+        if (event.data() != null) {
+          if (event.data().containsKey("status"))
+            sb.append(" status: ").append(event.data().get("status"));
+          if (event.data().containsKey("durationMs"))
+            sb.append(" duration: ").append(event.data().get("durationMs")).append("ms");
+          if (event.data().containsKey("error"))
+            sb.append(" error: ").append(event.data().get("error"));
+        }
+        sb.append("\n");
+        break;
+      case TOKEN_USAGE_RECORDED:
+        sb.append("- **Usage:**");
+        if (event.data() != null) {
+          sb.append(" prompt=").append(event.data().getOrDefault("promptTokens", 0));
+          sb.append(" completion=").append(event.data().getOrDefault("completionTokens", 0));
+          sb.append(" total=").append(event.data().getOrDefault("totalTokens", 0));
+        }
+        sb.append("\n");
+        break;
+      case MEMORY_UPDATED:
+        sb.append("- _Memory updated:_ ").append(event.content() != null ? event.content() : "");
+        sb.append("\n");
+        break;
     }
 
     return sb.toString();

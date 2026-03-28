@@ -2,6 +2,7 @@ package work.ganglia.infrastructure.internal.memory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.RejectedExecutionException;
 
@@ -12,6 +13,8 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 
+import work.ganglia.port.external.tool.ObservationEvent;
+import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.internal.memory.MemoryEvent;
 import work.ganglia.port.internal.memory.MemoryModule;
 import work.ganglia.port.internal.memory.MemoryService;
@@ -101,6 +104,18 @@ public class EventBusMemoryService implements MemoryService {
               if (ar.succeeded()) {
                 logger.debug(
                     "Memory event {} completed for session: {}", event.type(), event.sessionId());
+                // Publish MEMORY_UPDATED observation via EventBus
+                ObservationEvent obsEvent =
+                    ObservationEvent.of(
+                        event.sessionId(),
+                        ObservationType.MEMORY_UPDATED,
+                        event.type().name(),
+                        Map.of(
+                            "memoryEventType", event.type().name(),
+                            "moduleCount", modules.size()));
+                vertx
+                    .eventBus()
+                    .publish(Constants.ADDRESS_OBSERVATIONS_ALL, JsonObject.mapFrom(obsEvent));
               } else {
                 logger.error(
                     "Memory event dispatch failed for session: {}", event.sessionId(), ar.cause());

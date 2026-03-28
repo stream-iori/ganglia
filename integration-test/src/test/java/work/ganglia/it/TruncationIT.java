@@ -142,8 +142,8 @@ class TruncationIT {
   // -------------------------------------------------------------------------
 
   @Test
-  void layer1_oversizedShellOutput_truncationMarkerReachesLlm(
-      Vertx vertx, VertxTestContext testContext) throws IOException {
+  void layer1_oversizedShellOutput_savedToTmpFile(Vertx vertx, VertxTestContext testContext)
+      throws IOException {
 
     // Simulate what VertxProcess.execute() now produces when output exceeds MAX_OUTPUT_SIZE:
     // the [OUTPUT TRUNCATED] marker is prepended so it survives any downstream token-based
@@ -172,9 +172,13 @@ class TruncationIT {
                     testContext.verify(
                         () -> {
                           assertNotNull(captured.get(), "LLM must receive a TOOL message");
+                          // run_shell_command is a reproducible tool → WRITE_TO_TMP:
+                          // the full output (including the truncation marker) is saved to a
+                          // session tmp file, and the LLM receives a short path + line-count
+                          // hint instead of the raw output.
                           assertTrue(
-                              captured.get().contains("[OUTPUT TRUNCATED"),
-                              "VertxProcess truncation marker must reach the LLM. Got: "
+                              captured.get().contains("[Output from 'run_shell_command' was large"),
+                              "Reproducible tool output should be saved to tmp file. Got: "
                                   + captured
                                       .get()
                                       .substring(0, Math.min(200, captured.get().length())));

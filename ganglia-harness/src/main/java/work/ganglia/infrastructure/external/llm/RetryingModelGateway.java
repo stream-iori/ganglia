@@ -1,5 +1,8 @@
 package work.ganglia.infrastructure.external.llm;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,7 +13,9 @@ import io.vertx.core.Vertx;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.internal.state.ExecutionContext;
+import work.ganglia.port.internal.state.ObservationDispatcher;
 
 /** Decorator for ModelGateway that adds network resilience (retry with exponential backoff). */
 public class RetryingModelGateway implements ModelGateway {
@@ -19,6 +24,12 @@ public class RetryingModelGateway implements ModelGateway {
   private final ModelGateway delegate;
   private final Vertx vertx;
   private final int maxRetries;
+  private volatile ObservationDispatcher dispatcher;
+
+  /** Late-bind the dispatcher to avoid constructor ordering issues in GangliaKernel. */
+  public void setDispatcher(ObservationDispatcher dispatcher) {
+    this.dispatcher = dispatcher;
+  }
 
   public RetryingModelGateway(ModelGateway delegate, Vertx vertx, int maxRetries) {
     this.delegate = delegate;
@@ -54,12 +65,56 @@ public class RetryingModelGateway implements ModelGateway {
     if (request.signal().isAborted()) {
       return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
     }
+
+    if (dispatcher != null) {
+      Map<String, Object> data = new HashMap<>();
+      data.put("model", request.options().modelName());
+      data.put("attempt", attempt + 1);
+      data.put("streaming", true);
+      dispatcher.dispatch(
+          context.sessionId(),
+          ObservationType.MODEL_CALL_STARTED,
+          request.options().modelName(),
+          data);
+    }
+    long startMs = System.currentTimeMillis();
+
     return delegate
         .chatStream(request, context)
+        .map(
+            response -> {
+              if (dispatcher != null) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("model", request.options().modelName());
+                data.put("attempt", attempt + 1);
+                data.put("durationMs", System.currentTimeMillis() - startMs);
+                data.put("status", "success");
+                dispatcher.dispatch(
+                    context.sessionId(),
+                    ObservationType.MODEL_CALL_FINISHED,
+                    request.options().modelName(),
+                    data);
+              }
+              return response;
+            })
         .recover(
-            err ->
-                handleRetry(
-                    err, attempt, () -> retryChatStream(request, context, attempt + 1), context));
+            err -> {
+              if (dispatcher != null && (!shouldRetry(err) || attempt >= maxRetries)) {
+                Map<String, Object> data = new HashMap<>();
+                data.put("model", request.options().modelName());
+                data.put("attempt", attempt + 1);
+                data.put("durationMs", System.currentTimeMillis() - startMs);
+                data.put("status", "failed");
+                data.put("error", err.getMessage());
+                dispatcher.dispatch(
+                    context.sessionId(),
+                    ObservationType.MODEL_CALL_FINISHED,
+                    request.options().modelName(),
+                    data);
+              }
+              return handleRetry(
+                  err, attempt, () -> retryChatStream(request, context, attempt + 1), context);
+            });
   }
 
   private Future<ModelResponse> handleRetry(

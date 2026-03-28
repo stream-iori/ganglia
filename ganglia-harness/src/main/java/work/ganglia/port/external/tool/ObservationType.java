@@ -63,5 +63,17 @@ public enum ObservationType {
   SESSION_ABORTED,
 
   /** ContextOptimizer triggered context compression. */
-  CONTEXT_COMPRESSED
+  CONTEXT_COMPRESSED,
+
+  /** Model API call started (before HTTP request). */
+  MODEL_CALL_STARTED,
+
+  /** Model API call finished (after response or error). */
+  MODEL_CALL_FINISHED,
+
+  /** Token usage recorded for a model call. */
+  TOKEN_USAGE_RECORDED,
+
+  /** Memory system completed processing an event. */
+  MEMORY_UPDATED
 }

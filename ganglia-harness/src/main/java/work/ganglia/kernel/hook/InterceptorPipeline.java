@@ -51,6 +51,9 @@ public class InterceptorPipeline {
         if (parentSessionId != null) {
           sessionStartData.put("parentSessionId", parentSessionId);
         }
+        if (context.modelOptions() != null && context.modelOptions().modelName() != null) {
+          sessionStartData.put("model", context.modelOptions().modelName());
+        }
         dispatcher.dispatch(
             context.sessionId(), ObservationType.SESSION_STARTED, userInput, sessionStartData);
       }

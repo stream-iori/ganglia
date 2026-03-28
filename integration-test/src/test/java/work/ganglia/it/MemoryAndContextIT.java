@@ -27,10 +27,8 @@ import work.ganglia.port.internal.state.TokenUsage;
 public class MemoryAndContextIT extends MockModelIT {
 
   @Test
-  void observationCompression_compressesLargeOutputAndRecalls(
-      Vertx vertx, VertxTestContext testContext) {
+  void largeReproducibleOutput_savedToTmpFileWithHint(Vertx vertx, VertxTestContext testContext) {
     // Each line is ~10 chars. 500 lines = 5000 chars.
-    // 5000 > 4000 (compression threshold).
     StringBuilder sb = new StringBuilder();
     for (int i = 0; i < 500; i++) {
       sb.append("Line ").append(i).append(" data\n");
@@ -54,24 +52,20 @@ public class MemoryAndContextIT extends MockModelIT {
         .thenAnswer(
             invocation -> {
               ChatRequest req = invocation.getArgument(0);
+              // read_file is a reproducible tool → WRITE_TO_TMP:
+              // The full output is saved to a session tmp file, and the TOOL message
+              // is replaced with a short path + line-count hint.
               String lastMessage = req.messages().get(req.messages().size() - 1).content();
-              assertTrue(lastMessage.contains("ID: "));
-              String id = lastMessage.split("ID: ")[1].split("\\.")[0].trim();
+              assertTrue(
+                  lastMessage.contains("[Output from 'read_file' was large"),
+                  "Expected tmp file hint, got: "
+                      + lastMessage.substring(0, Math.min(200, lastMessage.length())));
+              assertTrue(
+                  lastMessage.contains("read_file("),
+                  "Hint should suggest re-reading via read_file");
               return Future.succeededFuture(
-                  new ModelResponse(
-                      "",
-                      List.of(new ToolCall("c2", "recall_memory", Map.of("id", id))),
-                      new TokenUsage(1, 1)));
-            })
-        .thenReturn(
-            Future.succeededFuture(
-                new ModelResponse("Done.", Collections.emptyList(), new TokenUsage(1, 1))));
-
-    when(mockModel.chat(any()))
-        .thenReturn(
-            Future.succeededFuture(
-                new ModelResponse(
-                    "Summary: Found long text.", Collections.emptyList(), new TokenUsage(5, 5))));
+                  new ModelResponse("Done.", Collections.emptyList(), new TokenUsage(1, 1)));
+            });
 
     SessionContext context = newSession();
     ganglia

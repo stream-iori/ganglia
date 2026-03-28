@@ -216,19 +216,21 @@ public class FileOperationsIT extends MockModelIT {
                 resultContext ->
                     testContext.verify(
                         () -> {
-                          boolean foundToolOutput =
+                          // read_file is a reproducible tool → WRITE_TO_TMP policy:
+                          // full output is saved to a session tmp file, and the TOOL message
+                          // in context is replaced with a path + line-count hint.
+                          boolean foundTmpHint =
                               resultContext.history().stream()
                                   .anyMatch(
                                       m ->
                                           m.role() == Role.TOOL
                                               && m.content() != null
                                               && m.content()
-                                                  .contains("--- [Lines 1 to 5 shown] ---"));
+                                                  .contains("[Output from 'read_file' was large"));
 
                           assertTrue(
-                              foundToolOutput,
-                              "Pagination metadata not found in history: "
-                                  + resultContext.history());
+                              foundTmpHint,
+                              "Tmp file hint not found in history: " + resultContext.history());
                           testContext.completeNow();
                         })));
   }
