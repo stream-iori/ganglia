@@ -122,6 +122,9 @@ public class GangliaKernel {
     dirFutures.add(
         FileSystemUtil.ensureDirectoryExists(
             vertx, Paths.get(projectRoot, Constants.DIR_TRACE).toString()));
+    dirFutures.add(
+        FileSystemUtil.ensureDirectoryExists(
+            vertx, Paths.get(projectRoot, Constants.DIR_TMP).toString()));
     return Future.join(dirFutures).map(v -> null);
   }
 
@@ -201,7 +204,9 @@ public class GangliaKernel {
             memory.memoryStore(),
             // 1 500 tokens keeps a degraded turn well within the 2 000-token history budget,
             // so one LLM-compression failure does not crowd out all other turns.
-            new TokenAwareTruncator(tokenCounter, 1500)));
+            new TokenAwareTruncator(tokenCounter, 1500),
+            vertx,
+            projectRoot));
 
     ToolsFactory toolsFactory = new ToolsFactory(vertx, projectRoot);
     StandardPromptEngine promptEngine =

@@ -21,8 +21,13 @@ public class FileSystemMemoryProvider implements MemorySystemProvider {
   public MemorySystem create(MemorySystemConfig config) {
     MemoryStore memoryStore = new FileSystemMemoryStore(config.vertx(), config.projectRoot());
 
+    int compressionThreshold =
+        config.configProvider() != null
+            ? config.configProvider().getObservationCompressionThreshold()
+            : 6000;
     ObservationCompressor observationCompressor =
-        new LLMObservationCompressor(config.modelGateway(), 4000, config.compressionModel());
+        new LLMObservationCompressor(
+            config.modelGateway(), compressionThreshold, config.compressionModel());
 
     TimelineLedger timelineLedger =
         new MarkdownTimelineLedger(config.vertx(), config.projectRoot());

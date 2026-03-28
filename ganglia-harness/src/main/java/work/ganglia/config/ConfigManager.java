@@ -198,6 +198,14 @@ public class ConfigManager
         : 120_000;
   }
 
+  @Override
+  public int getObservationCompressionThreshold() {
+    return (currentConfig.agent() != null
+            && currentConfig.agent().observationCompressionThreshold() > 0)
+        ? currentConfig.agent().observationCompressionThreshold()
+        : 6000;
+  }
+
   // --- WebUiConfigProvider Implementation ---
 
   @Override

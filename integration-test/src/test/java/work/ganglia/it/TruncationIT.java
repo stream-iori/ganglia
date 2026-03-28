@@ -183,16 +183,17 @@ class TruncationIT {
   }
 
   // -------------------------------------------------------------------------
-  // Layer 2: ObservationCompressionHook truncates ERROR-status outputs
+  // Layer 2: ObservationCompressionHook reduces ERROR-status outputs from
+  //          run_shell_command by writing them to a tmp file (WRITE_TO_TMP path)
   // -------------------------------------------------------------------------
 
   @Test
-  void layer2_errorStatusWithLargeOutput_hookTruncatesBeforeLlmSeesIt(
+  void layer2_errorStatusWithLargeOutput_hookReducesBeforeLlmSeesIt(
       Vertx vertx, VertxTestContext testContext) throws IOException {
 
     // Non-zero exit → CommandResultHandler.fromResult → ToolInvokeResult.error(output)
-    // The old ObservationCompressionHook skipped non-SUCCESS statuses.  Now it must truncate them.
-    // We use 1 000 lines × ~7 tokens/line ≈ 7 000 tokens > 3 000 (truncator threshold).
+    // run_shell_command is a reproducible tool → WRITE_TO_TMP: full output saved to tmp file,
+    // LLM receives a short path + line-count hint instead of the raw error content.
     AtomicReference<String> captured = stubChatStreamWithShellCall("c2", "bad_command");
 
     bootstrapWithExecutor(
@@ -208,33 +209,30 @@ class TruncationIT {
                     testContext.verify(
                         () -> {
                           assertNotNull(captured.get(), "LLM must receive a TOOL message");
-                          // The hook must have truncated the ERROR output.
-                          assertTrue(
-                              captured.get().contains("[TRUNCATED:"),
-                              "ObservationCompressionHook must truncate oversized ERROR output. "
-                                  + "Got length: "
-                                  + captured.get().length());
                           // The raw oversized error must not appear verbatim in the LLM request.
                           assertFalse(
                               captured.get().length() >= OVERSIZED_ERROR_OUTPUT.length(),
-                              "Truncated output must be shorter than the raw error output");
+                              "Output seen by LLM must be shorter than the raw error output. "
+                                  + "Got length: "
+                                  + captured.get().length());
                           testContext.completeNow();
                         })));
   }
 
   // -------------------------------------------------------------------------
-  // Layer 3: Oversized SUCCESS output is truncated by the hook fallback path,
-  //          and capToolMessages provides a second safety net in prepareRequest
+  // Layer 3: Oversized SUCCESS output from run_shell_command is written to a
+  //          tmp file; the LLM receives a short path + line-count hint instead
+  //          of the raw output.
   // -------------------------------------------------------------------------
 
   @Test
-  void layer3_oversizedSuccessOutput_isTruncatedBeforeLlmReceivesIt(
+  void layer3_oversizedSuccessOutput_isWrittenToTmpAndHintReachesLlm(
       Vertx vertx, VertxTestContext testContext) throws IOException {
 
     // Zero exit → CommandResultHandler.fromResult → ToolInvokeResult.success(output)
-    // LLM compressor sees length > 4 000 chars → requiresCompression() = true → calls chat()
-    // chat() fails → .recover() → TokenAwareTruncator.truncate() → [TRUNCATED:] marker
-    // capToolMessages() in StandardPromptEngine provides an additional 4 000-token cap on top.
+    // run_shell_command is a reproducible tool → WRITE_TO_TMP action:
+    //   full output is saved to .ganglia/tmp/{sessionId}/{toolCallId}.txt
+    //   the context message is replaced with a short path + line-count hint.
     AtomicReference<String> captured = stubChatStreamWithShellCall("c3", "big_success_cmd");
 
     bootstrapWithExecutor(
@@ -250,15 +248,20 @@ class TruncationIT {
                     testContext.verify(
                         () -> {
                           assertNotNull(captured.get(), "LLM must receive a TOOL message");
+                          // The LLM receives a short hint, not the raw oversized output
                           assertTrue(
-                              captured.get().contains("[TRUNCATED:"),
-                              "Oversized SUCCESS output must be truncated. Got: "
+                              captured.get().length() < OVERSIZED_SUCCESS_OUTPUT.length(),
+                              "LLM message must be shorter than raw output. Got length: "
+                                  + captured.get().length());
+                          // The hint must reference the tool and suggest reading the file
+                          assertTrue(
+                              captured.get().contains("lines")
+                                  || captured.get().contains("run_shell_command")
+                                  || captured.get().contains("read_file"),
+                              "LLM message must contain a file hint. Got: "
                                   + captured
                                       .get()
-                                      .substring(0, Math.min(200, captured.get().length())));
-                          assertFalse(
-                              captured.get().length() >= OVERSIZED_SUCCESS_OUTPUT.length(),
-                              "Truncated output must be shorter than the original");
+                                      .substring(0, Math.min(300, captured.get().length())));
                           testContext.completeNow();
                         })));
   }

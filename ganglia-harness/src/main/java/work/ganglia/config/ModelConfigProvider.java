@@ -23,4 +23,12 @@ public interface ModelConfigProvider {
   String getBaseUrl();
 
   String getProvider();
+
+  /**
+   * Character-length threshold above which {@code LLMObservationCompressor} triggers LLM-based
+   * compression for irreproducible tool outputs. Valid range: 5 000–10 000. Default: 6 000.
+   */
+  default int getObservationCompressionThreshold() {
+    return 6000;
+  }
 }
