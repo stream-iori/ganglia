@@ -52,7 +52,8 @@ public class DefaultContextOptimizer implements ContextOptimizer {
 
   @Override
   public Future<SessionContext> optimizeIfNeeded(SessionContext context) {
-    int totalTokens = context.history().stream().mapToInt(m -> m.countTokens(tokenCounter)).sum();
+    int historyTokens = context.history().stream().mapToInt(m -> m.countTokens(tokenCounter)).sum();
+    int totalTokens = historyTokens + agentConfig.getSystemOverheadTokens();
 
     int limit = modelConfig.getContextLimit();
     double threshold = agentConfig.getCompressionThreshold();
@@ -79,7 +80,8 @@ public class DefaultContextOptimizer implements ContextOptimizer {
             startData);
       }
       final int beforeTokens = totalTokens;
-      return compressSession(context, 1)
+      int turnsToKeep = calculateTurnsToKeep(context);
+      return compressSession(context, turnsToKeep)
           .map(
               compressedContext -> {
                 int afterTokens =
@@ -104,6 +106,23 @@ public class DefaultContextOptimizer implements ContextOptimizer {
     return Future.succeededFuture(context);
   }
 
+  private int calculateTurnsToKeep(SessionContext context) {
+    int limit = modelConfig.getContextLimit();
+    // After compression, target 50% of context limit to leave room for new interactions
+    int targetTokens = (int) (limit * 0.5);
+    List<Turn> turns = context.previousTurns();
+    int accumulatedTokens = 0;
+    int keep = 0;
+    for (int i = turns.size() - 1; i >= 0; i--) {
+      int turnTokens =
+          turns.get(i).flatten().stream().mapToInt(m -> m.countTokens(tokenCounter)).sum();
+      if (accumulatedTokens + turnTokens > targetTokens) break;
+      accumulatedTokens += turnTokens;
+      keep++;
+    }
+    return Math.max(1, keep);
+  }
+
   private Future<SessionContext> compressSession(SessionContext context, int turnsToKeep) {
     List<Turn> allPrevious = context.previousTurns();
     if (allPrevious.size() <= turnsToKeep) {
@@ -114,18 +133,26 @@ public class DefaultContextOptimizer implements ContextOptimizer {
     List<Turn> toCompress = allPrevious.subList(0, compressCount);
     List<Turn> toKeep = new ArrayList<>(allPrevious.subList(compressCount, allPrevious.size()));
 
-    return compressor
-        .compress(toCompress)
-        .map(
-            summary -> {
-              Message summaryMsg = Message.system("SUMMARY OF PREVIOUS INTERACTIONS:\n" + summary);
-              Turn summaryTurn = Turn.newTurn("summary-" + System.currentTimeMillis(), summaryMsg);
+    // If a running summary is available, use it directly instead of re-compressing
+    String runningSummary = context.getRunningSummary();
+    Future<String> summaryFuture;
+    if (runningSummary != null && !runningSummary.isBlank()) {
+      logger.info("Using running summary for compression (skipping full LLM compress)");
+      summaryFuture = Future.succeededFuture(runningSummary);
+    } else {
+      summaryFuture = compressor.compress(toCompress);
+    }
 
-              List<Turn> newPrevious = new ArrayList<>();
-              newPrevious.add(summaryTurn);
-              newPrevious.addAll(toKeep);
+    return summaryFuture.map(
+        summary -> {
+          Message summaryMsg = Message.system("SUMMARY OF PREVIOUS INTERACTIONS:\n" + summary);
+          Turn summaryTurn = Turn.newTurn("summary-" + System.currentTimeMillis(), summaryMsg);
 
-              return context.withPreviousTurns(newPrevious);
-            });
+          List<Turn> newPrevious = new ArrayList<>();
+          newPrevious.add(summaryTurn);
+          newPrevious.addAll(toKeep);
+
+          return context.withPreviousTurns(newPrevious);
+        });
   }
 }

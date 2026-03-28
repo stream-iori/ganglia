@@ -13,4 +13,7 @@ public interface ContextCompressor {
   Future<String> reflect(Turn turn);
 
   Future<String> compress(List<Turn> turns);
+
+  /** Extracts structured key facts from a completed turn, appending to the running summary. */
+  Future<String> extractKeyFacts(Turn completedTurn, String existingRunningSummary);
 }

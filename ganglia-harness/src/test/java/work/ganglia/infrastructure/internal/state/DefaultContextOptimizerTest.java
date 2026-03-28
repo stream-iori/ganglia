@@ -2,7 +2,9 @@ package work.ganglia.infrastructure.internal.state;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -120,6 +122,11 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
       public Future<String> compress(List<Turn> turns) {
         return Future.succeededFuture("Compressed: " + turns.size() + " turns");
       }
+
+      @Override
+      public Future<String> extractKeyFacts(Turn completedTurn, String existingRunningSummary) {
+        return Future.succeededFuture("Key facts extracted");
+      }
     };
   }
 
@@ -227,6 +234,164 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
                       () -> {
                         // Only 1 turn, no compression needed even if above threshold
                         assertEquals(1, result.previousTurns().size());
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
+  void testSystemOverheadIncludedInThreshold(VertxTestContext testContext) {
+    // contextLimit=20, threshold=0.8 → trigger at 16.
+    // historyTokens (~14) + overhead=20 → total=34 > 16 → triggers.
+    // 50% budget = 10 tokens → only 2 turns (~5 each) fit → turnsToKeep=2.
+    // With 3 turns, 1 gets compressed → summary turn created.
+    AgentConfigProvider configWithOverhead =
+        new AgentConfigProvider() {
+          @Override
+          public int getMaxIterations() {
+            return 10;
+          }
+
+          @Override
+          public double getCompressionThreshold() {
+            return 0.8;
+          }
+
+          @Override
+          public String getProjectRoot() {
+            return System.getProperty("user.dir");
+          }
+
+          @Override
+          public String getInstructionFile() {
+            return null;
+          }
+
+          @Override
+          public int getSystemOverheadTokens() {
+            return 20;
+          }
+        };
+
+    DefaultContextOptimizer optimizer =
+        new DefaultContextOptimizer(
+            modelConfig(20), configWithOverhead, simpleCompressor(), new TokenCounter());
+
+    SessionContext ctx = createSessionContext();
+    Turn turn1 =
+        Turn.newTurn("t1", Message.user("Hello world test"))
+            .withResponse(Message.assistant("Response one here"));
+    Turn turn2 =
+        Turn.newTurn("t2", Message.user("Another message"))
+            .withResponse(Message.assistant("Another response"));
+    Turn turn3 =
+        Turn.newTurn("t3", Message.user("Third message"))
+            .withResponse(Message.assistant("Third response"));
+    SessionContext withHistory = ctx.withPreviousTurns(List.of(turn1, turn2, turn3));
+
+    optimizer
+        .optimizeIfNeeded(withHistory)
+        .onComplete(
+            testContext.succeeding(
+                result -> {
+                  testContext.verify(
+                      () -> {
+                        // Overhead pushed total above threshold → compression created a summary
+                        assertTrue(
+                            result.previousTurns().stream()
+                                .anyMatch(t -> t.id().startsWith("summary-")));
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
+  void testDynamicTurnsToKeepRetainsMoreTurns(VertxTestContext testContext) {
+    // Large context limit (200000) so 50% target = 100000 tokens. 5 small turns should all fit.
+    DefaultContextOptimizer optimizer =
+        new DefaultContextOptimizer(
+            modelConfig(200000), agentConfig(0.001), simpleCompressor(), new TokenCounter());
+
+    SessionContext ctx = createSessionContext();
+    List<Turn> turns = new ArrayList<>();
+    for (int i = 0; i < 5; i++) {
+      turns.add(
+          Turn.newTurn("t" + i, Message.user("msg" + i))
+              .withResponse(Message.assistant("resp" + i)));
+    }
+    SessionContext withHistory = ctx.withPreviousTurns(turns);
+
+    optimizer
+        .optimizeIfNeeded(withHistory)
+        .onComplete(
+            testContext.succeeding(
+                result -> {
+                  testContext.verify(
+                      () -> {
+                        // All 5 small turns fit within 50% budget, so all should be kept
+                        // (plus 1 summary turn = 6 total, but since all fit, nothing to compress)
+                        // With dynamic keep = 5, compressSession returns context unchanged
+                        assertEquals(5, result.previousTurns().size());
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
+  void testRunningSummaryUsedDuringCompression(VertxTestContext testContext) {
+    // Track whether compress was called
+    boolean[] compressCalled = {false};
+    ContextCompressor trackingCompressor =
+        new ContextCompressor() {
+          @Override
+          public Future<String> summarize(List<Turn> turns, ModelOptions options) {
+            return Future.succeededFuture("Summary");
+          }
+
+          @Override
+          public Future<String> reflect(Turn turn) {
+            return Future.succeededFuture("Reflection");
+          }
+
+          @Override
+          public Future<String> compress(List<Turn> turns) {
+            compressCalled[0] = true;
+            return Future.succeededFuture("LLM Compressed");
+          }
+
+          @Override
+          public Future<String> extractKeyFacts(Turn completedTurn, String existingRunningSummary) {
+            return Future.succeededFuture("Key facts");
+          }
+        };
+
+    DefaultContextOptimizer optimizer =
+        new DefaultContextOptimizer(
+            modelConfig(10), agentConfig(0.1), trackingCompressor, new TokenCounter());
+
+    SessionContext ctx = createSessionContext();
+    Turn turn1 =
+        Turn.newTurn("t1", Message.user("Long message to exceed budget definitely"))
+            .withResponse(Message.assistant("Long response"));
+    Turn turn2 =
+        Turn.newTurn("t2", Message.user("Second turn")).withResponse(Message.assistant("ok"));
+    // Set running summary in metadata
+    SessionContext withHistory =
+        ctx.withPreviousTurns(List.of(turn1, turn2)).withRunningSummary("Pre-existing summary");
+
+    optimizer
+        .optimizeIfNeeded(withHistory)
+        .onComplete(
+            testContext.succeeding(
+                result -> {
+                  testContext.verify(
+                      () -> {
+                        // Running summary was used, so LLM compress should NOT have been called
+                        assertFalse(compressCalled[0]);
+                        // Summary turn should contain the running summary
+                        assertTrue(
+                            result.previousTurns().stream()
+                                .anyMatch(t -> t.id().startsWith("summary-")));
                         testContext.completeNow();
                       });
                 }));

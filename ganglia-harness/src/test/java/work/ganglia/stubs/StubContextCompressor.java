@@ -25,4 +25,9 @@ public class StubContextCompressor implements ContextCompressor {
   public Future<String> compress(List<Turn> turns) {
     return Future.succeededFuture("stub compression");
   }
+
+  @Override
+  public Future<String> extractKeyFacts(Turn completedTurn, String existingRunningSummary) {
+    return Future.succeededFuture("stub key facts");
+  }
 }

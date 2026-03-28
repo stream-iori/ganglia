@@ -142,6 +142,20 @@ public record SessionContext(
     return withMetadata(Collections.unmodifiableMap(newMetadata));
   }
 
+  private static final String KEY_RUNNING_SUMMARY = "runningSummary";
+
+  /** Returns the running summary from metadata, or null if not set. */
+  @JsonIgnore
+  public String getRunningSummary() {
+    Object value = metadata.get(KEY_RUNNING_SUMMARY);
+    return value instanceof String s ? s : null;
+  }
+
+  /** Returns a new context with the running summary updated in metadata. */
+  public SessionContext withRunningSummary(String summary) {
+    return withNewMetadata(KEY_RUNNING_SUMMARY, summary);
+  }
+
   public SessionContext withPreviousTurns(List<Turn> newPreviousTurns) {
     return new SessionContext(
         sessionId, newPreviousTurns, currentTurn, metadata, activeSkillIds, modelOptions);

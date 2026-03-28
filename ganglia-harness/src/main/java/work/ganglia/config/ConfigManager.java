@@ -199,6 +199,22 @@ public class ConfigManager
   }
 
   @Override
+  public int getSystemOverheadTokens() {
+    return (currentConfig.agent() != null && currentConfig.agent().systemOverheadTokens() > 0)
+        ? currentConfig.agent().systemOverheadTokens()
+        : 6000;
+  }
+
+  @Override
+  public int getUtilityContextLimit() {
+    ModelConfig utility = currentConfig.getModel(ConfigKeys.UTILITY);
+    if (utility != null && utility.contextLimit() > 0) {
+      return utility.contextLimit();
+    }
+    return 32000;
+  }
+
+  @Override
   public int getObservationCompressionThreshold() {
     return (currentConfig.agent() != null
             && currentConfig.agent().observationCompressionThreshold() > 0)

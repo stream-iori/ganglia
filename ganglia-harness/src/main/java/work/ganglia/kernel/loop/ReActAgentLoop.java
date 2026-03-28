@@ -29,6 +29,7 @@ import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.external.tool.ToolCall;
+import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.port.internal.memory.MemoryEvent;
 import work.ganglia.port.internal.prompt.PromptEngine;
 import work.ganglia.port.internal.state.AgentSignal;
@@ -52,6 +53,7 @@ public class ReActAgentLoop implements AgentLoop {
   private final AgentTaskFactory taskFactory;
   private final FaultTolerancePolicy faultTolerancePolicy;
   private final InterceptorPipeline pipeline;
+  private final ContextCompressor contextCompressor;
 
   private final ConcurrentHashMap<String, AgentSignal> sessionSignals = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, String> pendingAsks = new ConcurrentHashMap<>();
@@ -67,6 +69,7 @@ public class ReActAgentLoop implements AgentLoop {
     this.modelGateway = builder.modelGateway;
     this.taskFactory = builder.taskFactory;
     this.faultTolerancePolicy = builder.faultTolerancePolicy;
+    this.contextCompressor = builder.contextCompressor;
     this.pipeline =
         builder.pipeline != null
             ? builder.pipeline
@@ -422,7 +425,7 @@ public class ReActAgentLoop implements AgentLoop {
 
       return sessionManager
           .persist(finalContext)
-          .map(
+          .compose(
               v -> {
                 // Publish TURN_COMPLETED memory event
                 if (vertx != null) {
@@ -437,7 +440,26 @@ public class ReActAgentLoop implements AgentLoop {
                       .eventBus()
                       .publish(Constants.ADDRESS_MEMORY_EVENT, JsonObject.mapFrom(memEvent));
                 }
-                return content;
+
+                // Async key facts extraction for running summary
+                if (contextCompressor != null && finalContext.currentTurn() != null) {
+                  String existing = finalContext.getRunningSummary();
+                  contextCompressor
+                      .extractKeyFacts(finalContext.currentTurn(), existing)
+                      .onSuccess(
+                          summary -> {
+                            SessionContext updated = finalContext.withRunningSummary(summary);
+                            sessionManager.persist(updated);
+                          })
+                      .onFailure(
+                          err ->
+                              logger.warn(
+                                  "Failed to extract key facts for session {}",
+                                  finalContext.sessionId(),
+                                  err));
+                }
+
+                return Future.succeededFuture(content);
               });
     }
   }
@@ -623,6 +645,7 @@ public class ReActAgentLoop implements AgentLoop {
     private ModelGateway modelGateway;
     private AgentTaskFactory taskFactory;
     private FaultTolerancePolicy faultTolerancePolicy;
+    private ContextCompressor contextCompressor;
     private InterceptorPipeline pipeline;
     private String parentSessionId;
 
@@ -670,6 +693,11 @@ public class ReActAgentLoop implements AgentLoop {
 
     public Builder faultTolerancePolicy(FaultTolerancePolicy faultTolerancePolicy) {
       this.faultTolerancePolicy = faultTolerancePolicy;
+      return this;
+    }
+
+    public Builder contextCompressor(ContextCompressor contextCompressor) {
+      this.contextCompressor = contextCompressor;
       return this;
     }
 

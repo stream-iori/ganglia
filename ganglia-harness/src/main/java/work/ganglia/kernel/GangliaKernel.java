@@ -277,6 +277,7 @@ public class GangliaKernel {
                 .modelGateway(modelGateway)
                 .taskFactory(env.taskFactory()) // Late binding
                 .faultTolerancePolicy(failurePolicy)
+                .contextCompressor(memory.contextCompressor())
                 .pipeline(pipeline)
                 .build();
 

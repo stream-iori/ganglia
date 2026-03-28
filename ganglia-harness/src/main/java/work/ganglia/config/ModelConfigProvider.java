@@ -31,4 +31,9 @@ public interface ModelConfigProvider {
   default int getObservationCompressionThreshold() {
     return 6000;
   }
+
+  /** Context window size of the utility model used for compression tasks. Default: 32 000. */
+  default int getUtilityContextLimit() {
+    return 32000;
+  }
 }
