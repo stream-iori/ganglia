@@ -36,11 +36,16 @@ public class GangliaWebMain {
               if (webUiConfig != null && webUiConfig.enabled()) {
                 int port = webUiConfig.port();
                 String webroot = webUiConfig.webroot();
+                String tracePath =
+                    ganglia.configManager().getGangliaConfig().observability() != null
+                        ? ganglia.configManager().getGangliaConfig().observability().tracePath()
+                        : ".ganglia/trace";
 
                 WebUIVerticle webUiVerticle =
                     new WebUIVerticle(
                         port,
                         webroot,
+                        tracePath,
                         ganglia.agentLoop(),
                         ganglia.sessionManager(),
                         ganglia.mcpServersCount());
@@ -68,7 +73,10 @@ public class GangliaWebMain {
                         ? ganglia.configManager().getGangliaConfig().webui().webroot()
                         : "webroot";
 
-                ObservabilityVerticle obsVerticle = new ObservabilityVerticle(port, webroot);
+                String tracePath = obsConfig.tracePath();
+
+                ObservabilityVerticle obsVerticle =
+                    new ObservabilityVerticle(port, webroot, tracePath);
                 vertx
                     .deployVerticle(obsVerticle)
                     .onSuccess(id -> logger.info("Observability Studio deployed on port {}", port))

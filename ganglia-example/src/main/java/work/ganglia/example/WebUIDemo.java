@@ -36,10 +36,16 @@ public class WebUIDemo {
               GangliaConfig.WebUIConfig webConfig =
                   ganglia.configManager().getGangliaConfig().webui();
               if (webConfig != null && webConfig.enabled()) {
+                String tracePath =
+                    ganglia.configManager().getGangliaConfig().observability() != null
+                        ? ganglia.configManager().getGangliaConfig().observability().tracePath()
+                        : ".ganglia/trace";
+
                 WebUIVerticle webUiVerticle =
                     new WebUIVerticle(
                         webConfig.port(),
                         webConfig.webroot(),
+                        tracePath,
                         ganglia.agentLoop(),
                         ganglia.sessionManager(),
                         ganglia.mcpServersCount());

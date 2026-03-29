@@ -22,11 +22,17 @@ public class ObservabilityVerticle extends AbstractVerticle {
 
   private final int port;
   private final String webroot;
+  private final String tracePath;
   private int actualPort;
 
   public ObservabilityVerticle(int port, String webroot) {
+    this(port, webroot, ".ganglia/trace");
+  }
+
+  public ObservabilityVerticle(int port, String webroot, String tracePath) {
     this.port = port;
     this.webroot = webroot;
+    this.tracePath = tracePath != null ? tracePath : ".ganglia/trace";
   }
 
   @Override

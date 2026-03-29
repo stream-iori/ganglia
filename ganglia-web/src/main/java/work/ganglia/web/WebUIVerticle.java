@@ -53,6 +53,7 @@ public class WebUIVerticle extends AbstractVerticle {
 
   private final int port;
   private final String webroot;
+  private final String tracePath;
   private final AgentLoop agentLoop;
   private final SessionManager sessionManager;
 
@@ -72,17 +73,19 @@ public class WebUIVerticle extends AbstractVerticle {
 
   public WebUIVerticle(
       int port, AgentLoop agentLoop, SessionManager sessionManager, int mcpServersCount) {
-    this(port, "webroot", agentLoop, sessionManager, mcpServersCount);
+    this(port, "webroot", Constants.DIR_TRACE, agentLoop, sessionManager, mcpServersCount);
   }
 
   public WebUIVerticle(
       int port,
       String webroot,
+      String tracePath,
       AgentLoop agentLoop,
       SessionManager sessionManager,
       int mcpServersCount) {
     this.port = port;
     this.webroot = webroot != null ? webroot : "webroot";
+    this.tracePath = tracePath != null ? tracePath : Constants.DIR_TRACE;
     this.agentLoop = agentLoop;
     this.sessionManager = sessionManager;
     this.mcpServersCount = mcpServersCount;
@@ -260,10 +263,9 @@ public class WebUIVerticle extends AbstractVerticle {
   }
 
   private void handleListTraceFiles(RoutingContext ctx) {
-    String traceDir = ".ganglia/trace";
     vertx
         .fileSystem()
-        .readDir(traceDir, ".*\\.jsonl")
+        .readDir(tracePath, ".*\\.jsonl")
         .onSuccess(
             files -> {
               JsonArray result = new JsonArray();
@@ -284,7 +286,7 @@ public class WebUIVerticle extends AbstractVerticle {
       ctx.response().setStatusCode(400).end();
       return;
     }
-    String filepath = ".ganglia/trace/" + filename;
+    String filepath = tracePath + "/" + filename;
     vertx
         .fileSystem()
         .readFile(filepath)
