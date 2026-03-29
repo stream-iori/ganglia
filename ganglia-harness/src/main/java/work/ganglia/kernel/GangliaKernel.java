@@ -202,7 +202,7 @@ public class GangliaKernel {
       dispatcher.register(observer);
     }
 
-    InterceptorPipeline pipeline = new InterceptorPipeline(dispatcher);
+    InterceptorPipeline pipeline = new InterceptorPipeline();
     pipeline.addInterceptor(
         new ObservationCompressionHook(
             memory.observationCompressor(),

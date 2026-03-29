@@ -72,10 +72,7 @@ public class ReActAgentLoop implements AgentLoop {
     this.taskFactory = builder.taskFactory;
     this.faultTolerancePolicy = builder.faultTolerancePolicy;
     this.contextCompressor = builder.contextCompressor;
-    this.pipeline =
-        builder.pipeline != null
-            ? builder.pipeline
-            : new InterceptorPipeline(this.dispatcher, builder.parentSessionId);
+    this.pipeline = builder.pipeline != null ? builder.pipeline : new InterceptorPipeline();
   }
 
   public static Builder builder() {
@@ -157,6 +154,19 @@ public class ReActAgentLoop implements AgentLoop {
 
     String turnSpanId = "turn-" + UUID.randomUUID().toString().substring(0, 8);
     startSpan(initialContext.sessionId(), turnSpanId);
+
+    // If this is the very first turn of the session, publish SESSION_STARTED
+    if (initialContext.previousTurns().isEmpty() && initialContext.currentTurn() == null) {
+      Map<String, Object> sessionStartData = new HashMap<>();
+      sessionStartData.put("firstPrompt", userInput != null ? userInput : "");
+      if (initialContext.modelOptions() != null
+          && initialContext.modelOptions().modelName() != null) {
+        sessionStartData.put("model", initialContext.modelOptions().modelName());
+      }
+      publishObservation(
+          initialContext.sessionId(), ObservationType.SESSION_STARTED, userInput, sessionStartData);
+    }
+
     publishObservation(initialContext.sessionId(), ObservationType.TURN_STARTED, userInput);
 
     return pipeline
@@ -715,7 +725,6 @@ public class ReActAgentLoop implements AgentLoop {
     private FaultTolerancePolicy faultTolerancePolicy;
     private ContextCompressor contextCompressor;
     private InterceptorPipeline pipeline;
-    private String parentSessionId;
 
     private Builder() {}
 
@@ -771,11 +780,6 @@ public class ReActAgentLoop implements AgentLoop {
 
     public Builder pipeline(InterceptorPipeline pipeline) {
       this.pipeline = pipeline;
-      return this;
-    }
-
-    public Builder parentSessionId(String parentSessionId) {
-      this.parentSessionId = parentSessionId;
       return this;
     }
 
