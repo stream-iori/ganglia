@@ -106,7 +106,7 @@ public class McpConfigManager {
                   new McpInitializeRequest("2025-11-25", new HashMap<>(), clientInfo);
               return client.initialize(initReq);
             })
-        .compose(res -> McpToolSet.create(client))
+        .compose(res -> McpToolSet.create(client, null, serverName))
         .map(
             ts -> {
               log.info(

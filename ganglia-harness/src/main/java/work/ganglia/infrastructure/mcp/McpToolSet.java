@@ -22,7 +22,7 @@ public class McpToolSet implements ToolSet {
 
   private final McpClient client;
   private final List<ToolDefinition> definitions;
-  private final ObservationDispatcher dispatcher;
+  private volatile ObservationDispatcher dispatcher;
   private final String serverName;
 
   private McpToolSet(
@@ -34,6 +34,11 @@ public class McpToolSet implements ToolSet {
     this.definitions = definitions;
     this.dispatcher = dispatcher;
     this.serverName = serverName;
+  }
+
+  /** Late-binds the observation dispatcher so MCP calls are traced. */
+  public void setDispatcher(ObservationDispatcher dispatcher) {
+    this.dispatcher = dispatcher;
   }
 
   /** Creates an McpToolSet by fetching the tools from the MCP Server. */
@@ -76,6 +81,8 @@ public class McpToolSet implements ToolSet {
       ExecutionContext executionContext) {
     long startMs = System.currentTimeMillis();
     String sessionId = executionContext != null ? executionContext.sessionId() : null;
+    String mcpSpanId = "mcp-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+    String parentSpanId = executionContext != null ? executionContext.spanId() : null;
 
     if (dispatcher != null && sessionId != null) {
       Map<String, Object> startData = new HashMap<>();
@@ -88,8 +95,8 @@ public class McpToolSet implements ToolSet {
           ObservationType.MCP_CALL_STARTED,
           toolName,
           startData,
-          "mcp-" + java.util.UUID.randomUUID().toString().substring(0, 8),
-          executionContext.spanId());
+          mcpSpanId,
+          parentSpanId);
     }
 
     McpCallToolRequest request = new McpCallToolRequest(toolName, args);
@@ -128,7 +135,12 @@ public class McpToolSet implements ToolSet {
                 finishData.put("status", invokeResult.status().name());
                 finishData.put("durationMs", System.currentTimeMillis() - startMs);
                 dispatcher.dispatch(
-                    sessionId, ObservationType.MCP_CALL_FINISHED, toolName, finishData);
+                    sessionId,
+                    ObservationType.MCP_CALL_FINISHED,
+                    toolName,
+                    finishData,
+                    mcpSpanId,
+                    parentSpanId);
               }
               return invokeResult;
             });

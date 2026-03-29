@@ -33,6 +33,7 @@ import work.ganglia.infrastructure.internal.state.FileLogManager;
 import work.ganglia.infrastructure.internal.state.FileStateEngine;
 import work.ganglia.infrastructure.internal.state.TokenUsageManager;
 import work.ganglia.infrastructure.internal.state.TraceManager;
+import work.ganglia.infrastructure.mcp.McpToolSet;
 import work.ganglia.kernel.doctor.DefaultDoctorService;
 import work.ganglia.kernel.hook.InterceptorPipeline;
 import work.ganglia.kernel.hook.builtin.ObservationCompressionHook;
@@ -197,6 +198,15 @@ public class GangliaKernel {
       retrying.setDispatcher(dispatcher);
     }
 
+    // Wire dispatcher into McpToolSets for MCP_CALL observations
+    if (mcpRegistry != null && mcpRegistry.toolSets() != null) {
+      for (ToolSet ts : mcpRegistry.toolSets()) {
+        if (ts instanceof McpToolSet mcpTs) {
+          mcpTs.setDispatcher(dispatcher);
+        }
+      }
+    }
+
     // Register extra observers directly
     for (work.ganglia.kernel.loop.AgentLoopObserver observer : options.extraObservers()) {
       dispatcher.register(observer);
@@ -292,8 +302,8 @@ public class GangliaKernel {
     promptEngine.setTaskFactory(taskFactory);
     graphExecutor.initialize(taskFactory);
 
-    new TraceManager(vertx, configManager);
-    new TokenUsageManager(vertx, tokenCounter);
+    TraceManager traceManager = new TraceManager(vertx, configManager);
+    TokenUsageManager tokenUsageManager = new TokenUsageManager(vertx, tokenCounter);
 
     ReActAgentLoop primaryAgentLoop = (ReActAgentLoop) loopFactory.createLoop();
 
@@ -309,7 +319,9 @@ public class GangliaKernel {
             configManager,
             env,
             mcpCount,
-            mcpRegistry));
+            mcpRegistry,
+            traceManager,
+            tokenUsageManager));
   }
 
   private record BootstrapContext(
