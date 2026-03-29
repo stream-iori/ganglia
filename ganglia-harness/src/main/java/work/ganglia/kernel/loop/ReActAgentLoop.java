@@ -1,5 +1,7 @@
 package work.ganglia.kernel.loop;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,10 +58,21 @@ public class ReActAgentLoop implements AgentLoop {
   private final ContextCompressor contextCompressor;
 
   private final ConcurrentHashMap<String, AgentSignal> sessionSignals = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, String> pendingAsks = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, PendingAsk> pendingAsks = new ConcurrentHashMap<>();
+
+  /** Tracks a pending ask with its tool call ID and creation time for TTL expiration. */
+  private record PendingAsk(String toolCallId, long createdAtMs) {}
+
+  private static final long PENDING_ASK_TTL_MS = 30 * 60 * 1000L; // 30 minutes
   private final ConcurrentHashMap<String, Long> sessionStartTimes = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, String> currentSpanIds = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, String> currentParentSpanIds = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, Deque<String>> spanStacks = new ConcurrentHashMap<>();
+
+  /** Tracks active turn count per session so SESSION_ENDED fires only when last turn completes. */
+  private final ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicInteger>
+      sessionActiveTurns = new ConcurrentHashMap<>();
+
+  /** Tracks session-level spanIds for parent reference. */
+  private final ConcurrentHashMap<String, String> sessionSpanIds = new ConcurrentHashMap<>();
 
   private ReActAgentLoop(Builder builder) {
     this.vertx = builder.vertx;
@@ -97,13 +110,22 @@ public class ReActAgentLoop implements AgentLoop {
       if (type != ObservationType.ERROR
           && type != ObservationType.TURN_FINISHED
           && type != ObservationType.SYSTEM_EVENT
-          && type != ObservationType.SESSION_ENDED) {
+          && type != ObservationType.SESSION_ENDED
+          && type != ObservationType.SESSION_ABORTED) {
         return;
       }
     }
 
-    String spanId = currentSpanIds.get(sessionId);
-    String parentSpanId = currentParentSpanIds.get(sessionId);
+    Deque<String> stack = spanStacks.get(sessionId);
+    String spanId = null;
+    String parentSpanId = null;
+    if (stack != null && !stack.isEmpty()) {
+      var it = stack.iterator();
+      spanId = it.next();
+      if (it.hasNext()) {
+        parentSpanId = it.next();
+      }
+    }
 
     logger.debug("Publishing observation: {} for session: {}", type, sessionId);
     if (dispatcher != null) {
@@ -112,51 +134,77 @@ public class ReActAgentLoop implements AgentLoop {
   }
 
   private void startSpan(String sessionId, String spanId) {
-    currentSpanIds.compute(
-        sessionId,
-        (k, current) -> {
-          if (current != null) {
-            currentParentSpanIds.put(sessionId, current);
-          }
-          return spanId;
-        });
+    spanStacks.computeIfAbsent(sessionId, k -> new ArrayDeque<>()).push(spanId);
   }
 
   private void endSpan(String sessionId) {
-    currentSpanIds.compute(
-        sessionId,
-        (k, current) -> {
-          String parent = currentParentSpanIds.remove(sessionId);
-          return parent; // returns null if no parent, effectively removing from currentSpanIds
-        });
+    Deque<String> stack = spanStacks.get(sessionId);
+    if (stack != null && !stack.isEmpty()) {
+      stack.pop();
+    }
+  }
+
+  private String getCurrentSpanId(String sessionId) {
+    Deque<String> stack = spanStacks.get(sessionId);
+    return (stack != null && !stack.isEmpty()) ? stack.peek() : null;
+  }
+
+  private void cleanupSpanStack(String sessionId) {
+    spanStacks.remove(sessionId);
   }
 
   private void publishSessionEnded(String sessionId) {
-    Long startTime = sessionStartTimes.remove(sessionId);
+    // Only publish SESSION_ENDED when the last active turn for this session completes
+    java.util.concurrent.atomic.AtomicInteger turnCount = sessionActiveTurns.get(sessionId);
+    if (turnCount != null && turnCount.decrementAndGet() > 0) {
+      return; // Other turns still active
+    }
+
+    // Pop session-level span if present
+    String sessionSpan = sessionSpanIds.remove(sessionId);
+    if (sessionSpan != null) {
+      endSpan(sessionId); // pop session span
+    }
+
+    Long startTime = sessionStartTimes.get(sessionId);
     long durationMs = startTime != null ? System.currentTimeMillis() - startTime : 0L;
     Map<String, Object> data = new HashMap<>();
     data.put("durationMs", durationMs);
-    if (dispatcher != null) {
-      dispatcher.dispatch(sessionId, ObservationType.SESSION_ENDED, null, data);
-    }
+    publishObservation(sessionId, ObservationType.SESSION_ENDED, null, data);
     // Publish SESSION_CLOSED memory event
     if (vertx != null) {
       MemoryEvent memEvent =
           new MemoryEvent(MemoryEvent.EventType.SESSION_CLOSED, sessionId, null, null);
       vertx.eventBus().publish(Constants.ADDRESS_MEMORY_EVENT, JsonObject.mapFrom(memEvent));
     }
+    cleanupSession(sessionId);
+  }
+
+  /** Removes all per-session state from concurrent maps to prevent memory leaks. */
+  private void cleanupSession(String sessionId) {
+    sessionSignals.remove(sessionId);
+    sessionStartTimes.remove(sessionId);
+    sessionActiveTurns.remove(sessionId);
+    sessionSpanIds.remove(sessionId);
+    spanStacks.remove(sessionId);
   }
 
   @Override
   public Future<String> run(String userInput, SessionContext initialContext, AgentSignal signal) {
     sessionSignals.put(initialContext.sessionId(), signal);
-    sessionStartTimes.put(initialContext.sessionId(), System.currentTimeMillis());
+    sessionStartTimes.putIfAbsent(initialContext.sessionId(), System.currentTimeMillis());
+    sessionActiveTurns
+        .computeIfAbsent(
+            initialContext.sessionId(), k -> new java.util.concurrent.atomic.AtomicInteger(0))
+        .incrementAndGet();
 
-    String turnSpanId = "turn-" + UUID.randomUUID().toString().substring(0, 8);
-    startSpan(initialContext.sessionId(), turnSpanId);
-
-    // If this is the very first turn of the session, publish SESSION_STARTED
+    // If this is the very first turn of the session, create session-level span and publish
+    // SESSION_STARTED
     if (initialContext.previousTurns().isEmpty() && initialContext.currentTurn() == null) {
+      String sessionSpanId = "session-" + UUID.randomUUID().toString().substring(0, 8);
+      sessionSpanIds.put(initialContext.sessionId(), sessionSpanId);
+      startSpan(initialContext.sessionId(), sessionSpanId);
+
       Map<String, Object> sessionStartData = new HashMap<>();
       sessionStartData.put("firstPrompt", userInput != null ? userInput : "");
       if (initialContext.modelOptions() != null
@@ -166,6 +214,9 @@ public class ReActAgentLoop implements AgentLoop {
       publishObservation(
           initialContext.sessionId(), ObservationType.SESSION_STARTED, userInput, sessionStartData);
     }
+
+    String turnSpanId = "turn-" + UUID.randomUUID().toString().substring(0, 8);
+    startSpan(initialContext.sessionId(), turnSpanId);
 
     publishObservation(initialContext.sessionId(), ObservationType.TURN_STARTED, userInput);
 
@@ -193,28 +244,25 @@ public class ReActAgentLoop implements AgentLoop {
                         return Future.succeededFuture(finalResponse);
                       });
             })
-        .onComplete(
-            v -> {
-              if (v.failed()) {
-                endSpan(initialContext.sessionId());
-              }
-              sessionSignals.remove(initialContext.sessionId());
-              publishSessionEnded(initialContext.sessionId());
-            })
         .recover(
             err -> {
               if (err instanceof AgentAbortedException) {
                 Map<String, Object> abortData = new HashMap<>();
                 abortData.put("reason", "abort_propagated");
-                if (dispatcher != null) {
-                  dispatcher.dispatch(
-                      initialContext.sessionId(), ObservationType.SESSION_ABORTED, null, abortData);
-                }
+                publishObservation(
+                    initialContext.sessionId(), ObservationType.SESSION_ABORTED, null, abortData);
               } else if (!(err instanceof AgentInterruptException)) {
                 publishObservation(
                     initialContext.sessionId(), ObservationType.ERROR, err.getMessage());
               }
               return Future.failedFuture(err);
+            })
+        .onComplete(
+            v -> {
+              if (v.failed()) {
+                endSpan(initialContext.sessionId());
+              }
+              publishSessionEnded(initialContext.sessionId());
             });
   }
 
@@ -225,9 +273,7 @@ public class ReActAgentLoop implements AgentLoop {
       signal.abort();
       Map<String, Object> abortData = new HashMap<>();
       abortData.put("reason", "user_stop");
-      if (dispatcher != null) {
-        dispatcher.dispatch(sessionId, ObservationType.SESSION_ABORTED, null, abortData);
-      }
+      publishObservation(sessionId, ObservationType.SESSION_ABORTED, null, abortData);
     }
   }
 
@@ -237,11 +283,29 @@ public class ReActAgentLoop implements AgentLoop {
     logger.debug("Resuming session: {} with askId: {}", initialContext.sessionId(), askId);
     sessionSignals.put(initialContext.sessionId(), signal);
     sessionStartTimes.putIfAbsent(initialContext.sessionId(), System.currentTimeMillis());
+    sessionActiveTurns
+        .computeIfAbsent(
+            initialContext.sessionId(), k -> new java.util.concurrent.atomic.AtomicInteger(0))
+        .incrementAndGet();
 
-    String toolCallId = askId != null ? pendingAsks.remove(askId) : null;
+    String turnSpanId = "turn-" + UUID.randomUUID().toString().substring(0, 8);
+    startSpan(initialContext.sessionId(), turnSpanId);
+    publishObservation(initialContext.sessionId(), ObservationType.TURN_STARTED, toolOutput);
+
+    String toolCallId = null;
+    if (askId != null) {
+      PendingAsk pending = pendingAsks.remove(askId);
+      if (pending != null) {
+        if (System.currentTimeMillis() - pending.createdAtMs() > PENDING_ASK_TTL_MS) {
+          endSpan(initialContext.sessionId());
+          return Future.failedFuture("Pending ask expired (older than 30 minutes).");
+        }
+        toolCallId = pending.toolCallId();
+      }
+    }
     ToolCall pendingCall = findPendingToolCall(initialContext, toolCallId);
     if (pendingCall == null) {
-      sessionSignals.remove(initialContext.sessionId());
+      endSpan(initialContext.sessionId());
       return Future.failedFuture("No pending tool call found to resume.");
     }
 
@@ -256,27 +320,30 @@ public class ReActAgentLoop implements AgentLoop {
               pipeline
                   .executePostTurn(initialContext, Message.assistant(finalResponse))
                   .onFailure(err -> logger.warn("PostTurn hook failed", err));
+              publishObservation(
+                  initialContext.sessionId(), ObservationType.TURN_FINISHED, finalResponse);
+              endSpan(initialContext.sessionId());
               return Future.succeededFuture(finalResponse);
-            })
-        .onComplete(
-            v -> {
-              sessionSignals.remove(initialContext.sessionId());
-              publishSessionEnded(initialContext.sessionId());
             })
         .recover(
             err -> {
               if (err instanceof AgentAbortedException) {
                 Map<String, Object> abortData = new HashMap<>();
                 abortData.put("reason", "abort_propagated");
-                if (dispatcher != null) {
-                  dispatcher.dispatch(
-                      initialContext.sessionId(), ObservationType.SESSION_ABORTED, null, abortData);
-                }
+                publishObservation(
+                    initialContext.sessionId(), ObservationType.SESSION_ABORTED, null, abortData);
               } else if (!(err instanceof AgentInterruptException)) {
                 publishObservation(
                     initialContext.sessionId(), ObservationType.ERROR, err.getMessage());
               }
               return Future.failedFuture(err);
+            })
+        .onComplete(
+            v -> {
+              if (v.failed()) {
+                endSpan(initialContext.sessionId());
+              }
+              publishSessionEnded(initialContext.sessionId());
             });
   }
 
@@ -324,7 +391,7 @@ public class ReActAgentLoop implements AgentLoop {
     }
 
     return contextOptimizer
-        .optimizeIfNeeded(currentContext, currentSpanIds.get(currentContext.sessionId()))
+        .optimizeIfNeeded(currentContext, getCurrentSpanId(currentContext.sessionId()))
         .compose(
             optimizedContext -> {
               final SessionContext contextForReasoning = optimizedContext;
@@ -570,23 +637,31 @@ public class ReActAgentLoop implements AgentLoop {
           @Override
           public void emitStream(String chunk) {
             if (dispatcher != null) {
+              Deque<String> stk = spanStacks.get(originalContext.sessionId());
+              String currentSpan = null;
+              String parentSpan = null;
+              if (stk != null && !stk.isEmpty()) {
+                var iter = stk.iterator();
+                currentSpan = iter.next();
+                if (iter.hasNext()) parentSpan = iter.next();
+              }
               dispatcher.dispatch(
                   originalContext.sessionId(),
                   ObservationType.TOOL_OUTPUT_STREAM,
                   chunk,
-                  Map.of("toolCallId", task.id()));
+                  Map.of("toolCallId", task.id()),
+                  currentSpan,
+                  parentSpan);
             }
           }
 
           @Override
           public void emitError(Throwable error) {
-            if (dispatcher != null) {
-              dispatcher.dispatch(
-                  originalContext.sessionId(),
-                  ObservationType.ERROR,
-                  error.getMessage(),
-                  Map.of("toolCallId", task.id()));
-            }
+            publishObservation(
+                originalContext.sessionId(),
+                ObservationType.ERROR,
+                error.getMessage(),
+                Map.of("toolCallId", task.id()));
           }
         };
 
@@ -644,7 +719,7 @@ public class ReActAgentLoop implements AgentLoop {
 
               if (result.status() == AgentTaskResult.Status.INTERRUPT) {
                 String askId = "ask-" + UUID.randomUUID().toString().substring(0, 8);
-                pendingAsks.put(askId, task.id());
+                pendingAsks.put(askId, new PendingAsk(task.id(), System.currentTimeMillis()));
                 Map<String, Object> interruptData = new HashMap<>(resData);
                 if (result.metadata() != null) {
                   interruptData.putAll(result.metadata());
@@ -715,6 +790,16 @@ public class ReActAgentLoop implements AgentLoop {
     Message cancelMsg =
         Message.tool(task.id(), task.name(), "CANCELLED: Previous task interrupted the flow.");
     return cancelRemainingTasks(tasks, index + 1, currentContext.addStep(cancelMsg));
+  }
+
+  /** Returns the number of active sessions tracked. Visible for testing leak detection. */
+  int getActiveSessionCount() {
+    return sessionSignals.size();
+  }
+
+  /** Returns the number of pending ask entries. Visible for testing leak detection. */
+  int getPendingAskCount() {
+    return pendingAsks.size();
   }
 
   public static class Builder {

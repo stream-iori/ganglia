@@ -18,6 +18,10 @@ export default defineConfig({
         target: 'http://localhost:8081',
         changeOrigin: true,
       },
+      '/ws/traces': {
+        target: 'ws://localhost:8081',
+        ws: true,
+      },
       '/api': {
         target: 'http://localhost:8080',
         changeOrigin: true,

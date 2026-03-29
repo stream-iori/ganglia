@@ -2,12 +2,15 @@ package work.ganglia.observability;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
@@ -15,6 +18,8 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
+
+import work.ganglia.util.Constants;
 
 /** Verticle responsible for serving Trace Studio data and UI. */
 public class ObservabilityVerticle extends AbstractVerticle {
@@ -24,6 +29,7 @@ public class ObservabilityVerticle extends AbstractVerticle {
   private final String webroot;
   private final String tracePath;
   private int actualPort;
+  private final Set<ServerWebSocket> liveClients = ConcurrentHashMap.newKeySet();
 
   public ObservabilityVerticle(int port, String webroot) {
     this(port, webroot, ".ganglia/trace");
@@ -41,15 +47,50 @@ public class ObservabilityVerticle extends AbstractVerticle {
 
     vertx
         .createHttpServer()
+        .webSocketHandler(this::handleWebSocket)
         .requestHandler(router)
         .listen(port)
         .onSuccess(
             server -> {
               this.actualPort = server.actualPort();
               logger.info("Observability Studio started on port {}", actualPort);
+              subscribeToObservations();
               startPromise.complete();
             })
         .onFailure(startPromise::fail);
+  }
+
+  private void handleWebSocket(ServerWebSocket ws) {
+    if (!"/ws/traces".equals(ws.path())) {
+      ws.close();
+      return;
+    }
+    liveClients.add(ws);
+    logger.debug("Trace WebSocket client connected, total: {}", liveClients.size());
+    ws.closeHandler(
+        v -> {
+          liveClients.remove(ws);
+          logger.debug("Trace WebSocket client disconnected, total: {}", liveClients.size());
+        });
+    ws.exceptionHandler(err -> liveClients.remove(ws));
+  }
+
+  private void subscribeToObservations() {
+    vertx
+        .eventBus()
+        .<JsonObject>consumer(
+            Constants.ADDRESS_OBSERVATIONS_ALL,
+            msg -> {
+              if (liveClients.isEmpty()) return;
+              String payload = msg.body().encode();
+              for (ServerWebSocket ws : liveClients) {
+                if (!ws.writeQueueFull()) {
+                  ws.writeTextMessage(payload);
+                } else {
+                  logger.debug("Dropping trace event for slow WebSocket client");
+                }
+              }
+            });
   }
 
   private Router setupRouter() {
@@ -64,8 +105,8 @@ public class ObservabilityVerticle extends AbstractVerticle {
                 .allowedMethod(io.vertx.core.http.HttpMethod.GET)
                 .allowedMethod(io.vertx.core.http.HttpMethod.POST)
                 .allowedMethod(io.vertx.core.http.HttpMethod.OPTIONS)
-                .allowedHeader("Access-Control-Allow-Origin")
-                .allowedHeader("Content-Type"));
+                .allowedHeader("Content-Type")
+                .allowedHeader("Accept"));
 
     router.route().handler(BodyHandler.create());
 

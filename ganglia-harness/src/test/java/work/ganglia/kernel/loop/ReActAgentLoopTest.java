@@ -1,5 +1,6 @@
 package work.ganglia.kernel.loop;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
@@ -211,5 +212,46 @@ public class ReActAgentLoopTest extends BaseKernelTest {
                         testContext.completeNow();
                       });
                 }));
+  }
+
+  @Test
+  void testSessionCleanupAfterNormalCompletion(VertxTestContext testContext) {
+    String answer = "Done.";
+    model.addResponse(new ModelResponse(answer, Collections.emptyList(), null));
+
+    SessionContext context = createSessionContext();
+
+    loop.run("Hello", context, new AgentSignal())
+        .onComplete(
+            testContext.succeeding(
+                result ->
+                    testContext.verify(
+                        () -> {
+                          assertEquals(
+                              0,
+                              loop.getActiveSessionCount(),
+                              "Session maps should be empty after normal completion");
+                          testContext.completeNow();
+                        })));
+  }
+
+  @Test
+  void testSessionCleanupAfterAbort(VertxTestContext testContext) {
+    SessionContext context = createSessionContext();
+    AgentSignal signal = new AgentSignal();
+    signal.abort();
+
+    loop.run("Hello", context, signal)
+        .onComplete(
+            testContext.failing(
+                err ->
+                    testContext.verify(
+                        () -> {
+                          assertEquals(
+                              0,
+                              loop.getActiveSessionCount(),
+                              "Session maps should be empty after abort");
+                          testContext.completeNow();
+                        })));
   }
 }

@@ -1,5 +1,7 @@
 package work.ganglia.infrastructure.internal.state;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -37,23 +39,8 @@ class TraceManagerTest {
     };
   }
 
-  private ObservabilityConfigProvider disabledConfig() {
-    return new ObservabilityConfigProvider() {
-      @Override
-      public boolean isObservabilityEnabled() {
-        return false;
-      }
-
-      @Override
-      public String getTracePath() {
-        return "/tmp/traces";
-      }
-    };
-  }
-
   @Test
-  void testSessionStartedEventWritten(
-      Vertx vertx, VertxTestContext testContext, @TempDir File tmp) {
+  void testEventWrittenAsJsonl(Vertx vertx, VertxTestContext testContext, @TempDir File tmp) {
     new TraceManager(vertx, enabledConfig(tmp.getAbsolutePath()));
 
     ObservationEvent event =
@@ -65,15 +52,24 @@ class TraceManagerTest {
         id ->
             testContext.verify(
                 () -> {
-                  File[] files = tmp.listFiles();
-                  assertTrue(files != null && files.length > 0, "Trace file should be created");
+                  File[] files = tmp.listFiles((d, name) -> name.endsWith(".jsonl"));
+                  assertTrue(files != null && files.length == 1, "JSONL file should be created");
+                  // No markdown files should exist
+                  File[] mdFiles = tmp.listFiles((d, name) -> name.endsWith(".md"));
+                  assertTrue(
+                      mdFiles == null || mdFiles.length == 0,
+                      "No markdown files should be created");
+
+                  String content = Files.readString(files[0].toPath());
+                  assertTrue(content.contains("\"type\":\"SESSION_STARTED\""));
+                  assertTrue(content.contains("\"sessionId\":\"session-1\""));
+                  assertTrue(content.contains("\"content\":\"Hello Agent\""));
                   testContext.completeNow();
                 }));
   }
 
   @Test
   void testDisabledConfigSkipsWrite(Vertx vertx, VertxTestContext testContext, @TempDir File tmp) {
-    // Use a specific temp dir path that would only be used if writing occurs
     String tracePath = tmp.getAbsolutePath() + "/disabled-traces";
     new TraceManager(
         vertx,
@@ -98,7 +94,6 @@ class TraceManagerTest {
         id ->
             testContext.verify(
                 () -> {
-                  // With observability disabled, no trace file should be created
                   File dir = new File(tracePath);
                   assertTrue(
                       !dir.exists() || dir.listFiles() == null || dir.listFiles().length == 0,
@@ -108,55 +103,36 @@ class TraceManagerTest {
   }
 
   @Test
-  void testMultipleEventTypes(Vertx vertx, VertxTestContext testContext, @TempDir File tmp) {
+  void testTokenReceivedIsFiltered(Vertx vertx, VertxTestContext testContext, @TempDir File tmp) {
     new TraceManager(vertx, enabledConfig(tmp.getAbsolutePath()));
 
-    ObservationType[] types = {
-      ObservationType.TURN_STARTED,
-      ObservationType.REASONING_STARTED,
-      ObservationType.REQUEST_PREPARED,
-      ObservationType.REASONING_FINISHED,
-      ObservationType.TOOL_STARTED,
-      ObservationType.TOOL_FINISHED,
-      ObservationType.TURN_FINISHED,
-      ObservationType.SESSION_ENDED,
-      ObservationType.ERROR,
-      ObservationType.TOKEN_RECEIVED,
-    };
+    // Send a TOKEN_RECEIVED (should be filtered) and a TURN_STARTED (should persist)
+    ObservationEvent tokenEvent =
+        ObservationEvent.of("s1", ObservationType.TOKEN_RECEIVED, "streaming chunk");
+    ObservationEvent turnEvent =
+        ObservationEvent.of("s1", ObservationType.TURN_STARTED, "user input");
 
-    for (ObservationType type : types) {
-      Map<String, Object> data =
-          switch (type) {
-            case REQUEST_PREPARED ->
-                Map.of("messageCount", 3, "toolCount", 2, "model", "claude-3-5");
-            case TURN_STARTED, TURN_FINISHED -> Map.of("turnNumber", 1);
-            case SESSION_ENDED -> Map.of("durationMs", 5000L);
-            case ERROR -> Map.of("cause", "timeout");
-            default -> null;
-          };
-
-      ObservationEvent event;
-      if (data != null) {
-        event = ObservationEvent.of("s1", type, "content", data);
-      } else {
-        event = ObservationEvent.of("s1", type, "content");
-      }
-      vertx.eventBus().publish(Constants.ADDRESS_OBSERVATIONS_ALL, JsonObject.mapFrom(event));
-    }
+    vertx.eventBus().publish(Constants.ADDRESS_OBSERVATIONS_ALL, JsonObject.mapFrom(tokenEvent));
+    vertx.eventBus().publish(Constants.ADDRESS_OBSERVATIONS_ALL, JsonObject.mapFrom(turnEvent));
 
     vertx.setTimer(
-        500,
+        300,
         id ->
             testContext.verify(
                 () -> {
-                  File[] files = tmp.listFiles();
+                  File[] files = tmp.listFiles((d, name) -> name.endsWith(".jsonl"));
                   assertTrue(files != null && files.length > 0);
+                  String content = Files.readString(files[0].toPath());
+                  assertTrue(
+                      !content.contains("TOKEN_RECEIVED"), "TOKEN_RECEIVED should be filtered out");
+                  assertTrue(content.contains("TURN_STARTED"), "TURN_STARTED should be persisted");
                   testContext.completeNow();
                 }));
   }
 
   @Test
-  void testNewObservabilityTypes(Vertx vertx, VertxTestContext testContext, @TempDir File tmp) {
+  void testMultipleEventsWrittenAsLines(
+      Vertx vertx, VertxTestContext testContext, @TempDir File tmp) {
     new TraceManager(vertx, enabledConfig(tmp.getAbsolutePath()));
 
     ObservationEvent[] events = {
@@ -182,7 +158,6 @@ class TraceManagerTest {
           Map.of("memoryEventType", "TURN_COMPLETED", "moduleCount", 2))
     };
 
-    // Stagger events to avoid file write races in TraceManager
     for (int i = 0; i < events.length; i++) {
       final ObservationEvent event = events[i];
       vertx.setTimer(
@@ -198,38 +173,84 @@ class TraceManagerTest {
         id ->
             testContext.verify(
                 () -> {
-                  File[] files = tmp.listFiles((d, name) -> name.endsWith(".md"));
-                  assertTrue(files != null && files.length > 0, "Trace file should be created");
+                  File[] files = tmp.listFiles((d, name) -> name.endsWith(".jsonl"));
+                  assertTrue(files != null && files.length > 0, "JSONL file should be created");
                   String content = Files.readString(files[0].toPath());
-                  assertTrue(
-                      content.contains("**API Call**") && content.contains("claude-3-5"),
-                      "Should contain MODEL_CALL_STARTED with model name");
-                  assertTrue(
-                      content.contains("**API Call Finished**") && content.contains("1234ms"),
-                      "Should contain MODEL_CALL_FINISHED with duration");
-                  assertTrue(
-                      content.contains("**Usage:**")
-                          && content.contains("prompt=100")
-                          && content.contains("completion=50")
-                          && content.contains("total=150"),
-                      "Should contain TOKEN_USAGE_RECORDED with token counts");
-                  assertTrue(
-                      content.contains("_Memory updated:_") && content.contains("TURN_COMPLETED"),
-                      "Should contain MEMORY_UPDATED with event type");
 
-                  // Verify JSONL file
-                  File[] jsonlFiles = tmp.listFiles((d, name) -> name.endsWith(".jsonl"));
-                  assertTrue(
-                      jsonlFiles != null && jsonlFiles.length > 0, "JSONL file should be created");
-                  String jsonlContent = Files.readString(jsonlFiles[0].toPath());
-                  assertTrue(
-                      jsonlContent.contains("\"type\":\"MODEL_CALL_STARTED\""),
-                      "JSONL should contain event type");
-                  assertTrue(
-                      jsonlContent.contains("\"model\":\"claude-3-5\""),
-                      "JSONL should contain model name");
+                  // Each event is a separate line
+                  String[] lines = content.split("\n");
+                  assertEquals(4, lines.length, "Should have 4 JSONL lines");
+
+                  // Verify each line is valid JSON with expected type
+                  assertTrue(content.contains("\"type\":\"MODEL_CALL_STARTED\""));
+                  assertTrue(content.contains("\"type\":\"MODEL_CALL_FINISHED\""));
+                  assertTrue(content.contains("\"type\":\"TOKEN_USAGE_RECORDED\""));
+                  assertTrue(content.contains("\"type\":\"MEMORY_UPDATED\""));
+
+                  // Verify data fields are preserved
+                  assertTrue(content.contains("\"model\":\"claude-3-5\""));
+                  assertTrue(content.contains("\"durationMs\":1234"));
+                  assertTrue(content.contains("\"promptTokens\":100"));
 
                   testContext.completeNow();
                 }));
+  }
+
+  @Test
+  void testCloseUnregistersConsumer(Vertx vertx, VertxTestContext testContext, @TempDir File tmp) {
+    TraceManager manager = new TraceManager(vertx, enabledConfig(tmp.getAbsolutePath()));
+
+    // Write an initial event so we know it works before close
+    ObservationEvent event1 =
+        ObservationEvent.of("s1", ObservationType.SESSION_STARTED, "before close");
+    vertx.eventBus().publish(Constants.ADDRESS_OBSERVATIONS_ALL, JsonObject.mapFrom(event1));
+
+    vertx.setTimer(
+        300,
+        id1 -> {
+          manager
+              .close()
+              .onComplete(
+                  testContext.succeeding(
+                      v -> {
+                        // After close, record current file state
+                        File[] filesBefore = tmp.listFiles((d, name) -> name.endsWith(".jsonl"));
+                        String contentBefore;
+                        try {
+                          contentBefore =
+                              filesBefore != null && filesBefore.length > 0
+                                  ? Files.readString(filesBefore[0].toPath())
+                                  : "";
+                        } catch (Exception e) {
+                          testContext.failNow(e);
+                          return;
+                        }
+
+                        // Publish another event after close — should NOT be written
+                        ObservationEvent event2 =
+                            ObservationEvent.of("s2", ObservationType.TURN_STARTED, "after close");
+                        vertx
+                            .eventBus()
+                            .publish(
+                                Constants.ADDRESS_OBSERVATIONS_ALL, JsonObject.mapFrom(event2));
+
+                        vertx.setTimer(
+                            300,
+                            id2 ->
+                                testContext.verify(
+                                    () -> {
+                                      File[] filesAfter =
+                                          tmp.listFiles((d, name) -> name.endsWith(".jsonl"));
+                                      String contentAfter =
+                                          filesAfter != null && filesAfter.length > 0
+                                              ? Files.readString(filesAfter[0].toPath())
+                                              : "";
+                                      assertFalse(
+                                          contentAfter.contains("after close"),
+                                          "Events after close() should not be written");
+                                      testContext.completeNow();
+                                    }));
+                      }));
+        });
   }
 }

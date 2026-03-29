@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.eventbus.MessageConsumer;
 import io.vertx.core.json.JsonObject;
 
 import work.ganglia.port.internal.state.TokenUsage;
@@ -23,6 +24,8 @@ public class TokenUsageManager {
   private final Vertx vertx;
   private final TokenCounter tokenCounter;
   private final Map<String, SessionUsage> sessionTotals = new ConcurrentHashMap<>();
+  private MessageConsumer<JsonObject> recordConsumer;
+  private MessageConsumer<JsonObject> estimateConsumer;
 
   public TokenUsageManager(Vertx vertx, TokenCounter tokenCounter) {
     this.vertx = vertx;
@@ -31,51 +34,54 @@ public class TokenUsageManager {
   }
 
   private void register() {
-    // ... (existing consumer for ADDRESS_RECORD)
-    vertx
-        .eventBus()
-        .<JsonObject>consumer(
-            ADDRESS_RECORD,
-            message -> {
-              JsonObject body = message.body();
-              String sessionId = body.getString("sessionId");
-              JsonObject usageJson = body.getJsonObject("usage");
+    recordConsumer =
+        vertx
+            .eventBus()
+            .<JsonObject>consumer(
+                ADDRESS_RECORD,
+                message -> {
+                  JsonObject body = message.body();
+                  String sessionId = body.getString("sessionId");
+                  JsonObject usageJson = body.getJsonObject("usage");
 
-              if (sessionId == null || usageJson == null) {
-                logger.error("Invalid usage event received: {}", body);
-                return;
-              }
+                  if (sessionId == null || usageJson == null) {
+                    logger.error("Invalid usage event received: {}", body);
+                    return;
+                  }
 
-              try {
-                TokenUsage usage = usageJson.mapTo(TokenUsage.class);
-                recordUsage(sessionId, usage);
-              } catch (Exception e) {
-                logger.error(
-                    "Failed to parse TokenUsage object from event for session: {}", sessionId, e);
-              }
-            });
+                  try {
+                    TokenUsage usage = usageJson.mapTo(TokenUsage.class);
+                    recordUsage(sessionId, usage);
+                  } catch (Exception e) {
+                    logger.error(
+                        "Failed to parse TokenUsage object from event for session: {}",
+                        sessionId,
+                        e);
+                  }
+                });
 
-    vertx
-        .eventBus()
-        .<JsonObject>consumer(
-            ADDRESS_ESTIMATE,
-            message -> {
-              JsonObject body = message.body();
-              String sessionId = body.getString("sessionId");
-              String prompt = body.getString("prompt");
-              String completion = body.getString("completion");
+    estimateConsumer =
+        vertx
+            .eventBus()
+            .<JsonObject>consumer(
+                ADDRESS_ESTIMATE,
+                message -> {
+                  JsonObject body = message.body();
+                  String sessionId = body.getString("sessionId");
+                  String prompt = body.getString("prompt");
+                  String completion = body.getString("completion");
 
-              if (sessionId == null) return;
+                  if (sessionId == null) return;
 
-              int pTokens = tokenCounter.count(prompt);
-              int cTokens = tokenCounter.count(completion);
-              recordUsage(sessionId, new TokenUsage(pTokens, cTokens));
-              logger.debug(
-                  "Recorded estimated usage for session: {}. [P={}, C={}]",
-                  sessionId,
-                  pTokens,
-                  cTokens);
-            });
+                  int pTokens = tokenCounter.count(prompt);
+                  int cTokens = tokenCounter.count(completion);
+                  recordUsage(sessionId, new TokenUsage(pTokens, cTokens));
+                  logger.debug(
+                      "Recorded estimated usage for session: {}. [P={}, C={}]",
+                      sessionId,
+                      pTokens,
+                      cTokens);
+                });
 
     logger.info(
         "TokenUsageManager registered on addresses: {}, {}", ADDRESS_RECORD, ADDRESS_ESTIMATE);
@@ -113,6 +119,16 @@ public class TokenUsageManager {
 
   public SessionUsage getTotals(String sessionId) {
     return sessionTotals.getOrDefault(sessionId, new SessionUsage());
+  }
+
+  /** Unregisters event bus consumers. */
+  public void close() {
+    if (recordConsumer != null) {
+      recordConsumer.unregister();
+    }
+    if (estimateConsumer != null) {
+      estimateConsumer.unregister();
+    }
   }
 
   public static class SessionUsage {

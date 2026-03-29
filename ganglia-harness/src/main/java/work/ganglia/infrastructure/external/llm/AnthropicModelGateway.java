@@ -57,37 +57,38 @@ public class AnthropicModelGateway extends AbstractModelGateway {
         request.options().modelName(),
         payload.encode());
     return withSemaphore(
-        webClient
-            .postAbs(endpoint)
-            .putHeader("x-api-key", config.apiKey())
-            .putHeader("anthropic-version", "2023-06-01")
-            .putHeader("Content-Type", "application/json")
-            .timeout(config.timeout())
-            .as(BodyCodec.jsonObject())
-            .sendJsonObject(payload)
-            .compose(
-                response -> {
-                  if (request.signal().isAborted()) {
-                    return Future.failedFuture(
-                        new work.ganglia.kernel.loop.AgentAbortedException());
-                  }
-                  if (response.statusCode() >= 400) {
-                    return Future.failedFuture(
-                        new LLMException(
-                            "Anthropic Error: " + response.statusMessage(),
-                            null,
-                            response.statusCode(),
-                            response.bodyAsJsonObject() != null
-                                ? response.bodyAsJsonObject().encode()
-                                : null,
-                            null));
-                  }
-                  try {
-                    return Future.succeededFuture(toModelResponse(response.body()));
-                  } catch (Exception e) {
-                    return Future.failedFuture(wrapException(e));
-                  }
-                }));
+        () ->
+            webClient
+                .postAbs(endpoint)
+                .putHeader("x-api-key", config.apiKey())
+                .putHeader("anthropic-version", "2023-06-01")
+                .putHeader("Content-Type", "application/json")
+                .timeout(config.timeout())
+                .as(BodyCodec.jsonObject())
+                .sendJsonObject(payload)
+                .compose(
+                    response -> {
+                      if (request.signal().isAborted()) {
+                        return Future.failedFuture(
+                            new work.ganglia.kernel.loop.AgentAbortedException());
+                      }
+                      if (response.statusCode() >= 400) {
+                        return Future.failedFuture(
+                            new LLMException(
+                                "Anthropic Error: " + response.statusMessage(),
+                                null,
+                                response.statusCode(),
+                                response.bodyAsJsonObject() != null
+                                    ? response.bodyAsJsonObject().encode()
+                                    : null,
+                                null));
+                      }
+                      try {
+                        return Future.succeededFuture(toModelResponse(response.body()));
+                      } catch (Exception e) {
+                        return Future.failedFuture(wrapException(e));
+                      }
+                    }));
   }
 
   @Override

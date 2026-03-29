@@ -61,17 +61,15 @@ public class SkillTask implements AgentTask {
     long startMs = System.currentTimeMillis();
     String sessionId = context.sessionId();
 
+    String skillSpanId = "skill-" + java.util.UUID.randomUUID().toString().substring(0, 8);
+    String parentSpanId = executionContext.spanId();
+
     if (dispatcher != null) {
       Map<String, Object> startData = new HashMap<>();
       startData.put("toolName", toolName);
       startData.put("sessionId", sessionId);
       dispatcher.dispatch(
-          sessionId,
-          ObservationType.SKILL_STARTED,
-          toolName,
-          startData,
-          "skill-" + java.util.UUID.randomUUID().toString().substring(0, 8),
-          executionContext.spanId());
+          sessionId, ObservationType.SKILL_STARTED, toolName, startData, skillSpanId, parentSpanId);
     }
 
     Future<AgentTaskResult> result;
@@ -118,7 +116,13 @@ public class SkillTask implements AgentTask {
             finishData.put("toolName", toolName);
             finishData.put("status", taskResult.status().name());
             finishData.put("durationMs", System.currentTimeMillis() - startMs);
-            dispatcher.dispatch(sessionId, ObservationType.SKILL_FINISHED, toolName, finishData);
+            dispatcher.dispatch(
+                sessionId,
+                ObservationType.SKILL_FINISHED,
+                toolName,
+                finishData,
+                skillSpanId,
+                parentSpanId);
           }
           return taskResult;
         });

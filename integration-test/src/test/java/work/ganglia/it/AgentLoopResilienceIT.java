@@ -112,7 +112,7 @@ public class AgentLoopResilienceIT extends MockModelIT {
     AgentSignal signal = new AgentSignal();
 
     AtomicBoolean errorObserved = new AtomicBoolean(false);
-    ReActAgentLoop loop = ganglia.agentLoop();
+    ReActAgentLoop loop = (ReActAgentLoop) ganglia.agentLoop();
     if (loop.getDispatcher() instanceof DefaultObservationDispatcher dod) {
       dod.register(
           new AgentLoopObserver() {
@@ -209,7 +209,7 @@ public class AgentLoopResilienceIT extends MockModelIT {
     AtomicReference<Map<String, Object>> startedData = new AtomicReference<>();
     AtomicReference<Map<String, Object>> finishedData = new AtomicReference<>();
 
-    ReActAgentLoop loop = ganglia.agentLoop();
+    ReActAgentLoop loop = (ReActAgentLoop) ganglia.agentLoop();
     if (loop.getDispatcher() instanceof DefaultObservationDispatcher dod) {
       dod.register(
           new AgentLoopObserver() {
@@ -264,7 +264,7 @@ public class AgentLoopResilienceIT extends MockModelIT {
       Vertx vertx, VertxTestContext testContext) {
     AtomicReference<Map<String, Object>> errorData = new AtomicReference<>();
 
-    ReActAgentLoop loop = ganglia.agentLoop();
+    ReActAgentLoop loop = (ReActAgentLoop) ganglia.agentLoop();
     if (loop.getDispatcher() instanceof DefaultObservationDispatcher dod) {
       dod.register(
           new AgentLoopObserver() {
@@ -309,7 +309,7 @@ public class AgentLoopResilienceIT extends MockModelIT {
   void tokenUsageRecorded_dispatchedAfterModelResponse(Vertx vertx, VertxTestContext testContext) {
     List<Map<String, Object>> usageObservations = Collections.synchronizedList(new ArrayList<>());
 
-    ReActAgentLoop loop = ganglia.agentLoop();
+    ReActAgentLoop loop = (ReActAgentLoop) ganglia.agentLoop();
     if (loop.getDispatcher() instanceof DefaultObservationDispatcher dod) {
       dod.register(
           new AgentLoopObserver() {

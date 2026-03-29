@@ -21,7 +21,7 @@ import work.ganglia.port.external.tool.ToolSet;
  * extra tool sets.
  */
 public class DefaultToolExecutor implements ToolExecutor {
-  private static final Logger log = LoggerFactory.getLogger(DefaultToolExecutor.class);
+  private static final Logger logger = LoggerFactory.getLogger(DefaultToolExecutor.class);
 
   private final List<ToolSet> toolSets = new ArrayList<>();
   private final ToolCallValidator validator = new ToolCallValidator();
@@ -43,7 +43,7 @@ public class DefaultToolExecutor implements ToolExecutor {
       SessionContext context,
       work.ganglia.port.internal.state.ExecutionContext executionContext) {
     String toolName = toolCall.toolName();
-    log.debug(
+    logger.debug(
         "[TOOL_INVOKE] Name: {}, ID: {}, Args: {}", toolName, toolCall.id(), toolCall.arguments());
 
     // 1. Find the tool definition for validation
@@ -52,7 +52,7 @@ public class DefaultToolExecutor implements ToolExecutor {
       String validationError =
           validator.validate(toolName, toolCall.arguments(), definition.jsonSchema());
       if (validationError != null) {
-        log.warn("[TOOL_VALIDATION_ERROR] Name: {}, Error: {}", toolName, validationError);
+        logger.warn("[TOOL_VALIDATION_ERROR] Name: {}, Error: {}", toolName, validationError);
         return Future.succeededFuture(ToolInvokeResult.error(validationError));
       }
     }
@@ -64,18 +64,18 @@ public class DefaultToolExecutor implements ToolExecutor {
         if (toolSetName.isEmpty()) {
           toolSetName = ts.getClass().getName();
         }
-        log.debug("Found tool {} in toolset: {}", toolName, toolSetName);
+        logger.debug("Found tool {} in toolset: {}", toolName, toolSetName);
         return ts.execute(toolCall, context, executionContext)
             .onSuccess(
                 res ->
-                    log.debug(
+                    logger.debug(
                         "[TOOL_RESULT] Name: {}, ID: {}, Status: {}",
                         toolName,
                         toolCall.id(),
                         res.status()))
             .onFailure(
                 err ->
-                    log.error(
+                    logger.error(
                         "[TOOL_ERROR] Name: {}, ID: {}, Error: {}",
                         toolName,
                         toolCall.id(),
@@ -83,7 +83,7 @@ public class DefaultToolExecutor implements ToolExecutor {
       }
     }
 
-    log.warn("No tool implementation found for: {}", toolName);
+    logger.warn("No tool implementation found for: {}", toolName);
     return Future.succeededFuture(ToolInvokeResult.error("Unknown tool: " + toolName));
   }
 

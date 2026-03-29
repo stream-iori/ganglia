@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react';
 import {
   ChevronDown,
   ChevronRight,
@@ -9,6 +9,7 @@ import {
   AlertCircle,
   CheckCircle2,
   RotateCcw,
+  Radio,
 } from 'lucide-react';
 
 interface TraceEvent {
@@ -22,8 +23,94 @@ interface TraceEvent {
 }
 
 interface SpanNode {
-  event: TraceEvent;
+  spanId: string;
+  startEvent: TraceEvent;
+  endEvent?: TraceEvent;
   children: SpanNode[];
+}
+
+/** Merge start and end events to get the most useful display data */
+function mergedEvent(node: SpanNode): TraceEvent {
+  if (!node.endEvent) return node.startEvent;
+  return {
+    ...node.startEvent,
+    data: { ...node.startEvent.data, ...node.endEvent.data },
+  };
+}
+
+function getTypeColor(type: string) {
+  if (type.includes('ERROR'))
+    return 'bg-red-50 text-red-700 border-red-100 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/50';
+  if (type.includes('SKILL'))
+    return 'bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/50';
+  if (type.includes('MCP'))
+    return 'bg-orange-50 text-orange-700 border-orange-100 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/50';
+  if (type.includes('TOOL'))
+    return 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50';
+  if (type.includes('MODEL') || type.includes('REASON'))
+    return 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50';
+  if (type.includes('COMPRESS'))
+    return 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50';
+  if (type.includes('SESSION'))
+    return 'bg-indigo-50 text-indigo-700 border-indigo-100 dark:bg-indigo-950/30 dark:text-indigo-400 dark:border-indigo-900/50';
+  if (type.includes('TURN'))
+    return 'bg-cyan-50 text-cyan-700 border-cyan-100 dark:bg-cyan-950/30 dark:text-cyan-400 dark:border-cyan-900/50';
+  return 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700';
+}
+
+function typeLabel(type: string) {
+  return type
+    .replace('_STARTED', '')
+    .replace('_FINISHED', '')
+    .replace('_RECORDED', '');
+}
+
+function buildTreeForSession(events: TraceEvent[]): { tree: SpanNode[]; flat: TraceEvent[] } {
+  const nodes: Record<string, SpanNode> = {};
+  const rootNodes: SpanNode[] = [];
+  const rootSpanIds = new Set<string>();
+  const childSpanIds = new Set<string>();
+  const flat: TraceEvent[] = [];
+
+  // First pass: Create nodes from _STARTED events (or any first event per spanId)
+  events.forEach((ev) => {
+    if (!ev.spanId) {
+      flat.push(ev);
+      return;
+    }
+    if (!nodes[ev.spanId]) {
+      nodes[ev.spanId] = { spanId: ev.spanId, startEvent: ev, children: [] };
+    } else if (ev.type.endsWith('_STARTED')) {
+      nodes[ev.spanId].startEvent = ev;
+    }
+  });
+
+  // Second pass: Attach _FINISHED events and build relationships
+  events.forEach((ev) => {
+    if (!ev.spanId) return;
+    const node = nodes[ev.spanId];
+    if (ev.type.endsWith('_FINISHED')) {
+      node.endEvent = ev;
+    }
+
+    if (ev.parentSpanId && nodes[ev.parentSpanId]) {
+      if (!childSpanIds.has(node.spanId)) {
+        childSpanIds.add(node.spanId);
+        nodes[ev.parentSpanId].children.push(node);
+      }
+    } else if (!rootSpanIds.has(node.spanId)) {
+      rootSpanIds.add(node.spanId);
+      rootNodes.push(node);
+    }
+  });
+
+  // Third pass: Sort children by timestamp
+  Object.values(nodes).forEach((node) => {
+    node.children.sort((a, b) => a.startEvent.timestamp - b.startEvent.timestamp);
+  });
+  rootNodes.sort((a, b) => a.startEvent.timestamp - b.startEvent.timestamp);
+
+  return { tree: rootNodes, flat };
 }
 
 export default function TraceStudio() {
@@ -31,7 +118,16 @@ export default function TraceStudio() {
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [events, setEvents] = useState<TraceEvent[]>([]);
   const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
+  const [liveEvents, setLiveEvents] = useState<TraceEvent[]>([]);
+  const [liveMode, setLiveMode] = useState(false);
+  const [wsConnected, setWsConnected] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const liveModeRef = useRef(false);
+  const MAX_LIVE_EVENTS = 5000;
 
+  // Fetch file list
   useEffect(() => {
     fetch('/api/traces')
       .then((res) => res.json())
@@ -39,21 +135,124 @@ export default function TraceStudio() {
       .catch((err) => console.error(err));
   }, []);
 
+  // Fetch selected file
   useEffect(() => {
     if (selectedFile) {
+      setLiveMode(false);
       fetch(`/api/traces/${selectedFile}`)
         .then((res) => res.json())
-        .then((data) => {
+        .then((data: TraceEvent[]) => {
           setEvents(data);
-          // Auto-expand all spans on load for better visibility, or just the first level
           const allSpans = data
-            .filter((ev: TraceEvent) => ev.spanId)
-            .map((ev: TraceEvent) => ev.spanId!);
+            .filter((ev) => ev.spanId)
+            .map((ev) => ev.spanId!);
           setExpandedSpans(new Set(allSpans));
         })
         .catch((err) => console.error(err));
     }
   }, [selectedFile]);
+
+  // WebSocket live connection with auto-reconnect
+  const doConnect = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${window.location.host}/ws/traces`);
+    wsRef.current = ws;
+
+    ws.onopen = () => {
+      setWsConnected(true);
+      reconnectAttemptsRef.current = 0;
+    };
+
+    ws.onmessage = (msg) => {
+      try {
+        const ev: TraceEvent = JSON.parse(msg.data);
+        setLiveEvents((prev) => {
+          const next = [...prev, ev];
+          return next.length > MAX_LIVE_EVENTS ? next.slice(-MAX_LIVE_EVENTS) : next;
+        });
+        if (ev.spanId) {
+          setExpandedSpans((prev) => new Set([...prev, ev.spanId!]));
+        }
+      } catch {
+        // skip malformed
+      }
+    };
+
+    ws.onclose = () => {
+      setWsConnected(false);
+      if (wsRef.current === ws) wsRef.current = null;
+      // Auto-reconnect if still in live mode
+      if (liveModeRef.current) {
+        const delay = Math.min(1000 * Math.pow(2, reconnectAttemptsRef.current), 30000);
+        reconnectAttemptsRef.current++;
+        reconnectTimerRef.current = setTimeout(() => {
+          if (liveModeRef.current) doConnect();
+        }, delay);
+      }
+    };
+
+    ws.onerror = () => {
+      // onclose will fire after onerror
+    };
+  }, []);
+
+  const connectLive = useCallback(() => {
+    setSelectedFile(null);
+    setLiveMode(true);
+    liveModeRef.current = true;
+    setLiveEvents([]);
+    setExpandedSpans(new Set());
+    reconnectAttemptsRef.current = 0;
+    doConnect();
+  }, [doConnect]);
+
+  const disconnectLive = useCallback(() => {
+    liveModeRef.current = false;
+    setLiveMode(false);
+    setWsConnected(false);
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      liveModeRef.current = false;
+      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current);
+      wsRef.current?.close();
+    };
+  }, []);
+
+  const displayEvents = liveMode ? liveEvents : events;
+
+  // Group events by sessionId
+  const sessionGroups = useMemo(() => {
+    const groups = new Map<string, TraceEvent[]>();
+    displayEvents.forEach((ev) => {
+      const list = groups.get(ev.sessionId) || [];
+      list.push(ev);
+      groups.set(ev.sessionId, list);
+    });
+    return groups;
+  }, [displayEvents]);
+
+  // Build tree per session
+  const sessionTrees = useMemo(() => {
+    const trees = new Map<string, { tree: SpanNode[]; flat: TraceEvent[] }>();
+    sessionGroups.forEach((evts, sid) => {
+      trees.set(sid, buildTreeForSession(evts));
+    });
+    return trees;
+  }, [sessionGroups]);
 
   const toggleSpan = (spanId: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -66,53 +265,9 @@ export default function TraceStudio() {
     setExpandedSpans(newExpanded);
   };
 
-  // Build the tree from flat events
-  const traceTree = useMemo(() => {
-    const nodes: Record<string, SpanNode> = {};
-    const rootNodes: SpanNode[] = [];
-
-    // First pass: Create nodes for all events with spanId
-    events.forEach((ev) => {
-      if (ev.spanId && !nodes[ev.spanId]) {
-        nodes[ev.spanId] = { event: ev, children: [] };
-      }
-    });
-
-    // Second pass: Build relationships
-    events.forEach((ev) => {
-      if (ev.spanId) {
-        const node = nodes[ev.spanId];
-        // Ensure node has the most complete event data (e.g. FINISHED event often has more data)
-        if (ev.type.endsWith('_FINISHED') || !node.event.type.endsWith('_FINISHED')) {
-          node.event = ev;
-        }
-
-        if (ev.parentSpanId && nodes[ev.parentSpanId]) {
-          if (!nodes[ev.parentSpanId].children.includes(node)) {
-            nodes[ev.parentSpanId].children.push(node);
-          }
-        } else if (!ev.parentSpanId) {
-          if (!rootNodes.includes(node)) rootNodes.push(node);
-        } else {
-          // parentSpanId exists but parent node not found yet
-          // In a robust tree, we might want to still show this as a root or handle it
-          if (!rootNodes.includes(node)) rootNodes.push(node);
-        }
-      }
-    });
-
-    // Third pass: Sort children by timestamp
-    Object.values(nodes).forEach((node) => {
-      node.children.sort((a, b) => a.event.timestamp - b.event.timestamp);
-    });
-    rootNodes.sort((a, b) => a.event.timestamp - b.event.timestamp);
-
-    return rootNodes;
-  }, [events]);
-
   const renderSpan = (node: SpanNode, depth = 0) => {
-    const ev = node.event;
-    const spanId = ev.spanId || `random-${Math.random()}`;
+    const ev = mergedEvent(node);
+    const spanId = node.spanId;
     const hasChildren = node.children.length > 0;
     const isExpanded = expandedSpans.has(spanId);
 
@@ -120,10 +275,11 @@ export default function TraceStudio() {
     const attempt = ev.data?.attempt as number | undefined;
     const model = ev.data?.model as string | undefined;
     const status = ev.data?.status as string | undefined;
+    // Use startEvent content for the label (tool name, user input etc.)
+    const displayContent = node.startEvent.content || ev.content;
 
     return (
       <div key={spanId} className="relative">
-        {/* Tree vertical guide line */}
         {depth > 0 && (
           <div
             className="absolute border-l border-slate-200 dark:border-slate-800"
@@ -137,7 +293,7 @@ export default function TraceStudio() {
 
         <div
           onClick={(e) => hasChildren && toggleSpan(spanId, e)}
-          className={`group mb-2 border p-3 rounded-xl transition-all cursor-pointer flex items-start gap-3 
+          className={`group mb-2 border p-3 rounded-xl transition-all cursor-pointer flex items-start gap-3
             ${
               isExpanded
                 ? 'bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-900/50 shadow-sm ring-1 ring-emerald-500/10'
@@ -159,26 +315,9 @@ export default function TraceStudio() {
             <div className="flex justify-between items-start mb-1.5 gap-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tight shadow-sm border ${
-                    ev.type.includes('ERROR')
-                      ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/50'
-                      : ev.type.includes('SKILL')
-                        ? 'bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/50'
-                        : ev.type.includes('MCP')
-                          ? 'bg-orange-50 text-orange-700 border-orange-100 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/50'
-                          : ev.type.includes('TOOL')
-                            ? 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50'
-                            : ev.type.includes('MODEL') || ev.type.includes('REASON')
-                              ? 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50'
-                              : ev.type.includes('COMPRESS')
-                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50'
-                                : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-                  }`}
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tight shadow-sm border ${getTypeColor(node.startEvent.type)}`}
                 >
-                  {ev.type
-                    .replace('_STARTED', '')
-                    .replace('_FINISHED', '')
-                    .replace('_RECORDED', '')}
+                  {typeLabel(node.startEvent.type)}
                 </span>
 
                 {model && (
@@ -219,18 +358,15 @@ export default function TraceStudio() {
                 <CheckCircle2 size={14} className="text-emerald-500 mt-0.5 shrink-0" />
               )}
               <div className="text-sm text-slate-900 dark:text-slate-100 font-sans font-medium break-words">
-                {ev.type === 'CONTEXT_COMPRESSED'
-                  ? '🔄 Context Compression Triggered'
-                  : ev.content === 'context_compression_finished'
-                    ? '✅ Context Compression Finished'
-                    : ev.content || (ev.type === 'REASONING_STARTED' ? 'Thinking...' : '')}
+                {node.startEvent.type === 'CONTEXT_COMPRESSED'
+                  ? 'Context Compression'
+                  : displayContent || (node.startEvent.type === 'REASONING_STARTED' ? 'Thinking...' : '')}
               </div>
             </div>
 
             {ev.data && Object.keys(ev.data).length > 0 && isExpanded && (
               <div className="mt-3 text-[11px] text-slate-600 dark:text-slate-400 font-mono bg-white dark:bg-black/20 border border-slate-100 dark:border-slate-800/50 p-3 rounded-lg overflow-hidden shadow-inner">
-                {ev.type === 'CONTEXT_COMPRESSED' ||
-                ev.content === 'context_compression_finished' ? (
+                {node.startEvent.type === 'CONTEXT_COMPRESSED' ? (
                   <div className="flex flex-wrap gap-4">
                     {ev.data.beforeTokens !== undefined && (
                       <span className="flex items-center gap-1.5">
@@ -263,7 +399,7 @@ export default function TraceStudio() {
                       </span>
                     )}
                   </div>
-                ) : ev.type === 'TOKEN_USAGE_RECORDED' ? (
+                ) : node.startEvent.type === 'TOKEN_USAGE_RECORDED' ? (
                   <div className="flex flex-wrap gap-6 text-blue-600 dark:text-blue-400 font-bold">
                     <span className="flex flex-col">
                       <span className="text-slate-400 uppercase text-[8px] mb-0.5">Prompt</span>
@@ -305,6 +441,69 @@ export default function TraceStudio() {
     );
   };
 
+  const renderFlatEvent = (ev: TraceEvent, i: number) => (
+    <div
+      key={`${ev.timestamp}-${ev.type}-${i}`}
+      className="border border-slate-200 dark:border-slate-800 p-5 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all"
+    >
+      <div className="flex justify-between items-center">
+        <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] bg-white dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700">
+          {ev.type}
+        </span>
+        <span className="text-[10px] font-bold text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+          {new Date(ev.timestamp).toLocaleTimeString()}
+        </span>
+      </div>
+      <div className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
+        {ev.content}
+      </div>
+      {ev.data && Object.keys(ev.data).length > 0 && (
+        <div className="text-[10px] font-mono bg-white dark:bg-black/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800/50 shadow-inner overflow-x-auto">
+          {JSON.stringify(ev.data, null, 2)}
+        </div>
+      )}
+    </div>
+  );
+
+  const renderSessionTree = (sessionId: string) => {
+    const result = sessionTrees.get(sessionId) || { tree: [], flat: [] };
+    const sessionEvents = sessionGroups.get(sessionId) || [];
+
+    return (
+      <div key={sessionId} className="mb-10">
+        <div className="flex items-center gap-3 mb-4 pb-3 border-b border-slate-100 dark:border-slate-800">
+          <span className="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-bold rounded-lg uppercase tracking-wider border border-indigo-100 dark:border-indigo-500/20">
+            Session
+          </span>
+          <span className="text-sm font-mono text-slate-500 dark:text-slate-400 truncate">
+            {sessionId}
+          </span>
+          <span className="text-[10px] text-slate-400 dark:text-slate-600 ml-auto">
+            {sessionEvents.length} events
+          </span>
+        </div>
+
+        {result.tree.length > 0 && (
+          <div className="space-y-1">
+            {result.tree.map((node) => renderSpan(node))}
+          </div>
+        )}
+
+        {result.flat.length > 0 && (
+          <div className="space-y-4 mt-4">
+            {result.flat.map((ev, i) => renderFlatEvent(ev, i))}
+          </div>
+        )}
+
+        {result.tree.length === 0 && result.flat.length === 0 && (
+          <div className="text-sm text-slate-400 dark:text-slate-500 py-4">No events</div>
+        )}
+      </div>
+    );
+  };
+
+  const sessionIds = [...sessionGroups.keys()];
+
   return (
     <div className="flex w-full h-full bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans antialiased">
       <div className="w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 bg-slate-50/80 dark:bg-slate-950/50 backdrop-blur-xl">
@@ -316,11 +515,31 @@ export default function TraceStudio() {
             <span className="tracking-tight text-lg">Trace Studio</span>
           </div>
           <div className="text-[10px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 font-mono">
-            v0.1.7
+            v0.2.0
           </div>
         </div>
+
+        {/* Live mode button */}
+        <div className="p-3 border-b border-slate-200 dark:border-slate-800">
+          <button
+            onClick={liveMode ? disconnectLive : connectLive}
+            className={`w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${
+              liveMode
+                ? 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 border-red-200 dark:border-red-500/30 shadow-sm'
+                : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30 hover:shadow-sm'
+            }`}
+          >
+            <Radio size={14} className={liveMode ? 'animate-pulse' : ''} />
+            {liveMode
+              ? wsConnected
+                ? 'Live'
+                : 'Reconnecting...'
+              : 'Connect Live'}
+          </button>
+        </div>
+
         <div className="overflow-y-auto flex-1 p-3 custom-scrollbar space-y-1">
-          {files.length === 0 && (
+          {files.length === 0 && !liveMode && (
             <div className="text-center text-slate-400 dark:text-slate-600 mt-16 text-xs flex flex-col items-center gap-3">
               <div className="p-4 bg-slate-100 dark:bg-slate-900 rounded-full">
                 <FileJson size={28} className="opacity-20" />
@@ -333,14 +552,14 @@ export default function TraceStudio() {
               key={f}
               onClick={() => setSelectedFile(f)}
               className={`group cursor-pointer p-3.5 rounded-xl transition-all border ${
-                selectedFile === f
+                selectedFile === f && !liveMode
                   ? 'bg-white dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30 shadow-md shadow-emerald-500/5'
                   : 'hover:bg-white dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400 border-transparent hover:border-slate-200 dark:hover:border-slate-800'
               }`}
             >
               <div className="flex items-center gap-3 mb-1.5">
                 <div
-                  className={`p-1.5 rounded-lg transition-colors ${selectedFile === f ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-500/10 group-hover:text-emerald-500'}`}
+                  className={`p-1.5 rounded-lg transition-colors ${selectedFile === f && !liveMode ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-500/10 group-hover:text-emerald-500'}`}
                 >
                   <FileJson size={14} />
                 </div>
@@ -350,7 +569,7 @@ export default function TraceStudio() {
               </div>
               <div className="flex justify-between items-center pl-9">
                 <span className="text-[10px] font-medium opacity-50 uppercase tracking-widest">
-                  Session
+                  Trace File
                 </span>
                 <span className="text-[10px] group-hover:translate-x-0.5 transition-transform opacity-0 group-hover:opacity-100 font-bold">
                   View →
@@ -361,59 +580,43 @@ export default function TraceStudio() {
         </div>
       </div>
       <div className="flex-1 overflow-y-auto p-10 bg-white dark:bg-slate-950 custom-scrollbar scroll-smooth">
-        {selectedFile ? (
+        {selectedFile || liveMode ? (
           <div className="max-w-5xl mx-auto">
             <header className="flex justify-between items-end mb-10 border-b border-slate-100 dark:border-slate-800 pb-8">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded uppercase tracking-wider border border-emerald-500/20">
-                    Live Session
+                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider border ${
+                    liveMode
+                      ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'
+                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                  }`}>
+                    {liveMode ? 'Live Stream' : 'Trace File'}
                   </span>
                 </div>
                 <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
-                  {selectedFile.replace('.jsonl', '')}
+                  {liveMode ? 'Live Trace' : selectedFile?.replace('.jsonl', '')}
                 </h2>
                 <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">
-                  Hierarchical execution flow and performance analysis
+                  {sessionIds.length > 1
+                    ? `${sessionIds.length} sessions`
+                    : 'Hierarchical execution flow and performance analysis'}
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-900 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-2">
                   <Activity size={12} className="text-emerald-500" />
-                  {events.length} EVENTS RECORDED
+                  {displayEvents.length} EVENTS
                 </div>
               </div>
             </header>
 
-            {traceTree.length > 0 ? (
-              <div className="space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-500">
-                {traceTree.map((node) => renderSpan(node))}
+            {sessionIds.length > 0 ? (
+              <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                {sessionIds.map((sid) => renderSessionTree(sid))}
               </div>
             ) : (
-              <div className="space-y-4">
-                {events.map((ev, i) => (
-                  <div
-                    key={i}
-                    className="border border-slate-200 dark:border-slate-800 p-5 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all"
-                  >
-                    <div className="flex justify-between items-center">
-                      <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] bg-white dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700">
-                        {ev.type}
-                      </span>
-                      <span className="text-[10px] font-bold text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
-                        {new Date(ev.timestamp).toLocaleTimeString()}
-                      </span>
-                    </div>
-                    <div className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
-                      {ev.content}
-                    </div>
-                    {ev.data && Object.keys(ev.data).length > 0 && (
-                      <div className="text-[10px] font-mono bg-white dark:bg-black/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800/50 shadow-inner overflow-x-auto">
-                        {JSON.stringify(ev.data, null, 2)}
-                      </div>
-                    )}
-                  </div>
-                ))}
+              <div className="text-center text-slate-400 dark:text-slate-500 py-20">
+                {liveMode ? 'Waiting for events...' : 'No events in this trace file'}
               </div>
             )}
           </div>
@@ -430,8 +633,8 @@ export default function TraceStudio() {
                 Trace Studio Ready
               </h3>
               <p className="text-sm max-w-sm mx-auto text-slate-500 dark:text-slate-400 leading-relaxed">
-                Select an execution trace from the sidebar to visualize agent reasoning, tool usage,
-                and performance metrics in real-time.
+                Select an execution trace from the sidebar or connect live to visualize agent
+                reasoning, tool usage, and performance metrics.
               </p>
             </div>
             <div className="flex gap-6 mt-4">
@@ -449,10 +652,10 @@ export default function TraceStudio() {
                   bg: 'bg-blue-50 dark:bg-blue-500/10',
                 },
                 {
-                  icon: FileJson,
-                  label: 'Deep Inspect',
-                  color: 'text-amber-500',
-                  bg: 'bg-amber-50 dark:bg-amber-500/10',
+                  icon: Radio,
+                  label: 'Live',
+                  color: 'text-red-500',
+                  bg: 'bg-red-50 dark:bg-red-500/10',
                 },
               ].map((item, i) => (
                 <div key={i} className="flex flex-col items-center gap-2 group cursor-default">

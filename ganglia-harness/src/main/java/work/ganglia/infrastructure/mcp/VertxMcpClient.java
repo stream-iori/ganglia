@@ -20,7 +20,7 @@ import work.ganglia.port.mcp.*;
 
 public class VertxMcpClient implements McpClient {
   private static final Logger logger = LoggerFactory.getLogger(VertxMcpClient.class);
-  static final long DEFAULT_requestTimeoutMs = 30_000;
+  static final long DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
 
   private final Vertx vertx;
   private final McpTransport transport;
@@ -29,7 +29,7 @@ public class VertxMcpClient implements McpClient {
   private final AtomicLong nextId = new AtomicLong(1);
 
   public VertxMcpClient(Vertx vertx, McpTransport transport) {
-    this(vertx, transport, DEFAULT_requestTimeoutMs);
+    this(vertx, transport, DEFAULT_REQUEST_TIMEOUT_MS);
   }
 
   VertxMcpClient(Vertx vertx, McpTransport transport, long requestTimeoutMs) {

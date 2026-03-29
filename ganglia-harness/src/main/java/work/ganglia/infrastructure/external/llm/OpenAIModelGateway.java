@@ -60,37 +60,41 @@ public class OpenAIModelGateway extends AbstractModelGateway {
           "[LLM_REQ] Session: {}, Payload: {}", request.options().modelName(), payload.encode());
     }
     return withSemaphore(
-        webClient
-            .postAbs(endpoint)
-            .putHeader("Authorization", "Bearer " + config.apiKey())
-            .putHeader("Content-Type", "application/json")
-            .timeout(config.timeout())
-            .as(BodyCodec.jsonObject())
-            .sendJsonObject(payload)
-            .compose(
-                response -> {
-                  if (request.signal().isAborted()) {
-                    return Future.failedFuture(
-                        new work.ganglia.kernel.loop.AgentAbortedException());
-                  }
-                  if (response.statusCode() >= 400) {
-                    String errorBody = response.bodyAsString();
-                    logger.error(
-                        "[LLM_ERROR] Status: {}, Body: {}", response.statusCode(), errorBody);
-                    return Future.failedFuture(
-                        new LLMException(
-                            "LLM Error: " + response.statusCode() + " " + response.statusMessage(),
-                            null,
-                            response.statusCode(),
-                            errorBody,
-                            null));
-                  }
-                  try {
-                    return Future.succeededFuture(toModelResponse(response.body()));
-                  } catch (Exception e) {
-                    return Future.failedFuture(wrapException(e));
-                  }
-                }));
+        () ->
+            webClient
+                .postAbs(endpoint)
+                .putHeader("Authorization", "Bearer " + config.apiKey())
+                .putHeader("Content-Type", "application/json")
+                .timeout(config.timeout())
+                .as(BodyCodec.jsonObject())
+                .sendJsonObject(payload)
+                .compose(
+                    response -> {
+                      if (request.signal().isAborted()) {
+                        return Future.failedFuture(
+                            new work.ganglia.kernel.loop.AgentAbortedException());
+                      }
+                      if (response.statusCode() >= 400) {
+                        String errorBody = response.bodyAsString();
+                        logger.error(
+                            "[LLM_ERROR] Status: {}, Body: {}", response.statusCode(), errorBody);
+                        return Future.failedFuture(
+                            new LLMException(
+                                "LLM Error: "
+                                    + response.statusCode()
+                                    + " "
+                                    + response.statusMessage(),
+                                null,
+                                response.statusCode(),
+                                errorBody,
+                                null));
+                      }
+                      try {
+                        return Future.succeededFuture(toModelResponse(response.body()));
+                      } catch (Exception e) {
+                        return Future.failedFuture(wrapException(e));
+                      }
+                    }));
   }
 
   @Override

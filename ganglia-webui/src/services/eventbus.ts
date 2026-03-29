@@ -93,6 +93,15 @@ class EventBusService {
           const prompt = (params.prompt || 'Retry last prompt').toLowerCase();
           this.respond(msg.id!, { status: 'started' });
 
+          // Emit USER_MESSAGE so the user's input appears as a right-aligned bubble
+          if (msg.method === 'START' && params.prompt) {
+            this.notify('server_event', {
+              eventId: 'user-' + Date.now(),
+              type: 'USER_MESSAGE',
+              data: { content: params.prompt },
+            });
+          }
+
           if (prompt.includes('error')) {
             this.simulateError();
           } else if (prompt.includes('file change') || prompt.includes('watch')) {
@@ -583,6 +592,8 @@ class EventBusService {
       const planData = event.data as { plan?: ToDoList };
       if (planData && planData.plan) {
         planStore.setPlan(planData.plan);
+        // Auto-open Inspector in PLAN mode when a plan is received
+        useSystemStore.setState({ inspectorMode: 'PLAN', isInspectorOpen: true });
       }
     }
 

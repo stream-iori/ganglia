@@ -65,10 +65,15 @@ public abstract class AbstractModelGateway implements ModelGateway {
         .orElse(null);
   }
 
-  /** Wraps a future with semaphore protection to limit concurrency. */
-  protected <T> Future<T> withSemaphore(Future<T> future) {
+  /** Wraps a future supplier with semaphore protection to limit concurrency. */
+  protected <T> Future<T> withSemaphore(Supplier<Future<T>> futureSupplier) {
     if (semaphore.tryAcquire()) {
-      return future.onComplete(v -> semaphore.release());
+      try {
+        return futureSupplier.get().onComplete(v -> semaphore.release());
+      } catch (Exception e) {
+        semaphore.release();
+        return Future.failedFuture(wrapException(e));
+      }
     } else {
       return Future.failedFuture(
           new LLMException(
@@ -170,10 +175,11 @@ public abstract class AbstractModelGateway implements ModelGateway {
             });
 
     withSemaphore(
-            httpRequest
-                .putHeader("Accept", "text/event-stream")
-                .as(BodyCodec.pipe(writeStream, true))
-                .sendJsonObject(payload))
+            () ->
+                httpRequest
+                    .putHeader("Accept", "text/event-stream")
+                    .as(BodyCodec.pipe(writeStream, true))
+                    .sendJsonObject(payload))
         .onSuccess(
             response -> {
               if (request.signal().isAborted()) {

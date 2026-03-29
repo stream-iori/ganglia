@@ -48,7 +48,7 @@ class ConfigManagerTest {
   @Test
   void testObservabilityConfigProviderDefaults(Vertx vertx) {
     ConfigManager manager = new ConfigManager(vertx, nonExistentConfig());
-    assertFalse(manager.isObservabilityEnabled());
+    assertTrue(manager.isObservabilityEnabled());
     assertNotNull(manager.getTracePath());
   }
 

@@ -7,9 +7,11 @@ import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 
 import work.ganglia.config.ConfigManager;
+import work.ganglia.infrastructure.internal.state.TokenUsageManager;
+import work.ganglia.infrastructure.internal.state.TraceManager;
 import work.ganglia.kernel.AgentEnv;
 import work.ganglia.kernel.GangliaKernel;
-import work.ganglia.kernel.loop.ReActAgentLoop;
+import work.ganglia.kernel.loop.AgentLoop;
 import work.ganglia.kernel.todo.ToDoContextSource;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.tool.ToolExecutor;
@@ -22,13 +24,21 @@ public record Ganglia(
     ModelGateway modelGateway,
     ToolExecutor toolExecutor,
     SessionManager sessionManager,
-    ReActAgentLoop agentLoop,
+    AgentLoop agentLoop,
     ConfigManager configManager,
     AgentEnv env,
     int mcpServersCount,
-    work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry) {
+    work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry,
+    TraceManager traceManager,
+    TokenUsageManager tokenUsageManager) {
   /** Shuts down the Ganglia instance and all its components, including MCP servers. */
   public void shutdown() {
+    if (traceManager != null) {
+      traceManager.close();
+    }
+    if (tokenUsageManager != null) {
+      tokenUsageManager.close();
+    }
     if (mcpRegistry != null) {
       mcpRegistry.close();
     }

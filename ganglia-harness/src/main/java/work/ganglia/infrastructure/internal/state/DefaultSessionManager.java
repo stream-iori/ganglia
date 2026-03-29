@@ -12,15 +12,13 @@ import org.slf4j.LoggerFactory;
 import io.vertx.core.Future;
 
 import work.ganglia.config.ModelConfigProvider;
-import work.ganglia.port.chat.*;
 import work.ganglia.port.chat.Message;
+import work.ganglia.port.chat.Role;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.chat.Turn;
-import work.ganglia.port.external.llm.*;
 import work.ganglia.port.external.llm.ModelOptions;
-import work.ganglia.port.external.tool.*;
-import work.ganglia.port.internal.state.*;
 import work.ganglia.port.internal.state.LogManager;
+import work.ganglia.port.internal.state.SessionManager;
 import work.ganglia.port.internal.state.StateEngine;
 
 public class DefaultSessionManager implements SessionManager {
