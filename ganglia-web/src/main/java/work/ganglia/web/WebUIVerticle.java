@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.atomic.AtomicReference;
@@ -388,13 +387,6 @@ public class WebUIVerticle extends AbstractVerticle {
     lastPrompts.put(sessionId, prompt);
     activeSessions.add(sessionId);
 
-    ServerEvent userEvent =
-        createServerEvent(EventType.USER_MESSAGE, new ServerEvent.UserMessageData(prompt));
-    JsonObject userJson = JsonObject.mapFrom(userEvent);
-
-    forwardToWebSocket(sessionId, "server_event", userJson);
-    sessionHistories.computeIfAbsent(sessionId, k -> new ArrayList<>()).add(userJson);
-
     sessionManager
         .getSession(sessionId)
         .onComplete(
@@ -526,10 +518,6 @@ public class WebUIVerticle extends AbstractVerticle {
   private void publishEvent(String sessionId, EventType type, Object data) {
     forwardToWebSocket(
         sessionId, "server_event", JsonObject.mapFrom(createServerEvent(type, data)));
-  }
-
-  private ServerEvent createServerEvent(EventType type, Object data) {
-    return new ServerEvent(UUID.randomUUID().toString(), System.currentTimeMillis(), type, data);
   }
 
   private void forwardToWebSocket(String sessionId, String method, Object params) {

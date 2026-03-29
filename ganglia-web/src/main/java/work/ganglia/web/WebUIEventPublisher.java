@@ -62,7 +62,21 @@ public class WebUIEventPublisher implements AgentLoopObserver {
   @Override
   public void onObservation(
       String sessionId, ObservationType type, String content, Map<String, Object> data) {
+    onObservation(sessionId, type, content, data, null, null);
+  }
+
+  @Override
+  public void onObservation(
+      String sessionId,
+      ObservationType type,
+      String content,
+      Map<String, Object> data,
+      String spanId,
+      String parentSpanId) {
     switch (type) {
+      case TURN_STARTED -> {
+        publish(sessionId, EventType.USER_MESSAGE, new ServerEvent.UserMessageData(content));
+      }
       case REASONING_STARTED -> {
         publish(sessionId, EventType.THOUGHT, new ServerEvent.ThoughtData("..."), false);
       }

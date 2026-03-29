@@ -17,8 +17,8 @@ import work.ganglia.util.Constants;
  */
 public class DefaultObservationDispatcher implements ObservationDispatcher, AgentLoopObserver {
   private final Vertx vertx;
-  private final java.util.List<AgentLoopObserver> localObservers =
-      new java.util.concurrent.CopyOnWriteArrayList<>();
+  private final java.util.Set<AgentLoopObserver> localObservers =
+      new java.util.concurrent.CopyOnWriteArraySet<>();
 
   public DefaultObservationDispatcher(Vertx vertx) {
     this.vertx = vertx;
