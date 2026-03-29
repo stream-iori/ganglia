@@ -24,7 +24,7 @@ jobs:
         distribution: "temurin"
         cache: "maven"
     - name: "Build and Run Integration Tests"
-      run: "mvn verify -pl integration-test,ganglia-terminal -am"
+      run: "mvn verify -pl integration-test,coding-agent/ganglia-terminal -am"
   frontend-test:
     name: "Frontend Tests"
     runs-on: "ubuntu-latest"
@@ -36,10 +36,10 @@ jobs:
       with:
         node-version: "20"
         cache: "npm"
-        cache-dependency-path: "ganglia-webui/package-lock.json"
+        cache-dependency-path: "coding-agent/ganglia-webui/package-lock.json"
     - name: "Install dependencies"
-      working-directory: "ganglia-webui"
+      working-directory: "coding-agent/ganglia-webui"
       run: "npm ci"
     - name: "Run Tests"
-      working-directory: "ganglia-webui"
+      working-directory: "coding-agent/ganglia-webui"
       run: "npm run test -- --run"

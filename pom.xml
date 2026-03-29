@@ -10,10 +10,8 @@
   <modules>
     <module>ganglia-harness</module>
     <module>ganglia-local-file-memory</module>
-    <module>ganglia-coding</module>
-    <module>ganglia-web</module>
     <module>ganglia-observability</module>
-    <module>ganglia-terminal</module>
+    <module>coding-agent</module>
     <module>integration-test</module>
     <module>ganglia-example</module>
     <module>ganglia-swe-bench</module>

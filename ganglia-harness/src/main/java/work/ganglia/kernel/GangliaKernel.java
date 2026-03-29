@@ -251,6 +251,20 @@ public class GangliaKernel {
     allExtraToolSets.add(
         new work.ganglia.infrastructure.external.tool.RecallMemoryTools(memory.memoryStore()));
 
+    // Register common tools (filesystem, bash, grep, web fetch)
+    work.ganglia.util.PathMapper defaultMapper = new work.ganglia.util.PathSanitizer(projectRoot);
+    work.ganglia.port.external.tool.CommandExecutor cmdExecutor = options.commandExecutor();
+    if (cmdExecutor == null) {
+      cmdExecutor = new work.ganglia.infrastructure.external.tool.util.LocalCommandExecutor(vertx);
+    }
+    allExtraToolSets.add(
+        new work.ganglia.infrastructure.external.tool.NativeFileSystemTools(vertx, defaultMapper));
+    allExtraToolSets.add(
+        new work.ganglia.infrastructure.external.tool.BashFileSystemTools(
+            cmdExecutor, defaultMapper));
+    allExtraToolSets.add(new work.ganglia.infrastructure.external.tool.BashTools(cmdExecutor));
+    allExtraToolSets.add(new work.ganglia.infrastructure.external.tool.WebFetchTools(vertx));
+
     DefaultToolExecutor toolExecutor = new DefaultToolExecutor(toolsFactory, allExtraToolSets);
 
     ConsecutiveFailurePolicy failurePolicy = new ConsecutiveFailurePolicy();

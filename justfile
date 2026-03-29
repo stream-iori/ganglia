@@ -2,7 +2,7 @@
 
 # Set directory variables
 backend_dir  := "ganglia-harness"
-frontend_dir := "ganglia-webui"
+frontend_dir := "coding-agent/ganglia-webui"
 example_dir  := "ganglia-example"
 
 # List available commands
@@ -53,7 +53,7 @@ test: test-backend test-frontend
 
 # Run Java backend unit tests
 test-backend:
-    mvn test -pl ganglia-harness,ganglia-local-file-memory,ganglia-coding,ganglia-web,ganglia-terminal,ganglia-observability
+    mvn test -pl ganglia-harness,ganglia-local-file-memory,coding-agent/ganglia-coding,coding-agent/ganglia-web,coding-agent/ganglia-terminal,ganglia-observability
 
 # Run Java integration tests
 test-it:
@@ -73,7 +73,7 @@ test-frontend:
 coverage: _run-coverage _print-coverage
 
 _run-coverage:
-    mvn spotless:apply test -pl ganglia-harness,ganglia-local-file-memory,ganglia-coding,ganglia-web,ganglia-terminal,ganglia-observability
+    mvn spotless:apply test -pl ganglia-harness,ganglia-local-file-memory,coding-agent/ganglia-coding,coding-agent/ganglia-web,coding-agent/ganglia-terminal,ganglia-observability
 
 _print-coverage:
     python3 scripts/print-coverage.py
