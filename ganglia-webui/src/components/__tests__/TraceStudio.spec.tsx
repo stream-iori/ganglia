@@ -58,6 +58,23 @@ describe('TraceStudio Component', () => {
       expect(screen.getByText('read_file')).toBeInTheDocument();
     });
 
+    // Check if collapsible logic works (it's auto-expanded by default)
+    expect(screen.getByText('read_file')).toBeInTheDocument();
+
+    // Click on the parent to collapse it
+    fireEvent.click(screen.getByText('SESSION').closest('div.group')!);
+
+    // Now the children should be hidden
+    await waitFor(() => {
+      expect(screen.queryByText('read_file')).not.toBeInTheDocument();
+    });
+
+    // Click again to expand
+    fireEvent.click(screen.getByText('SESSION').closest('div.group')!);
+    await waitFor(() => {
+      expect(screen.getByText('read_file')).toBeInTheDocument();
+    });
+
     // Check if data is rendered (now rendered as key-value pairs)
     expect(screen.getByText(/sessionId/i)).toBeInTheDocument();
     expect(screen.getAllByText(/s1/i).length).toBeGreaterThan(0);

@@ -84,10 +84,9 @@ public class ObservabilityVerticle extends AbstractVerticle {
   }
 
   private void handleListTraceFiles(RoutingContext ctx) {
-    String traceDir = ".ganglia/trace";
     vertx
         .fileSystem()
-        .readDir(traceDir, ".*\\.jsonl")
+        .readDir(tracePath, ".*\\.jsonl")
         .onSuccess(
             files -> {
               JsonArray result = new JsonArray();
@@ -108,7 +107,7 @@ public class ObservabilityVerticle extends AbstractVerticle {
       ctx.response().setStatusCode(400).end();
       return;
     }
-    String filepath = ".ganglia/trace/" + filename;
+    String filepath = tracePath + "/" + filename;
     vertx
         .fileSystem()
         .readFile(filepath)

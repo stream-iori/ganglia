@@ -30,9 +30,9 @@
 - **Dynamic Skill System:** Load external capabilities at runtime from filesystem directories or JAR files via a manifest-based skill system.
 - **Sub-Agent Orchestration:** Delegate specialized sub-tasks to isolated child agents, with support for DAG-based parallel execution.
 - **MCP Support:** Connect to external tool servers via the Model Context Protocol (stdio/SSE).
-- **Native Observability (Trace Studio):** A professional-grade, self-developed execution tracer (inspired by Arize Phoenix) that visualizes the hierarchical tree of Agent thoughts, tool calls, MCP interactions, and context compressions with precise metrics and retry tracking.
+- **Native Observability (Trace Studio):** A professional-grade, self-developed execution tracer (inspired by Arize Phoenix) that visualizes the hierarchical tree of Agent thoughts, tool calls, MCP interactions, and context compressions. It features a collapsible tree view, performance metrics (duration tracking), model attribution, and retry history on a dedicated port (default 8081).
 - **Memory as Code:** Transparent, file-based memory system using Markdown (`.ganglia/memory/MEMORY.md` and Daily Journals).
-- **Modern React WebUI:** A high-performance dashboard built with **React 18**, **Zustand**, and **shadcn/ui** for real-time monitoring, continuous timeline tracking, and high-fidelity code/diff review.
+- **Modern React WebUI:** A high-performance dashboard built with **React 18**, **Zustand**, and **shadcn/ui** (Port 8080) for real-time monitoring, continuous timeline tracking, and high-fidelity code/diff review.
 
 ---
 

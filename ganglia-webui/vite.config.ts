@@ -11,9 +11,29 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    port: 5173,
+    proxy: {
+      '/api/traces': {
+        target: 'http://localhost:8081',
+        changeOrigin: true,
+      },
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+      '/ws': {
+        target: 'ws://localhost:8080',
+        ws: true,
+      },
+    },
+  },
   build: {
     rollupOptions: {
-      input: [path.resolve(__dirname, 'index.html'), path.resolve(__dirname, 'trace.html')],
+      input: {
+        main: path.resolve(__dirname, 'index.html'),
+        trace: path.resolve(__dirname, 'trace.html'),
+      },
     },
   },
   test: {
