@@ -30,6 +30,11 @@
     </dependency>
     <dependency>
       <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-observability</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>work.ganglia</groupId>
       <artifactId>ganglia-terminal</artifactId>
     </dependency>
     <dependency>

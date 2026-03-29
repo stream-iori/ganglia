@@ -8,6 +8,7 @@ import java.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.eventbus.Message;
@@ -27,6 +28,10 @@ public class TraceManager {
   private final ObservabilityConfigProvider configProvider;
   private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm:ss");
 
+  // Serialization chains to prevent concurrent write corruption
+  private Future<Void> markdownWriteChain = Future.succeededFuture();
+  private Future<Void> jsonlWriteChain = Future.succeededFuture();
+
   public TraceManager(Vertx vertx, ObservabilityConfigProvider configProvider) {
     this.vertx = vertx;
     this.configProvider = configProvider;
@@ -41,6 +46,12 @@ public class TraceManager {
     }
 
     ObservationEvent event = message.body().mapTo(ObservationEvent.class);
+
+    // Skip noisy token events in persistent traces to avoid corruption and reduce size
+    if (event.type() == work.ganglia.port.external.tool.ObservationType.TOKEN_RECEIVED) {
+      return;
+    }
+
     String markdown = formatEventToMarkdown(event);
     String filename = getTraceFileName();
     String jsonlFilename = getJsonlFileName();
@@ -48,19 +59,39 @@ public class TraceManager {
 
     ensureDirExists(configProvider.getTracePath());
 
-    vertx
-        .fileSystem()
-        .open(filename, new OpenOptions().setAppend(true).setCreate(true))
-        .compose(
-            asyncFile -> asyncFile.write(Buffer.buffer(markdown)).compose(v -> asyncFile.close()))
-        .onFailure(err -> logger.error("Failed to write to trace file: {}", filename, err));
+    synchronized (this) {
+      markdownWriteChain =
+          markdownWriteChain
+              .compose(
+                  v ->
+                      vertx
+                          .fileSystem()
+                          .open(filename, new OpenOptions().setAppend(true).setCreate(true))
+                          .compose(
+                              asyncFile ->
+                                  asyncFile
+                                      .write(Buffer.buffer(markdown))
+                                      .compose(v2 -> asyncFile.close())))
+              .onFailure(err -> logger.error("Failed to write to trace file: {}", filename, err))
+              .recover(err -> Future.succeededFuture());
 
-    vertx
-        .fileSystem()
-        .open(jsonlFilename, new OpenOptions().setAppend(true).setCreate(true))
-        .compose(asyncFile -> asyncFile.write(Buffer.buffer(jsonl)).compose(v -> asyncFile.close()))
-        .onFailure(
-            err -> logger.error("Failed to write to jsonl trace file: {}", jsonlFilename, err));
+      jsonlWriteChain =
+          jsonlWriteChain
+              .compose(
+                  v ->
+                      vertx
+                          .fileSystem()
+                          .open(jsonlFilename, new OpenOptions().setAppend(true).setCreate(true))
+                          .compose(
+                              asyncFile ->
+                                  asyncFile
+                                      .write(Buffer.buffer(jsonl))
+                                      .compose(v2 -> asyncFile.close())))
+              .onFailure(
+                  err ->
+                      logger.error("Failed to write to jsonl trace file: {}", jsonlFilename, err))
+              .recover(err -> Future.succeededFuture());
+    }
   }
 
   private String formatEventToMarkdown(ObservationEvent event) {

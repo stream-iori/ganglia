@@ -65,6 +65,29 @@ public class WebUIDemo {
               } else {
                 logger.warn("WebUI is disabled in config. Ensure 'webui.enabled' is true.");
               }
+
+              // 4. Deploy Observability Studio (Port 8081)
+              work.ganglia.config.model.ObservabilityConfig obsConfig =
+                  ganglia.configManager().getGangliaConfig().observability();
+              if (obsConfig != null && obsConfig.webUIEnabled()) {
+                int port = obsConfig.port();
+                String webroot =
+                    ganglia.configManager().getGangliaConfig().webui() != null
+                        ? ganglia.configManager().getGangliaConfig().webui().webroot()
+                        : "webroot";
+                String tracePath = obsConfig.tracePath();
+
+                work.ganglia.observability.ObservabilityVerticle obsVerticle =
+                    new work.ganglia.observability.ObservabilityVerticle(port, webroot, tracePath);
+                vertx
+                    .deployVerticle(obsVerticle)
+                    .onSuccess(
+                        id -> {
+                          System.out.println("🚀 Observability Studio started on port " + port);
+                          System.out.println("👉 URL: http://localhost:" + port + "/trace.html");
+                        })
+                    .onFailure(err -> logger.error("Failed to deploy Observability Studio", err));
+              }
             })
         .onFailure(
             err -> {

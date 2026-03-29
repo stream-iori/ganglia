@@ -116,8 +116,13 @@ public class ObservabilityVerticle extends AbstractVerticle {
               String content = buffer.toString("UTF-8");
               JsonArray arr = new JsonArray();
               for (String line : content.split("\n")) {
-                if (!line.trim().isEmpty()) {
-                  arr.add(new JsonObject(line));
+                String trimmed = line.trim();
+                if (!trimmed.isEmpty()) {
+                  try {
+                    arr.add(new JsonObject(trimmed));
+                  } catch (Exception e) {
+                    logger.warn("Skipping corrupted trace line in {}: {}", filename, trimmed);
+                  }
                 }
               }
               ctx.response().putHeader("content-type", "application/json").end(arr.encode());

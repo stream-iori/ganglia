@@ -122,38 +122,57 @@ export default function TraceStudio() {
     const status = ev.data?.status as string | undefined;
 
     return (
-      <div key={spanId} className="mb-2">
+      <div key={spanId} className="relative">
+        {/* Tree vertical guide line */}
+        {depth > 0 && (
+          <div
+            className="absolute border-l border-slate-200 dark:border-slate-800"
+            style={{
+              left: `${(depth - 1) * 20 + 8}px`,
+              top: '-8px',
+              bottom: '12px',
+            }}
+          />
+        )}
+
         <div
           onClick={(e) => hasChildren && toggleSpan(spanId, e)}
-          className={`border border-slate-200 dark:border-slate-700 p-3 rounded-md bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer group flex items-start gap-3 ${isExpanded ? 'ring-1 ring-emerald-500/20 shadow-sm' : ''}`}
+          className={`group mb-2 border p-3 rounded-xl transition-all cursor-pointer flex items-start gap-3 
+            ${
+              isExpanded
+                ? 'bg-white dark:bg-slate-900 border-emerald-200 dark:border-emerald-900/50 shadow-sm ring-1 ring-emerald-500/10'
+                : 'bg-slate-50/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-white dark:hover:bg-slate-900 shadow-none'
+            }`}
           style={{ marginLeft: `${depth * 20}px` }}
         >
           {hasChildren ? (
-            <div className="mt-1 text-slate-400 group-hover:text-emerald-500 transition-colors">
-              {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+            <div className="mt-1 text-slate-400 group-hover:text-emerald-500 transition-colors bg-white dark:bg-slate-800 rounded shadow-sm border border-slate-100 dark:border-slate-700">
+              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </div>
           ) : (
-            <div className="mt-1 w-4 h-4" />
+            <div className="mt-1.5 w-3.5 h-3.5 flex items-center justify-center">
+              <div className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+            </div>
           )}
 
-          <div className="flex-1">
-            <div className="flex justify-between items-start mb-1">
+          <div className="flex-1 min-w-0">
+            <div className="flex justify-between items-start mb-1.5 gap-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span
-                  className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tight shadow-sm border ${
                     ev.type.includes('ERROR')
-                      ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-200'
+                      ? 'bg-red-50 text-red-700 border-red-100 dark:bg-red-950/30 dark:text-red-400 dark:border-red-900/50'
                       : ev.type.includes('SKILL')
-                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-200'
+                        ? 'bg-purple-50 text-purple-700 border-purple-100 dark:bg-purple-950/30 dark:text-purple-400 dark:border-purple-900/50'
                         : ev.type.includes('MCP')
-                          ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-200'
+                          ? 'bg-orange-50 text-orange-700 border-orange-100 dark:bg-orange-950/30 dark:text-orange-400 dark:border-orange-900/50'
                           : ev.type.includes('TOOL')
-                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200'
+                            ? 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50'
                             : ev.type.includes('MODEL') || ev.type.includes('REASON')
-                              ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-200'
+                              ? 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50'
                               : ev.type.includes('COMPRESS')
-                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-200'
-                                : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50'
+                                : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
                   }`}
                 >
                   {ev.type
@@ -161,39 +180,45 @@ export default function TraceStudio() {
                     .replace('_FINISHED', '')
                     .replace('_RECORDED', '')}
                 </span>
-                <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {ev.spanId}
-                </span>
 
                 {model && (
-                  <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 bg-slate-200/50 dark:bg-slate-800 px-1 rounded flex items-center gap-1">
-                    <Activity size={10} /> {model}
+                  <span className="text-[10px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full flex items-center gap-1.5 border border-slate-200 dark:border-slate-700">
+                    <Activity size={10} className="text-blue-500" /> {model}
                   </span>
                 )}
 
                 {attempt && attempt > 1 && (
-                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded-full flex items-center gap-1 border border-amber-100 dark:border-amber-900/50">
                     <RotateCcw size={10} /> Retry #{attempt}
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 shrink-0">
                 {duration !== undefined && (
-                  <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-500 font-bold flex items-center gap-1">
+                  <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded border border-emerald-100 dark:border-emerald-900/50 flex items-center gap-1">
                     <Clock size={10} /> {duration}ms
                   </span>
                 )}
-                <span className="text-[10px] text-slate-400 dark:text-slate-500">
-                  {new Date(ev.timestamp).toLocaleTimeString()}
+                <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500 font-mono">
+                  {new Date(ev.timestamp).toLocaleTimeString([], {
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                  })}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {status === 'failed' && <AlertCircle size={14} className="text-red-500" />}
-              {status === 'success' && <CheckCircle2 size={14} className="text-emerald-500" />}
-              <div className="text-sm text-slate-700 dark:text-slate-300 font-sans font-medium">
+            <div className="flex items-start gap-2">
+              {status === 'failed' && (
+                <AlertCircle size={14} className="text-red-500 mt-0.5 shrink-0" />
+              )}
+              {status === 'success' && (
+                <CheckCircle2 size={14} className="text-emerald-500 mt-0.5 shrink-0" />
+              )}
+              <div className="text-sm text-slate-900 dark:text-slate-100 font-sans font-medium break-words">
                 {ev.type === 'CONTEXT_COMPRESSED'
                   ? '🔄 Context Compression Triggered'
                   : ev.content === 'context_compression_finished'
@@ -203,44 +228,67 @@ export default function TraceStudio() {
             </div>
 
             {ev.data && Object.keys(ev.data).length > 0 && isExpanded && (
-              <div className="mt-2 text-[10px] text-slate-500 font-mono bg-white/50 dark:bg-black/30 border border-slate-100 dark:border-transparent p-2 rounded overflow-hidden">
+              <div className="mt-3 text-[11px] text-slate-600 dark:text-slate-400 font-mono bg-white dark:bg-black/20 border border-slate-100 dark:border-slate-800/50 p-3 rounded-lg overflow-hidden shadow-inner">
                 {ev.type === 'CONTEXT_COMPRESSED' ||
                 ev.content === 'context_compression_finished' ? (
-                  <div className="flex gap-4">
+                  <div className="flex flex-wrap gap-4">
                     {ev.data.beforeTokens !== undefined && (
-                      <span>
-                        Before:{' '}
-                        <b className="text-slate-700 dark:text-slate-300">
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-slate-400 uppercase text-[9px] font-bold">
+                          Before:
+                        </span>
+                        <b className="text-slate-900 dark:text-slate-200">
                           {ev.data.beforeTokens as number}
                         </b>
                       </span>
                     )}
                     {ev.data.afterTokens !== undefined && (
-                      <span>
-                        After:{' '}
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-slate-400 uppercase text-[9px] font-bold">
+                          After:
+                        </span>
                         <b className="text-emerald-600 dark:text-emerald-400">
                           {ev.data.afterTokens as number}
                         </b>
                       </span>
                     )}
                     {ev.data.contextLimit !== undefined && (
-                      <span>Limit: {ev.data.contextLimit as number}</span>
+                      <span className="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-800 pl-4">
+                        <span className="text-slate-400 uppercase text-[9px] font-bold">
+                          Limit:
+                        </span>
+                        <span className="text-slate-600 dark:text-slate-400">
+                          {ev.data.contextLimit as number}
+                        </span>
+                      </span>
                     )}
                   </div>
                 ) : ev.type === 'TOKEN_USAGE_RECORDED' ? (
-                  <div className="flex gap-4 text-blue-600 dark:text-blue-400 font-bold">
-                    <span>Prompt: {ev.data.promptTokens as number}</span>
-                    <span>Completion: {ev.data.completionTokens as number}</span>
-                    <span>Total: {ev.data.totalTokens as number}</span>
+                  <div className="flex flex-wrap gap-6 text-blue-600 dark:text-blue-400 font-bold">
+                    <span className="flex flex-col">
+                      <span className="text-slate-400 uppercase text-[8px] mb-0.5">Prompt</span>
+                      {ev.data.promptTokens as number}
+                    </span>
+                    <span className="flex flex-col">
+                      <span className="text-slate-400 uppercase text-[8px] mb-0.5">Completion</span>
+                      {ev.data.completionTokens as number}
+                    </span>
+                    <span className="flex flex-col border-l border-slate-200 dark:border-slate-800 pl-6">
+                      <span className="text-slate-400 uppercase text-[8px] mb-0.5">Total</span>
+                      {ev.data.totalTokens as number}
+                    </span>
                   </div>
                 ) : (
-                  <div className="max-h-48 overflow-y-auto custom-scrollbar whitespace-pre-wrap">
+                  <div className="max-h-64 overflow-y-auto custom-scrollbar whitespace-pre-wrap space-y-1.5">
                     {Object.entries(ev.data).map(([k, v]) => {
-                      if (['durationMs', 'attempt', 'model', 'status'].includes(k)) return null;
+                      if (['durationMs', 'attempt', 'model', 'status', 'toolCallId'].includes(k))
+                        return null;
                       return (
-                        <div key={k} className="flex gap-2 mb-1">
-                          <span className="text-slate-400 dark:text-slate-600 shrink-0">{k}:</span>
-                          <span className="text-slate-600 dark:text-slate-400 break-all">
+                        <div key={k} className="flex gap-3 group/item">
+                          <span className="text-slate-400 dark:text-slate-500 shrink-0 font-bold uppercase text-[9px] mt-0.5 w-24">
+                            {k}:
+                          </span>
+                          <span className="text-slate-700 dark:text-slate-300 break-all leading-relaxed">
                             {typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v)}
                           </span>
                         </div>
@@ -258,81 +306,110 @@ export default function TraceStudio() {
   };
 
   return (
-    <div className="flex w-full h-full bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-200">
-      <div className="w-72 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 bg-slate-50/50 dark:bg-transparent">
-        <div className="p-4 border-b border-slate-200 dark:border-slate-800 font-bold flex items-center gap-2 text-slate-700 dark:text-slate-200">
-          <Layers size={18} className="text-emerald-500" />
-          Trace Studio
+    <div className="flex w-full h-full bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-200 font-sans antialiased">
+      <div className="w-80 border-r border-slate-200 dark:border-slate-800 flex flex-col shrink-0 bg-slate-50/80 dark:bg-slate-950/50 backdrop-blur-xl">
+        <div className="p-5 border-b border-slate-200 dark:border-slate-800 font-bold flex items-center justify-between text-slate-900 dark:text-white">
+          <div className="flex items-center gap-2.5">
+            <div className="p-1.5 bg-emerald-500 rounded-lg shadow-lg shadow-emerald-500/20">
+              <Layers size={18} className="text-white" />
+            </div>
+            <span className="tracking-tight text-lg">Trace Studio</span>
+          </div>
+          <div className="text-[10px] bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded text-slate-500 dark:text-slate-400 font-mono">
+            v0.1.7
+          </div>
         </div>
-        <div className="overflow-y-auto flex-1 p-2 custom-scrollbar">
+        <div className="overflow-y-auto flex-1 p-3 custom-scrollbar space-y-1">
           {files.length === 0 && (
-            <div className="text-center text-slate-400 dark:text-slate-600 mt-10 text-xs flex flex-col items-center gap-2">
-              <FileJson size={24} className="opacity-20" />
-              No traces found
+            <div className="text-center text-slate-400 dark:text-slate-600 mt-16 text-xs flex flex-col items-center gap-3">
+              <div className="p-4 bg-slate-100 dark:bg-slate-900 rounded-full">
+                <FileJson size={28} className="opacity-20" />
+              </div>
+              No traces found in .ganglia/trace
             </div>
           )}
           {files.map((f) => (
             <div
               key={f}
               onClick={() => setSelectedFile(f)}
-              className={`group cursor-pointer p-3 text-xs rounded mb-2 transition-all border ${selectedFile === f ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-100 border-emerald-200 dark:border-emerald-800 shadow-sm' : 'hover:bg-slate-200/50 dark:hover:bg-slate-800/50 text-slate-500 dark:text-slate-400 border-transparent hover:border-slate-200 dark:hover:border-slate-700'}`}
+              className={`group cursor-pointer p-3.5 rounded-xl transition-all border ${
+                selectedFile === f
+                  ? 'bg-white dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30 shadow-md shadow-emerald-500/5'
+                  : 'hover:bg-white dark:hover:bg-slate-900 text-slate-600 dark:text-slate-400 border-transparent hover:border-slate-200 dark:hover:border-slate-800'
+              }`}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <FileJson
-                  size={14}
-                  className={selectedFile === f ? 'text-emerald-500' : 'text-slate-400'}
-                />
-                <span className="font-medium truncate">{f.replace('.jsonl', '')}</span>
+              <div className="flex items-center gap-3 mb-1.5">
+                <div
+                  className={`p-1.5 rounded-lg transition-colors ${selectedFile === f ? 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-400 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-500/10 group-hover:text-emerald-500'}`}
+                >
+                  <FileJson size={14} />
+                </div>
+                <span className="font-semibold truncate text-[13px] tracking-tight">
+                  {f.replace('.jsonl', '')}
+                </span>
               </div>
-              <div className="text-[10px] opacity-60 flex justify-between">
-                <span>Session Trace</span>
-                <span className="group-hover:opacity-100 opacity-0 transition-opacity">
-                  Select →
+              <div className="flex justify-between items-center pl-9">
+                <span className="text-[10px] font-medium opacity-50 uppercase tracking-widest">
+                  Session
+                </span>
+                <span className="text-[10px] group-hover:translate-x-0.5 transition-transform opacity-0 group-hover:opacity-100 font-bold">
+                  View →
                 </span>
               </div>
             </div>
           ))}
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-8 bg-white dark:bg-slate-950 custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-10 bg-white dark:bg-slate-950 custom-scrollbar scroll-smooth">
         {selectedFile ? (
-          <div className="max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-8 border-b border-slate-200 dark:border-slate-800 pb-6">
+          <div className="max-w-5xl mx-auto">
+            <header className="flex justify-between items-end mb-10 border-b border-slate-100 dark:border-slate-800 pb-8">
               <div>
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-bold rounded uppercase tracking-wider border border-emerald-500/20">
+                    Live Session
+                  </span>
+                </div>
+                <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
                   {selectedFile.replace('.jsonl', '')}
                 </h2>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-                  Full execution trace for the selected session
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">
+                  Hierarchical execution flow and performance analysis
                 </p>
               </div>
-              <div className="text-xs text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-900 px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-800 font-mono">
-                {events.length} Events
+              <div className="flex flex-col items-end gap-2">
+                <div className="text-[11px] font-bold text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-900 px-4 py-2 rounded-full border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-2">
+                  <Activity size={12} className="text-emerald-500" />
+                  {events.length} EVENTS RECORDED
+                </div>
               </div>
-            </div>
+            </header>
+
             {traceTree.length > 0 ? (
-              <div className="space-y-1">{traceTree.map((node) => renderSpan(node))}</div>
+              <div className="space-y-1 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                {traceTree.map((node) => renderSpan(node))}
+              </div>
             ) : (
               <div className="space-y-4">
                 {events.map((ev, i) => (
                   <div
                     key={i}
-                    className="border border-slate-200 dark:border-slate-800 p-4 rounded bg-slate-50/50 dark:bg-slate-900/50 flex flex-col gap-2"
+                    className="border border-slate-200 dark:border-slate-800 p-5 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50 flex flex-col gap-3 shadow-sm hover:shadow-md transition-all"
                   >
-                    <div className="flex justify-between">
-                      <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] bg-white dark:bg-slate-800 px-2 py-1 rounded-md border border-slate-100 dark:border-slate-700">
                         {ev.type}
                       </span>
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] font-bold text-slate-400 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
                         {new Date(ev.timestamp).toLocaleTimeString()}
                       </span>
                     </div>
-                    <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+                    <div className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed font-medium">
                       {ev.content}
                     </div>
                     {ev.data && Object.keys(ev.data).length > 0 && (
-                      <div className="text-[10px] font-mono bg-black/5 p-2 rounded dark:bg-white/5">
-                        {JSON.stringify(ev.data)}
+                      <div className="text-[10px] font-mono bg-white dark:bg-black/40 p-3 rounded-xl border border-slate-100 dark:border-slate-800/50 shadow-inner overflow-x-auto">
+                        {JSON.stringify(ev.data, null, 2)}
                       </div>
                     )}
                   </div>
@@ -341,38 +418,54 @@ export default function TraceStudio() {
             )}
           </div>
         ) : (
-          <div className="flex h-full flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-6">
-            <div className="w-20 h-20 rounded-2xl bg-slate-50 dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-800 shadow-sm">
-              <Layers size={40} className="text-slate-200 dark:text-slate-800" />
+          <div className="flex h-full flex-col items-center justify-center text-slate-400 dark:text-slate-500 gap-8">
+            <div className="relative">
+              <div className="absolute inset-0 bg-emerald-500/20 blur-3xl rounded-full" />
+              <div className="relative w-24 h-24 rounded-3xl bg-white dark:bg-slate-900 flex items-center justify-center border border-slate-100 dark:border-slate-800 shadow-2xl">
+                <Layers size={48} className="text-emerald-500" />
+              </div>
             </div>
-            <div className="text-center">
-              <p className="text-base font-semibold text-slate-600 dark:text-slate-300">
-                Welcome to Trace Studio
-              </p>
-              <p className="text-sm mt-1 max-w-xs mx-auto">
-                Select a trace session from the sidebar to explore the hierarchical execution tree
-                and performance metrics.
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Trace Studio Ready
+              </h3>
+              <p className="text-sm max-w-sm mx-auto text-slate-500 dark:text-slate-400 leading-relaxed">
+                Select an execution trace from the sidebar to visualize agent reasoning, tool usage,
+                and performance metrics in real-time.
               </p>
             </div>
-            <div className="flex gap-4 mt-2">
-              <div className="flex flex-col items-center gap-1">
-                <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-500 border border-emerald-100 dark:border-emerald-800">
-                  <Activity size={18} />
+            <div className="flex gap-6 mt-4">
+              {[
+                {
+                  icon: Activity,
+                  label: 'Performance',
+                  color: 'text-emerald-500',
+                  bg: 'bg-emerald-50 dark:bg-emerald-500/10',
+                },
+                {
+                  icon: Layers,
+                  label: 'Hierarchy',
+                  color: 'text-blue-500',
+                  bg: 'bg-blue-50 dark:bg-blue-500/10',
+                },
+                {
+                  icon: FileJson,
+                  label: 'Deep Inspect',
+                  color: 'text-amber-500',
+                  bg: 'bg-amber-50 dark:bg-amber-500/10',
+                },
+              ].map((item, i) => (
+                <div key={i} className="flex flex-col items-center gap-2 group cursor-default">
+                  <div
+                    className={`p-3 rounded-2xl ${item.bg} ${item.color} border border-transparent group-hover:border-current transition-all duration-300`}
+                  >
+                    <item.icon size={20} />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">
+                    {item.label}
+                  </span>
                 </div>
-                <span className="text-[10px] font-medium">Performance</span>
-              </div>
-              <div className="flex flex-col items-center gap-1">
-                <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-500 border border-blue-100 dark:border-blue-800">
-                  <Layers size={18} />
-                </div>
-                <span className="text-[10px] font-medium">Hierarchy</span>
-              </div>
-              <div className="flex flex-col items-center gap-1">
-                <div className="p-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-500 border border-amber-100 dark:border-amber-800">
-                  <FileJson size={18} />
-                </div>
-                <span className="text-[10px] font-medium">Raw Data</span>
-              </div>
+              ))}
             </div>
           </div>
         )}

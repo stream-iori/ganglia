@@ -34,19 +34,6 @@
 
     --radius: 0.5rem;
 
-    /* Light Theme (Inverted Slate) */
-    --color-slate-50: 2 6 23;
-    --color-slate-100: 15 23 42;
-    --color-slate-200: 30 41 59;
-    --color-slate-300: 51 65 85;
-    --color-slate-400: 71 85 105;
-    --color-slate-500: 100 116 139;
-    --color-slate-600: 148 163 184;
-    --color-slate-700: 203 213 225;
-    --color-slate-800: 226 232 240;
-    --color-slate-900: 241 245 249;
-    --color-slate-950: 248 250 252;
-
     /* Code Highlighting - Light */
     --code-bg: 241 245 249; /* slate-100 */
     --code-comment: 100 116 139; /* slate-500 */
@@ -86,19 +73,6 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
 
-    /* Dark Theme (Standard Slate) */
-    --color-slate-50: 248 250 252;
-    --color-slate-100: 241 245 249;
-    --color-slate-200: 226 232 240;
-    --color-slate-300: 203 213 225;
-    --color-slate-400: 148 163 184;
-    --color-slate-500: 100 116 139;
-    --color-slate-600: 71 85 105;
-    --color-slate-700: 51 65 85;
-    --color-slate-800: 30 41 59;
-    --color-slate-900: 15 23 42;
-    --color-slate-950: 2 6 23;
-
     /* Code Highlighting - Dark */
     --code-bg: 15 23 42; /* slate-900 */
     --code-comment: 148 163 184; /* slate-400 */
@@ -117,6 +91,24 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-slate-200 dark:bg-slate-800 rounded-full;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  @apply bg-slate-300 dark:bg-slate-700;
 }
 
 /* Prism Themed Overrides */
@@ -157,37 +149,6 @@ pre[class*='language-'] {
   color: rgb(var(--code-punctuation));
 }
 
-.token.namespace {
-  opacity: 0.7;
-}
-
-.token.property,
-.token.tag,
-.token.boolean,
-.token.number,
-.token.constant,
-.token.symbol,
-.token.deleted {
-  color: rgb(var(--code-function));
-}
-
-.token.selector,
-.token.attr-name,
-.token.string,
-.token.char,
-.token.builtin,
-.token.inserted {
-  color: rgb(var(--code-string));
-}
-
-.token.operator,
-.token.entity,
-.token.url,
-.language-css .token.string,
-.style .token.string {
-  @apply text-foreground;
-}
-
 .token.atrule,
 .token.attr-value,
 .token.keyword {
@@ -203,16 +164,4 @@ pre[class*='language-'] {
 .token.important,
 .token.variable {
   color: rgb(var(--code-variable));
-}
-
-.token.important,
-.token.bold {
-  font-weight: bold;
-}
-.token.italic {
-  font-style: italic;
-}
-
-.token.entity {
-  cursor: help;
 }
