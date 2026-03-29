@@ -53,6 +53,8 @@ public class DefaultConfigFactory {
             ConfigKeys.OBSERVABILITY,
             new JsonObject()
                 .put(ConfigKeys.ENABLED, true)
+                .put("webUIEnabled", true)
+                .put("port", 8081)
                 .put(ConfigKeys.TRACE_PATH, Constants.DIR_TRACE))
         .put(
             ConfigKeys.WEBUI,

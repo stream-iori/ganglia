@@ -32,6 +32,7 @@ import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.CorsHandler;
 import io.vertx.ext.web.handler.StaticHandler;
@@ -256,6 +257,56 @@ public class WebUIVerticle extends AbstractVerticle {
     router.route().handler(StaticHandler.create(resolvedWebroot).setIndexPage("index.html"));
 
     return router;
+  }
+
+  private void handleListTraceFiles(RoutingContext ctx) {
+    String traceDir = ".ganglia/trace";
+    vertx
+        .fileSystem()
+        .readDir(traceDir, ".*\\.jsonl")
+        .onSuccess(
+            files -> {
+              JsonArray result = new JsonArray();
+              for (String f : files) {
+                result.add(Path.of(f).getFileName().toString());
+              }
+              ctx.response().putHeader("content-type", "application/json").end(result.encode());
+            })
+        .onFailure(
+            err -> {
+              ctx.response().putHeader("content-type", "application/json").end("[]");
+            });
+  }
+
+  private void handleGetTraceFile(RoutingContext ctx) {
+    String filename = ctx.pathParam("filename");
+    if (filename == null || filename.contains("..") || !filename.endsWith(".jsonl")) {
+      ctx.response().setStatusCode(400).end();
+      return;
+    }
+    String filepath = ".ganglia/trace/" + filename;
+    vertx
+        .fileSystem()
+        .readFile(filepath)
+        .onSuccess(
+            buffer -> {
+              String content = buffer.toString("UTF-8");
+              JsonArray arr = new JsonArray();
+              for (String line : content.split("\n")) {
+                if (!line.trim().isEmpty()) {
+                  try {
+                    arr.add(new JsonObject(line));
+                  } catch (Exception e) {
+                    logger.warn("Failed to parse trace line: {}", line);
+                  }
+                }
+              }
+              ctx.response().putHeader("content-type", "application/json").end(arr.encode());
+            })
+        .onFailure(
+            err -> {
+              ctx.response().setStatusCode(404).end();
+            });
   }
 
   private void handleWebSocketHandshake(io.vertx.core.http.ServerWebSocketHandshake handshake) {
