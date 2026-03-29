@@ -23,6 +23,7 @@ import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.chat.Turn;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.port.internal.prompt.ContextBudget;
 import work.ganglia.util.TokenCounter;
 
 @ExtendWith(VertxExtension.class)
@@ -392,6 +393,72 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
                         assertTrue(
                             result.previousTurns().stream()
                                 .anyMatch(t -> t.id().startsWith("summary-")));
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
+  void compressionUsesBudgetTarget(VertxTestContext testContext) {
+    // Use a budget with a very large compressionTarget so all turns fit
+    ContextBudget budget = ContextBudget.from(200000, 4096);
+    DefaultContextOptimizer optimizer =
+        new DefaultContextOptimizer(
+            modelConfig(200000),
+            agentConfig(0.001),
+            simpleCompressor(),
+            new TokenCounter(),
+            null,
+            budget);
+
+    SessionContext ctx = createSessionContext();
+    List<Turn> turns = new ArrayList<>();
+    for (int i = 0; i < 5; i++) {
+      turns.add(
+          Turn.newTurn("t" + i, Message.user("msg" + i))
+              .withResponse(Message.assistant("resp" + i)));
+    }
+    SessionContext withHistory = ctx.withPreviousTurns(turns);
+
+    optimizer
+        .optimizeIfNeeded(withHistory)
+        .onComplete(
+            testContext.succeeding(
+                result -> {
+                  testContext.verify(
+                      () -> {
+                        // Large budget → all 5 turns fit within compressionTarget
+                        assertEquals(5, result.previousTurns().size());
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
+  void compressionFallbackWithoutBudget(VertxTestContext testContext) {
+    // No budget passed → falls back to 0.5 × limit
+    DefaultContextOptimizer optimizer =
+        new DefaultContextOptimizer(
+            modelConfig(200000), agentConfig(0.001), simpleCompressor(), new TokenCounter());
+
+    SessionContext ctx = createSessionContext();
+    List<Turn> turns = new ArrayList<>();
+    for (int i = 0; i < 5; i++) {
+      turns.add(
+          Turn.newTurn("t" + i, Message.user("msg" + i))
+              .withResponse(Message.assistant("resp" + i)));
+    }
+    SessionContext withHistory = ctx.withPreviousTurns(turns);
+
+    optimizer
+        .optimizeIfNeeded(withHistory)
+        .onComplete(
+            testContext.succeeding(
+                result -> {
+                  testContext.verify(
+                      () -> {
+                        // Fallback 0.5 × 200000 = 100000 → all 5 small turns fit
+                        assertEquals(5, result.previousTurns().size());
                         testContext.completeNow();
                       });
                 }));

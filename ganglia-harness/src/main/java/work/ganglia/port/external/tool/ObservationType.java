@@ -75,5 +75,8 @@ public enum ObservationType {
   TOKEN_USAGE_RECORDED,
 
   /** Memory system completed processing an event. */
-  MEMORY_UPDATED
+  MEMORY_UPDATED,
+
+  /** ContextBudget has been computed and allocated for a session. */
+  CONTEXT_BUDGET_ALLOCATED
 }

@@ -49,6 +49,8 @@ function getTypeColor(type: string) {
     return 'bg-amber-50 text-amber-700 border-amber-100 dark:bg-amber-950/30 dark:text-amber-400 dark:border-amber-900/50';
   if (type.includes('MODEL') || type.includes('REASON'))
     return 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50';
+  if (type.includes('BUDGET'))
+    return 'bg-blue-50 text-blue-700 border-blue-100 dark:bg-blue-950/30 dark:text-blue-400 dark:border-blue-900/50';
   if (type.includes('COMPRESS'))
     return 'bg-emerald-50 text-emerald-700 border-emerald-100 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50';
   if (type.includes('SESSION'))
@@ -62,7 +64,8 @@ function typeLabel(type: string) {
   return type
     .replace('_STARTED', '')
     .replace('_FINISHED', '')
-    .replace('_RECORDED', '');
+    .replace('_RECORDED', '')
+    .replace('_ALLOCATED', '');
 }
 
 function buildTreeForSession(events: TraceEvent[]): { tree: SpanNode[]; flat: TraceEvent[] } {
@@ -143,9 +146,7 @@ export default function TraceStudio() {
         .then((res) => res.json())
         .then((data: TraceEvent[]) => {
           setEvents(data);
-          const allSpans = data
-            .filter((ev) => ev.spanId)
-            .map((ev) => ev.spanId!);
+          const allSpans = data.filter((ev) => ev.spanId).map((ev) => ev.spanId!);
           setExpandedSpans(new Set(allSpans));
         })
         .catch((err) => console.error(err));
@@ -358,15 +359,123 @@ export default function TraceStudio() {
                 <CheckCircle2 size={14} className="text-emerald-500 mt-0.5 shrink-0" />
               )}
               <div className="text-sm text-slate-900 dark:text-slate-100 font-sans font-medium break-words">
-                {node.startEvent.type === 'CONTEXT_COMPRESSED'
-                  ? 'Context Compression'
-                  : displayContent || (node.startEvent.type === 'REASONING_STARTED' ? 'Thinking...' : '')}
+                {node.startEvent.type === 'CONTEXT_BUDGET_ALLOCATED'
+                  ? 'Context Budget Allocated'
+                  : node.startEvent.type === 'CONTEXT_COMPRESSED'
+                    ? 'Context Compression'
+                    : displayContent ||
+                      (node.startEvent.type === 'REASONING_STARTED' ? 'Thinking...' : '')}
               </div>
             </div>
 
             {ev.data && Object.keys(ev.data).length > 0 && isExpanded && (
               <div className="mt-3 text-[11px] text-slate-600 dark:text-slate-400 font-mono bg-white dark:bg-black/20 border border-slate-100 dark:border-slate-800/50 p-3 rounded-lg overflow-hidden shadow-inner">
-                {node.startEvent.type === 'CONTEXT_COMPRESSED' ? (
+                {node.startEvent.type === 'CONTEXT_BUDGET_ALLOCATED' ? (
+                  (() => {
+                    const d = ev.data;
+                    const ctxLimit = d.contextLimit as number;
+                    const maxGen = d.maxGenerationTokens as number;
+                    const available = ctxLimit - maxGen;
+                    const sys = d.systemPromptBudget as number;
+                    const hist = d.historyBudget as number;
+                    const tool = d.toolOutputBudget as number;
+                    const obs = d.observationFallback as number;
+                    const comp = d.compressionTarget as number;
+
+                    const pct = (v: number) =>
+                      available > 0 ? ((v / available) * 100).toFixed(1) : '0';
+                    const segments = [
+                      { label: 'System Prompt', value: sys, color: 'bg-blue-500' },
+                      { label: 'History', value: hist, color: 'bg-emerald-500' },
+                      { label: 'Tool Output', value: tool, color: 'bg-amber-500' },
+                      { label: 'Obs. Fallback', value: obs, color: 'bg-purple-500' },
+                    ];
+
+                    return (
+                      <div className="space-y-4">
+                        {/* Summary table */}
+                        <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
+                          {[
+                            ['Context Limit', ctxLimit],
+                            ['Max Generation', maxGen],
+                            ['Available', available],
+                            ['System Prompt', sys],
+                            ['History', hist],
+                            ['Tool Output/msg', tool],
+                            ['Obs. Fallback', obs],
+                            ['Compression Target', comp],
+                          ].map(([label, val]) => (
+                            <div key={label as string} className="flex justify-between">
+                              <span className="text-slate-400 uppercase text-[9px] font-bold">
+                                {label as string}
+                              </span>
+                              <span className="text-blue-600 dark:text-blue-400 font-bold">
+                                {(val as number).toLocaleString()}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Horizontal stacked bar chart */}
+                        <div>
+                          <div className="text-[9px] text-slate-400 uppercase font-bold mb-1.5">
+                            Budget Allocation
+                          </div>
+                          <div className="relative h-7 flex rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                            {segments.map((seg) => (
+                              <div
+                                key={seg.label}
+                                className={`${seg.color} opacity-80 hover:opacity-100 transition-opacity relative group`}
+                                style={{
+                                  width: `${pct(seg.value)}%`,
+                                  minWidth: seg.value > 0 ? '2px' : '0',
+                                }}
+                                title={`${seg.label}: ${seg.value.toLocaleString()} (${pct(seg.value)}%)`}
+                              >
+                                {parseFloat(pct(seg.value)) > 8 && (
+                                  <span className="absolute inset-0 flex items-center justify-center text-white text-[8px] font-bold truncate px-1">
+                                    {seg.label}
+                                  </span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                          {/* Compression target marker */}
+                          {available > 0 && (
+                            <div className="relative h-1 mt-0.5">
+                              <div
+                                className="absolute top-0 h-3 border-l-2 border-dashed border-slate-400 dark:border-slate-500"
+                                style={{ left: `${pct(comp)}%` }}
+                                title={`Compression target: ${comp.toLocaleString()} (${pct(comp)}%)`}
+                              />
+                              <span
+                                className="absolute text-[8px] text-slate-400 font-bold top-3"
+                                style={{ left: `${pct(comp)}%`, transform: 'translateX(-50%)' }}
+                              >
+                                compress: {pct(comp)}%
+                              </span>
+                            </div>
+                          )}
+                          {/* Legend */}
+                          <div className="flex flex-wrap gap-3 mt-5 text-[9px]">
+                            {segments.map((seg) => (
+                              <div key={seg.label} className="flex items-center gap-1.5">
+                                <div className={`w-2.5 h-2.5 rounded-sm ${seg.color} opacity-80`} />
+                                <span className="text-slate-500">
+                                  {seg.label}:{' '}
+                                  <b className="text-slate-700 dark:text-slate-300">
+                                    {seg.value.toLocaleString()}
+                                  </b>{' '}
+                                  ({pct(seg.value)}%)
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : node.startEvent.type === 'CONTEXT_COMPRESSED' ? (
                   <div className="flex flex-wrap gap-4">
                     {ev.data.beforeTokens !== undefined && (
                       <span className="flex items-center gap-1.5">
@@ -484,15 +593,11 @@ export default function TraceStudio() {
         </div>
 
         {result.tree.length > 0 && (
-          <div className="space-y-1">
-            {result.tree.map((node) => renderSpan(node))}
-          </div>
+          <div className="space-y-1">{result.tree.map((node) => renderSpan(node))}</div>
         )}
 
         {result.flat.length > 0 && (
-          <div className="space-y-4 mt-4">
-            {result.flat.map((ev, i) => renderFlatEvent(ev, i))}
-          </div>
+          <div className="space-y-4 mt-4">{result.flat.map((ev, i) => renderFlatEvent(ev, i))}</div>
         )}
 
         {result.tree.length === 0 && result.flat.length === 0 && (
@@ -530,11 +635,7 @@ export default function TraceStudio() {
             }`}
           >
             <Radio size={14} className={liveMode ? 'animate-pulse' : ''} />
-            {liveMode
-              ? wsConnected
-                ? 'Live'
-                : 'Reconnecting...'
-              : 'Connect Live'}
+            {liveMode ? (wsConnected ? 'Live' : 'Reconnecting...') : 'Connect Live'}
           </button>
         </div>
 
@@ -585,11 +686,13 @@ export default function TraceStudio() {
             <header className="flex justify-between items-end mb-10 border-b border-slate-100 dark:border-slate-800 pb-8">
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <span className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider border ${
-                    liveMode
-                      ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'
-                      : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
-                  }`}>
+                  <span
+                    className={`px-2 py-0.5 text-[10px] font-bold rounded uppercase tracking-wider border ${
+                      liveMode
+                        ? 'bg-red-500/10 text-red-600 dark:text-red-400 border-red-500/20'
+                        : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+                    }`}
+                  >
                     {liveMode ? 'Live Stream' : 'Trace File'}
                   </span>
                 </div>

@@ -16,6 +16,7 @@ import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.chat.Turn;
 import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.port.internal.prompt.ContextBudget;
 import work.ganglia.port.internal.state.ContextOptimizer;
 import work.ganglia.port.internal.state.ObservationDispatcher;
 import work.ganglia.util.TokenCounter;
@@ -28,13 +29,14 @@ public class DefaultContextOptimizer implements ContextOptimizer {
   private final ContextCompressor compressor;
   private final TokenCounter tokenCounter;
   private final ObservationDispatcher dispatcher;
+  private final ContextBudget budget;
 
   public DefaultContextOptimizer(
       ModelConfigProvider modelConfig,
       AgentConfigProvider agentConfig,
       ContextCompressor compressor,
       TokenCounter tokenCounter) {
-    this(modelConfig, agentConfig, compressor, tokenCounter, null);
+    this(modelConfig, agentConfig, compressor, tokenCounter, null, null);
   }
 
   public DefaultContextOptimizer(
@@ -43,11 +45,22 @@ public class DefaultContextOptimizer implements ContextOptimizer {
       ContextCompressor compressor,
       TokenCounter tokenCounter,
       ObservationDispatcher dispatcher) {
+    this(modelConfig, agentConfig, compressor, tokenCounter, dispatcher, null);
+  }
+
+  public DefaultContextOptimizer(
+      ModelConfigProvider modelConfig,
+      AgentConfigProvider agentConfig,
+      ContextCompressor compressor,
+      TokenCounter tokenCounter,
+      ObservationDispatcher dispatcher,
+      ContextBudget budget) {
     this.modelConfig = modelConfig;
     this.agentConfig = agentConfig;
     this.compressor = compressor;
     this.tokenCounter = tokenCounter;
     this.dispatcher = dispatcher;
+    this.budget = budget;
   }
 
   @Override
@@ -82,6 +95,9 @@ public class DefaultContextOptimizer implements ContextOptimizer {
         Map<String, Object> startData = new java.util.HashMap<>();
         startData.put("beforeTokens", totalTokens);
         startData.put("contextLimit", limit);
+        startData.put(
+            "compressionTarget", budget != null ? budget.compressionTarget() : (int) (limit * 0.5));
+        startData.put("historyBudget", budget != null ? budget.history() : -1);
         dispatcher.dispatch(
             context.sessionId(),
             ObservationType.CONTEXT_COMPRESSED,
@@ -121,8 +137,8 @@ public class DefaultContextOptimizer implements ContextOptimizer {
 
   private int calculateTurnsToKeep(SessionContext context) {
     int limit = modelConfig.getContextLimit();
-    // After compression, target 50% of context limit to leave room for new interactions
-    int targetTokens = (int) (limit * 0.5);
+    // After compression, target ~50% of available budget to leave room for new interactions
+    int targetTokens = budget != null ? budget.compressionTarget() : (int) (limit * 0.5);
     List<Turn> turns = context.previousTurns();
     int accumulatedTokens = 0;
     int keep = 0;

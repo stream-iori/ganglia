@@ -276,4 +276,23 @@ class ObservationCompressionHookTest extends BaseGangliaTest {
     assertTrue(
         wouldTruncate, "Uncapped message with long content should be eligible for truncation");
   }
+
+  // ── Dynamic truncation limit from ContextBudget ───────────────────────────
+
+  @Test
+  @DisplayName("TokenAwareTruncator with different limits produces different truncation behaviour")
+  void truncationRespectsDynamicLimit() {
+    String input = "word ".repeat(200); // ~200 tokens
+    TokenCounter counter = new TokenCounter();
+
+    // Tight limit → truncation occurs
+    TokenAwareTruncator tight = new TokenAwareTruncator(counter, 10);
+    String tightResult = tight.truncate(input, "read_file");
+    assertTrue(tightResult.length() < input.length(), "Tight limit should truncate");
+
+    // Generous limit → no truncation
+    TokenAwareTruncator generous = new TokenAwareTruncator(counter, 500);
+    String generousResult = generous.truncate(input, "read_file");
+    assertEquals(input, generousResult, "Generous limit should not truncate");
+  }
 }

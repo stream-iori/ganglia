@@ -1,5 +1,6 @@
 package work.ganglia.it;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -27,14 +28,18 @@ import io.vertx.junit5.VertxExtension;
 import io.vertx.junit5.VertxTestContext;
 
 import work.ganglia.BootstrapOptions;
+import work.ganglia.Ganglia;
 import work.ganglia.coding.CodingAgentBuilder;
+import work.ganglia.kernel.loop.AgentLoopObserver;
 import work.ganglia.port.chat.Role;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.external.tool.CommandExecutor;
+import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.external.tool.ToolCall;
+import work.ganglia.port.internal.prompt.ContextBudget;
 import work.ganglia.port.internal.state.TokenUsage;
 import work.ganglia.util.VertxProcess;
 
@@ -86,16 +91,30 @@ class TruncationIT {
   // Helpers
   // -------------------------------------------------------------------------
 
-  private Future<work.ganglia.Ganglia> bootstrapWithExecutor(Vertx vertx, CommandExecutor executor)
+  private Future<Ganglia> bootstrapWithExecutor(Vertx vertx, CommandExecutor executor)
+      throws IOException {
+    return bootstrapWithExecutor(vertx, executor, null, List.of());
+  }
+
+  private Future<Ganglia> bootstrapWithExecutor(
+      Vertx vertx,
+      CommandExecutor executor,
+      JsonObject modelOverride,
+      List<AgentLoopObserver> observers)
       throws IOException {
     String projectRoot = tempDir.toRealPath().toString();
+    JsonObject config = new JsonObject().put("webui", new JsonObject().put("enabled", false));
+    if (modelOverride != null) {
+      config.mergeIn(modelOverride, true);
+    }
     return CodingAgentBuilder.bootstrap(
         vertx,
         BootstrapOptions.builder()
             .projectRoot(projectRoot)
             .modelGatewayOverride(mockModel)
             .commandExecutor(executor)
-            .overrideConfig(new JsonObject().put("webui", new JsonObject().put("enabled", false)))
+            .overrideConfig(config)
+            .extraObservers(observers)
             .build());
   }
 
@@ -266,6 +285,61 @@ class TruncationIT {
                                   + captured
                                       .get()
                                       .substring(0, Math.min(300, captured.get().length())));
+                          testContext.completeNow();
+                        })));
+  }
+
+  // -------------------------------------------------------------------------
+  // Budget-aware: budget event emitted with self-consistent values
+  // -------------------------------------------------------------------------
+
+  @Test
+  void budgetEventEmittedDuringTruncation(Vertx vertx, VertxTestContext testContext)
+      throws IOException {
+
+    List<Map<String, Object>> captured = new java.util.concurrent.CopyOnWriteArrayList<>();
+    AgentLoopObserver observer =
+        new AgentLoopObserver() {
+          @Override
+          public void onObservation(
+              String sessionId, ObservationType type, String content, Map<String, Object> data) {
+            if (type == ObservationType.CONTEXT_BUDGET_ALLOCATED) {
+              captured.add(data);
+            }
+          }
+
+          @Override
+          public void onUsageRecorded(String sessionId, TokenUsage usage) {}
+        };
+
+    AtomicReference<String> capRef = stubChatStreamWithShellCall("c-budget", "echo hi");
+    CommandExecutor smallExecutor = executorReturning(new VertxProcess.Result(0, "ok"));
+
+    bootstrapWithExecutor(vertx, smallExecutor, null, List.of(observer))
+        .compose(
+            g -> {
+              SessionContext ctx = g.sessionManager().createSession("budget-truncation-test");
+              return g.agentLoop().run("Test budget", ctx);
+            })
+        .onComplete(
+            testContext.succeeding(
+                ignored ->
+                    testContext.verify(
+                        () -> {
+                          assertFalse(captured.isEmpty(), "Budget event must be emitted");
+                          Map<String, Object> data = captured.get(0);
+
+                          // Verify fields are self-consistent with ContextBudget.from()
+                          int ctxLimit = (Integer) data.get("contextLimit");
+                          int maxGen = (Integer) data.get("maxGenerationTokens");
+                          ContextBudget expected = ContextBudget.from(ctxLimit, maxGen);
+                          assertEquals(
+                              (Integer) expected.observationFallback(),
+                              data.get("observationFallback"));
+                          assertEquals((Integer) expected.history(), data.get("historyBudget"));
+                          assertEquals(
+                              (Integer) expected.compressionTarget(),
+                              data.get("compressionTarget"));
                           testContext.completeNow();
                         })));
   }

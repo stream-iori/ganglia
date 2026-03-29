@@ -3,6 +3,9 @@ package work.ganglia.infrastructure.internal.prompt;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -18,6 +21,7 @@ import work.ganglia.port.external.llm.LLMRequest;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.tool.*;
 import work.ganglia.port.internal.memory.MemoryService;
+import work.ganglia.port.internal.prompt.ContextBudget;
 import work.ganglia.port.internal.prompt.ContextFragment;
 import work.ganglia.port.internal.prompt.ContextSource;
 import work.ganglia.port.internal.prompt.GuidelineContextSource;
@@ -29,7 +33,6 @@ import work.ganglia.util.TokenCounter;
 
 /** Standard implementation of PromptEngine using the ContextEngine mechanism. */
 public class StandardPromptEngine implements PromptEngine {
-  private static final int MAX_TOOL_OUTPUT_TOKENS = 4000;
 
   private final List<ContextSource> sources = new ArrayList<>();
   private final ContextComposer composer;
@@ -39,7 +42,10 @@ public class StandardPromptEngine implements PromptEngine {
   private final MemoryService memoryService;
   private final SkillRuntime skillRuntime;
   private final work.ganglia.config.ModelConfigProvider modelConfigProvider;
+  private final ContextBudget budget;
   private AgentTaskFactory taskFactory;
+  private ObservationDispatcher dispatcher;
+  private final Set<String> budgetEmittedSessions = ConcurrentHashMap.newKeySet();
 
   public StandardPromptEngine(
       Vertx vertx,
@@ -68,7 +74,10 @@ public class StandardPromptEngine implements PromptEngine {
       work.ganglia.config.ModelConfigProvider modelConfigProvider) {
     this.tokenCounter = tokenCounter;
     this.composer = new ContextComposer(this.tokenCounter);
-    this.toolOutputTruncator = new TokenAwareTruncator(tokenCounter, MAX_TOOL_OUTPUT_TOKENS);
+    this.budget =
+        ContextBudget.from(
+            modelConfigProvider.getContextLimit(), modelConfigProvider.getMaxTokens());
+    this.toolOutputTruncator = new TokenAwareTruncator(tokenCounter, budget.toolOutputPerMessage());
     this.taskFactory = taskFactory;
     this.vertx = vertx;
     this.memoryService = memoryService;
@@ -126,6 +135,14 @@ public class StandardPromptEngine implements PromptEngine {
     this.sources.add(source);
   }
 
+  public void setDispatcher(ObservationDispatcher dispatcher) {
+    this.dispatcher = dispatcher;
+  }
+
+  public ContextBudget getBudget() {
+    return budget;
+  }
+
   @Override
   public Future<String> buildSystemPrompt(SessionContext context) {
     List<Future<List<ContextFragment>>> futures =
@@ -133,7 +150,7 @@ public class StandardPromptEngine implements PromptEngine {
 
     return Future.join(futures)
         .map(v -> futures.stream().map(Future::result).flatMap(List::stream).toList())
-        .map(allFragments -> composer.compose(allFragments, 2000));
+        .map(allFragments -> composer.compose(allFragments, budget.systemPrompt()));
   }
 
   @Override
@@ -146,8 +163,24 @@ public class StandardPromptEngine implements PromptEngine {
               modelHistory.add(Message.system(systemPromptContent));
 
               // 2. Prune and add session history
+              // Emit budget event once per session
+              if (dispatcher != null && budgetEmittedSessions.add(context.sessionId())) {
+                dispatcher.dispatch(
+                    context.sessionId(),
+                    ObservationType.CONTEXT_BUDGET_ALLOCATED,
+                    "context_budget_allocated",
+                    Map.of(
+                        "contextLimit", budget.contextLimit(),
+                        "maxGenerationTokens", budget.maxGenerationTokens(),
+                        "systemPromptBudget", budget.systemPrompt(),
+                        "historyBudget", budget.history(),
+                        "toolOutputBudget", budget.toolOutputPerMessage(),
+                        "observationFallback", budget.observationFallback(),
+                        "compressionTarget", budget.compressionTarget()));
+              }
+
               List<Message> prunedHistory =
-                  context.getPrunedHistory(2000, tokenCounter); // Keep last 2000 tokens of history
+                  context.getPrunedHistory(budget.history(), tokenCounter);
               modelHistory.addAll(capToolMessages(sanitizeHistory(prunedHistory)));
 
               // 3. Resolve Model Options
@@ -176,9 +209,10 @@ public class StandardPromptEngine implements PromptEngine {
   }
 
   /**
-   * Caps oversized TOOL messages to {@link #MAX_TOOL_OUTPUT_TOKENS} tokens so they don't consume
-   * the entire context window. Messages already capped by {@code ObservationCompressionHook} (i.e.
-   * {@link Message.ToolObservation#outputCapped()} is true) are skipped to avoid double-truncation.
+   * Caps oversized TOOL messages to {@code budget.toolOutputPerMessage()} tokens so they don't
+   * consume the entire context window. Messages already capped by {@code
+   * ObservationCompressionHook} (i.e. {@link Message.ToolObservation#outputCapped()} is true) are
+   * skipped to avoid double-truncation.
    */
   private List<Message> capToolMessages(List<Message> messages) {
     return messages.stream()

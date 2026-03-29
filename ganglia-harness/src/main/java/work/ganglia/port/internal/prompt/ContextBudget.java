@@ -1,0 +1,53 @@
+package work.ganglia.port.internal.prompt;
+
+/**
+ * Unified token-budget allocation derived from the model's context window. Replaces all hardcoded
+ * token constants previously scattered across StandardPromptEngine, DefaultContextOptimizer and
+ * GangliaKernel.
+ *
+ * @param contextLimit original context window size
+ * @param maxGenerationTokens tokens reserved for model generation
+ * @param systemPrompt system prompt fragments upper bound
+ * @param history getPrunedHistory budget
+ * @param toolOutputPerMessage single tool output upper bound
+ * @param observationFallback ObservationCompressionHook degraded-truncation upper bound
+ * @param compressionTarget DefaultContextOptimizer post-compression retention target
+ */
+public record ContextBudget(
+    int contextLimit,
+    int maxGenerationTokens,
+    int systemPrompt,
+    int history,
+    int toolOutputPerMessage,
+    int observationFallback,
+    int compressionTarget) {
+
+  /**
+   * Derives a complete budget from the raw context-window size and generation reserve.
+   *
+   * <p>Allocation fractions (of {@code available = contextLimit - maxGenerationTokens}):
+   *
+   * <ul>
+   *   <li>systemPrompt: 5 % (clamped 1 500 – 8 000)
+   *   <li>history: 80 % (clamped 2 000 – 200 000)
+   *   <li>toolOutputPerMessage: 4 % (clamped 2 000 – 16 000)
+   *   <li>observationFallback: 2 % (clamped 1 000 – 4 000)
+   *   <li>compressionTarget: 50 % (clamped 2 000 – 250 000)
+   * </ul>
+   */
+  public static ContextBudget from(int contextLimit, int maxGenerationTokens) {
+    int available = contextLimit - maxGenerationTokens;
+    return new ContextBudget(
+        contextLimit,
+        maxGenerationTokens,
+        clamp((int) (available * 0.05), 1500, 8000),
+        clamp((int) (available * 0.80), 2000, 200000),
+        clamp((int) (available * 0.04), 2000, 16000),
+        clamp((int) (available * 0.02), 1000, 4000),
+        clamp((int) (available * 0.50), 2000, 250000));
+  }
+
+  private static int clamp(int value, int min, int max) {
+    return Math.max(min, Math.min(max, value));
+  }
+}

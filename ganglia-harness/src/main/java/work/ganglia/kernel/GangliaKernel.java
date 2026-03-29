@@ -52,6 +52,7 @@ import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.internal.memory.MemorySystem;
 import work.ganglia.port.internal.memory.MemorySystemConfig;
 import work.ganglia.port.internal.memory.MemorySystemProvider;
+import work.ganglia.port.internal.prompt.ContextBudget;
 import work.ganglia.port.internal.skill.SkillLoader;
 import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.skill.SkillService;
@@ -212,14 +213,15 @@ public class GangliaKernel {
       dispatcher.register(observer);
     }
 
+    ContextBudget budget =
+        ContextBudget.from(configManager.getContextLimit(), configManager.getMaxTokens());
+
     InterceptorPipeline pipeline = new InterceptorPipeline();
     pipeline.addInterceptor(
         new ObservationCompressionHook(
             memory.observationCompressor(),
             memory.memoryStore(),
-            // 1 500 tokens keeps a degraded turn well within the 2 000-token history budget,
-            // so one LLM-compression failure does not crowd out all other turns.
-            new TokenAwareTruncator(tokenCounter, 1500),
+            new TokenAwareTruncator(tokenCounter, budget.observationFallback()),
             vertx,
             projectRoot));
 
@@ -233,6 +235,7 @@ public class GangliaKernel {
             tokenCounter,
             options.extraContextSources(),
             configManager);
+    promptEngine.setDispatcher(dispatcher);
     promptEngine.addContextSource(
         new DailyContextSource(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString()));
     promptEngine.addContextSource(memory.memoryContextSource());
@@ -270,7 +273,12 @@ public class GangliaKernel {
     ConsecutiveFailurePolicy failurePolicy = new ConsecutiveFailurePolicy();
     DefaultContextOptimizer contextOptimizer =
         new DefaultContextOptimizer(
-            configManager, configManager, memory.contextCompressor(), tokenCounter);
+            configManager,
+            configManager,
+            memory.contextCompressor(),
+            tokenCounter,
+            dispatcher,
+            budget);
 
     // 1. Build AgentEnv first (with taskFactory = null initially)
     AgentEnv env =
