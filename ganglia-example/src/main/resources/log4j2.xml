@@ -21,10 +21,22 @@
             </Policies>
             <DefaultRolloverStrategy max="5"/>
         </RollingFile>
+        <RollingFile name="MCPLogFile" fileName=".ganglia/logs/mcp.log"
+                     filePattern=".ganglia/logs/mcp-%d{yyyy-MM-dd}.log.gz">
+            <PatternLayout pattern="%d{yyyy-MM-dd HH:mm:ss.SSS} [%t] %-5level %logger{36} - %msg%n"/>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+                <SizeBasedTriggeringPolicy size="100 MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="10"/>
+        </RollingFile>
     </Appenders>
     <Loggers>
         <Logger name="LLM_LOG" level="info" additivity="false">
             <AppenderRef ref="LLMLogFile"/>
+        </Logger>
+        <Logger name="work.ganglia.infrastructure.mcp.transport" level="debug" additivity="false">
+            <AppenderRef ref="MCPLogFile"/>
         </Logger>
         <Logger name="me.stream.ganglia.core.llm" level="debug" additivity="false">
             <AppenderRef ref="Console" level="info"/>

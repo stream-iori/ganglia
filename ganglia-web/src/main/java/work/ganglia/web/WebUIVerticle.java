@@ -379,8 +379,14 @@ public class WebUIVerticle extends AbstractVerticle {
   }
 
   private void handleStart(JsonRpcRequest request, ServerWebSocket ws, String sessionId) {
+    if (activeSessions.contains(sessionId)) {
+      sendRpcResponse(ws, request.id(), new JsonObject().put("status", "busy"));
+      return;
+    }
+
     String prompt = request.params().getString("prompt");
     lastPrompts.put(sessionId, prompt);
+    activeSessions.add(sessionId);
 
     ServerEvent userEvent =
         createServerEvent(EventType.USER_MESSAGE, new ServerEvent.UserMessageData(prompt));
@@ -394,21 +400,35 @@ public class WebUIVerticle extends AbstractVerticle {
         .onComplete(
             res -> {
               if (res.succeeded()) {
-                agentLoop.run(prompt, res.result(), new AgentSignal());
+                agentLoop
+                    .run(prompt, res.result(), new AgentSignal())
+                    .onComplete(ar -> activeSessions.remove(sessionId));
+              } else {
+                activeSessions.remove(sessionId);
               }
             });
     sendRpcResponse(ws, request.id(), new JsonObject().put("status", "started"));
   }
 
   private void handleRetry(JsonRpcRequest request, ServerWebSocket ws, String sessionId) {
+    if (activeSessions.contains(sessionId)) {
+      sendRpcResponse(ws, request.id(), new JsonObject().put("status", "busy"));
+      return;
+    }
+
     String lastPrompt = lastPrompts.get(sessionId);
     if (lastPrompt != null) {
+      activeSessions.add(sessionId);
       sessionManager
           .getSession(sessionId)
           .onComplete(
               res -> {
                 if (res.succeeded() && res.result() != null) {
-                  agentLoop.run(lastPrompt, res.result(), new AgentSignal());
+                  agentLoop
+                      .run(lastPrompt, res.result(), new AgentSignal())
+                      .onComplete(ar -> activeSessions.remove(sessionId));
+                } else {
+                  activeSessions.remove(sessionId);
                 }
               });
     }
@@ -450,12 +470,17 @@ public class WebUIVerticle extends AbstractVerticle {
 
     String userInput = formattedAnswers.toString();
 
+    activeSessions.add(sessionId);
     sessionManager
         .getSession(sessionId)
         .onComplete(
             res -> {
               if (res.succeeded() && res.result() != null) {
-                agentLoop.resume(askId, userInput, res.result(), new AgentSignal());
+                agentLoop
+                    .resume(askId, userInput, res.result(), new AgentSignal())
+                    .onComplete(ar -> activeSessions.remove(sessionId));
+              } else {
+                activeSessions.remove(sessionId);
               }
             });
     sendRpcResponse(ws, request.id(), new JsonObject().put("status", "resumed"));

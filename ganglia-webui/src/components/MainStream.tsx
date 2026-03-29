@@ -74,7 +74,10 @@ const MainStream: React.FC = () => {
     }
   }, [systemStore]);
 
-  const isBlocked = useMemo(() => !!systemStore.activeAskId, [systemStore.activeAskId]);
+  const isBlocked = useMemo(
+    () => !!systemStore.activeAskId || isSending,
+    [systemStore.activeAskId, isSending],
+  );
 
   const typingStatus = useMemo(() => {
     const lastEvent = logStore.events[logStore.events.length - 1];
@@ -101,7 +104,8 @@ const MainStream: React.FC = () => {
 
   const sendMessage = useCallback(() => {
     if (!prompt.trim() || isBlocked) return;
-    eventBusService.send('START', { prompt });
+    setIsSending(true);
+    eventBusService.send('START', { prompt }).finally(() => setIsSending(false));
     setPrompt('');
     setIsScrolledToBottom(true);
     scrollToBottom();

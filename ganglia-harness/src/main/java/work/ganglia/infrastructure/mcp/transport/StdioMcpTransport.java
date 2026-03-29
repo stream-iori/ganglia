@@ -84,7 +84,7 @@ public class StdioMcpTransport
                   });
 
               // Handle stderr
-              vp.stderr().handler(buf -> log.error("[MCP-STDERR] {}", buf.toString().trim()));
+              vp.stderr().handler(buf -> log.warn("[MCP-STDERR] {}", buf.toString().trim()));
 
               return null;
             });

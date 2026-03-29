@@ -52,7 +52,7 @@ public class DefaultConfigFactory {
         .put(
             ConfigKeys.OBSERVABILITY,
             new JsonObject()
-                .put(ConfigKeys.ENABLED, false)
+                .put(ConfigKeys.ENABLED, true)
                 .put(ConfigKeys.TRACE_PATH, Constants.DIR_TRACE))
         .put(
             ConfigKeys.WEBUI,
