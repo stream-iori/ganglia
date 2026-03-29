@@ -29,6 +29,7 @@ const MainStream: React.FC = () => {
 
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true);
   const [hasNewContent, setHasNewContent] = useState(false);
+  const [isSending, setIsSending] = useState(false);
   const lastEventCountRef = useRef(logStore.events.length);
   const lastStreamingMsgRef = useRef(logStore.streamingMessage);
 

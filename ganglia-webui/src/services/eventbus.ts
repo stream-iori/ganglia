@@ -421,6 +421,14 @@ class EventBusService {
   }
 
   connect() {
+    if (
+      this.ws &&
+      (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)
+    ) {
+      console.log('WebSocket is already connected or connecting. Skipping duplicate connect.');
+      return;
+    }
+
     const systemStore = useSystemStore.getState();
     console.log(`Connecting to WebSocket at ${this.url}...`);
 
