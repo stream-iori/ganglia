@@ -631,7 +631,16 @@ public class ReActAgentLoop implements AgentLoop {
             })
         .compose(
             result -> {
-              Map<String, Object> resData = Map.of("toolCallId", task.id());
+              Map<String, Object> resData = new HashMap<>();
+              resData.put("toolCallId", task.id());
+              resData.put("durationMs", System.currentTimeMillis() - toolStartMs);
+
+              publishObservation(
+                  originalContext.sessionId(),
+                  ObservationType.TOOL_FINISHED,
+                  result.status().name(),
+                  resData);
+              endSpan(originalContext.sessionId());
 
               if (result.status() == AgentTaskResult.Status.INTERRUPT) {
                 String askId = "ask-" + UUID.randomUUID().toString().substring(0, 8);
@@ -689,11 +698,6 @@ public class ReActAgentLoop implements AgentLoop {
               }
 
               SessionContext successCtx = faultTolerancePolicy.onSuccess(ctxToUse, task);
-              publishObservation(
-                  originalContext.sessionId(),
-                  ObservationType.TOOL_FINISHED,
-                  result.status().name());
-              endSpan(originalContext.sessionId());
 
               return sessionManager
                   .addStep(successCtx, toolMsg)
