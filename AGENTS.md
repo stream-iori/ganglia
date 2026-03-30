@@ -24,17 +24,20 @@ Ganglia is a **Java 17** AI Agent framework built on **Vert.x 5.0.6**, designed 
 
 ```
 ganglia-parent (pom.xml)
-├── ganglia-harness          # Core: kernel, ports, infrastructure (no memory impl)
-├── ganglia-local-file-memory # File-based memory SPI implementation
-├── ganglia-coding           # Coding agent builder + tools (bash, file-edit, web-fetch)
-├── ganglia-observability    # Independent Trace Studio backend and REST API
-├── ganglia-terminal         # JLine 3 terminal UI
-├── ganglia-web              # WebSocket + JSON-RPC 2.0 web UI backend
-├── ganglia-webui            # React multi-page frontend (Coding + Trace Studio)
-├── ganglia-example          # Demo apps (WebUIDemo)
-├── ganglia-swe-bench        # SWE-bench evaluation with Docker sandboxing
-└── integration-test         # E2E simulation scenarios
+├── ganglia-harness                  # Core: kernel, ports, infrastructure (no memory impl)
+├── ganglia-local-file-memory        # File-based memory SPI implementation
+├── ganglia-observability            # Independent Trace Studio backend and REST API
+├── coding-agent/                    # Directory grouping (NOT a Maven module)
+│   ├── ganglia-coding               # Coding agent builder + tools (bash, file-edit, web-fetch)
+│   ├── ganglia-web                  # WebSocket + JSON-RPC 2.0 web UI backend
+│   ├── ganglia-terminal             # JLine 3 terminal UI
+│   └── ganglia-webui                # React multi-page frontend (NOT a Maven module)
+├── integration-test                 # E2E simulation scenarios
+├── ganglia-example                  # Demo apps (WebUIDemo)
+└── ganglia-swe-bench                # SWE-bench evaluation with Docker sandboxing
 ```
+
+> **Note:** `coding-agent/` is a plain directory, not a Maven aggregator. The three sub-modules (`ganglia-coding`, `ganglia-web`, `ganglia-terminal`) are listed directly in the root `pom.xml` as `coding-agent/ganglia-*`. `ganglia-webui` is a standalone Vite/React project, not managed by Maven.
 
 ### Dependency Graph
 

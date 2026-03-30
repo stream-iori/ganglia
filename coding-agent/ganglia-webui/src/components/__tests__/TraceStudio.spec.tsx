@@ -193,7 +193,7 @@ describe('TraceStudio Component', () => {
     });
   });
 
-  it('renders CONTEXT_COMPRESSED with before/after tokens', async () => {
+  it('renders CONTEXT_COMPRESSED with before/after tokens and compression stats', async () => {
     setupFileList();
     render(<TraceStudio />);
     await waitFor(() => expect(screen.getByText('trace-2026-03-28')).toBeInTheDocument());
@@ -202,15 +202,48 @@ describe('TraceStudio Component', () => {
       ev({
         type: 'CONTEXT_COMPRESSED', timestamp: 1000, spanId: 'cc1',
         content: 'compression',
-        data: { beforeTokens: 50000, afterTokens: 12000, contextLimit: 128000 },
+        data: { beforeTokens: 50000, afterTokens: 12000, contextLimit: 128000, compressionTarget: 62000, historyBudget: 80000 },
       }),
     ]);
 
     await waitFor(() => {
       expect(screen.getByText('Context Compression')).toBeInTheDocument();
-      expect(screen.getByText('50000')).toBeInTheDocument();
-      expect(screen.getByText('12000')).toBeInTheDocument();
-      expect(screen.getByText('128000')).toBeInTheDocument();
+      // Numbers are now formatted with toLocaleString()
+      expect(screen.getByText('50,000')).toBeInTheDocument();
+      expect(screen.getByText('12,000')).toBeInTheDocument();
+      expect(screen.getByText('128,000')).toBeInTheDocument();
+    });
+
+    // Compression ratio: (50000-12000)/50000 = 76.0%
+    expect(screen.getByText(/38,000 \(76\.0%\)/)).toBeInTheDocument();
+    // compressionTarget shown
+    expect(screen.getByText('62,000')).toBeInTheDocument();
+    // On-target: 12000 <= 62000 → ✓
+    expect(screen.getByText('✓')).toBeInTheDocument();
+    // Bar chart legend
+    expect(screen.getByText('Before')).toBeInTheDocument();
+    expect(screen.getByText('After')).toBeInTheDocument();
+  });
+
+  it('renders CONTEXT_COMPRESSED with amber warning when not on target', async () => {
+    setupFileList();
+    render(<TraceStudio />);
+    await waitFor(() => expect(screen.getByText('trace-2026-03-28')).toBeInTheDocument());
+
+    await selectFile('trace-2026-03-28.jsonl', [
+      ev({
+        type: 'CONTEXT_COMPRESSED', timestamp: 1000, spanId: 'cc2',
+        content: 'compression',
+        data: { beforeTokens: 50000, afterTokens: 45000, compressionTarget: 30000 },
+      }),
+    ]);
+
+    await waitFor(() => {
+      // after (45000) > compressionTarget (30000) → ⚠
+      expect(screen.getByText('⚠')).toBeInTheDocument();
+      // compression ratio = 10% → amber color
+      const savedEl = screen.getByText(/5,000 \(10\.0%\)/);
+      expect(savedEl.className).toContain('amber');
     });
   });
 
@@ -448,6 +481,107 @@ describe('TraceStudio Component', () => {
     setupFileList([]);
     render(<TraceStudio />);
     await waitFor(() => expect(screen.getByText(/No traces found/i)).toBeInTheDocument());
+  });
+
+  it('truncates long content and shows "Show full" button', async () => {
+    const longContent = 'A'.repeat(500);
+    setupFileList();
+    render(<TraceStudio />);
+    await waitFor(() => expect(screen.getByText('trace-2026-03-28')).toBeInTheDocument());
+
+    await selectFile('trace-2026-03-28.jsonl', [
+      ev({ type: 'TOOL_STARTED', timestamp: 1000, spanId: 'lc1', content: longContent }),
+    ]);
+
+    await waitFor(() => {
+      // Should show truncated text (300 chars + …)
+      expect(screen.queryByText(longContent)).not.toBeInTheDocument();
+      expect(screen.getByText('Show full')).toBeInTheDocument();
+    });
+  });
+
+  it('does not truncate short content', async () => {
+    const shortContent = 'Short content here';
+    setupFileList();
+    render(<TraceStudio />);
+    await waitFor(() => expect(screen.getByText('trace-2026-03-28')).toBeInTheDocument());
+
+    await selectFile('trace-2026-03-28.jsonl', [
+      ev({ type: 'TOOL_STARTED', timestamp: 1000, spanId: 'sc1', content: shortContent }),
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText(shortContent)).toBeInTheDocument();
+      expect(screen.queryByText('Show full')).not.toBeInTheDocument();
+    });
+  });
+
+  it('opens modal when "Show full" is clicked on truncated content', async () => {
+    const longContent = 'B'.repeat(500);
+    setupFileList();
+    render(<TraceStudio />);
+    await waitFor(() => expect(screen.getByText('trace-2026-03-28')).toBeInTheDocument());
+
+    await selectFile('trace-2026-03-28.jsonl', [
+      ev({ type: 'TOOL_STARTED', timestamp: 1000, spanId: 'modal1', content: longContent }),
+    ]);
+
+    await waitFor(() => expect(screen.getByText('Show full')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Show full'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Full Content')).toBeInTheDocument();
+      // Modal should show the full content
+      expect(screen.getByText(longContent)).toBeInTheDocument();
+    });
+  });
+
+  it('closes modal when close button is clicked', async () => {
+    const longContent = 'C'.repeat(500);
+    setupFileList();
+    render(<TraceStudio />);
+    await waitFor(() => expect(screen.getByText('trace-2026-03-28')).toBeInTheDocument());
+
+    await selectFile('trace-2026-03-28.jsonl', [
+      ev({ type: 'TOOL_STARTED', timestamp: 1000, spanId: 'close1', content: longContent }),
+    ]);
+
+    await waitFor(() => expect(screen.getByText('Show full')).toBeInTheDocument());
+    fireEvent.click(screen.getByText('Show full'));
+    await waitFor(() => expect(screen.getByText('Full Content')).toBeInTheDocument());
+
+    // Click the close button (X icon's parent button with title="Close")
+    fireEvent.click(screen.getByTitle('Close'));
+    await waitFor(() => expect(screen.queryByText('Full Content')).not.toBeInTheDocument());
+  });
+
+  it('truncates long data field values and opens modal', async () => {
+    const longValue = 'D'.repeat(600);
+    setupFileList();
+    render(<TraceStudio />);
+    await waitFor(() => expect(screen.getByText('trace-2026-03-28')).toBeInTheDocument());
+
+    await selectFile('trace-2026-03-28.jsonl', [
+      ev({
+        type: 'TOOL_STARTED', timestamp: 1000, spanId: 'dv1', content: 'test_tool',
+        data: { output: longValue },
+      }),
+    ]);
+
+    await waitFor(() => {
+      expect(screen.getByText('test_tool')).toBeInTheDocument();
+      // Full value should not be rendered
+      expect(screen.queryByText(longValue)).not.toBeInTheDocument();
+      // "Show full" button should be visible
+      expect(screen.getByText('Show full')).toBeInTheDocument();
+    });
+
+    // Click to open modal
+    fireEvent.click(screen.getByText('Show full'));
+    await waitFor(() => {
+      expect(screen.getByText('Full Content')).toBeInTheDocument();
+      expect(screen.getByText(longValue)).toBeInTheDocument();
+    });
   });
 
   it('assigns correct color classes for all event types', async () => {

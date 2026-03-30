@@ -10,7 +10,12 @@ import {
   CheckCircle2,
   RotateCcw,
   Radio,
+  Copy,
+  X,
 } from 'lucide-react';
+
+const CONTENT_TRUNCATE_CHARS = 300;
+const DATA_VALUE_TRUNCATE_CHARS = 500;
 
 interface TraceEvent {
   sessionId: string;
@@ -122,6 +127,7 @@ export default function TraceStudio() {
   const [events, setEvents] = useState<TraceEvent[]>([]);
   const [expandedSpans, setExpandedSpans] = useState<Set<string>>(new Set());
   const [liveEvents, setLiveEvents] = useState<TraceEvent[]>([]);
+  const [modalContent, setModalContent] = useState<string | null>(null);
   const [liveMode, setLiveMode] = useState(false);
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
@@ -363,8 +369,26 @@ export default function TraceStudio() {
                   ? 'Context Budget Allocated'
                   : node.startEvent.type === 'CONTEXT_COMPRESSED'
                     ? 'Context Compression'
-                    : displayContent ||
-                      (node.startEvent.type === 'REASONING_STARTED' ? 'Thinking...' : '')}
+                    : (() => {
+                        const text =
+                          displayContent ||
+                          (node.startEvent.type === 'REASONING_STARTED' ? 'Thinking...' : '');
+                        if (!text || text.length <= CONTENT_TRUNCATE_CHARS) return text;
+                        return (
+                          <>
+                            {text.slice(0, CONTENT_TRUNCATE_CHARS)}…
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setModalContent(text);
+                              }}
+                              className="ml-2 text-[10px] font-bold text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
+                            >
+                              Show full
+                            </button>
+                          </>
+                        );
+                      })()}
               </div>
             </div>
 
@@ -476,38 +500,187 @@ export default function TraceStudio() {
                     );
                   })()
                 ) : node.startEvent.type === 'CONTEXT_COMPRESSED' ? (
-                  <div className="flex flex-wrap gap-4">
-                    {ev.data.beforeTokens !== undefined && (
-                      <span className="flex items-center gap-1.5">
-                        <span className="text-slate-400 uppercase text-[9px] font-bold">
-                          Before:
-                        </span>
-                        <b className="text-slate-900 dark:text-slate-200">
-                          {ev.data.beforeTokens as number}
-                        </b>
-                      </span>
-                    )}
-                    {ev.data.afterTokens !== undefined && (
-                      <span className="flex items-center gap-1.5">
-                        <span className="text-slate-400 uppercase text-[9px] font-bold">
-                          After:
-                        </span>
-                        <b className="text-emerald-600 dark:text-emerald-400">
-                          {ev.data.afterTokens as number}
-                        </b>
-                      </span>
-                    )}
-                    {ev.data.contextLimit !== undefined && (
-                      <span className="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-800 pl-4">
-                        <span className="text-slate-400 uppercase text-[9px] font-bold">
-                          Limit:
-                        </span>
-                        <span className="text-slate-600 dark:text-slate-400">
-                          {ev.data.contextLimit as number}
-                        </span>
-                      </span>
-                    )}
-                  </div>
+                  (() => {
+                    const before = ev.data.beforeTokens as number | undefined;
+                    const after = ev.data.afterTokens as number | undefined;
+                    const ctxLimit = ev.data.contextLimit as number | undefined;
+                    const compTarget = ev.data.compressionTarget as number | undefined;
+                    const histBudget = ev.data.historyBudget as number | undefined;
+
+                    const saved =
+                      before !== undefined && after !== undefined ? before - after : undefined;
+                    const ratio =
+                      before && before > 0 && saved !== undefined
+                        ? (saved / before) * 100
+                        : undefined;
+                    const onTarget =
+                      after !== undefined && compTarget !== undefined
+                        ? after <= compTarget
+                        : undefined;
+
+                    const ratioColor =
+                      ratio !== undefined
+                        ? ratio >= 50
+                          ? 'text-emerald-600 dark:text-emerald-400'
+                          : ratio < 30
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : 'text-slate-700 dark:text-slate-300'
+                        : '';
+
+                    return (
+                      <div className="space-y-4">
+                        {/* Summary stats row */}
+                        <div className="flex flex-wrap gap-4 items-center">
+                          {before !== undefined && (
+                            <span className="flex items-center gap-1.5">
+                              <span className="text-slate-400 uppercase text-[9px] font-bold">
+                                Before:
+                              </span>
+                              <b className="text-slate-900 dark:text-slate-200">
+                                {before.toLocaleString()}
+                              </b>
+                            </span>
+                          )}
+                          {after !== undefined && (
+                            <span className="flex items-center gap-1.5">
+                              <span className="text-slate-400 uppercase text-[9px] font-bold">
+                                → After:
+                              </span>
+                              <b className="text-emerald-600 dark:text-emerald-400">
+                                {after.toLocaleString()}
+                              </b>
+                            </span>
+                          )}
+                          {saved !== undefined && ratio !== undefined && (
+                            <span className="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-800 pl-4">
+                              <span className="text-slate-400 uppercase text-[9px] font-bold">
+                                Saved:
+                              </span>
+                              <b className={ratioColor}>
+                                {saved.toLocaleString()} ({ratio.toFixed(1)}%)
+                              </b>
+                            </span>
+                          )}
+                          {compTarget !== undefined && (
+                            <span className="flex items-center gap-1.5 border-l border-slate-200 dark:border-slate-800 pl-4">
+                              <span className="text-slate-400 uppercase text-[9px] font-bold">
+                                Target:
+                              </span>
+                              <span className="text-slate-600 dark:text-slate-400 font-bold">
+                                {compTarget.toLocaleString()}
+                              </span>
+                              {onTarget !== undefined && (
+                                <span
+                                  className={
+                                    onTarget
+                                      ? 'text-emerald-500 font-bold'
+                                      : 'text-amber-500 font-bold'
+                                  }
+                                >
+                                  {onTarget ? '✓' : '⚠'}
+                                </span>
+                              )}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Before → After comparison bar chart */}
+                        {before !== undefined && before > 0 && after !== undefined && (
+                          <div>
+                            <div className="text-[9px] text-slate-400 uppercase font-bold mb-1.5">
+                              Compression
+                            </div>
+                            <div className="relative space-y-1.5">
+                              {/* Before bar */}
+                              <div className="relative h-5 rounded overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                <div
+                                  className="h-full bg-slate-300 dark:bg-slate-600 rounded"
+                                  style={{ width: '100%' }}
+                                />
+                                <span className="absolute inset-0 flex items-center px-2 text-[8px] font-bold text-slate-600 dark:text-slate-300">
+                                  Before: {before.toLocaleString()}
+                                </span>
+                              </div>
+                              {/* After bar */}
+                              <div className="relative h-5 rounded overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                <div
+                                  className="h-full bg-emerald-500 dark:bg-emerald-600 rounded"
+                                  style={{ width: `${(after / before) * 100}%` }}
+                                />
+                                {/* Compression target marker */}
+                                {compTarget !== undefined && compTarget <= before && (
+                                  <div
+                                    className="absolute top-0 h-full border-l-2 border-dashed border-blue-400 dark:border-blue-500"
+                                    style={{ left: `${(compTarget / before) * 100}%` }}
+                                    title={`Compression Target: ${compTarget.toLocaleString()}`}
+                                  />
+                                )}
+                                {/* History budget marker */}
+                                {histBudget !== undefined && histBudget <= before && (
+                                  <div
+                                    className="absolute top-0 h-full border-l-2 border-purple-400 dark:border-purple-500"
+                                    style={{
+                                      left: `${(histBudget / before) * 100}%`,
+                                      borderStyle: 'dotted',
+                                    }}
+                                    title={`History Budget: ${histBudget.toLocaleString()}`}
+                                  />
+                                )}
+                                <span className="absolute inset-0 flex items-center px-2 text-[8px] font-bold text-white drop-shadow-sm">
+                                  After: {after.toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                            {/* Legend */}
+                            <div className="flex flex-wrap gap-3 mt-2.5 text-[9px]">
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2.5 h-2.5 rounded-sm bg-slate-300 dark:bg-slate-600" />
+                                <span className="text-slate-500">Before</span>
+                              </div>
+                              <div className="flex items-center gap-1.5">
+                                <div className="w-2.5 h-2.5 rounded-sm bg-emerald-500 dark:bg-emerald-600" />
+                                <span className="text-slate-500">After</span>
+                              </div>
+                              {compTarget !== undefined && (
+                                <div className="flex items-center gap-1.5">
+                                  <div
+                                    className="w-2.5 h-0 border-t-2 border-dashed border-blue-400 dark:border-blue-500 mt-px"
+                                    style={{ width: '10px' }}
+                                  />
+                                  <span className="text-slate-500">
+                                    Compression Target ({compTarget.toLocaleString()})
+                                  </span>
+                                </div>
+                              )}
+                              {histBudget !== undefined && (
+                                <div className="flex items-center gap-1.5">
+                                  <div
+                                    className="w-2.5 h-0 border-t-2 border-purple-400 dark:border-purple-500 mt-px"
+                                    style={{ width: '10px', borderStyle: 'dotted' }}
+                                  />
+                                  <span className="text-slate-500">
+                                    History Budget ({histBudget.toLocaleString()})
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Additional fields */}
+                        {ctxLimit !== undefined && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-slate-400 uppercase text-[9px] font-bold">
+                              Context Limit:
+                            </span>
+                            <span className="text-slate-600 dark:text-slate-400 font-bold">
+                              {ctxLimit.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()
                 ) : node.startEvent.type === 'TOKEN_USAGE_RECORDED' ? (
                   <div className="flex flex-wrap gap-6 text-blue-600 dark:text-blue-400 font-bold">
                     <span className="flex flex-col">
@@ -528,13 +701,26 @@ export default function TraceStudio() {
                     {Object.entries(ev.data).map(([k, v]) => {
                       if (['durationMs', 'attempt', 'model', 'status', 'toolCallId'].includes(k))
                         return null;
+                      const raw = typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v);
+                      const truncated = raw.length > DATA_VALUE_TRUNCATE_CHARS;
                       return (
                         <div key={k} className="flex gap-3 group/item">
                           <span className="text-slate-400 dark:text-slate-500 shrink-0 font-bold uppercase text-[9px] mt-0.5 w-24">
                             {k}:
                           </span>
                           <span className="text-slate-700 dark:text-slate-300 break-all leading-relaxed">
-                            {typeof v === 'object' ? JSON.stringify(v, null, 2) : String(v)}
+                            {truncated ? raw.slice(0, DATA_VALUE_TRUNCATE_CHARS) + '…' : raw}
+                            {truncated && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setModalContent(raw);
+                                }}
+                                className="ml-2 text-[10px] font-bold text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
+                              >
+                                Show full
+                              </button>
+                            )}
                           </span>
                         </div>
                       );
@@ -776,6 +962,46 @@ export default function TraceStudio() {
           </div>
         )}
       </div>
+
+      {/* Full content modal */}
+      {modalContent !== null && (
+        <div
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-6"
+          onClick={() => setModalContent(null)}
+        >
+          <div
+            className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 w-full max-w-3xl max-h-[90vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b border-slate-200 dark:border-slate-800 shrink-0">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">Full Content</h3>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(modalContent);
+                  }}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="Copy to clipboard"
+                >
+                  <Copy size={14} />
+                </button>
+                <button
+                  onClick={() => setModalContent(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  title="Close"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </div>
+            <div className="overflow-y-auto p-4 custom-scrollbar max-h-[85vh]">
+              <pre className="text-xs text-slate-700 dark:text-slate-300 font-mono whitespace-pre-wrap break-words leading-relaxed">
+                {modalContent}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
