@@ -14,6 +14,7 @@ import io.vertx.core.file.FileSystem;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
 import work.ganglia.port.external.tool.ToolDefinition;
 import work.ganglia.util.PathMapper;
+import work.ganglia.util.ProcessOptions;
 import work.ganglia.util.VertxProcess;
 
 /** Apply a unified diff patch to a file. */
@@ -96,6 +97,6 @@ class ApplyPatchTool {
 
   private Future<VertxProcess.Result> executePatchCommand(String filePath, String patchPath) {
     List<String> command = List.of("patch", "-u", filePath, "-i", patchPath);
-    return VertxProcess.execute(vertx, command, 30000, 1024 * 1024);
+    return VertxProcess.execute(vertx, command, new ProcessOptions(null, 30000, 1024 * 1024), null);
   }
 }

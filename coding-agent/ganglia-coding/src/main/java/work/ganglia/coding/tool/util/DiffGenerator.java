@@ -10,6 +10,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 
+import work.ganglia.util.ProcessOptions;
 import work.ganglia.util.VertxProcess;
 
 /** Shared utility for generating unified diffs with proper temp file cleanup. */
@@ -48,7 +49,8 @@ public class DiffGenerator {
 
   private Future<VertxProcess.Result> executeDiffCommand(String oldFilePath, String tempNewPath) {
     var command = String.format("diff -u %s %s", oldFilePath, tempNewPath);
-    return VertxProcess.execute(vertx, List.of("bash", "-c", command), 10000, 1024 * 1024);
+    return VertxProcess.execute(
+        vertx, List.of("bash", "-c", command), new ProcessOptions(null, 10000, 1024 * 1024), null);
   }
 
   private Future<String> formatDiffResult(VertxProcess.Result result, String label) {

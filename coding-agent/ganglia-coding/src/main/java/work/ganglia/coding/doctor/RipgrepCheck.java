@@ -7,6 +7,7 @@ import io.vertx.core.Vertx;
 
 import work.ganglia.port.internal.doctor.CheckResult;
 import work.ganglia.port.internal.doctor.DoctorCheck;
+import work.ganglia.util.ProcessOptions;
 import work.ganglia.util.VertxProcess;
 
 /** Checks whether ripgrep (rg) is available on the system PATH. */
@@ -21,7 +22,8 @@ public class RipgrepCheck implements DoctorCheck {
 
   @Override
   public Future<CheckResult> execute(Vertx vertx) {
-    return VertxProcess.execute(vertx, List.of("rg", "--version"), 5000, 1024)
+    return VertxProcess.execute(
+            vertx, List.of("rg", "--version"), new ProcessOptions(null, 5000, 1024), null)
         .map(
             result -> {
               if (result.succeeded()) {

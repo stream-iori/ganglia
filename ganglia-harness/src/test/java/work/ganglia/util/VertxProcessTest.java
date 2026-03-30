@@ -22,7 +22,8 @@ class VertxProcessTest {
 
   @Test
   void testExecuteSimpleCommand(Vertx vertx, VertxTestContext testContext) {
-    VertxProcess.execute(vertx, List.of("echo", "hello"), 5000, 10000)
+    VertxProcess.execute(
+            vertx, List.of("echo", "hello"), new ProcessOptions(null, 5000, 10000), null)
         .onComplete(
             testContext.succeeding(
                 result -> {
@@ -39,7 +40,7 @@ class VertxProcessTest {
   @Test
   void testExecuteWithWorkingDir(Vertx vertx, VertxTestContext testContext) {
     String workingDir = System.getProperty("user.dir");
-    VertxProcess.execute(vertx, List.of("pwd"), workingDir, 5000, 10000, null)
+    VertxProcess.execute(vertx, List.of("pwd"), new ProcessOptions(workingDir, 5000, 10000), null)
         .onComplete(
             testContext.succeeding(
                 result -> {
@@ -58,8 +59,7 @@ class VertxProcessTest {
     VertxProcess.execute(
             vertx,
             List.of("echo", "streaming output"),
-            5000,
-            10000,
+            new ProcessOptions(null, 5000, 10000),
             chunk -> chunkReceived.set(true))
         .onComplete(
             testContext.succeeding(
@@ -74,7 +74,8 @@ class VertxProcessTest {
 
   @Test
   void testExecuteNonZeroExitCode(Vertx vertx, VertxTestContext testContext) {
-    VertxProcess.execute(vertx, List.of("sh", "-c", "exit 1"), 5000, 10000)
+    VertxProcess.execute(
+            vertx, List.of("sh", "-c", "exit 1"), new ProcessOptions(null, 5000, 10000), null)
         .onComplete(
             testContext.succeeding(
                 result -> {
@@ -90,7 +91,7 @@ class VertxProcessTest {
   @Test
   void testExecuteTimeout(Vertx vertx, VertxTestContext testContext) {
     // Very short timeout on a slow command
-    VertxProcess.execute(vertx, List.of("sleep", "10"), 100, 10000)
+    VertxProcess.execute(vertx, List.of("sleep", "10"), new ProcessOptions(null, 100, 10000), null)
         .onComplete(
             testContext.failing(
                 err -> {

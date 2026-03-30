@@ -10,9 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.vertx.core.Context;
 import io.vertx.core.Future;
@@ -28,7 +26,6 @@ import io.vertx.core.streams.WriteStream;
  * WriteStream} interfaces.
  */
 public class VertxProcess {
-  private static final Logger log = LoggerFactory.getLogger(VertxProcess.class);
 
   private final Vertx vertx;
   private final Process process;
@@ -108,19 +105,7 @@ public class VertxProcess {
    * @return a future that completes with the {@link VertxProcess} instance
    */
   public static Future<VertxProcess> spawn(Vertx vertx, ProcessBuilder pb) {
-    Promise<VertxProcess> promise = Promise.promise();
-    vertx.executeBlocking(
-        () -> {
-          try {
-            Process process = pb.start();
-            promise.complete(new VertxProcess(vertx, process));
-          } catch (IOException e) {
-            promise.fail(e);
-          }
-          return null;
-        },
-        false);
-    return promise.future();
+    return vertx.executeBlocking(() -> new VertxProcess(vertx, pb.start()), false);
   }
 
   /**
@@ -145,80 +130,40 @@ public class VertxProcess {
         .compose(
             vp -> {
               Promise<Result> promise = Promise.promise();
-              // Use Buffer[] so the lambda can swap the reference when prepending the marker.
-              Buffer[] outputBuffer = {Buffer.buffer()};
-              boolean[] limitExceeded = {false};
-              boolean[] finished = {false};
+              AtomicReference<Buffer> outputBuffer = new AtomicReference<>(Buffer.buffer());
+              AtomicBoolean limitExceeded = new AtomicBoolean(false);
+              AtomicBoolean finished = new AtomicBoolean(false);
 
               vp.stdout()
                   .handler(
-                      data -> {
-                        if (limitExceeded[0]) {
-                          return;
-                        }
+                      data ->
+                          handleStdoutData(
+                              data, outputBuffer, limitExceeded, options, vp, chunkHandler));
 
-                        if (outputBuffer[0].length() + data.length() > options.maxOutputSize()) {
-                          limitExceeded[0] = true;
-                          // Prepend the truncation marker so it survives any downstream
-                          // token-based truncation that takes a prefix of the output.
-                          int remaining =
-                              (int) (options.maxOutputSize() - outputBuffer[0].length());
-                          String marker =
-                              "[OUTPUT TRUNCATED: exceeded "
-                                  + options.maxOutputSize()
-                                  + " bytes. Only the first portion is shown.]\n\n";
-                          Buffer truncated = Buffer.buffer();
-                          truncated.appendString(marker);
-                          truncated.appendBuffer(outputBuffer[0]);
-                          if (remaining > 0) {
-                            truncated.appendBuffer(data.slice(0, remaining));
-                          }
-                          outputBuffer[0] = truncated;
-                          vp.destroyForcibly();
-                          // Do not fail — let the exitCode handler complete the promise normally
-                          return;
-                        }
-
-                        outputBuffer[0].appendBuffer(data);
-                        if (chunkHandler != null) {
-                          chunkHandler.handle(data.toString(StandardCharsets.UTF_8));
-                        }
-                      });
-
-              long timerId =
-                  vertx.setTimer(
-                      options.timeoutMs(),
-                      id -> {
-                        if (!finished[0]) {
-                          vp.destroyForcibly();
-                          promise.fail(
-                              new ExecutionException(
-                                  "Command timed out after " + options.timeoutMs() + "ms",
-                                  outputBuffer[0].toString(StandardCharsets.UTF_8)));
-                        }
-                      });
+              long timerId = scheduleTimeout(vertx, options, finished, outputBuffer, vp, promise);
 
               vp.exitCode()
                   .onComplete(
                       ar -> {
-                        finished[0] = true;
+                        finished.set(true);
                         vertx.cancelTimer(timerId);
 
                         if (promise.future().isComplete()) {
                           return;
                         }
 
-                        if (limitExceeded[0]) {
+                        if (limitExceeded.get()) {
                           // Output was truncated — deliver partial result with exit code 1
                           promise.complete(
-                              new Result(1, outputBuffer[0].toString(StandardCharsets.UTF_8)));
+                              new Result(1, outputBuffer.get().toString(StandardCharsets.UTF_8)));
                           return;
                         }
 
                         if (ar.succeeded()) {
                           promise.complete(
                               new Result(
-                                  ar.result(), outputBuffer[0].toString(StandardCharsets.UTF_8)));
+                                  ar.result(),
+                                  outputBuffer.get().toString(StandardCharsets.UTF_8)));
                         } else {
                           promise.fail(ar.cause());
                         }
@@ -228,29 +173,65 @@ public class VertxProcess {
             });
   }
 
-  public static Future<Result> execute(
-      Vertx vertx,
-      List<String> command,
-      String workingDir,
-      long timeoutMs,
-      long maxOutputSize,
+  private static void handleStdoutData(
+      Buffer data,
+      AtomicReference<Buffer> outputBuffer,
+      AtomicBoolean limitExceeded,
+      ProcessOptions options,
+      VertxProcess vp,
       Handler<String> chunkHandler) {
-    return execute(
-        vertx, command, new ProcessOptions(workingDir, timeoutMs, maxOutputSize), chunkHandler);
+
+    if (limitExceeded.get()) {
+      return;
+    }
+
+    Buffer current = outputBuffer.get();
+    if (current.length() + data.length() > options.maxOutputSize()) {
+      limitExceeded.set(true);
+      // Prepend the truncation marker so it survives any downstream
+      // token-based truncation that takes a prefix of the output.
+      int remaining = (int) (options.maxOutputSize() - current.length());
+      String marker =
+          "[OUTPUT TRUNCATED: exceeded "
+              + options.maxOutputSize()
+              + " bytes. Only the first portion is shown.]\n\n";
+      Buffer truncated = Buffer.buffer();
+      truncated.appendString(marker);
+      truncated.appendBuffer(current);
+      if (remaining > 0) {
+        truncated.appendBuffer(data.slice(0, remaining));
+      }
+      outputBuffer.set(truncated);
+      vp.destroyForcibly();
+      // Do not fail — let the exitCode handler complete the promise normally
+      return;
+    }
+
+    current.appendBuffer(data);
+    if (chunkHandler != null) {
+      chunkHandler.handle(data.toString(StandardCharsets.UTF_8));
+    }
   }
 
-  public static Future<Result> execute(
+  private static long scheduleTimeout(
       Vertx vertx,
-      List<String> command,
-      long timeoutMs,
-      long maxOutputSize,
-      Handler<String> chunkHandler) {
-    return execute(vertx, command, null, timeoutMs, maxOutputSize, chunkHandler);
-  }
+      ProcessOptions options,
+      AtomicBoolean finished,
+      AtomicReference<Buffer> outputBuffer,
+      VertxProcess vp,
+      Promise<Result> promise) {
 
-  public static Future<Result> execute(
-      Vertx vertx, List<String> command, long timeoutMs, long maxOutputSize) {
-    return execute(vertx, command, null, timeoutMs, maxOutputSize, null);
+    return vertx.setTimer(
+        options.timeoutMs(),
+        id -> {
+          if (!finished.get()) {
+            vp.destroyForcibly();
+            promise.fail(
+                new ExecutionException(
+                    "Command timed out after " + options.timeoutMs() + "ms",
+                    outputBuffer.get().toString(StandardCharsets.UTF_8)));
+          }
+        });
   }
 
   public ReadStream<Buffer> stdout() {
