@@ -13,10 +13,10 @@
     <module>ganglia-observability</module>
     <module>integration-test</module>
     <module>ganglia-example</module>
-    <module>ganglia-swe-bench</module>
     <module>coding-agent/ganglia-coding</module>
     <module>coding-agent/ganglia-web</module>
     <module>coding-agent/ganglia-terminal</module>
+    <module>coding-agent/ganglia-swe-bench</module>
   </modules>
 
   <properties>

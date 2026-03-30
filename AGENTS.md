@@ -31,13 +31,13 @@ ganglia-parent (pom.xml)
 │   ├── ganglia-coding               # Coding agent builder + tools (bash, file-edit, web-fetch)
 │   ├── ganglia-web                  # WebSocket + JSON-RPC 2.0 web UI backend
 │   ├── ganglia-terminal             # JLine 3 terminal UI
+│   ├── ganglia-swe-bench            # SWE-bench evaluation with Docker sandboxing
 │   └── ganglia-webui                # React multi-page frontend (NOT a Maven module)
 ├── integration-test                 # E2E simulation scenarios
-├── ganglia-example                  # Demo apps (WebUIDemo)
-└── ganglia-swe-bench                # SWE-bench evaluation with Docker sandboxing
+└── ganglia-example                  # Demo apps (WebUIDemo)
 ```
 
-> **Note:** `coding-agent/` is a plain directory, not a Maven aggregator. The three sub-modules (`ganglia-coding`, `ganglia-web`, `ganglia-terminal`) are listed directly in the root `pom.xml` as `coding-agent/ganglia-*`. `ganglia-webui` is a standalone Vite/React project, not managed by Maven.
+> **Note:** `coding-agent/` is a plain directory, not a Maven aggregator. The four sub-modules (`ganglia-coding`, `ganglia-web`, `ganglia-terminal`, `ganglia-swe-bench`) are listed directly in the root `pom.xml` as `coding-agent/ganglia-*`. `ganglia-webui` is a standalone Vite/React project, not managed by Maven.
 
 ### Dependency Graph
 
