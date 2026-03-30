@@ -11,6 +11,7 @@ import io.vertx.core.Future;
 import work.ganglia.kernel.task.AgentTask;
 import work.ganglia.kernel.task.AgentTaskResult;
 import work.ganglia.port.chat.SessionContext;
+import work.ganglia.util.MetadataAccessor;
 
 /** Aborts the loop if consecutive tool failures reach a specified threshold. */
 public class ConsecutiveFailurePolicy implements FaultTolerancePolicy {
@@ -31,7 +32,7 @@ public class ConsecutiveFailurePolicy implements FaultTolerancePolicy {
       SessionContext context, AgentTask task, AgentTaskResult result) {
     if (result.status() == AgentTaskResult.Status.ERROR
         || result.status() == AgentTaskResult.Status.EXCEPTION) {
-      int fails = (int) context.metadata().getOrDefault("consecutive_tool_failures", 0);
+      int fails = MetadataAccessor.getInt(context.metadata(), "consecutive_tool_failures", 0);
       if (fails >= maxConsecutiveFailures - 1) { // 0-based, so checking against 2 for max 3
         logger.warn(
             "Task {} failed {} times consecutively. Aborting loop to prevent runaway usage.",

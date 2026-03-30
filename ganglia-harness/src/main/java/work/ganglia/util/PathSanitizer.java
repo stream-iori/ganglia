@@ -35,61 +35,65 @@ public class PathSanitizer implements PathMapper {
     }
 
     try {
-      // 1. Resolve root path
-      Path rootPath = Paths.get(projectRoot).toAbsolutePath().normalize();
-      boolean isVirtual = false;
-      try {
-        rootPath = rootPath.toRealPath();
-      } catch (IOException e) {
-        // If it doesn't exist, it might be a virtual root (e.g., /workspace in Docker)
-        isVirtual = true;
-      }
-
-      // 2. Resolve requested path
-      Path requested = Paths.get(inputPath);
-      if (!requested.isAbsolute()) {
-        requested = rootPath.resolve(inputPath);
-      }
-      requested = requested.normalize();
-
-      String absoluteRequestedStr;
-      if (isVirtual) {
-        // For virtual roots, we can only do string/normalization based checks
-        absoluteRequestedStr = requested.toString();
-      } else {
-        try {
-          absoluteRequestedStr = requested.toRealPath().toString();
-        } catch (IOException e) {
-          // If it doesn't exist, try resolving via parents or fallback to normalization
-          Path resolved = null;
-          Path tempPath = requested;
-          Path parent = tempPath.getParent();
-          while (parent != null) {
-            try {
-              Path realParent = parent.toRealPath();
-              resolved = realParent.resolve(parent.relativize(tempPath)).normalize();
-              break;
-            } catch (IOException ignored) {
-              parent = parent.getParent();
-            }
-          }
-          absoluteRequestedStr =
-              (resolved != null) ? resolved.toString() : requested.toAbsolutePath().toString();
-        }
-      }
-
-      // 3. Project root check
-      String rootStr = rootPath.toString();
-      if (!absoluteRequestedStr.startsWith(rootStr)) {
-        throw new SecurityException(
-            "Access denied: Path escapes project root (" + rootStr + "): " + inputPath);
-      }
-
-      return absoluteRequestedStr;
+      ResolvedRoot root = resolveRoot();
+      String absolutePath = resolveRequested(inputPath, root.isVirtual, root.path);
+      checkWithinRoot(absolutePath, root.path.toString(), inputPath);
+      return absolutePath;
     } catch (SecurityException e) {
       throw e;
     } catch (Exception e) {
       throw new RuntimeException("Failed to resolve path: " + inputPath, e);
+    }
+  }
+
+  private record ResolvedRoot(Path path, boolean isVirtual) {}
+
+  private ResolvedRoot resolveRoot() {
+    Path rootPath = Paths.get(projectRoot).toAbsolutePath().normalize();
+    try {
+      return new ResolvedRoot(rootPath.toRealPath(), false);
+    } catch (IOException e) {
+      // If it doesn't exist, it might be a virtual root (e.g., /workspace in Docker)
+      return new ResolvedRoot(rootPath, true);
+    }
+  }
+
+  private String resolveRequested(String inputPath, boolean isVirtual, Path rootPath) {
+    Path requested = Paths.get(inputPath);
+    if (!requested.isAbsolute()) {
+      requested = rootPath.resolve(inputPath);
+    }
+    requested = requested.normalize();
+
+    if (isVirtual) {
+      return requested.toString();
+    }
+
+    try {
+      return requested.toRealPath().toString();
+    } catch (IOException e) {
+      // Path doesn't exist yet — try resolving via closest existing parent
+      return resolveViaParent(requested);
+    }
+  }
+
+  private String resolveViaParent(Path requested) {
+    Path parent = requested.getParent();
+    while (parent != null) {
+      try {
+        Path realParent = parent.toRealPath();
+        return realParent.resolve(parent.relativize(requested)).normalize().toString();
+      } catch (IOException ignored) {
+        parent = parent.getParent();
+      }
+    }
+    return requested.toAbsolutePath().toString();
+  }
+
+  private void checkWithinRoot(String absolutePath, String rootStr, String inputPath) {
+    if (!absolutePath.startsWith(rootStr)) {
+      throw new SecurityException(
+          "Access denied: Path escapes project root (" + rootStr + "): " + inputPath);
     }
   }
 

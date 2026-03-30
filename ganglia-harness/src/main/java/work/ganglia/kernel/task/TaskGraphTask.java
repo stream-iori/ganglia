@@ -13,6 +13,7 @@ import work.ganglia.kernel.subagent.TaskNode;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.internal.state.ExecutionContext;
+import work.ganglia.util.MetadataAccessor;
 
 public class TaskGraphTask implements AgentTask {
   private final ToolCall call;
@@ -42,21 +43,13 @@ public class TaskGraphTask implements AgentTask {
   public Future<AgentTaskResult> execute(
       SessionContext context, ExecutionContext executionContext) {
     // Check recursion
-    Object levelObj = context.metadata().getOrDefault("sub_agent_level", 0);
-    int currentLevel =
-        (levelObj instanceof Number)
-            ? ((Number) levelObj).intValue()
-            : Integer.parseInt(levelObj.toString());
+    int currentLevel = MetadataAccessor.getInt(context.metadata(), "sub_agent_level", 0);
     if (currentLevel >= 1) {
       return Future.succeededFuture(
           AgentTaskResult.error("RECURSION_LIMIT: Nested task graphs are not allowed."));
     }
 
-    Object approvedObj = call.arguments().getOrDefault("approved", false);
-    boolean approved =
-        (approvedObj instanceof Boolean)
-            ? (Boolean) approvedObj
-            : Boolean.parseBoolean(approvedObj.toString());
+    boolean approved = MetadataAccessor.getBoolean(call.arguments(), "approved", false);
 
     if (!approved) {
       return interruptForApproval();

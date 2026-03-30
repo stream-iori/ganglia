@@ -116,41 +116,7 @@ public class InteractionTools implements ToolSet {
         @SuppressWarnings("unchecked")
         Map<String, Object> qMap = new java.util.HashMap<>((Map<String, Object>) qMapRaw);
         questions.add(qMap);
-
-        String qText = (String) qMap.get("question");
-        String type = (String) qMap.getOrDefault("type", "text");
-        textSummary.append("- ").append(qText).append(" (").append(type).append(")\n");
-
-        if ("choice".equals(type)) {
-          Object opts = qMap.get("options");
-          if (opts instanceof List<?> optList) {
-            List<Map<String, Object>> mutableOpts = new java.util.ArrayList<>();
-            for (int i = 0; i < optList.size(); i++) {
-              Object optItem = optList.get(i);
-              if (optItem instanceof Map<?, ?> optMapRaw) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> optMap =
-                    new java.util.HashMap<>((Map<String, Object>) optMapRaw);
-
-                // Ensure value exists
-                if (!optMap.containsKey("value") || optMap.get("value") == null) {
-                  String label = String.valueOf(optMap.getOrDefault("label", "option" + i));
-                  optMap.put("value", label.toLowerCase().replaceAll("[^a-z0-9]", "_"));
-                }
-
-                mutableOpts.add(optMap);
-
-                textSummary.append("  ").append(i + 1).append(". ").append(optMap.get("label"));
-                Object desc = optMap.get("description");
-                if (desc != null && !desc.toString().isEmpty()) {
-                  textSummary.append(" - ").append(desc);
-                }
-                textSummary.append("\n");
-              }
-            }
-            qMap.put("options", mutableOpts);
-          }
-        }
+        parseQuestion(qMap, textSummary);
       }
     }
 
@@ -158,5 +124,47 @@ public class InteractionTools implements ToolSet {
     data.put("questions", questions);
 
     return Future.succeededFuture(ToolInvokeResult.interrupt(textSummary.toString(), data));
+  }
+
+  private void parseQuestion(Map<String, Object> qMap, StringBuilder textSummary) {
+    String qText = (String) qMap.get("question");
+    String type = (String) qMap.getOrDefault("type", "text");
+    textSummary.append("- ").append(qText).append(" (").append(type).append(")\n");
+
+    if ("choice".equals(type)) {
+      Object opts = qMap.get("options");
+      if (opts instanceof List<?> optList) {
+        qMap.put("options", normalizeOptions(optList, textSummary));
+      }
+    }
+  }
+
+  private List<Map<String, Object>> normalizeOptions(List<?> optList, StringBuilder textSummary) {
+    List<Map<String, Object>> mutableOpts = new java.util.ArrayList<>();
+    for (int i = 0; i < optList.size(); i++) {
+      Object optItem = optList.get(i);
+      if (optItem instanceof Map<?, ?> optMapRaw) {
+        @SuppressWarnings("unchecked")
+        Map<String, Object> optMap = new java.util.HashMap<>((Map<String, Object>) optMapRaw);
+
+        if (!optMap.containsKey("value") || optMap.get("value") == null) {
+          String label = String.valueOf(optMap.getOrDefault("label", "option" + i));
+          optMap.put("value", label.toLowerCase().replaceAll("[^a-z0-9]", "_"));
+        }
+
+        mutableOpts.add(optMap);
+        appendOptionSummary(textSummary, optMap, i);
+      }
+    }
+    return mutableOpts;
+  }
+
+  private void appendOptionSummary(StringBuilder sb, Map<String, Object> optMap, int index) {
+    sb.append("  ").append(index + 1).append(". ").append(optMap.get("label"));
+    Object desc = optMap.get("description");
+    if (desc != null && !desc.toString().isEmpty()) {
+      sb.append(" - ").append(desc);
+    }
+    sb.append("\n");
   }
 }

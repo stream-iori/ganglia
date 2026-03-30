@@ -86,15 +86,7 @@ public class ToDoTools implements ToolSet {
     ToDoList newList = currentList.addTask(description);
     SessionContext newContext = context.withNewMetadata("todo_list", newList);
 
-    if (executionContext != null
-        && executionContext
-            instanceof work.ganglia.port.internal.state.ObservationDispatcher dispatcher) {
-      dispatcher.dispatch(
-          executionContext.sessionId(),
-          work.ganglia.port.external.tool.ObservationType.PLAN_UPDATED,
-          "Task added",
-          Map.of("plan", newList));
-    }
+    notifyPlanUpdated(executionContext, "Task added", newList);
 
     return Future.succeededFuture(ToolInvokeResult.success("Task added.", newContext));
   }
@@ -134,26 +126,11 @@ public class ToDoTools implements ToolSet {
               ToDoList newList =
                   currentList.updateTaskStatus(id, TaskStatus.DONE).updateTaskResult(id, summary);
 
-              if (executionContext != null
-                  && executionContext
-                      instanceof
-                      work.ganglia.port.internal.state.ObservationDispatcher dispatcher) {
-                dispatcher.dispatch(
-                    executionContext.sessionId(),
-                    work.ganglia.port.external.tool.ObservationType.PLAN_UPDATED,
-                    "Task completed",
-                    Map.of("plan", newList));
-              }
+              notifyPlanUpdated(executionContext, "Task completed", newList);
 
-              // Clear compressed turns from context
               SessionContext newContext =
-                  new SessionContext(
-                          context.sessionId(),
-                          new ArrayList<>(), // Cleared previous turns
-                          context.currentTurn(), // Keep current turn
-                          context.metadata(),
-                          context.activeSkillIds(),
-                          context.modelOptions())
+                  context
+                      .withPreviousTurns(new ArrayList<>())
                       .withNewMetadata("todo_list", newList);
 
               return ToolInvokeResult.success(
@@ -163,5 +140,19 @@ public class ToDoTools implements ToolSet {
             err ->
                 Future.succeededFuture(
                     ToolInvokeResult.error("Failed to compress context: " + err.getMessage())));
+  }
+
+  private void notifyPlanUpdated(
+      work.ganglia.port.internal.state.ExecutionContext executionContext,
+      String message,
+      ToDoList list) {
+    if (executionContext
+        instanceof work.ganglia.port.internal.state.ObservationDispatcher dispatcher) {
+      dispatcher.dispatch(
+          executionContext.sessionId(),
+          work.ganglia.port.external.tool.ObservationType.PLAN_UPDATED,
+          message,
+          Map.of("plan", list));
+    }
   }
 }

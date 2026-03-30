@@ -1,5 +1,6 @@
 package work.ganglia.infrastructure.internal.skill;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +29,7 @@ public class DefaultSkillRuntime implements SkillRuntime {
   private final Vertx vertx;
   private final SkillService skillService;
   private final Map<String, ClassLoader> classLoaderCache = new ConcurrentHashMap<>();
+  private final Map<String, Pattern> globPatternCache = new ConcurrentHashMap<>();
 
   public DefaultSkillRuntime(Vertx vertx, SkillService skillService) {
     this.vertx = vertx;
@@ -199,11 +201,7 @@ public class DefaultSkillRuntime implements SkillRuntime {
             files -> {
               List<String> filenames =
                   files.stream()
-                      .map(
-                          f -> {
-                            int lastSlash = f.lastIndexOf('/');
-                            return lastSlash == -1 ? f : f.substring(lastSlash + 1);
-                          })
+                      .map(f -> Path.of(f).getFileName().toString())
                       .collect(Collectors.toList());
 
               List<SkillManifest> availableSkills = skillService.getAvailableSkills();
@@ -253,8 +251,7 @@ public class DefaultSkillRuntime implements SkillRuntime {
     }
 
     for (String p : patterns) {
-      String regex = p.replace(".", "\\.").replace("*", ".*");
-      Pattern pattern = Pattern.compile("^" + regex + "$");
+      Pattern pattern = globPatternCache.computeIfAbsent(p, DefaultSkillRuntime::globToPattern);
       for (String file : filenames) {
         if (pattern.matcher(file).matches()) {
           return true;
@@ -262,5 +259,21 @@ public class DefaultSkillRuntime implements SkillRuntime {
       }
     }
     return false;
+  }
+
+  static Pattern globToPattern(String glob) {
+    StringBuilder regex = new StringBuilder("^");
+    for (int i = 0; i < glob.length(); i++) {
+      char c = glob.charAt(i);
+      switch (c) {
+        case '*' -> regex.append(".*");
+        case '?' -> regex.append('.');
+        case '.' -> regex.append("\\.");
+        case '+', '{', '}', '(', ')', '[', ']', '^', '$', '|', '\\' -> regex.append('\\').append(c);
+        default -> regex.append(c);
+      }
+    }
+    regex.append('$');
+    return Pattern.compile(regex.toString());
   }
 }
