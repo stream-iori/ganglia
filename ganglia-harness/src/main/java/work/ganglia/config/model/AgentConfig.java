@@ -8,7 +8,9 @@ public record AgentConfig(
     String instructionFile, // Default GANGLIA.md
     long toolTimeout, // Max tool execution time in ms (default 120000)
     int observationCompressionThreshold, // Char length above which LLM compression is triggered
-    int systemOverheadTokens // Estimated tokens for system prompt + tool defs + protocol overhead
+    int systemOverheadTokens, // Estimated tokens for system prompt + tool defs + protocol overhead
+    double forceCompressionMultiplier, // contextLimit × this = forced compression threshold
+    double hardLimitMultiplier // contextLimit × this = session abort threshold
     ) {
   public AgentConfig {
     if (toolTimeout <= 0) {
@@ -20,6 +22,12 @@ public record AgentConfig(
     if (systemOverheadTokens <= 0) {
       systemOverheadTokens =
           6000; // default: system prompt ~2000 + tool defs ~3000 + protocol ~1000
+    }
+    if (forceCompressionMultiplier <= 0) {
+      forceCompressionMultiplier = 3.0;
+    }
+    if (hardLimitMultiplier <= 0) {
+      hardLimitMultiplier = 4.0;
     }
   }
 }

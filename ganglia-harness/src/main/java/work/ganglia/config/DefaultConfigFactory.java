@@ -47,7 +47,9 @@ public class DefaultConfigFactory {
                 .put(ConfigKeys.MAX_ITERATIONS, 10)
                 .put(ConfigKeys.COMPRESSION_THRESHOLD, 0.7)
                 .put(ConfigKeys.INSTRUCTION_FILE, Constants.FILE_GANGLIA_MD)
-                .put(ConfigKeys.TOOL_TIMEOUT, 120000))
+                .put(ConfigKeys.TOOL_TIMEOUT, 120000)
+                .put(ConfigKeys.FORCE_COMPRESSION_MULTIPLIER, 3.0)
+                .put(ConfigKeys.HARD_LIMIT_MULTIPLIER, 4.0))
         .put(ConfigKeys.MODELS, models)
         .put(
             ConfigKeys.OBSERVABILITY,

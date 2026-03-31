@@ -24,12 +24,6 @@ import work.ganglia.util.TokenCounter;
 public class DefaultContextOptimizer implements ContextOptimizer {
   private static final Logger logger = LoggerFactory.getLogger(DefaultContextOptimizer.class);
 
-  /** Token count above which forced compression is attempted regardless of turn count. */
-  static final int FORCE_COMPRESSION_LIMIT = 400_000;
-
-  /** Absolute hard limit — session is aborted if tokens exceed this value. */
-  static final int HARD_TOKEN_LIMIT = 500_000;
-
   private final ModelConfigProvider modelConfig;
   private final AgentConfigProvider agentConfig;
   private final ContextCompressor compressor;
@@ -81,22 +75,23 @@ public class DefaultContextOptimizer implements ContextOptimizer {
 
     int limit = modelConfig.getContextLimit();
     double threshold = agentConfig.getCompressionThreshold();
+    int hardLimit = (int) (limit * agentConfig.getHardLimitMultiplier());
+    int forceLimit = (int) (limit * agentConfig.getForceCompressionMultiplier());
 
-    // Hard limit financial guardrail
-    if (totalTokens > HARD_TOKEN_LIMIT) {
-      logger.error("Session token limit exceeded ({}). Aborting.", totalTokens);
-      return Future.failedFuture(
-          "Session reached maximum safety token limit (" + HARD_TOKEN_LIMIT + ").");
+    // Hard limit financial guardrail — scales with model context window
+    if (totalTokens > hardLimit) {
+      logger.error("Session token limit exceeded ({} > {}). Aborting.", totalTokens, hardLimit);
+      return Future.failedFuture("Session reached maximum safety token limit (" + hardLimit + ").");
     }
 
     // Forced compression — bypasses previousTurns.size() > 1 guard to prevent hitting the hard
     // limit. Compresses aggressively: turnsToKeep may be 0 so even a single oversized previous
     // turn is replaced with a summary.
-    if (totalTokens > FORCE_COMPRESSION_LIMIT && !context.previousTurns().isEmpty()) {
+    if (totalTokens > forceLimit && !context.previousTurns().isEmpty()) {
       logger.warn(
           "Forced compression triggered ({} > {}). Compressing aggressively.",
           totalTokens,
-          FORCE_COMPRESSION_LIMIT);
+          forceLimit);
       int turnsToKeep = calculateTurnsToKeep(context, false);
       return compressSession(context, turnsToKeep);
     }

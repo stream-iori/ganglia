@@ -8,6 +8,8 @@ public interface AgentConfigProvider {
   double DEFAULT_COMPRESSION_THRESHOLD = 0.7;
   long DEFAULT_TOOL_TIMEOUT_MS = 120_000;
   int DEFAULT_SYSTEM_OVERHEAD_TOKENS = 6000;
+  double DEFAULT_FORCE_COMPRESSION_MULTIPLIER = 3.0;
+  double DEFAULT_HARD_LIMIT_MULTIPLIER = 4.0;
 
   int getMaxIterations();
 
@@ -28,5 +30,15 @@ public interface AgentConfigProvider {
    */
   default int getSystemOverheadTokens() {
     return DEFAULT_SYSTEM_OVERHEAD_TOKENS;
+  }
+
+  /** Multiplier of contextLimit at which forced compression is triggered (default 3.0×). */
+  default double getForceCompressionMultiplier() {
+    return DEFAULT_FORCE_COMPRESSION_MULTIPLIER;
+  }
+
+  /** Multiplier of contextLimit at which the session is aborted (default 4.0×). */
+  default double getHardLimitMultiplier() {
+    return DEFAULT_HARD_LIMIT_MULTIPLIER;
   }
 }

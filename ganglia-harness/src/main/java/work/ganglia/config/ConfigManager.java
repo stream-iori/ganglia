@@ -210,6 +210,20 @@ public class ConfigManager
   }
 
   @Override
+  public double getForceCompressionMultiplier() {
+    return (currentConfig.agent() != null && currentConfig.agent().forceCompressionMultiplier() > 0)
+        ? currentConfig.agent().forceCompressionMultiplier()
+        : AgentConfigProvider.DEFAULT_FORCE_COMPRESSION_MULTIPLIER;
+  }
+
+  @Override
+  public double getHardLimitMultiplier() {
+    return (currentConfig.agent() != null && currentConfig.agent().hardLimitMultiplier() > 0)
+        ? currentConfig.agent().hardLimitMultiplier()
+        : AgentConfigProvider.DEFAULT_HARD_LIMIT_MULTIPLIER;
+  }
+
+  @Override
   public int getUtilityContextLimit() {
     ModelConfig utility = currentConfig.getModel(ConfigKeys.UTILITY);
     if (utility != null && utility.contextLimit() > 0) {

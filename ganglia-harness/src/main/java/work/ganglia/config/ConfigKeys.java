@@ -9,6 +9,8 @@ public final class ConfigKeys {
   public static final String COMPRESSION_THRESHOLD = "compressionThreshold";
   public static final String INSTRUCTION_FILE = "instructionFile";
   public static final String TOOL_TIMEOUT = "toolTimeout";
+  public static final String FORCE_COMPRESSION_MULTIPLIER = "forceCompressionMultiplier";
+  public static final String HARD_LIMIT_MULTIPLIER = "hardLimitMultiplier";
 
   public static final String MODELS = "models";
   public static final String PRIMARY = "primary";

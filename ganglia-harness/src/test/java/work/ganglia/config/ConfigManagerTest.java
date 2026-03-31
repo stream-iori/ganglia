@@ -183,6 +183,16 @@ class ConfigManagerTest {
         ModelConfigProvider.DEFAULT_OBSERVATION_COMPRESSION_THRESHOLD,
         manager.getObservationCompressionThreshold(),
         "observationCompressionThreshold must match interface default");
+    assertEquals(
+        AgentConfigProvider.DEFAULT_FORCE_COMPRESSION_MULTIPLIER,
+        manager.getForceCompressionMultiplier(),
+        0.001,
+        "forceCompressionMultiplier must match interface default");
+    assertEquals(
+        AgentConfigProvider.DEFAULT_HARD_LIMIT_MULTIPLIER,
+        manager.getHardLimitMultiplier(),
+        0.001,
+        "hardLimitMultiplier must match interface default");
   }
 
   @Test

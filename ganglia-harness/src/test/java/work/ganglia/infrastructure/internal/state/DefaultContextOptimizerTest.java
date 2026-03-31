@@ -84,6 +84,10 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
   }
 
   private AgentConfigProvider agentConfig(double threshold) {
+    return agentConfig(threshold, AgentConfigProvider.DEFAULT_SYSTEM_OVERHEAD_TOKENS);
+  }
+
+  private AgentConfigProvider agentConfig(double threshold, int systemOverhead) {
     return new AgentConfigProvider() {
       @Override
       public int getMaxIterations() {
@@ -103,6 +107,11 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
       @Override
       public String getInstructionFile() {
         return null;
+      }
+
+      @Override
+      public int getSystemOverheadTokens() {
+        return systemOverhead;
       }
     };
   }
@@ -159,10 +168,11 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
 
   @Test
   void testCompressionTriggeredWithMultipleTurns(VertxTestContext testContext) {
-    // Very low limit + very low threshold to force compression
+    // Low threshold + zero overhead to trigger normal compression with a small contextLimit.
+    // force/hard limits (10×3=30, 10×4=40) stay above actual message tokens (~20).
     DefaultContextOptimizer optimizer =
         new DefaultContextOptimizer(
-            modelConfig(10), agentConfig(0.1), simpleCompressor(), new TokenCounter());
+            modelConfig(10), agentConfig(0.1, 0), simpleCompressor(), new TokenCounter());
 
     SessionContext ctx = createSessionContext();
     Turn turn1 =
@@ -188,8 +198,7 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
 
   @Test
   void testHardLimitReturnsFailure(VertxTestContext testContext) {
-    // We can't easily generate 500k tokens in a test, but verify the threshold path by
-    // checking the guardrail isn't triggered on normal input
+    // Hard limit = contextLimit × 4.0. Verify the guardrail isn't triggered on normal input.
     DefaultContextOptimizer optimizer =
         new DefaultContextOptimizer(
             modelConfig(1000000), agentConfig(0.8), simpleCompressor(), new TokenCounter());
@@ -206,7 +215,7 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
                 result -> {
                   testContext.verify(
                       () -> {
-                        // Should succeed — not near 500k
+                        // Should succeed — not near hard limit (1M × 4.0 = 4M)
                         assertFalse(result.previousTurns().isEmpty());
                         testContext.completeNow();
                       });
@@ -215,10 +224,11 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
 
   @Test
   void testNoCompressionWithSingleTurn(VertxTestContext testContext) {
-    // threshold would trigger but only 1 previous turn (needs >1)
+    // threshold would trigger but only 1 previous turn (needs >1).
+    // Zero overhead + contextLimit=10 keeps total below force/hard limits (30/40).
     DefaultContextOptimizer optimizer =
         new DefaultContextOptimizer(
-            modelConfig(10), agentConfig(0.001), simpleCompressor(), new TokenCounter());
+            modelConfig(10), agentConfig(0.001, 0), simpleCompressor(), new TokenCounter());
 
     SessionContext ctx = createSessionContext();
     Turn singleTurn =
@@ -241,18 +251,19 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
   }
 
   /**
-   * When totalTokens exceeds FORCE_COMPRESSION_LIMIT (400k), forced compression triggers even with
-   * only 1 previous turn — bypassing the normal previousTurns.size() > 1 guard.
+   * When totalTokens exceeds contextLimit × forceCompressionMultiplier (default 3.0), forced
+   * compression triggers even with only 1 previous turn — bypassing the normal previousTurns.size()
+   * > 1 guard.
    */
   @Test
   void testForcedCompressionTriggersWithSingleLargeTurn(VertxTestContext testContext) {
-    // overhead = 6000 (default). We need historyTokens + 6000 > 400_000,
-    // so historyTokens > 394_000. Use a contextLimit large enough that normal
-    // threshold (80%) would NOT trigger but forced limit (400k) does.
-    // contextLimit = 600_000, threshold 80% = 480_000 → normal won't trigger at ~395k.
+    // overhead = 6000 (default). We need historyTokens + 6000 > contextLimit × 3.0.
+    // With contextLimit = 130_000: forceLimit = 390_000, hardLimit = 520_000.
+    // historyTokens ≈ 395k → totalTokens ≈ 401k > 390k (forced) but < 520k (hard).
+    // Normal threshold: 130_000 × 0.8 = 104_000 — would trigger, but single turn guard blocks it.
     DefaultContextOptimizer optimizer =
         new DefaultContextOptimizer(
-            modelConfig(600000), agentConfig(0.8), simpleCompressor(), new TokenCounter());
+            modelConfig(130000), agentConfig(0.8), simpleCompressor(), new TokenCounter());
 
     SessionContext ctx = createSessionContext();
     // "word " ≈ 1 token; repeat 395000 times ≈ 395k tokens
@@ -406,7 +417,7 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
 
     DefaultContextOptimizer optimizer =
         new DefaultContextOptimizer(
-            modelConfig(10), agentConfig(0.1), trackingCompressor, new TokenCounter());
+            modelConfig(10), agentConfig(0.001, 0), trackingCompressor, new TokenCounter());
 
     SessionContext ctx = createSessionContext();
     Turn turn1 =
@@ -431,6 +442,33 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
                         assertTrue(
                             result.previousTurns().stream()
                                 .anyMatch(t -> t.id().startsWith("summary-")));
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  @Test
+  void testHardLimitScalesWithContextLimit(VertxTestContext testContext) {
+    // Small model: contextLimit=32000, hardLimit=32000×4.0=128000.
+    // ~130k tokens should exceed hard limit and fail.
+    DefaultContextOptimizer optimizer =
+        new DefaultContextOptimizer(
+            modelConfig(32000), agentConfig(0.8), simpleCompressor(), new TokenCounter());
+
+    SessionContext ctx = createSessionContext();
+    String hugeContent = "word ".repeat(130000); // ~130k tokens
+    Turn hugeTurn =
+        Turn.newTurn("t1", Message.user(hugeContent)).withResponse(Message.assistant("ok"));
+    SessionContext withHistory = ctx.withPreviousTurns(List.of(hugeTurn));
+
+    optimizer
+        .optimizeIfNeeded(withHistory)
+        .onComplete(
+            testContext.failing(
+                err -> {
+                  testContext.verify(
+                      () -> {
+                        assertTrue(err.getMessage().contains("maximum safety token limit"));
                         testContext.completeNow();
                       });
                 }));
