@@ -82,18 +82,18 @@ Tier 3: Hard Limit (Abort)     contextLimit × hardLimitMultiplier (default 4.0)
 **Example thresholds by model size:**
 
 | Model         | contextLimit | Normal (×0.7) | Forced (×3.0) | Hard Limit (×4.0) |
-|:--------------|:-------------|:---------------|:---------------|:-------------------|
-| GPT-4o-mini   | 32,000       | 22,400         | 96,000         | 128,000            |
-| GPT-4o        | 128,000      | 89,600         | 384,000        | 512,000            |
-| Claude Sonnet  | 200,000      | 140,000        | 600,000        | 800,000            |
+|:--------------|:-------------|:--------------|:--------------|:------------------|
+| GPT-4o-mini   | 32,000       | 22,400        | 96,000        | 128,000           |
+| GPT-4o        | 128,000      | 89,600        | 384,000       | 512,000           |
+| Claude Sonnet | 200,000      | 140,000       | 600,000       | 800,000           |
 
 ### 5.2 Tier Behavior
 
-| Tier | Trigger Condition | Guard | Behavior |
-|:-----|:------------------|:------|:---------|
-| **Normal** | `totalTokens > contextLimit × compressionThreshold` | `previousTurns.size() > 1` | Compresses oldest turns into a summary, keeps at least 1 turn |
-| **Forced** | `totalTokens > contextLimit × forceCompressionMultiplier` | `previousTurns` non-empty | Aggressive compression — `turnsToKeep` may be 0, replacing even a single oversized turn with a summary |
-| **Hard Limit** | `totalTokens > contextLimit × hardLimitMultiplier` | None | Session aborted with error. Financial guardrail preventing runaway token costs |
+| Tier           | Trigger Condition                                         | Guard                      | Behavior                                                                                               |
+|:---------------|:----------------------------------------------------------|:---------------------------|:-------------------------------------------------------------------------------------------------------|
+| **Normal**     | `totalTokens > contextLimit × compressionThreshold`       | `previousTurns.size() > 1` | Compresses oldest turns into a summary, keeps at least 1 turn                                          |
+| **Forced**     | `totalTokens > contextLimit × forceCompressionMultiplier` | `previousTurns` non-empty  | Aggressive compression — `turnsToKeep` may be 0, replacing even a single oversized turn with a summary |
+| **Hard Limit** | `totalTokens > contextLimit × hardLimitMultiplier`        | None                       | Session aborted with error. Financial guardrail preventing runaway token costs                         |
 
 The **Forced Compression** tier exists to close a blind spot: a single large turn that bypasses the Normal tier's `previousTurns.size() > 1` guard could otherwise grow unchecked until it hits the Hard Limit.
 
@@ -118,23 +118,23 @@ Compression thresholds are configurable in `ganglia.json` under the `agent` bloc
 }
 ```
 
-| Key | Type | Default | Description |
-|:----|:-----|:--------|:------------|
-| `compressionThreshold` | double | 0.7 | Fraction of `contextLimit` at which normal compression triggers |
-| `forceCompressionMultiplier` | double | 3.0 | Multiplier of `contextLimit` for forced compression |
-| `hardLimitMultiplier` | double | 4.0 | Multiplier of `contextLimit` for session abort |
-| `systemOverheadTokens` | int | 6000 | Estimated tokens for system prompt + tool definitions + protocol framing, added to history token count when evaluating thresholds |
+| Key                          | Type   | Default | Description                                                                                                                       |
+|:-----------------------------|:-------|:--------|:----------------------------------------------------------------------------------------------------------------------------------|
+| `compressionThreshold`       | double | 0.7     | Fraction of `contextLimit` at which normal compression triggers                                                                   |
+| `forceCompressionMultiplier` | double | 3.0     | Multiplier of `contextLimit` for forced compression                                                                               |
+| `hardLimitMultiplier`        | double | 4.0     | Multiplier of `contextLimit` for session abort                                                                                    |
+| `systemOverheadTokens`       | int    | 6000    | Estimated tokens for system prompt + tool definitions + protocol framing, added to history token count when evaluating thresholds |
 
 Most deployments do not need to change these values. The defaults are designed to work well across common model sizes (32k–200k context windows).
 
 ### 5.5 Implementation Classes
 
-| Class | Package | Responsibility |
-|:------|:--------|:---------------|
-| `DefaultContextOptimizer` | `infrastructure.internal.state` | Orchestrates the three-tier compression logic |
-| `ContextBudget` | `port.internal.prompt` | Centralizes token budget calculations (history, currentTurn, compressionTarget) |
-| `AgentConfigProvider` | `config` | Provides `getForceCompressionMultiplier()` and `getHardLimitMultiplier()` with defaults |
-| `ContextCompressor` | `port.internal.memory` | SPI for LLM-based turn summarization |
+| Class                     | Package                         | Responsibility                                                                          |
+|:--------------------------|:--------------------------------|:----------------------------------------------------------------------------------------|
+| `DefaultContextOptimizer` | `infrastructure.internal.state` | Orchestrates the three-tier compression logic                                           |
+| `ContextBudget`           | `port.internal.prompt`          | Centralizes token budget calculations (history, currentTurn, compressionTarget)         |
+| `AgentConfigProvider`     | `config`                        | Provides `getForceCompressionMultiplier()` and `getHardLimitMultiplier()` with defaults |
+| `ContextCompressor`       | `port.internal.memory`          | SPI for LLM-based turn summarization                                                    |
 
 ## 6. Sequence Diagrams
 

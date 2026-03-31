@@ -5,6 +5,7 @@
     <groupId>work.ganglia</groupId>
     <artifactId>ganglia-parent</artifactId>
     <version>0.1.7-SNAPSHOT</version>
+    <relativePath>../../pom.xml</relativePath>
   </parent>
 
   <artifactId>ganglia-swe-bench</artifactId>
