@@ -34,7 +34,7 @@ public class TraceManager {
   /** Serialization chain to prevent concurrent write corruption. */
   private Future<Void> writeChain = Future.succeededFuture();
 
-  private volatile boolean dirEnsured = false;
+  private boolean dirEnsured = false;
 
   /** Cached file handle for the current date's trace file. */
   private AsyncFile currentFile;

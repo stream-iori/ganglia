@@ -1,21 +1,25 @@
 package work.ganglia.port.internal.state;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * A signal used to propagate a hard abort request through the agent loop and underlying operations.
  * Supports registering callbacks that are executed immediately when an abort is triggered.
+ *
+ * <p>Thread safety: {@link #abort()} may be called from any thread (e.g. JVM signal handler for
+ * Ctrl+C). {@link #onAbort(Runnable)} may be called concurrently. The implementation uses {@link
+ * AtomicBoolean} for the flag and {@link CopyOnWriteArrayList} for callbacks, avoiding {@code
+ * synchronized} blocks entirely.
  */
 public class AgentSignal {
   private final AtomicBoolean aborted = new AtomicBoolean(false);
-  private final List<Runnable> callbacks = new ArrayList<>();
+  private final CopyOnWriteArrayList<Runnable> callbacks = new CopyOnWriteArrayList<>();
 
   public AgentSignal() {}
 
   /** Triggers the abort signal and executes all registered callbacks. */
-  public synchronized void abort() {
+  public void abort() {
     if (aborted.compareAndSet(false, true)) {
       for (Runnable callback : callbacks) {
         try {
@@ -30,13 +34,16 @@ public class AgentSignal {
 
   /**
    * Registers a callback to be executed when the signal is aborted. If the signal is already
-   * aborted, the callback is executed immediately.
+   * aborted, the callback is executed immediately. Uses a double-check pattern to prevent the race
+   * where abort() fires between the check and the add.
    */
-  public synchronized void onAbort(Runnable callback) {
+  public void onAbort(Runnable callback) {
+    callbacks.add(callback);
+    // Double-check: if abort() raced ahead, run and remove the callback ourselves
     if (aborted.get()) {
-      callback.run();
-    } else {
-      callbacks.add(callback);
+      if (callbacks.remove(callback)) {
+        callback.run();
+      }
     }
   }
 

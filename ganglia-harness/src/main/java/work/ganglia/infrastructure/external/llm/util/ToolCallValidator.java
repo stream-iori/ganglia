@@ -1,8 +1,8 @@
 package work.ganglia.infrastructure.external.llm.util;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -22,7 +22,7 @@ public class ToolCallValidator {
   private static final JsonSchemaFactory factory =
       JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V7);
 
-  private final Map<String, JsonSchema> schemaCache = new ConcurrentHashMap<>();
+  private final Map<String, JsonSchema> schemaCache = new HashMap<>();
 
   /**
    * Validates arguments against a JSON schema string.

@@ -68,11 +68,11 @@ public class ReActAgentLoop implements AgentLoop {
   /** Consolidated per-session state to prevent map sprawl and ensure atomic cleanup. */
   private static class SessionState {
     volatile AgentSignal signal;
-    volatile long startTimeMs;
+    long startTimeMs;
     final Deque<String> spanStack = new ArrayDeque<>();
     final java.util.concurrent.atomic.AtomicInteger activeTurns =
         new java.util.concurrent.atomic.AtomicInteger(0);
-    volatile String sessionSpanId;
+    String sessionSpanId;
   }
 
   private ReActAgentLoop(Builder builder) {

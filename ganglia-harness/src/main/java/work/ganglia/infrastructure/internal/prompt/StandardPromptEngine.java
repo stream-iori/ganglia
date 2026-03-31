@@ -2,10 +2,10 @@ package work.ganglia.infrastructure.internal.prompt;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import io.vertx.core.Future;
@@ -46,7 +46,7 @@ public class StandardPromptEngine implements PromptEngine {
   private final ContextBudget budget;
   private final Supplier<AgentTaskFactory> taskFactoryProvider;
   private ObservationDispatcher dispatcher;
-  private final Set<String> budgetEmittedSessions = ConcurrentHashMap.newKeySet();
+  private final Set<String> budgetEmittedSessions = new HashSet<>();
 
   public StandardPromptEngine(
       Vertx vertx,
@@ -170,13 +170,15 @@ public class StandardPromptEngine implements PromptEngine {
                         "maxGenerationTokens", budget.maxGenerationTokens(),
                         "systemPromptBudget", budget.systemPrompt(),
                         "historyBudget", budget.history(),
+                        "currentTurnBudget", budget.currentTurnBudget(),
                         "toolOutputBudget", budget.toolOutputPerMessage(),
                         "observationFallback", budget.observationFallback(),
                         "compressionTarget", budget.compressionTarget()));
               }
 
               List<Message> prunedHistory =
-                  context.getPrunedHistory(budget.history(), tokenCounter);
+                  context.getPrunedHistory(
+                      budget.history(), budget.currentTurnBudget(), tokenCounter);
               modelHistory.addAll(capToolMessages(sanitizeHistory(prunedHistory)));
 
               // 3. Resolve Model Options
@@ -188,10 +190,6 @@ public class StandardPromptEngine implements PromptEngine {
                         modelConfigProvider.getMaxTokens(),
                         modelConfigProvider.getModel(),
                         modelConfigProvider.isStream());
-              }
-              if (currentOptions == null) {
-                // Last ditch fallback if provider is missing
-                currentOptions = new ModelOptions(0.0, 4096, "gpt-4o", true);
               }
 
               // 4. Resolve Tools

@@ -3,10 +3,10 @@ package work.ganglia.infrastructure.internal.skill;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -28,8 +28,8 @@ public class DefaultSkillRuntime implements SkillRuntime {
 
   private final Vertx vertx;
   private final SkillService skillService;
-  private final Map<String, ClassLoader> classLoaderCache = new ConcurrentHashMap<>();
-  private final Map<String, Pattern> globPatternCache = new ConcurrentHashMap<>();
+  private final Map<String, ClassLoader> classLoaderCache = new HashMap<>();
+  private final Map<String, Pattern> globPatternCache = new HashMap<>();
 
   public DefaultSkillRuntime(Vertx vertx, SkillService skillService) {
     this.vertx = vertx;

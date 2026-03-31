@@ -23,7 +23,7 @@ import work.ganglia.port.internal.state.ExecutionContext;
 @ExtendWith(VertxExtension.class)
 class AbstractModelGatewaySemaphoreTest {
 
-  /** Minimal concrete subclass that exposes withSemaphore for testing. */
+  /** Minimal concrete subclass that exposes withLimit for testing. */
   static class TestGateway extends AbstractModelGateway {
     TestGateway(Vertx vertx) {
       super(vertx);
@@ -39,44 +39,49 @@ class AbstractModelGatewaySemaphoreTest {
       return Future.failedFuture("not implemented");
     }
 
-    /** Expose withSemaphore for testing. */
-    public <T> Future<T> testWithSemaphore(java.util.function.Supplier<Future<T>> supplier) {
-      return withSemaphore(supplier);
+    /** Expose withLimit for testing. */
+    public <T> Future<T> testWithLimit(java.util.function.Supplier<Future<T>> supplier) {
+      return withLimit(supplier);
     }
   }
 
   @Test
-  void supplierNotCalledWhenPermitExhausted(Vertx vertx, VertxTestContext testContext) {
+  void sixthCallQueuesAndCompletesAfterRelease(Vertx vertx, VertxTestContext testContext) {
     TestGateway gw = new TestGateway(vertx);
 
-    // Exhaust all 5 permits with never-completing futures
+    // Exhaust all 5 slots with never-completing futures
     Promise<String>[] holders = new Promise[5];
     for (int i = 0; i < 5; i++) {
       holders[i] = Promise.promise();
       final int idx = i;
-      gw.testWithSemaphore(() -> holders[idx].future());
+      gw.testWithLimit(() -> holders[idx].future());
     }
 
-    // 6th call: supplier should NOT be invoked
+    // 6th call: should be queued (not failed)
     AtomicBoolean supplierCalled = new AtomicBoolean(false);
     Future<String> result =
-        gw.testWithSemaphore(
+        gw.testWithLimit(
             () -> {
               supplierCalled.set(true);
-              return Future.succeededFuture("should not happen");
+              return Future.succeededFuture("queued-result");
             });
 
+    // Should not have completed yet — it's waiting for a slot
+    assertFalse(result.isComplete(), "6th call should be queued, not immediately resolved");
+    assertFalse(supplierCalled.get(), "Supplier should not be called while queued");
+
+    // Release one holder → 6th call should now execute
+    holders[0].complete("done");
+
     result.onComplete(
-        testContext.failing(
-            err ->
+        testContext.succeeding(
+            val ->
                 testContext.verify(
                     () -> {
-                      assertFalse(
-                          supplierCalled.get(),
-                          "Supplier should not be called when permits exhausted");
-                      assertTrue(err.getMessage().contains("Concurrency limit"));
-                      // Clean up holders
-                      for (Promise<String> h : holders) h.complete("done");
+                      assertTrue(supplierCalled.get(), "Supplier should have been called");
+                      assertEquals("queued-result", val);
+                      // Clean up remaining holders
+                      for (int i = 1; i < holders.length; i++) holders[i].complete("done");
                       testContext.completeNow();
                     })));
   }
@@ -86,13 +91,13 @@ class AbstractModelGatewaySemaphoreTest {
     TestGateway gw = new TestGateway(vertx);
     AtomicInteger callCount = new AtomicInteger(0);
 
-    // Run 6 calls sequentially — all should succeed since each releases its permit
+    // Run 6 calls sequentially — all should succeed since each releases its slot
     Future<String> chain = Future.succeededFuture();
     for (int i = 0; i < 6; i++) {
       chain =
           chain.compose(
               v ->
-                  gw.testWithSemaphore(
+                  gw.testWithLimit(
                       () -> {
                         callCount.incrementAndGet();
                         return Future.succeededFuture("ok");
@@ -113,9 +118,9 @@ class AbstractModelGatewaySemaphoreTest {
   void permitReleasedOnFailure(Vertx vertx, VertxTestContext testContext) {
     TestGateway gw = new TestGateway(vertx);
 
-    // Fail a call, then verify the permit was released by succeeding another
-    gw.testWithSemaphore(() -> Future.<String>failedFuture("boom"))
-        .recover(err -> gw.testWithSemaphore(() -> Future.succeededFuture("recovered")))
+    // Fail a call, then verify the slot was released by succeeding another
+    gw.testWithLimit(() -> Future.<String>failedFuture("boom"))
+        .recover(err -> gw.testWithLimit(() -> Future.succeededFuture("recovered")))
         .onComplete(
             testContext.succeeding(
                 result ->
@@ -131,14 +136,14 @@ class AbstractModelGatewaySemaphoreTest {
     TestGateway gw = new TestGateway(vertx);
 
     // Supplier throws synchronously
-    gw.<String>testWithSemaphore(
+    gw.<String>testWithLimit(
             () -> {
               throw new RuntimeException("sync boom");
             })
         .recover(
             err ->
-                // Should still be able to acquire permit
-                gw.testWithSemaphore(() -> Future.succeededFuture("after-exception")))
+                // Should still be able to acquire slot
+                gw.testWithLimit(() -> Future.succeededFuture("after-exception")))
         .onComplete(
             testContext.succeeding(
                 result ->

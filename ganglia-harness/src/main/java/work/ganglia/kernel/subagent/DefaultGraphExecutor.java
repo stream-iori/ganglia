@@ -2,8 +2,6 @@ package work.ganglia.kernel.subagent;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,8 +32,8 @@ public class DefaultGraphExecutor implements GraphExecutor {
         graph.nodes().size(),
         parentContext.sessionId());
 
-    Map<String, String> results = new ConcurrentHashMap<>();
-    AtomicInteger completedCount = new AtomicInteger(0);
+    Map<String, String> results = new HashMap<>();
+    int[] completedCount = {0};
 
     return executeReadyNodes(graph, parentContext, results, completedCount);
   }
@@ -44,7 +42,7 @@ public class DefaultGraphExecutor implements GraphExecutor {
       TaskGraph graph,
       SessionContext parentContext,
       Map<String, String> results,
-      AtomicInteger completedCount) {
+      int[] completedCount) {
     var readyNodes =
         graph.nodes().stream()
             .filter(
@@ -52,7 +50,7 @@ public class DefaultGraphExecutor implements GraphExecutor {
             .toList();
 
     if (readyNodes.isEmpty()) {
-      if (completedCount.get() >= graph.nodes().size()) {
+      if (completedCount[0] >= graph.nodes().size()) {
         return Future.succeededFuture(formatFinalReport(graph, results));
       }
       return Future.failedFuture("Graph deadlock or cycle detected.");
@@ -64,7 +62,7 @@ public class DefaultGraphExecutor implements GraphExecutor {
     return Future.all(nodeFutures)
         .compose(
             v -> {
-              completedCount.addAndGet(readyNodes.size());
+              completedCount[0] += readyNodes.size();
               return executeReadyNodes(graph, parentContext, results, completedCount);
             });
   }

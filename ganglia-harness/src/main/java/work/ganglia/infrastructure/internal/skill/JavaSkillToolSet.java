@@ -1,9 +1,9 @@
 package work.ganglia.infrastructure.internal.skill;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +24,7 @@ public class JavaSkillToolSet implements ToolSet {
   private final String skillId;
   private final ClassLoader classLoader;
   private final List<SkillToolDefinition> javaTools;
-  private final Map<String, ToolSet> instanceCache = new ConcurrentHashMap<>();
+  private final Map<String, ToolSet> instanceCache = new HashMap<>();
 
   public JavaSkillToolSet(
       String skillId, ClassLoader classLoader, List<SkillToolDefinition> javaTools) {

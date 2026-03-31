@@ -59,7 +59,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
       logger.debug(
           "[LLM_REQ] Session: {}, Payload: {}", request.options().modelName(), payload.encode());
     }
-    return withSemaphore(
+    return withLimit(
         () ->
             webClient
                 .postAbs(endpoint)

@@ -1,8 +1,8 @@
 package work.ganglia.config;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -30,9 +30,9 @@ public class ConfigManager
   private static final String DEFAULT_CONFIG_FILE = Constants.DEFAULT_CONFIG_FILE;
 
   private final ConfigLoader loader;
-  private JsonObject currentJson;
-  private GangliaConfig currentConfig;
-  private final List<Consumer<GangliaConfig>> listeners = new ArrayList<>();
+  private volatile JsonObject currentJson;
+  private volatile GangliaConfig currentConfig;
+  private final List<Consumer<GangliaConfig>> listeners = new CopyOnWriteArrayList<>();
 
   public ConfigManager(Vertx vertx) {
     this(vertx, DEFAULT_CONFIG_FILE);
@@ -72,7 +72,7 @@ public class ConfigManager
             });
   }
 
-  public synchronized void updateConfig(JsonObject newConfig) {
+  public void updateConfig(JsonObject newConfig) {
     if (this.currentJson == null) {
       this.currentJson = DefaultConfigFactory.create();
     }
@@ -96,11 +96,11 @@ public class ConfigManager
     return loader.getConfigPath();
   }
 
-  public synchronized GangliaConfig getGangliaConfig() {
+  public GangliaConfig getGangliaConfig() {
     return currentConfig;
   }
 
-  public synchronized JsonObject getConfig() {
+  public JsonObject getConfig() {
     return currentJson;
   }
 
@@ -169,12 +169,16 @@ public class ConfigManager
 
   @Override
   public int getMaxIterations() {
-    return currentConfig.agent() != null ? currentConfig.agent().maxIterations() : 10;
+    return currentConfig.agent() != null
+        ? currentConfig.agent().maxIterations()
+        : AgentConfigProvider.DEFAULT_MAX_ITERATIONS;
   }
 
   @Override
   public double getCompressionThreshold() {
-    return currentConfig.agent() != null ? currentConfig.agent().compressionThreshold() : 0.7;
+    return currentConfig.agent() != null
+        ? currentConfig.agent().compressionThreshold()
+        : AgentConfigProvider.DEFAULT_COMPRESSION_THRESHOLD;
   }
 
   @Override
@@ -195,14 +199,14 @@ public class ConfigManager
   public long getToolTimeoutMs() {
     return (currentConfig.agent() != null && currentConfig.agent().toolTimeout() > 0)
         ? currentConfig.agent().toolTimeout()
-        : 120_000;
+        : AgentConfigProvider.DEFAULT_TOOL_TIMEOUT_MS;
   }
 
   @Override
   public int getSystemOverheadTokens() {
     return (currentConfig.agent() != null && currentConfig.agent().systemOverheadTokens() > 0)
         ? currentConfig.agent().systemOverheadTokens()
-        : 6000;
+        : AgentConfigProvider.DEFAULT_SYSTEM_OVERHEAD_TOKENS;
   }
 
   @Override
@@ -211,7 +215,7 @@ public class ConfigManager
     if (utility != null && utility.contextLimit() > 0) {
       return utility.contextLimit();
     }
-    return 32000;
+    return ModelConfigProvider.DEFAULT_UTILITY_CONTEXT_LIMIT;
   }
 
   @Override
@@ -219,7 +223,7 @@ public class ConfigManager
     return (currentConfig.agent() != null
             && currentConfig.agent().observationCompressionThreshold() > 0)
         ? currentConfig.agent().observationCompressionThreshold()
-        : 6000;
+        : ModelConfigProvider.DEFAULT_OBSERVATION_COMPRESSION_THRESHOLD;
   }
 
   // --- WebUiConfigProvider Implementation ---

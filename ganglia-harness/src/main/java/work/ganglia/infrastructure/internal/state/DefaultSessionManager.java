@@ -1,10 +1,11 @@
 package work.ganglia.infrastructure.internal.state;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,14 +27,14 @@ public class DefaultSessionManager implements SessionManager {
   private final StateEngine stateEngine;
   private final LogManager logManager;
   private final ModelConfigProvider modelConfig;
-  private final ConcurrentHashMap<String, ConcurrentLinkedQueue<String>> steeringQueues;
+  private final Map<String, ArrayDeque<String>> steeringQueues;
 
   public DefaultSessionManager(
       StateEngine stateEngine, LogManager logManager, ModelConfigProvider modelConfig) {
     this.stateEngine = stateEngine;
     this.logManager = logManager;
     this.modelConfig = modelConfig;
-    this.steeringQueues = new ConcurrentHashMap<>();
+    this.steeringQueues = new HashMap<>();
   }
 
   @Override
@@ -150,12 +151,12 @@ public class DefaultSessionManager implements SessionManager {
 
   @Override
   public void addSteeringMessage(String sessionId, String message) {
-    steeringQueues.computeIfAbsent(sessionId, k -> new ConcurrentLinkedQueue<>()).add(message);
+    steeringQueues.computeIfAbsent(sessionId, k -> new ArrayDeque<>()).add(message);
   }
 
   @Override
   public List<String> pollSteeringMessages(String sessionId) {
-    ConcurrentLinkedQueue<String> queue = steeringQueues.get(sessionId);
+    ArrayDeque<String> queue = steeringQueues.get(sessionId);
     if (queue == null || queue.isEmpty()) {
       return Collections.emptyList();
     }

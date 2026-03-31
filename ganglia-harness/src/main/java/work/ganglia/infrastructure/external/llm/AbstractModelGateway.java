@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -31,6 +30,7 @@ import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.external.tool.ToolCall;
 import work.ganglia.port.internal.state.ExecutionContext;
 import work.ganglia.port.internal.state.TokenUsage;
+import work.ganglia.util.AsyncConcurrencyLimiter;
 
 /** Base class for ModelGateways to reduce boilerplate and enforce common constraints. */
 public abstract class AbstractModelGateway implements ModelGateway {
@@ -40,7 +40,7 @@ public abstract class AbstractModelGateway implements ModelGateway {
   private static final int MAX_CONCURRENT_CALLS = 5;
 
   protected final Vertx vertx;
-  private final Semaphore semaphore = new Semaphore(MAX_CONCURRENT_CALLS);
+  private final AsyncConcurrencyLimiter limiter = new AsyncConcurrencyLimiter(MAX_CONCURRENT_CALLS);
 
   protected AbstractModelGateway(Vertx vertx) {
     this.vertx = vertx;
@@ -65,24 +65,9 @@ public abstract class AbstractModelGateway implements ModelGateway {
         .orElse(null);
   }
 
-  /** Wraps a future supplier with semaphore protection to limit concurrency. */
-  protected <T> Future<T> withSemaphore(Supplier<Future<T>> futureSupplier) {
-    if (semaphore.tryAcquire()) {
-      try {
-        return futureSupplier.get().onComplete(v -> semaphore.release());
-      } catch (Exception e) {
-        semaphore.release();
-        return Future.failedFuture(wrapException(e));
-      }
-    } else {
-      return Future.failedFuture(
-          new LLMException(
-              "Concurrency limit reached (max " + MAX_CONCURRENT_CALLS + ")",
-              null,
-              429,
-              null,
-              null));
-    }
+  /** Wraps a future supplier with async concurrency limiting. */
+  protected <T> Future<T> withLimit(Supplier<Future<T>> futureSupplier) {
+    return limiter.withLimit(futureSupplier);
   }
 
   protected Throwable wrapException(Throwable e) {
@@ -174,7 +159,7 @@ public abstract class AbstractModelGateway implements ModelGateway {
               promise.tryFail(new work.ganglia.port.internal.state.AgentAbortedException());
             });
 
-    withSemaphore(
+    withLimit(
             () ->
                 httpRequest
                     .putHeader("Accept", "text/event-stream")

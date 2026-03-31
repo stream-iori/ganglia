@@ -56,7 +56,7 @@ public class AnthropicModelGateway extends AbstractModelGateway {
         "[REQ] [ANTHROPIC] Model: {}, Payload: {}",
         request.options().modelName(),
         payload.encode());
-    return withSemaphore(
+    return withLimit(
         () ->
             webClient
                 .postAbs(endpoint)
