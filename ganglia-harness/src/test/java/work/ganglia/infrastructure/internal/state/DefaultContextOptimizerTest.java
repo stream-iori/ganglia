@@ -240,6 +240,44 @@ class DefaultContextOptimizerTest extends BaseGangliaTest {
                 }));
   }
 
+  /**
+   * When totalTokens exceeds FORCE_COMPRESSION_LIMIT (400k), forced compression triggers even with
+   * only 1 previous turn — bypassing the normal previousTurns.size() > 1 guard.
+   */
+  @Test
+  void testForcedCompressionTriggersWithSingleLargeTurn(VertxTestContext testContext) {
+    // overhead = 6000 (default). We need historyTokens + 6000 > 400_000,
+    // so historyTokens > 394_000. Use a contextLimit large enough that normal
+    // threshold (80%) would NOT trigger but forced limit (400k) does.
+    // contextLimit = 600_000, threshold 80% = 480_000 → normal won't trigger at ~395k.
+    DefaultContextOptimizer optimizer =
+        new DefaultContextOptimizer(
+            modelConfig(600000), agentConfig(0.8), simpleCompressor(), new TokenCounter());
+
+    SessionContext ctx = createSessionContext();
+    // "word " ≈ 1 token; repeat 395000 times ≈ 395k tokens
+    String hugeContent = "word ".repeat(395000);
+    Turn hugeTurn =
+        Turn.newTurn("t1", Message.user(hugeContent)).withResponse(Message.assistant("ok"));
+    SessionContext withHistory = ctx.withPreviousTurns(List.of(hugeTurn));
+
+    optimizer
+        .optimizeIfNeeded(withHistory)
+        .onComplete(
+            testContext.succeeding(
+                result -> {
+                  testContext.verify(
+                      () -> {
+                        // Forced compression should create a summary turn
+                        assertTrue(
+                            result.previousTurns().stream()
+                                .anyMatch(t -> t.id().startsWith("summary-")),
+                            "Forced compression must produce a summary turn");
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
   @Test
   void testSystemOverheadIncludedInThreshold(VertxTestContext testContext) {
     // contextLimit=20, threshold=0.8 → trigger at 16.

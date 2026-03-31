@@ -14,6 +14,7 @@ import work.ganglia.port.external.llm.ChatRequest;
 import work.ganglia.port.external.llm.ModelGateway;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
+import work.ganglia.port.internal.prompt.CompressionBudget;
 import work.ganglia.port.internal.state.AgentSignal;
 import work.ganglia.util.TokenCounter;
 
@@ -23,16 +24,26 @@ public class DefaultContextCompressor
   private final ModelGateway model;
   private final ModelConfigProvider configProvider;
   private final TokenCounter tokenCounter;
+  private final CompressionBudget compressionBudget;
 
   public DefaultContextCompressor(ModelGateway model, ModelConfigProvider configProvider) {
-    this(model, configProvider, new TokenCounter());
+    this(model, configProvider, new TokenCounter(), CompressionBudget.defaults());
   }
 
   public DefaultContextCompressor(
       ModelGateway model, ModelConfigProvider configProvider, TokenCounter tokenCounter) {
+    this(model, configProvider, tokenCounter, CompressionBudget.defaults());
+  }
+
+  public DefaultContextCompressor(
+      ModelGateway model,
+      ModelConfigProvider configProvider,
+      TokenCounter tokenCounter,
+      CompressionBudget compressionBudget) {
     this.model = model;
     this.configProvider = configProvider;
     this.tokenCounter = tokenCounter;
+    this.compressionBudget = compressionBudget;
   }
 
   public Future<String> summarize(List<Turn> turns, ModelOptions options) {
@@ -80,7 +91,8 @@ public class DefaultContextCompressor
 
     var userMsg = Message.user(prompt);
     ModelOptions summaryOptions =
-        new ModelOptions(0.0, 1024, configProvider.getUtilityModel(), false);
+        new ModelOptions(
+            0.0, compressionBudget.reflectMaxTokens(), configProvider.getUtilityModel(), false);
 
     ChatRequest request =
         new ChatRequest(
@@ -94,12 +106,13 @@ public class DefaultContextCompressor
     int totalTokens = tokenCounter.count(fullText);
     int utilityLimit = configProvider.getUtilityContextLimit();
 
-    if (totalTokens < (int) (utilityLimit * 0.8)) {
+    if (totalTokens < (int) (utilityLimit * compressionBudget.chunkingThreshold())) {
       return compressSingle(turns);
     }
 
     // Split into chunks and compress each, then merge
-    List<List<Turn>> chunks = splitByTokenBudget(turns, (int) (utilityLimit * 0.6));
+    List<List<Turn>> chunks =
+        splitByTokenBudget(turns, (int) (utilityLimit * compressionBudget.chunkSize()));
     List<Future<String>> chunkFutures =
         chunks.stream().map(this::compressSingle).collect(Collectors.toList());
 
@@ -112,11 +125,11 @@ public class DefaultContextCompressor
               }
               String merged = String.join("\n\n---\n\n", summaries);
               int mergedTokens = tokenCounter.count(merged);
-              if (mergedTokens > (int) (utilityLimit * 0.8)) {
+              if (mergedTokens > (int) (utilityLimit * compressionBudget.chunkingThreshold())) {
                 // Merge summaries are still too large, compress once more
                 return compressText(merged);
               }
-              return compressText(merged);
+              return Future.succeededFuture(merged);
             });
   }
 
@@ -124,17 +137,16 @@ public class DefaultContextCompressor
   public Future<String> extractKeyFacts(Turn completedTurn, String existingRunningSummary) {
     var content =
         new StringBuilder(
-            """
-            Given the existing running summary and the latest completed interaction turn,
-            extract and append NEW key facts. Output format:
-            - [DECISION] ...
-            - [FILE] ...
-            - [ERROR] ...
-            - [PREFERENCE] ...
-            - [STATE] ...
-            Keep the total summary under 1500 tokens. Remove outdated facts if needed.
-
-            """);
+            "Given the existing running summary and the latest completed interaction turn,\n"
+                + "extract and append NEW key facts. Output format:\n"
+                + "- [DECISION] ...\n"
+                + "- [FILE] ...\n"
+                + "- [ERROR] ...\n"
+                + "- [PREFERENCE] ...\n"
+                + "- [STATE] ...\n"
+                + "Keep the total summary under "
+                + compressionBudget.summaryTokenLimit()
+                + " tokens. Remove outdated facts if needed.\n\n");
     if (existingRunningSummary != null && !existingRunningSummary.isBlank()) {
       content.append("Existing running summary:\n").append(existingRunningSummary).append("\n\n");
     }
@@ -142,7 +154,8 @@ public class DefaultContextCompressor
 
     var userMsg = Message.user(content.toString());
     ModelOptions summaryOptions =
-        new ModelOptions(0.0, 2048, configProvider.getUtilityModel(), false);
+        new ModelOptions(
+            0.0, compressionBudget.compressMaxTokens(), configProvider.getUtilityModel(), false);
 
     ChatRequest request =
         new ChatRequest(
@@ -151,14 +164,15 @@ public class DefaultContextCompressor
   }
 
   private Future<String> compressSingle(List<Turn> turns) {
-    var content = new StringBuilder(STRUCTURED_COMPRESS_PROMPT);
+    var content = new StringBuilder(buildStructuredCompressPrompt());
     for (Turn t : turns) {
       content.append(t.toString()).append("\n");
     }
 
     var userMsg = Message.user(content.toString());
     ModelOptions summaryOptions =
-        new ModelOptions(0.0, 2048, configProvider.getUtilityModel(), false);
+        new ModelOptions(
+            0.0, compressionBudget.compressMaxTokens(), configProvider.getUtilityModel(), false);
 
     ChatRequest request =
         new ChatRequest(
@@ -167,10 +181,11 @@ public class DefaultContextCompressor
   }
 
   private Future<String> compressText(String text) {
-    String prompt = STRUCTURED_COMPRESS_PROMPT + text;
+    String prompt = buildStructuredCompressPrompt() + text;
     var userMsg = Message.user(prompt);
     ModelOptions summaryOptions =
-        new ModelOptions(0.0, 2048, configProvider.getUtilityModel(), false);
+        new ModelOptions(
+            0.0, compressionBudget.compressMaxTokens(), configProvider.getUtilityModel(), false);
 
     ChatRequest request =
         new ChatRequest(
@@ -207,36 +222,28 @@ public class DefaultContextCompressor
     return chunks;
   }
 
-  private static final String STRUCTURED_COMPRESS_PROMPT =
-      """
-      Summarize the following agent interaction turns into a structured state report.
-
-      CRITICAL: You MUST preserve the following information verbatim (do not paraphrase):
-      - File paths and line numbers mentioned
-      - Error messages, stack traces, and error codes
-      - User decisions and explicit preferences
-      - Tool invocation results that changed system state (file edits, command outputs)
-      - Variable names, function names, and code identifiers
-
-      Output format:
-      ## Key Decisions
-      - [list user decisions and preferences]
-
-      ## Files Modified
-      - [list file paths with what was changed]
-
-      ## Errors Encountered
-      - [list errors and their resolutions, or "None"]
-
-      ## Current State
-      - [describe the current state of the task]
-
-      ## Facts & Context
-      - [other important facts for continuing the conversation]
-
-      Keep the total output under 1500 tokens.
-
-      ---
-      Interaction turns:
-      """;
+  private String buildStructuredCompressPrompt() {
+    return "Summarize the following agent interaction turns into a structured state report.\n\n"
+        + "CRITICAL: You MUST preserve the following information verbatim (do not paraphrase):\n"
+        + "- File paths and line numbers mentioned\n"
+        + "- Error messages, stack traces, and error codes\n"
+        + "- User decisions and explicit preferences\n"
+        + "- Tool invocation results that changed system state (file edits, command outputs)\n"
+        + "- Variable names, function names, and code identifiers\n\n"
+        + "Output format:\n"
+        + "## Key Decisions\n"
+        + "- [list user decisions and preferences]\n\n"
+        + "## Files Modified\n"
+        + "- [list file paths with what was changed]\n\n"
+        + "## Errors Encountered\n"
+        + "- [list errors and their resolutions, or \"None\"]\n\n"
+        + "## Current State\n"
+        + "- [describe the current state of the task]\n\n"
+        + "## Facts & Context\n"
+        + "- [other important facts for continuing the conversation]\n\n"
+        + "Keep the total output under "
+        + compressionBudget.summaryTokenLimit()
+        + " tokens.\n\n"
+        + "---\nInteraction turns:\n";
+  }
 }

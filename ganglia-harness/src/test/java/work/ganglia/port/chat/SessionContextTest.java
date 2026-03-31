@@ -140,6 +140,96 @@ class SessionContextTest {
   }
 
   // -------------------------------------------------------------------------
+  // getPrunedHistory — currentTurn budget cap
+  // -------------------------------------------------------------------------
+
+  /** Helper: build a Turn with a userMessage and N intermediate steps of approxTokens each. */
+  private static Turn turnWithSteps(String id, int userTokens, int stepCount, int tokensPerStep) {
+    Message user = Message.user("word ".repeat(userTokens));
+    Turn turn = Turn.newTurn(id, user);
+    for (int i = 0; i < stepCount; i++) {
+      // Alternate assistant / tool messages to simulate realistic steps
+      Message step =
+          (i % 2 == 0)
+              ? Message.assistant("word ".repeat(tokensPerStep))
+              : Message.tool("tc-" + i, "tool-" + i, "word ".repeat(tokensPerStep));
+      turn = turn.withStep(step);
+    }
+    return turn;
+  }
+
+  @Test
+  void getPrunedHistory_currentTurnCapped_dropsOldSteps() {
+    // Current turn: userMessage(20) + 10 steps of 50 tokens each = ~520 total
+    // currentTurnBudget = 200 → should keep userMessage + only newest steps that fit
+    Turn current = turnWithSteps("tc", 20, 10, 50);
+
+    SessionContext ctx =
+        new SessionContext(
+            "sid",
+            Collections.emptyList(),
+            current,
+            Collections.emptyMap(),
+            Collections.emptyList(),
+            null);
+
+    List<Message> pruned = ctx.getPrunedHistory(5000, 200, COUNTER);
+
+    // userMessage must always be present
+    assertTrue(
+        pruned.stream().anyMatch(m -> m.content().equals(current.userMessage().content())),
+        "userMessage must always be included");
+
+    // Total tokens must be within budget (approximately)
+    int totalTokens = pruned.stream().mapToInt(m -> m.countTokens(COUNTER)).sum();
+    assertTrue(totalTokens <= 250, "Pruned currentTurn should respect currentTurnBudget");
+
+    // Should have fewer messages than the full turn
+    assertTrue(pruned.size() < current.flatten().size(), "Some intermediate steps must be dropped");
+  }
+
+  @Test
+  void getPrunedHistory_currentTurnWithinBudget_keepAll() {
+    // Current turn: userMessage(20) + 3 small steps = well within 5000 budget
+    Turn current = turnWithSteps("tc", 20, 3, 20);
+
+    SessionContext ctx =
+        new SessionContext(
+            "sid",
+            Collections.emptyList(),
+            current,
+            Collections.emptyMap(),
+            Collections.emptyList(),
+            null);
+
+    List<Message> pruned = ctx.getPrunedHistory(5000, 5000, COUNTER);
+
+    // All messages should be kept
+    assertEquals(
+        current.flatten().size(), pruned.size(), "All messages should be kept when within budget");
+  }
+
+  @Test
+  void getPrunedHistory_backwardsCompatible_noBudgetOverload() {
+    // The 2-arg overload should behave like before (no cap on currentTurn)
+    Turn oversizedCurrent = turnWithTokens("tc", 500);
+
+    SessionContext ctx =
+        new SessionContext(
+            "sid",
+            Collections.emptyList(),
+            oversizedCurrent,
+            Collections.emptyMap(),
+            Collections.emptyList(),
+            null);
+
+    List<Message> pruned = ctx.getPrunedHistory(10, COUNTER);
+
+    assertEquals(1, pruned.size(), "Backwards compatible: currentTurn still fully returned");
+    assertEquals(oversizedCurrent.userMessage().content(), pruned.get(0).content());
+  }
+
+  // -------------------------------------------------------------------------
   // withNewMessage
   // -------------------------------------------------------------------------
 

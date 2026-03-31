@@ -2,6 +2,13 @@ package work.ganglia.config;
 
 /** Interface Segregation: Provides Agent execution and project configuration. */
 public interface AgentConfigProvider {
+
+  // ── Default values (single source of truth for fallbacks) ─────────────
+  int DEFAULT_MAX_ITERATIONS = 10;
+  double DEFAULT_COMPRESSION_THRESHOLD = 0.7;
+  long DEFAULT_TOOL_TIMEOUT_MS = 120_000;
+  int DEFAULT_SYSTEM_OVERHEAD_TOKENS = 6000;
+
   int getMaxIterations();
 
   double getCompressionThreshold();
@@ -12,7 +19,7 @@ public interface AgentConfigProvider {
 
   /** Maximum time in milliseconds a single tool execution may run before being timed out. */
   default long getToolTimeoutMs() {
-    return 120_000;
+    return DEFAULT_TOOL_TIMEOUT_MS;
   }
 
   /**
@@ -20,6 +27,6 @@ public interface AgentConfigProvider {
    * added to the history token count when checking the compression threshold.
    */
   default int getSystemOverheadTokens() {
-    return 6000;
+    return DEFAULT_SYSTEM_OVERHEAD_TOKENS;
   }
 }

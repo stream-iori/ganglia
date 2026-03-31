@@ -24,6 +24,12 @@ import work.ganglia.util.TokenCounter;
 public class DefaultContextOptimizer implements ContextOptimizer {
   private static final Logger logger = LoggerFactory.getLogger(DefaultContextOptimizer.class);
 
+  /** Token count above which forced compression is attempted regardless of turn count. */
+  static final int FORCE_COMPRESSION_LIMIT = 400_000;
+
+  /** Absolute hard limit — session is aborted if tokens exceed this value. */
+  static final int HARD_TOKEN_LIMIT = 500_000;
+
   private final ModelConfigProvider modelConfig;
   private final AgentConfigProvider agentConfig;
   private final ContextCompressor compressor;
@@ -77,9 +83,22 @@ public class DefaultContextOptimizer implements ContextOptimizer {
     double threshold = agentConfig.getCompressionThreshold();
 
     // Hard limit financial guardrail
-    if (totalTokens > 500000) {
+    if (totalTokens > HARD_TOKEN_LIMIT) {
       logger.error("Session token limit exceeded ({}). Aborting.", totalTokens);
-      return Future.failedFuture("Session reached maximum safety token limit (500,000).");
+      return Future.failedFuture(
+          "Session reached maximum safety token limit (" + HARD_TOKEN_LIMIT + ").");
+    }
+
+    // Forced compression — bypasses previousTurns.size() > 1 guard to prevent hitting the hard
+    // limit. Compresses aggressively: turnsToKeep may be 0 so even a single oversized previous
+    // turn is replaced with a summary.
+    if (totalTokens > FORCE_COMPRESSION_LIMIT && !context.previousTurns().isEmpty()) {
+      logger.warn(
+          "Forced compression triggered ({} > {}). Compressing aggressively.",
+          totalTokens,
+          FORCE_COMPRESSION_LIMIT);
+      int turnsToKeep = calculateTurnsToKeep(context, false);
+      return compressSession(context, turnsToKeep);
     }
 
     if (totalTokens > limit * threshold && context.previousTurns().size() > 1) {
@@ -136,6 +155,16 @@ public class DefaultContextOptimizer implements ContextOptimizer {
   }
 
   private int calculateTurnsToKeep(SessionContext context) {
+    return calculateTurnsToKeep(context, true);
+  }
+
+  /**
+   * Calculates how many previous turns to keep after compression.
+   *
+   * @param guaranteeOne when true, at least 1 turn is always kept (normal compression); when false,
+   *     the result may be 0 (forced/aggressive compression).
+   */
+  private int calculateTurnsToKeep(SessionContext context, boolean guaranteeOne) {
     int limit = modelConfig.getContextLimit();
     // After compression, target ~50% of available budget to leave room for new interactions
     int targetTokens = budget != null ? budget.compressionTarget() : (int) (limit * 0.5);
@@ -149,7 +178,7 @@ public class DefaultContextOptimizer implements ContextOptimizer {
       accumulatedTokens += turnTokens;
       keep++;
     }
-    return Math.max(1, keep);
+    return guaranteeOne ? Math.max(1, keep) : keep;
   }
 
   private Future<SessionContext> compressSession(SessionContext context, int turnsToKeep) {

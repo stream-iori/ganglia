@@ -169,6 +169,23 @@ class ConfigManagerTest {
   }
 
   @Test
+  void testDefaultsMatchInterfaceConstants(Vertx vertx) {
+    ConfigManager manager = new ConfigManager(vertx, nonExistentConfig());
+    assertEquals(
+        AgentConfigProvider.DEFAULT_TOOL_TIMEOUT_MS,
+        manager.getToolTimeoutMs(),
+        "toolTimeoutMs must match interface default");
+    assertEquals(
+        AgentConfigProvider.DEFAULT_SYSTEM_OVERHEAD_TOKENS,
+        manager.getSystemOverheadTokens(),
+        "systemOverheadTokens must match interface default");
+    assertEquals(
+        ModelConfigProvider.DEFAULT_OBSERVATION_COMPRESSION_THRESHOLD,
+        manager.getObservationCompressionThreshold(),
+        "observationCompressionThreshold must match interface default");
+  }
+
+  @Test
   void testTemperatureFromConfig(Vertx vertx) {
     ConfigManager manager = new ConfigManager(vertx, nonExistentConfig());
     double temperature = manager.getTemperature();

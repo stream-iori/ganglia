@@ -109,6 +109,7 @@ class StandardPromptEngineBudgetTest extends BaseGangliaTest {
     assertEquals(expected.maxGenerationTokens(), budget.maxGenerationTokens());
     assertEquals(expected.systemPrompt(), budget.systemPrompt());
     assertEquals(expected.history(), budget.history());
+    assertEquals(expected.currentTurnBudget(), budget.currentTurnBudget());
     assertEquals(expected.toolOutputPerMessage(), budget.toolOutputPerMessage());
     assertEquals(expected.observationFallback(), budget.observationFallback());
     assertEquals(expected.compressionTarget(), budget.compressionTarget());
@@ -175,6 +176,7 @@ class StandardPromptEngineBudgetTest extends BaseGangliaTest {
                           assertEquals(4096, data.get("maxGenerationTokens"));
                           assertNotNull(data.get("systemPromptBudget"));
                           assertNotNull(data.get("historyBudget"));
+                          assertNotNull(data.get("currentTurnBudget"));
                           assertNotNull(data.get("toolOutputBudget"));
                           assertNotNull(data.get("observationFallback"));
                           assertNotNull(data.get("compressionTarget"));

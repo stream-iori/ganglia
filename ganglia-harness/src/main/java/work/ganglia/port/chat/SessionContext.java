@@ -81,16 +81,57 @@ public record SessionContext(
   /** Returns a pruned history (most recent messages) that fits within maxTokens. */
   @JsonIgnore
   public List<Message> getPrunedHistory(int maxTokens, TokenCounter counter) {
+    return getPrunedHistory(maxTokens, Integer.MAX_VALUE, counter);
+  }
+
+  /**
+   * Returns a pruned history that fits within maxTokens, with the current turn capped at
+   * currentTurnBudget. The userMessage of the current turn is always preserved; intermediate steps
+   * are included from newest to oldest using the same skip pattern as previous turns.
+   */
+  @JsonIgnore
+  public List<Message> getPrunedHistory(
+      int maxTokens, int currentTurnBudget, TokenCounter counter) {
     List<Message> fullPruned = new ArrayList<>();
     int currentTokens = 0;
 
-    // 1. Always include the current turn (it's the most important)
+    // 1. Include the current turn with per-turn budget cap.
+    //    userMessage is always preserved; intermediate steps are pruned newest-first
+    //    using the same skip pattern applied to previous turns.
     if (currentTurn != null) {
-      List<Message> currentMessages = currentTurn.flatten();
-      for (int i = currentMessages.size() - 1; i >= 0; i--) {
-        Message m = currentMessages.get(i);
-        currentTokens += m.countTokens(counter);
-        fullPruned.add(0, m);
+      // 1a. Always include userMessage
+      if (currentTurn.userMessage() != null) {
+        int userMsgTokens = currentTurn.userMessage().countTokens(counter);
+        currentTokens += userMsgTokens;
+        fullPruned.add(currentTurn.userMessage());
+      }
+
+      // 1b. Always include finalResponse (most recent output)
+      int reservedForFinal = 0;
+      if (currentTurn.finalResponse() != null) {
+        reservedForFinal = currentTurn.finalResponse().countTokens(counter);
+      }
+
+      // 1c. Add intermediate steps from newest to oldest, respecting currentTurnBudget.
+      //     Same reverse-iterate + skip pattern as previousTurns below.
+      List<Message> steps = currentTurn.intermediateSteps();
+      List<Message> keptSteps = new ArrayList<>();
+      int stepTokens = currentTokens + reservedForFinal;
+      for (int i = steps.size() - 1; i >= 0; i--) {
+        Message m = steps.get(i);
+        int msgTokens = m.countTokens(counter);
+        if (stepTokens + msgTokens > currentTurnBudget) {
+          continue; // skip oversized / over-budget step, keep searching older ones
+        }
+        stepTokens += msgTokens;
+        keptSteps.add(0, m);
+      }
+      fullPruned.addAll(keptSteps);
+      currentTokens = stepTokens;
+
+      // 1d. Append finalResponse after steps
+      if (currentTurn.finalResponse() != null) {
+        fullPruned.add(currentTurn.finalResponse());
       }
     }
 

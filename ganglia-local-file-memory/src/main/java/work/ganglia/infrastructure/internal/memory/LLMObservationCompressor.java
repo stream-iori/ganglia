@@ -12,6 +12,7 @@ import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.llm.ModelResponse;
 import work.ganglia.port.internal.memory.ObservationCompressor;
 import work.ganglia.port.internal.memory.model.CompressionContext;
+import work.ganglia.port.internal.prompt.CompressionBudget;
 import work.ganglia.port.internal.state.AgentSignal;
 
 public class LLMObservationCompressor implements ObservationCompressor {
@@ -19,16 +20,26 @@ public class LLMObservationCompressor implements ObservationCompressor {
   private final ModelGateway modelGateway;
   private final int thresholdLength; // e.g. 4000 chars
   private final String modelName;
+  private final CompressionBudget compressionBudget;
 
   public LLMObservationCompressor(ModelGateway modelGateway, int thresholdLength) {
-    this(modelGateway, thresholdLength, "gpt-4o-mini");
+    this(modelGateway, thresholdLength, null, CompressionBudget.defaults());
   }
 
   public LLMObservationCompressor(
       ModelGateway modelGateway, int thresholdLength, String modelName) {
+    this(modelGateway, thresholdLength, modelName, CompressionBudget.defaults());
+  }
+
+  public LLMObservationCompressor(
+      ModelGateway modelGateway,
+      int thresholdLength,
+      String modelName,
+      CompressionBudget compressionBudget) {
     this.modelGateway = modelGateway;
     this.thresholdLength = thresholdLength;
-    this.modelName = (modelName != null && !modelName.isEmpty()) ? modelName : "gpt-4o-mini";
+    this.modelName = modelName;
+    this.compressionBudget = compressionBudget;
   }
 
   @Override
@@ -42,6 +53,8 @@ public class LLMObservationCompressor implements ObservationCompressor {
       return Future.succeededFuture(rawOutput);
     }
 
+    // Approximate word count: tokens × 0.75 is a rough average for English text
+    int approxWords = (int) (context.maxTokens() * 0.75);
     String prompt =
         String.format(
             "Compress the following raw output from the tool '%s'.\n"
@@ -55,7 +68,7 @@ public class LLMObservationCompressor implements ObservationCompressor {
             context.toolName(),
             context.currentTaskDescription(),
             context.maxTokens(),
-            (int) (context.maxTokens() * 0.75),
+            approxWords,
             rawOutput);
 
     Message message = Message.user(prompt);
@@ -63,7 +76,8 @@ public class LLMObservationCompressor implements ObservationCompressor {
         new ChatRequest(
             List.of(message),
             Collections.emptyList(),
-            new ModelOptions(0.0, 1024, modelName, false),
+            new ModelOptions(
+                0.0, compressionBudget.observationCompressMaxTokens(), modelName, false),
             new AgentSignal());
 
     return modelGateway.chat(request).map(ModelResponse::content);

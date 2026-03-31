@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -155,6 +156,103 @@ public class DefaultContextCompressorTest {
                       () -> {
                         assertEquals("- [DECISION] Fix auth bug\n- [FILE] src/Auth.java", result);
                         verify(model).chat(any(ChatRequest.class));
+                        testContext.completeNow();
+                      });
+                }));
+  }
+
+  /**
+   * When multiple chunks are compressed and the merged result fits within the utility context
+   * limit, no additional LLM call should be made to re-compress the merge. Verifies the fix for the
+   * duplicate-compression bug where both branches of the if/else called compressText().
+   */
+  @Test
+  void compress_chunkedMergeWithinLimit_doesNotRecompress(VertxTestContext testContext) {
+    // Use a low utilityContextLimit so we can trigger chunking with small turns.
+    // StubConfigManager returns default 32000 which is too high for practical test data.
+    // Create a compressor with a config that reports utilityContextLimit = 100.
+    var lowLimitConfig =
+        new work.ganglia.config.ModelConfigProvider() {
+          @Override
+          public work.ganglia.config.model.ModelConfig getModelConfig(String key) {
+            return null;
+          }
+
+          @Override
+          public String getModel() {
+            return "test";
+          }
+
+          @Override
+          public String getUtilityModel() {
+            return "test";
+          }
+
+          @Override
+          public double getTemperature() {
+            return 0;
+          }
+
+          @Override
+          public int getContextLimit() {
+            return 1000;
+          }
+
+          @Override
+          public int getMaxTokens() {
+            return 100;
+          }
+
+          @Override
+          public boolean isStream() {
+            return false;
+          }
+
+          @Override
+          public boolean isUtilityStream() {
+            return false;
+          }
+
+          @Override
+          public String getBaseUrl() {
+            return "http://localhost";
+          }
+
+          @Override
+          public String getProvider() {
+            return "test";
+          }
+
+          @Override
+          public int getUtilityContextLimit() {
+            return 100; // Very low: 80% = 80 tokens triggers chunking, 60% = 60 per chunk
+          }
+        };
+    DefaultContextCompressor lowLimitCompressor =
+        new DefaultContextCompressor(model, lowLimitConfig);
+
+    // Each turn ~50 tokens via toString(). Combined ~100 tokens > 80% of 100 = 80 → chunking.
+    // Each individually ~50 < 60% of 100 = 60 → fits in a single chunk.
+    List<Turn> turns = new ArrayList<>();
+    turns.add(Turn.newTurn("t1", Message.user("word ".repeat(40))));
+    turns.add(Turn.newTurn("t2", Message.user("word ".repeat(40))));
+
+    // Each chunk compression returns a short summary (well within limit when merged)
+    ModelResponse shortSummary = new ModelResponse("Chunk summary.", Collections.emptyList(), null);
+    when(model.chat(any(ChatRequest.class))).thenReturn(Future.succeededFuture(shortSummary));
+
+    lowLimitCompressor
+        .compress(turns)
+        .onComplete(
+            testContext.succeeding(
+                result -> {
+                  testContext.verify(
+                      () -> {
+                        // With the bug fix: 2 chunk compressions only, no extra re-compression.
+                        // Each chunk triggers one LLM call → exactly 2 calls total.
+                        verify(model, times(2)).chat(any(ChatRequest.class));
+                        // Result should be the merged chunk summaries, not a re-compressed version
+                        assertEquals("Chunk summary.\n\n---\n\nChunk summary.", result);
                         testContext.completeNow();
                       });
                 }));

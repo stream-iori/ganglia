@@ -3,6 +3,7 @@ package work.ganglia.infrastructure.internal.memory;
 import java.nio.file.Paths;
 import java.util.List;
 
+import work.ganglia.config.ModelConfigProvider;
 import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.port.internal.memory.DailyRecordManager;
 import work.ganglia.port.internal.memory.LongTermMemory;
@@ -24,7 +25,7 @@ public class FileSystemMemoryProvider implements MemorySystemProvider {
     int compressionThreshold =
         config.configProvider() != null
             ? config.configProvider().getObservationCompressionThreshold()
-            : 6000;
+            : ModelConfigProvider.DEFAULT_OBSERVATION_COMPRESSION_THRESHOLD;
     ObservationCompressor observationCompressor =
         new LLMObservationCompressor(
             config.modelGateway(), compressionThreshold, config.compressionModel());
