@@ -42,7 +42,7 @@ import work.ganglia.port.internal.memory.model.MemoryEntry;
  * <p>Handles all {@link ToolInvokeResult.Status} values — not only SUCCESS.
  */
 public class ObservationCompressionHook implements AgentInterceptor {
-  private static final Logger log = LoggerFactory.getLogger(ObservationCompressionHook.class);
+  private static final Logger logger = LoggerFactory.getLogger(ObservationCompressionHook.class);
 
   private final ObservationCompressor observationCompressor; // may be null
   private final MemoryStore memoryStore; // may be null
@@ -136,7 +136,7 @@ public class ObservationCompressionHook implements AgentInterceptor {
       ToolCall call, ToolInvokeResult result, String rawOutput, SessionContext context) {
     if (sessionTmpStore == null) {
       // No projectRoot — degrade gracefully to truncation with hint
-      log.debug(
+      logger.debug(
           "No projectRoot available for tool '{}', falling back to truncate-with-hint.",
           call.toolName());
       return Future.succeededFuture(truncateWithHint(call, result, rawOutput));
@@ -153,7 +153,7 @@ public class ObservationCompressionHook implements AgentInterceptor {
 
   private Future<ToolInvokeResult> compressWithLlm(
       ToolCall call, ToolInvokeResult result, String rawOutput, SessionContext context) {
-    log.debug(
+    logger.debug(
         "Intercepted large output from tool '{}', triggering LLM compression.", call.toolName());
 
     String taskDesc = resolveTaskDesc(context);
@@ -189,7 +189,7 @@ public class ObservationCompressionHook implements AgentInterceptor {
             })
         .recover(
             err -> {
-              log.warn(
+              logger.warn(
                   "Observation compression failed for tool '{}', falling back to truncation",
                   call.toolName(),
                   err);
@@ -208,7 +208,7 @@ public class ObservationCompressionHook implements AgentInterceptor {
     if (truncated.equals(rawOutput)) {
       return result; // unchanged content means no truncation needed
     }
-    log.debug(
+    logger.debug(
         "Truncated output from tool '{}' to {} tokens.", call.toolName(), truncator.getMaxTokens());
     return withOutput(result, truncated);
   }
@@ -231,7 +231,7 @@ public class ObservationCompressionHook implements AgentInterceptor {
     if (truncated.equals(rawOutput)) {
       return result; // within limit — no change
     }
-    log.debug(
+    logger.debug(
         "Truncated reproducible output from tool '{}' to {} tokens (with re-run hint).",
         call.toolName(),
         truncator.getMaxTokens());

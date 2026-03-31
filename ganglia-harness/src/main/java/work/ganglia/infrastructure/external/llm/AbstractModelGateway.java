@@ -171,7 +171,7 @@ public abstract class AbstractModelGateway implements ModelGateway {
         .signal()
         .onAbort(
             () -> {
-              promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
+              promise.tryFail(new work.ganglia.port.internal.state.AgentAbortedException());
             });
 
     withSemaphore(
@@ -183,7 +183,7 @@ public abstract class AbstractModelGateway implements ModelGateway {
         .onSuccess(
             response -> {
               if (request.signal().isAborted()) {
-                promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
+                promise.tryFail(new work.ganglia.port.internal.state.AgentAbortedException());
                 return;
               }
               if (response.statusCode() >= 400) {
@@ -210,7 +210,7 @@ public abstract class AbstractModelGateway implements ModelGateway {
         .onFailure(
             err -> {
               if (request.signal().isAborted()) {
-                promise.tryFail(new work.ganglia.kernel.loop.AgentAbortedException());
+                promise.tryFail(new work.ganglia.port.internal.state.AgentAbortedException());
               } else {
                 promise.tryFail(err);
               }

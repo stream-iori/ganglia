@@ -180,7 +180,8 @@ class AnthropicModelGatewayTest {
                 err -> {
                   testContext.verify(
                       () -> {
-                        assertTrue(err instanceof work.ganglia.kernel.loop.AgentAbortedException);
+                        assertTrue(
+                            err instanceof work.ganglia.port.internal.state.AgentAbortedException);
                         assertTrue(tokenCount.get() < 3);
                         testContext.completeNow();
                       });

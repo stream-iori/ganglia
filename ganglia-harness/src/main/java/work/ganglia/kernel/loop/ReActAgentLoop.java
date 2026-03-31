@@ -57,22 +57,23 @@ public class ReActAgentLoop implements AgentLoop {
   private final InterceptorPipeline pipeline;
   private final ContextCompressor contextCompressor;
 
-  private final ConcurrentHashMap<String, AgentSignal> sessionSignals = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, SessionState> sessions = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, PendingAsk> pendingAsks = new ConcurrentHashMap<>();
 
-  /** Tracks a pending ask with its tool call ID and creation time for TTL expiration. */
-  private record PendingAsk(String toolCallId, long createdAtMs) {}
+  /** Tracks a pending ask with its tool call ID, creation time, and owning session. */
+  private record PendingAsk(String toolCallId, long createdAtMs, String sessionId) {}
 
   private static final long PENDING_ASK_TTL_MS = 30 * 60 * 1000L; // 30 minutes
-  private final ConcurrentHashMap<String, Long> sessionStartTimes = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String, Deque<String>> spanStacks = new ConcurrentHashMap<>();
 
-  /** Tracks active turn count per session so SESSION_ENDED fires only when last turn completes. */
-  private final ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicInteger>
-      sessionActiveTurns = new ConcurrentHashMap<>();
-
-  /** Tracks session-level spanIds for parent reference. */
-  private final ConcurrentHashMap<String, String> sessionSpanIds = new ConcurrentHashMap<>();
+  /** Consolidated per-session state to prevent map sprawl and ensure atomic cleanup. */
+  private static class SessionState {
+    volatile AgentSignal signal;
+    volatile long startTimeMs;
+    final Deque<String> spanStack = new ArrayDeque<>();
+    final java.util.concurrent.atomic.AtomicInteger activeTurns =
+        new java.util.concurrent.atomic.AtomicInteger(0);
+    volatile String sessionSpanId;
+  }
 
   private ReActAgentLoop(Builder builder) {
     this.vertx = builder.vertx;
@@ -103,7 +104,8 @@ public class ReActAgentLoop implements AgentLoop {
 
   private void publishObservation(
       String sessionId, ObservationType type, String content, Map<String, Object> data) {
-    AgentSignal signal = sessionSignals.get(sessionId);
+    SessionState state = sessions.get(sessionId);
+    AgentSignal signal = state != null ? state.signal : null;
 
     // If turn is finished (signal removed) or signal is aborted, ignore most events.
     if (signal == null || signal.isAborted()) {
@@ -116,11 +118,10 @@ public class ReActAgentLoop implements AgentLoop {
       }
     }
 
-    Deque<String> stack = spanStacks.get(sessionId);
     String spanId = null;
     String parentSpanId = null;
-    if (stack != null && !stack.isEmpty()) {
-      var it = stack.iterator();
+    if (state != null && !state.spanStack.isEmpty()) {
+      var it = state.spanStack.iterator();
       spanId = it.next();
       if (it.hasNext()) {
         parentSpanId = it.next();
@@ -134,40 +135,42 @@ public class ReActAgentLoop implements AgentLoop {
   }
 
   private void startSpan(String sessionId, String spanId) {
-    spanStacks.computeIfAbsent(sessionId, k -> new ArrayDeque<>()).push(spanId);
+    SessionState state = sessions.get(sessionId);
+    if (state != null) {
+      state.spanStack.push(spanId);
+    }
   }
 
   private void endSpan(String sessionId) {
-    Deque<String> stack = spanStacks.get(sessionId);
-    if (stack != null && !stack.isEmpty()) {
-      stack.pop();
+    SessionState state = sessions.get(sessionId);
+    if (state != null && !state.spanStack.isEmpty()) {
+      state.spanStack.pop();
     }
   }
 
   private String getCurrentSpanId(String sessionId) {
-    Deque<String> stack = spanStacks.get(sessionId);
-    return (stack != null && !stack.isEmpty()) ? stack.peek() : null;
-  }
-
-  private void cleanupSpanStack(String sessionId) {
-    spanStacks.remove(sessionId);
+    SessionState state = sessions.get(sessionId);
+    return (state != null && !state.spanStack.isEmpty()) ? state.spanStack.peek() : null;
   }
 
   private void publishSessionEnded(String sessionId) {
+    SessionState state = sessions.get(sessionId);
+    if (state == null) {
+      return;
+    }
+
     // Only publish SESSION_ENDED when the last active turn for this session completes
-    java.util.concurrent.atomic.AtomicInteger turnCount = sessionActiveTurns.get(sessionId);
-    if (turnCount != null && turnCount.decrementAndGet() > 0) {
+    if (state.activeTurns.decrementAndGet() > 0) {
       return; // Other turns still active
     }
 
     // Pop session-level span if present
-    String sessionSpan = sessionSpanIds.remove(sessionId);
-    if (sessionSpan != null) {
+    if (state.sessionSpanId != null) {
+      state.sessionSpanId = null;
       endSpan(sessionId); // pop session span
     }
 
-    Long startTime = sessionStartTimes.get(sessionId);
-    long durationMs = startTime != null ? System.currentTimeMillis() - startTime : 0L;
+    long durationMs = state.startTimeMs > 0 ? System.currentTimeMillis() - state.startTimeMs : 0L;
     Map<String, Object> data = new HashMap<>();
     data.put("durationMs", durationMs);
     publishObservation(sessionId, ObservationType.SESSION_ENDED, null, data);
@@ -182,27 +185,25 @@ public class ReActAgentLoop implements AgentLoop {
 
   /** Removes all per-session state from concurrent maps to prevent memory leaks. */
   private void cleanupSession(String sessionId) {
-    sessionSignals.remove(sessionId);
-    sessionStartTimes.remove(sessionId);
-    sessionActiveTurns.remove(sessionId);
-    sessionSpanIds.remove(sessionId);
-    spanStacks.remove(sessionId);
+    sessions.remove(sessionId);
+    pendingAsks.values().removeIf(pa -> sessionId.equals(pa.sessionId()));
   }
 
   @Override
   public Future<String> run(String userInput, SessionContext initialContext, AgentSignal signal) {
-    sessionSignals.put(initialContext.sessionId(), signal);
-    sessionStartTimes.putIfAbsent(initialContext.sessionId(), System.currentTimeMillis());
-    sessionActiveTurns
-        .computeIfAbsent(
-            initialContext.sessionId(), k -> new java.util.concurrent.atomic.AtomicInteger(0))
-        .incrementAndGet();
+    SessionState state =
+        sessions.computeIfAbsent(initialContext.sessionId(), k -> new SessionState());
+    state.signal = signal;
+    if (state.startTimeMs == 0) {
+      state.startTimeMs = System.currentTimeMillis();
+    }
+    state.activeTurns.incrementAndGet();
 
     // If this is the very first turn of the session, create session-level span and publish
     // SESSION_STARTED
     if (initialContext.previousTurns().isEmpty() && initialContext.currentTurn() == null) {
       String sessionSpanId = "session-" + UUID.randomUUID().toString().substring(0, 8);
-      sessionSpanIds.put(initialContext.sessionId(), sessionSpanId);
+      state.sessionSpanId = sessionSpanId;
       startSpan(initialContext.sessionId(), sessionSpanId);
 
       Map<String, Object> sessionStartData = new HashMap<>();
@@ -267,10 +268,10 @@ public class ReActAgentLoop implements AgentLoop {
   }
 
   public void stop(String sessionId) {
-    AgentSignal signal = sessionSignals.get(sessionId);
-    if (signal != null) {
+    SessionState state = sessions.get(sessionId);
+    if (state != null && state.signal != null) {
       logger.info("Aborting session via stop request: {}", sessionId);
-      signal.abort();
+      state.signal.abort();
       Map<String, Object> abortData = new HashMap<>();
       abortData.put("reason", "user_stop");
       publishObservation(sessionId, ObservationType.SESSION_ABORTED, null, abortData);
@@ -281,12 +282,13 @@ public class ReActAgentLoop implements AgentLoop {
   public Future<String> resume(
       String askId, String toolOutput, SessionContext initialContext, AgentSignal signal) {
     logger.debug("Resuming session: {} with askId: {}", initialContext.sessionId(), askId);
-    sessionSignals.put(initialContext.sessionId(), signal);
-    sessionStartTimes.putIfAbsent(initialContext.sessionId(), System.currentTimeMillis());
-    sessionActiveTurns
-        .computeIfAbsent(
-            initialContext.sessionId(), k -> new java.util.concurrent.atomic.AtomicInteger(0))
-        .incrementAndGet();
+    SessionState state =
+        sessions.computeIfAbsent(initialContext.sessionId(), k -> new SessionState());
+    state.signal = signal;
+    if (state.startTimeMs == 0) {
+      state.startTimeMs = System.currentTimeMillis();
+    }
+    state.activeTurns.incrementAndGet();
 
     String turnSpanId = "turn-" + UUID.randomUUID().toString().substring(0, 8);
     startSpan(initialContext.sessionId(), turnSpanId);
@@ -637,11 +639,11 @@ public class ReActAgentLoop implements AgentLoop {
           @Override
           public void emitStream(String chunk) {
             if (dispatcher != null) {
-              Deque<String> stk = spanStacks.get(originalContext.sessionId());
+              SessionState st = sessions.get(originalContext.sessionId());
               String currentSpan = null;
               String parentSpan = null;
-              if (stk != null && !stk.isEmpty()) {
-                var iter = stk.iterator();
+              if (st != null && !st.spanStack.isEmpty()) {
+                var iter = st.spanStack.iterator();
                 currentSpan = iter.next();
                 if (iter.hasNext()) parentSpan = iter.next();
               }
@@ -719,7 +721,10 @@ public class ReActAgentLoop implements AgentLoop {
 
               if (result.status() == AgentTaskResult.Status.INTERRUPT) {
                 String askId = "ask-" + UUID.randomUUID().toString().substring(0, 8);
-                pendingAsks.put(askId, new PendingAsk(task.id(), System.currentTimeMillis()));
+                pendingAsks.put(
+                    askId,
+                    new PendingAsk(
+                        task.id(), System.currentTimeMillis(), originalContext.sessionId()));
                 Map<String, Object> interruptData = new HashMap<>(resData);
                 if (result.metadata() != null) {
                   interruptData.putAll(result.metadata());
@@ -794,7 +799,7 @@ public class ReActAgentLoop implements AgentLoop {
 
   /** Returns the number of active sessions tracked. Visible for testing leak detection. */
   int getActiveSessionCount() {
-    return sessionSignals.size();
+    return sessions.size();
   }
 
   /** Returns the number of pending ask entries. Visible for testing leak detection. */

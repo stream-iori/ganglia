@@ -72,7 +72,7 @@ public class OpenAIModelGateway extends AbstractModelGateway {
                     response -> {
                       if (request.signal().isAborted()) {
                         return Future.failedFuture(
-                            new work.ganglia.kernel.loop.AgentAbortedException());
+                            new work.ganglia.port.internal.state.AgentAbortedException());
                       }
                       if (response.statusCode() >= 400) {
                         String errorBody = response.bodyAsString();

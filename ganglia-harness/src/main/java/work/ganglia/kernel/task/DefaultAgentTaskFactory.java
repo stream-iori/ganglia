@@ -19,6 +19,74 @@ import work.ganglia.port.internal.state.ObservationDispatcher;
  */
 public class DefaultAgentTaskFactory implements AgentTaskFactory {
 
+  private static final ToolDefinition CALL_SUB_AGENT_DEF =
+      new ToolDefinition(
+          "call_sub_agent",
+          "Delegate a specific, focused sub-task to a specialized sub-agent. Returns a summary report.",
+          """
+          {
+            "type": "object",
+            "properties": {
+              "task": { "type": "string", "description": "The task for the sub-agent." },
+              "persona": { "type": "string", "enum": ["INVESTIGATOR", "REFACTORER", "GENERAL"], "default": "GENERAL" }
+            },
+            "required": ["task"]
+          }
+          """,
+          false);
+
+  private static final ToolDefinition PROPOSE_TASK_GRAPH_DEF =
+      new ToolDefinition(
+          "propose_task_graph",
+          "Propose a Directed Acyclic Graph (DAG) of sub-tasks. If 'approved' is false or missing, it will interrupt for user approval. If 'approved' is true, it will execute the graph.",
+          """
+            {
+              "type": "object",
+              "properties": {
+                "nodes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string", "description": "Unique ID for the task node." },
+                      "task": { "type": "string", "description": "Description of the sub-task." },
+                      "persona": { "type": "string", "enum": ["INVESTIGATOR", "REFACTORER", "GENERAL"], "default": "GENERAL" },
+                      "dependencies": {
+                        "type": "array",
+                        "items": { "type": "string" },
+                        "description": "IDs of tasks that must finish before this one starts."
+                      }
+                    },
+                    "required": ["id", "task"]
+                  }
+                },
+                "approved": { "type": "boolean", "description": "Set to true ONLY after the user has confirmed the plan.", "default": false }
+              },
+              "required": ["nodes"]
+            }
+            """,
+          true);
+
+  private static final ToolDefinition LIST_SKILLS_DEF =
+      new ToolDefinition(
+          "list_available_skills", "List all skills available to be activated", "{}");
+
+  private static final ToolDefinition ACTIVATE_SKILL_DEF =
+      new ToolDefinition(
+          "activate_skill",
+          "Activate a specific skill by ID to gain its specialized capabilities. This REQUIRES user confirmation unless already confirmed.",
+          """
+            {
+              "type": "object",
+              "properties": {
+                "skillId": { "type": "string", "description": "The ID of the skill to activate" },
+                "confirmed": { "type": "boolean", "description": "Set to true if the user has already explicitly agreed to activate this skill in the preceding conversation." }
+              },
+              "required": ["skillId"]
+            }
+            """,
+          true);
+
   private final AgentLoopFactory loopFactory;
   private final ToolExecutor standardToolExecutor;
   private final GraphExecutor graphExecutor; // Nullable
@@ -70,75 +138,15 @@ public class DefaultAgentTaskFactory implements AgentTaskFactory {
     List<ToolDefinition> definitions = new ArrayList<>();
     definitions.addAll(standardToolExecutor.getAvailableTools(context));
 
-    definitions.add(
-        new ToolDefinition(
-            "call_sub_agent",
-            "Delegate a specific, focused sub-task to a specialized sub-agent. Returns a summary report.",
-            """
-            {
-              "type": "object",
-              "properties": {
-                "task": { "type": "string", "description": "The task for the sub-agent." },
-                "persona": { "type": "string", "enum": ["INVESTIGATOR", "REFACTORER", "GENERAL"], "default": "GENERAL" }
-              },
-              "required": ["task"]
-            }
-            """,
-            false));
+    definitions.add(CALL_SUB_AGENT_DEF);
 
     if (graphExecutor != null) {
-      definitions.add(
-          new ToolDefinition(
-              "propose_task_graph",
-              "Propose a Directed Acyclic Graph (DAG) of sub-tasks. If 'approved' is false or missing, it will interrupt for user approval. If 'approved' is true, it will execute the graph.",
-              """
-                {
-                  "type": "object",
-                  "properties": {
-                    "nodes": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "id": { "type": "string", "description": "Unique ID for the task node." },
-                          "task": { "type": "string", "description": "Description of the sub-task." },
-                          "persona": { "type": "string", "enum": ["INVESTIGATOR", "REFACTORER", "GENERAL"], "default": "GENERAL" },
-                          "dependencies": {
-                            "type": "array",
-                            "items": { "type": "string" },
-                            "description": "IDs of tasks that must finish before this one starts."
-                          }
-                        },
-                        "required": ["id", "task"]
-                      }
-                    },
-                    "approved": { "type": "boolean", "description": "Set to true ONLY after the user has confirmed the plan.", "default": false }
-                  },
-                  "required": ["nodes"]
-                }
-                """,
-              true));
+      definitions.add(PROPOSE_TASK_GRAPH_DEF);
     }
 
     if (skillRuntime != null && skillService != null) {
-      definitions.add(
-          new ToolDefinition(
-              "list_available_skills", "List all skills available to be activated", "{}"));
-      definitions.add(
-          new ToolDefinition(
-              "activate_skill",
-              "Activate a specific skill by ID to gain its specialized capabilities. This REQUIRES user confirmation unless already confirmed.",
-              """
-                {
-                  "type": "object",
-                  "properties": {
-                    "skillId": { "type": "string", "description": "The ID of the skill to activate" },
-                    "confirmed": { "type": "boolean", "description": "Set to true if the user has already explicitly agreed to activate this skill in the preceding conversation." }
-                  },
-                  "required": ["skillId"]
-                }
-                """,
-              true));
+      definitions.add(LIST_SKILLS_DEF);
+      definitions.add(ACTIVATE_SKILL_DEF);
 
       skillRuntime
           .getActiveSkillsTools(context)

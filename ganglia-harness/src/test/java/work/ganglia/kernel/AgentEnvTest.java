@@ -34,7 +34,7 @@ class AgentEnvTest {
             .dispatcher(null)
             .faultTolerancePolicy(null)
             .contextOptimizer(null)
-            .taskFactory(null)
+            .taskFactoryProvider(null)
             .build();
 
     assertSame(vertx, env.vertx());
@@ -52,10 +52,7 @@ class AgentEnvTest {
   }
 
   @Test
-  void testSetTaskFactory(Vertx vertx) {
-    AgentEnv env = AgentEnv.builder().vertx(vertx).build();
-    assertNull(env.taskFactory());
-
+  void testTaskFactorySupplier(Vertx vertx) {
     AgentTaskFactory factory =
         new AgentTaskFactory() {
           @Override
@@ -68,8 +65,15 @@ class AgentEnvTest {
             return List.of();
           }
         };
-    env.setTaskFactory(factory);
+
+    AgentEnv env = AgentEnv.builder().vertx(vertx).taskFactoryProvider(() -> factory).build();
     assertSame(factory, env.taskFactory());
+  }
+
+  @Test
+  void testTaskFactorySupplierReturnsNullWhenNoProvider(Vertx vertx) {
+    AgentEnv env = AgentEnv.builder().vertx(vertx).build();
+    assertNull(env.taskFactory());
   }
 
   @Test

@@ -53,7 +53,7 @@ public class RetryingModelGateway implements ModelGateway {
 
   private Future<ModelResponse> retryChat(ChatRequest request, int attempt) {
     if (request.signal().isAborted()) {
-      return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
+      return Future.failedFuture(new work.ganglia.port.internal.state.AgentAbortedException());
     }
 
     final String sessionId = request.sessionId();
@@ -102,7 +102,7 @@ public class RetryingModelGateway implements ModelGateway {
   private Future<ModelResponse> retryChatStream(
       ChatRequest request, ExecutionContext context, int attempt) {
     if (request.signal().isAborted()) {
-      return Future.failedFuture(new work.ganglia.kernel.loop.AgentAbortedException());
+      return Future.failedFuture(new work.ganglia.port.internal.state.AgentAbortedException());
     }
 
     final String sessionId = context.sessionId();
@@ -204,7 +204,7 @@ public class RetryingModelGateway implements ModelGateway {
     // Unwrap Vert.x generic errors if possible
     Throwable cause = err.getCause() != null ? err.getCause() : err;
 
-    if (cause instanceof work.ganglia.kernel.loop.AgentAbortedException) {
+    if (cause instanceof work.ganglia.port.internal.state.AgentAbortedException) {
       return false;
     }
 

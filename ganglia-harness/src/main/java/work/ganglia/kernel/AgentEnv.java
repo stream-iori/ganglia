@@ -1,5 +1,7 @@
 package work.ganglia.kernel;
 
+import java.util.function.Supplier;
+
 import io.vertx.core.Vertx;
 
 import work.ganglia.config.AgentConfigProvider;
@@ -30,7 +32,7 @@ public class AgentEnv {
   private final ObservationDispatcher dispatcher;
   private final FaultTolerancePolicy faultTolerancePolicy;
   private final ContextOptimizer contextOptimizer;
-  private AgentTaskFactory taskFactory;
+  private final Supplier<AgentTaskFactory> taskFactoryProvider;
 
   private AgentEnv(Builder builder) {
     this.vertx = builder.vertx;
@@ -44,7 +46,7 @@ public class AgentEnv {
     this.dispatcher = builder.dispatcher;
     this.faultTolerancePolicy = builder.faultTolerancePolicy;
     this.contextOptimizer = builder.contextOptimizer;
-    this.taskFactory = builder.taskFactory;
+    this.taskFactoryProvider = builder.taskFactoryProvider;
   }
 
   public static Builder builder() {
@@ -96,11 +98,7 @@ public class AgentEnv {
   }
 
   public AgentTaskFactory taskFactory() {
-    return taskFactory;
-  }
-
-  public void setTaskFactory(AgentTaskFactory taskFactory) {
-    this.taskFactory = taskFactory;
+    return taskFactoryProvider != null ? taskFactoryProvider.get() : null;
   }
 
   public static class Builder {
@@ -115,7 +113,7 @@ public class AgentEnv {
     private ObservationDispatcher dispatcher;
     private FaultTolerancePolicy faultTolerancePolicy;
     private ContextOptimizer contextOptimizer;
-    private AgentTaskFactory taskFactory;
+    private Supplier<AgentTaskFactory> taskFactoryProvider;
 
     private Builder() {}
 
@@ -174,8 +172,8 @@ public class AgentEnv {
       return this;
     }
 
-    public Builder taskFactory(AgentTaskFactory taskFactory) {
-      this.taskFactory = taskFactory;
+    public Builder taskFactoryProvider(Supplier<AgentTaskFactory> taskFactoryProvider) {
+      this.taskFactoryProvider = taskFactoryProvider;
       return this;
     }
 

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 import io.vertx.core.Future;
 import io.vertx.core.Vertx;
@@ -43,7 +44,7 @@ public class StandardPromptEngine implements PromptEngine {
   private final SkillRuntime skillRuntime;
   private final work.ganglia.config.ModelConfigProvider modelConfigProvider;
   private final ContextBudget budget;
-  private AgentTaskFactory taskFactory;
+  private final Supplier<AgentTaskFactory> taskFactoryProvider;
   private ObservationDispatcher dispatcher;
   private final Set<String> budgetEmittedSessions = ConcurrentHashMap.newKeySet();
 
@@ -51,14 +52,14 @@ public class StandardPromptEngine implements PromptEngine {
       Vertx vertx,
       MemoryService memoryService,
       SkillRuntime skillRuntime,
-      AgentTaskFactory taskFactory,
+      Supplier<AgentTaskFactory> taskFactoryProvider,
       TokenCounter tokenCounter,
       work.ganglia.config.ModelConfigProvider modelConfigProvider) {
     this(
         vertx,
         memoryService,
         skillRuntime,
-        taskFactory,
+        taskFactoryProvider,
         tokenCounter,
         List.of(),
         modelConfigProvider);
@@ -68,7 +69,7 @@ public class StandardPromptEngine implements PromptEngine {
       Vertx vertx,
       MemoryService memoryService,
       SkillRuntime skillRuntime,
-      AgentTaskFactory taskFactory,
+      Supplier<AgentTaskFactory> taskFactoryProvider,
       TokenCounter tokenCounter,
       List<ContextSource> extraSources,
       work.ganglia.config.ModelConfigProvider modelConfigProvider) {
@@ -78,7 +79,7 @@ public class StandardPromptEngine implements PromptEngine {
         ContextBudget.from(
             modelConfigProvider.getContextLimit(), modelConfigProvider.getMaxTokens());
     this.toolOutputTruncator = new TokenAwareTruncator(tokenCounter, budget.toolOutputPerMessage());
-    this.taskFactory = taskFactory;
+    this.taskFactoryProvider = taskFactoryProvider;
     this.vertx = vertx;
     this.memoryService = memoryService;
     this.skillRuntime = skillRuntime;
@@ -114,9 +115,9 @@ public class StandardPromptEngine implements PromptEngine {
     if (sources.stream().noneMatch(s -> s instanceof SkillContextSource)) {
       sources.add(new SkillContextSource(skillRuntime));
     }
-    if (this.taskFactory != null
+    if (this.taskFactoryProvider != null
         && sources.stream().noneMatch(s -> s instanceof ToolContextSource)) {
-      sources.add(new ToolContextSource(this.taskFactory));
+      sources.add(new ToolContextSource(this.taskFactoryProvider));
     }
     if (sources.stream().noneMatch(s -> s instanceof MemoryContextSource)) {
       sources.add(new MemoryContextSource(memoryService));
@@ -124,11 +125,6 @@ public class StandardPromptEngine implements PromptEngine {
     if (sources.stream().noneMatch(s -> s instanceof SubAgentContextSource)) {
       sources.add(new SubAgentContextSource());
     }
-  }
-
-  public void setTaskFactory(AgentTaskFactory taskFactory) {
-    this.taskFactory = taskFactory;
-    ensureCoreSources();
   }
 
   public void addContextSource(ContextSource source) {
@@ -199,9 +195,11 @@ public class StandardPromptEngine implements PromptEngine {
               }
 
               // 4. Resolve Tools
+              AgentTaskFactory resolvedFactory =
+                  taskFactoryProvider != null ? taskFactoryProvider.get() : null;
               List<ToolDefinition> tools =
-                  taskFactory != null
-                      ? taskFactory.getAvailableDefinitions(context)
+                  resolvedFactory != null
+                      ? resolvedFactory.getAvailableDefinitions(context)
                       : Collections.emptyList();
 
               return new LLMRequest(modelHistory, tools, currentOptions);

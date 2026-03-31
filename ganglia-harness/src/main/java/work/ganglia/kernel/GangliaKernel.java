@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.ServiceLoader;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -226,12 +227,14 @@ public class GangliaKernel {
             projectRoot));
 
     ToolsFactory toolsFactory = new ToolsFactory(vertx, projectRoot);
+    AtomicReference<AgentTaskFactory> taskFactoryRef = new AtomicReference<>();
+
     StandardPromptEngine promptEngine =
         new StandardPromptEngine(
             vertx,
             memory.memoryService(),
             skillRuntime,
-            null,
+            taskFactoryRef::get,
             tokenCounter,
             options.extraContextSources(),
             configManager);
@@ -280,7 +283,7 @@ public class GangliaKernel {
             dispatcher,
             budget);
 
-    // 1. Build AgentEnv first (with taskFactory = null initially)
+    // 1. Build AgentEnv with supplier-based taskFactory (resolved lazily)
     AgentEnv env =
         AgentEnv.builder()
             .vertx(vertx)
@@ -294,9 +297,10 @@ public class GangliaKernel {
             .dispatcher(dispatcher)
             .faultTolerancePolicy(failurePolicy)
             .contextOptimizer(contextOptimizer)
+            .taskFactoryProvider(taskFactoryRef::get)
             .build();
 
-    // 2. Define AgentLoopFactory with late-binding taskFactory from env
+    // 2. Define AgentLoopFactory with supplier-based taskFactory (resolved at loop creation time)
     AgentLoopFactory loopFactory =
         () ->
             ReActAgentLoop.builder()
@@ -307,22 +311,18 @@ public class GangliaKernel {
                 .contextOptimizer(contextOptimizer)
                 .promptEngine(promptEngine)
                 .modelGateway(modelGateway)
-                .taskFactory(env.taskFactory()) // Late binding
+                .taskFactory(taskFactoryRef.get())
                 .faultTolerancePolicy(failurePolicy)
                 .contextCompressor(memory.contextCompressor())
                 .pipeline(pipeline)
                 .build();
 
-    // 3. Complete the dependency graph
+    // 3. Complete the dependency graph — no late-binding setters needed
     GraphExecutor graphExecutor = new DefaultGraphExecutor(loopFactory);
     AgentTaskFactory taskFactory =
         new DefaultAgentTaskFactory(
             loopFactory, toolExecutor, graphExecutor, skillService, skillRuntime);
-
-    // 4. Wire back the cross-references
-    env.setTaskFactory(taskFactory);
-    promptEngine.setTaskFactory(taskFactory);
-    graphExecutor.initialize(taskFactory);
+    taskFactoryRef.set(taskFactory);
 
     TraceManager traceManager = new TraceManager(vertx, configManager);
     TokenUsageManager tokenUsageManager = new TokenUsageManager(vertx, tokenCounter);

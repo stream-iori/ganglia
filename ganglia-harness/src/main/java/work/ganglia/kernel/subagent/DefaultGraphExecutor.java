@@ -12,7 +12,6 @@ import io.vertx.core.Future;
 
 import work.ganglia.kernel.loop.AgentLoop;
 import work.ganglia.kernel.loop.AgentLoopFactory;
-import work.ganglia.kernel.task.AgentTaskFactory;
 import work.ganglia.port.chat.SessionContext;
 
 /**
@@ -26,11 +25,6 @@ public class DefaultGraphExecutor implements GraphExecutor {
 
   public DefaultGraphExecutor(AgentLoopFactory loopFactory) {
     this.loopFactory = loopFactory;
-  }
-
-  @Override
-  public void initialize(AgentTaskFactory taskFactory) {
-    // Initialization handled externally or not required here anymore
   }
 
   @Override

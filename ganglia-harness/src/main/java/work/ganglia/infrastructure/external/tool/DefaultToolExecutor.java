@@ -1,7 +1,9 @@
 package work.ganglia.infrastructure.external.tool;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,7 @@ public class DefaultToolExecutor implements ToolExecutor {
 
   private final List<ToolSet> toolSets = new ArrayList<>();
   private final ToolCallValidator validator = new ToolCallValidator();
+  private final Map<String, ToolSet> toolIndex;
 
   public DefaultToolExecutor(ToolsFactory factory) {
     this(factory, List.of());
@@ -35,6 +38,17 @@ public class DefaultToolExecutor implements ToolExecutor {
     if (extraToolSets != null) {
       this.toolSets.addAll(extraToolSets);
     }
+    this.toolIndex = buildToolIndex();
+  }
+
+  private Map<String, ToolSet> buildToolIndex() {
+    Map<String, ToolSet> index = new LinkedHashMap<>();
+    for (ToolSet ts : toolSets) {
+      for (ToolDefinition d : ts.getDefinitions()) {
+        index.putIfAbsent(d.name(), ts);
+      }
+    }
+    return index;
   }
 
   @Override
@@ -57,30 +71,29 @@ public class DefaultToolExecutor implements ToolExecutor {
       }
     }
 
-    // 2. Try tools
-    for (ToolSet ts : toolSets) {
-      if (hasTool(ts, toolName)) {
-        String toolSetName = ts.getClass().getSimpleName();
-        if (toolSetName.isEmpty()) {
-          toolSetName = ts.getClass().getName();
-        }
-        logger.debug("Found tool {} in toolset: {}", toolName, toolSetName);
-        return ts.execute(toolCall, context, executionContext)
-            .onSuccess(
-                res ->
-                    logger.debug(
-                        "[TOOL_RESULT] Name: {}, ID: {}, Status: {}",
-                        toolName,
-                        toolCall.id(),
-                        res.status()))
-            .onFailure(
-                err ->
-                    logger.error(
-                        "[TOOL_ERROR] Name: {}, ID: {}, Error: {}",
-                        toolName,
-                        toolCall.id(),
-                        err.getMessage()));
+    // 2. O(1) lookup via tool index
+    ToolSet ts = toolIndex.get(toolName);
+    if (ts != null) {
+      String toolSetName = ts.getClass().getSimpleName();
+      if (toolSetName.isEmpty()) {
+        toolSetName = ts.getClass().getName();
       }
+      logger.debug("Found tool {} in toolset: {}", toolName, toolSetName);
+      return ts.execute(toolCall, context, executionContext)
+          .onSuccess(
+              res ->
+                  logger.debug(
+                      "[TOOL_RESULT] Name: {}, ID: {}, Status: {}",
+                      toolName,
+                      toolCall.id(),
+                      res.status()))
+          .onFailure(
+              err ->
+                  logger.error(
+                      "[TOOL_ERROR] Name: {}, ID: {}, Error: {}",
+                      toolName,
+                      toolCall.id(),
+                      err.getMessage()));
     }
 
     logger.warn("No tool implementation found for: {}", toolName);
@@ -96,7 +109,7 @@ public class DefaultToolExecutor implements ToolExecutor {
 
   @Override
   public List<ToolDefinition> getAvailableTools(SessionContext context) {
-    java.util.Map<String, ToolDefinition> tools = new java.util.LinkedHashMap<>();
+    Map<String, ToolDefinition> tools = new LinkedHashMap<>();
 
     for (ToolSet ts : toolSets) {
       for (ToolDefinition d : ts.getDefinitions()) {
@@ -105,9 +118,5 @@ public class DefaultToolExecutor implements ToolExecutor {
     }
 
     return new ArrayList<>(tools.values());
-  }
-
-  private boolean hasTool(ToolSet ts, String toolName) {
-    return ts.getDefinitions().stream().anyMatch(d -> d.name().equals(toolName));
   }
 }

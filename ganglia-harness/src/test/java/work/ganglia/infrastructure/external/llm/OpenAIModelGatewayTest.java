@@ -179,7 +179,8 @@ class OpenAIModelGatewayTest {
                 err -> {
                   testContext.verify(
                       () -> {
-                        assertTrue(err instanceof work.ganglia.kernel.loop.AgentAbortedException);
+                        assertTrue(
+                            err instanceof work.ganglia.port.internal.state.AgentAbortedException);
                         // We should have received exactly 1 token (the one that triggered the
                         // abort)
                         // or at least not ALL of them.
