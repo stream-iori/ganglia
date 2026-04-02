@@ -22,10 +22,12 @@ import work.ganglia.port.external.llm.LLMRequest;
 import work.ganglia.port.external.llm.ModelOptions;
 import work.ganglia.port.external.tool.*;
 import work.ganglia.port.internal.memory.MemoryService;
+import work.ganglia.port.internal.prompt.ContextAnalysis;
 import work.ganglia.port.internal.prompt.ContextBudget;
 import work.ganglia.port.internal.prompt.ContextFragment;
 import work.ganglia.port.internal.prompt.ContextSource;
 import work.ganglia.port.internal.prompt.GuidelineContextSource;
+import work.ganglia.port.internal.prompt.PromptCacheStats;
 import work.ganglia.port.internal.prompt.PromptEngine;
 import work.ganglia.port.internal.prompt.WorkflowContextSource;
 import work.ganglia.port.internal.skill.SkillRuntime;
@@ -38,7 +40,9 @@ public class StandardPromptEngine implements PromptEngine {
   private final List<ContextSource> sources = new ArrayList<>();
   private final ContextComposer composer;
   private final TokenCounter tokenCounter;
+  private final ContextAnalyzer contextAnalyzer;
   private final TokenAwareTruncator toolOutputTruncator;
+  private final ToolResultBudgetEnforcer toolResultEnforcer;
   private final Vertx vertx;
   private final MemoryService memoryService;
   private final SkillRuntime skillRuntime;
@@ -47,6 +51,7 @@ public class StandardPromptEngine implements PromptEngine {
   private final Supplier<AgentTaskFactory> taskFactoryProvider;
   private ObservationDispatcher dispatcher;
   private final Set<String> budgetEmittedSessions = new HashSet<>();
+  private volatile boolean toolRegistrationDirty = false;
 
   public StandardPromptEngine(
       Vertx vertx,
@@ -74,11 +79,14 @@ public class StandardPromptEngine implements PromptEngine {
       List<ContextSource> extraSources,
       work.ganglia.config.ModelConfigProvider modelConfigProvider) {
     this.tokenCounter = tokenCounter;
+    this.contextAnalyzer = new ContextAnalyzer(this.tokenCounter);
     this.composer = new ContextComposer(this.tokenCounter);
     this.budget =
         ContextBudget.from(
             modelConfigProvider.getContextLimit(), modelConfigProvider.getMaxTokens());
     this.toolOutputTruncator = new TokenAwareTruncator(tokenCounter, budget.toolOutputPerMessage());
+    this.toolResultEnforcer =
+        new ToolResultBudgetEnforcer(tokenCounter, budget.toolOutputAggregate());
     this.taskFactoryProvider = taskFactoryProvider;
     this.vertx = vertx;
     this.memoryService = memoryService;
@@ -139,14 +147,53 @@ public class StandardPromptEngine implements PromptEngine {
     return budget;
   }
 
+  /**
+   * Marks that tool registrations have changed, invalidating the prompt cache. Should be called
+   * whenever the available tool set is modified (tools added, removed, or updated).
+   */
+  public void markToolRegistrationChanged() {
+    this.toolRegistrationDirty = true;
+    composer.clearCache();
+  }
+
+  /** Returns the cache statistics from the last compose call. */
+  public PromptCacheStats getLastCacheStats() {
+    return composer.getLastCacheStats();
+  }
+
   @Override
   public Future<String> buildSystemPrompt(SessionContext context) {
+    // Clear cache if tool registrations have changed
+    if (toolRegistrationDirty) {
+      composer.clearCache();
+      toolRegistrationDirty = false;
+    }
+
     List<Future<List<ContextFragment>>> futures =
         sources.stream().map(s -> s.getFragments(context)).toList();
 
     return Future.join(futures)
         .map(v -> futures.stream().map(Future::result).flatMap(List::stream).toList())
-        .map(allFragments -> composer.compose(allFragments, budget.systemPrompt()));
+        .map(
+            allFragments -> {
+              String result = composer.compose(allFragments, budget.systemPrompt());
+
+              // Emit cache stats observation
+              PromptCacheStats cacheStats = composer.getLastCacheStats();
+              if (dispatcher != null && cacheStats.stablePrefixTokens() > 0) {
+                dispatcher.dispatch(
+                    context.sessionId(),
+                    ObservationType.PROMPT_CACHE_STATS,
+                    "prompt_cache_stats",
+                    Map.of(
+                        "cacheHit", cacheStats.cacheHit(),
+                        "stablePrefixTokens", cacheStats.stablePrefixTokens(),
+                        "stableFragmentCount", cacheStats.stableFragmentCount(),
+                        "volatileFragmentCount", cacheStats.volatileFragmentCount()));
+              }
+
+              return result;
+            });
   }
 
   @Override
@@ -200,6 +247,16 @@ public class StandardPromptEngine implements PromptEngine {
                       ? resolvedFactory.getAvailableDefinitions(context)
                       : Collections.emptyList();
 
+              // 5. Emit context analysis observation
+              if (dispatcher != null) {
+                ContextAnalysis analysis = contextAnalyzer.analyze(context, systemPromptContent);
+                dispatcher.dispatch(
+                    context.sessionId(),
+                    ObservationType.CONTEXT_ANALYSIS,
+                    "context_analysis",
+                    analysis.toObservationData());
+              }
+
               return new LLMRequest(modelHistory, tools, currentOptions);
             });
   }
@@ -208,26 +265,31 @@ public class StandardPromptEngine implements PromptEngine {
    * Caps oversized TOOL messages to {@code budget.toolOutputPerMessage()} tokens so they don't
    * consume the entire context window. Messages already capped by {@code
    * ObservationCompressionHook} (i.e. {@link Message.ToolObservation#outputCapped()} is true) are
-   * skipped to avoid double-truncation.
+   * skipped to avoid double-truncation. Then enforces aggregate budget for all tool outputs.
    */
   private List<Message> capToolMessages(List<Message> messages) {
-    return messages.stream()
-        .map(
-            m -> {
-              if (m.role() != Role.TOOL) return m;
-              if (m.content() == null) return m;
-              // Skip messages already processed by ObservationCompressionHook
-              if (m.toolObservation() != null && m.toolObservation().outputCapped()) return m;
-              String toolName =
-                  m.toolObservation() != null ? m.toolObservation().toolName() : "tool-output";
-              String capped = toolOutputTruncator.truncate(m.content(), toolName);
-              if (capped.equals(m.content())) {
-                return m; // unchanged — no truncation needed
-              }
-              return Message.toolCapped(
-                  m.toolObservation().toolCallId(), m.toolObservation().toolName(), capped);
-            })
-        .toList();
+    // First apply per-message cap
+    List<Message> perMessageCapped =
+        messages.stream()
+            .map(
+                m -> {
+                  if (m.role() != Role.TOOL) return m;
+                  if (m.content() == null) return m;
+                  // Skip messages already processed by ObservationCompressionHook
+                  if (m.toolObservation() != null && m.toolObservation().outputCapped()) return m;
+                  String toolName =
+                      m.toolObservation() != null ? m.toolObservation().toolName() : "tool-output";
+                  String capped = toolOutputTruncator.truncate(m.content(), toolName);
+                  if (capped.equals(m.content())) {
+                    return m; // unchanged — no truncation needed
+                  }
+                  return Message.toolCapped(
+                      m.toolObservation().toolCallId(), m.toolObservation().toolName(), capped);
+                })
+            .toList();
+
+    // Then enforce aggregate budget
+    return toolResultEnforcer.enforce(perMessageCapped);
   }
 
   private List<Message> sanitizeHistory(List<Message> history) {

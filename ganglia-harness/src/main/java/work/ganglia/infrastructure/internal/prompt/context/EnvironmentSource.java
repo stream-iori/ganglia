@@ -21,11 +21,12 @@ public class EnvironmentSource implements ContextSource {
   @Override
   public Future<List<ContextFragment>> getFragments(SessionContext sessionContext) {
     List<ContextFragment> fragments = new ArrayList<>();
+    // Environment info is stable during a session, so mark as cacheable
     fragments.add(
-        ContextFragment.prunable(
+        ContextFragment.cacheable(
             "OS", System.getProperty("os.name"), ContextFragment.PRIORITY_ENVIRONMENT));
     fragments.add(
-        ContextFragment.prunable(
+        ContextFragment.cacheable(
             "Working Directory",
             System.getProperty("user.dir"),
             ContextFragment.PRIORITY_ENVIRONMENT));
@@ -44,7 +45,7 @@ public class EnvironmentSource implements ContextSource {
                 }
               }
               fragments.add(
-                  ContextFragment.prunable(
+                  ContextFragment.cacheable(
                       "Directory Structure", sb.toString(), ContextFragment.PRIORITY_ENVIRONMENT));
               return fragments;
             })

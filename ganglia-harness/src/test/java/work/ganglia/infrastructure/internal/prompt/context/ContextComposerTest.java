@@ -33,9 +33,9 @@ class ContextComposerTest {
   void testComposeAndPrune(VertxTestContext testContext) {
     List<ContextFragment> fragments =
         List.of(
-            new ContextFragment("Persona", "You are AI", 1, true),
-            new ContextFragment("Memory", "Long ago...", 10, false),
-            new ContextFragment("Plan", "Step 1", 6, false));
+            ContextFragment.mandatory("Persona", "You are AI", 1),
+            ContextFragment.prunable("Memory", "Long ago...", 10),
+            ContextFragment.prunable("Plan", "Step 1", 6));
 
     // Limit to very few tokens to trigger pruning of priority 10
     String prompt = composer.compose(fragments, 10);
@@ -53,13 +53,12 @@ class ContextComposerTest {
 
     List<ContextFragment> fragments =
         List.of(
-            new ContextFragment("Persona", "You are AI", 1, true),
-            new ContextFragment(
+            ContextFragment.mandatory("Persona", "You are AI", 1),
+            ContextFragment.prunable(
                 "Memory",
                 "A".repeat(budget.systemPrompt() * 5), // 5× over budget → must be pruned
-                10,
-                false),
-            new ContextFragment("Plan", "Step 1", 6, false));
+                10),
+            ContextFragment.prunable("Plan", "Step 1", 6));
 
     String prompt = composer.compose(fragments, budget.systemPrompt());
 

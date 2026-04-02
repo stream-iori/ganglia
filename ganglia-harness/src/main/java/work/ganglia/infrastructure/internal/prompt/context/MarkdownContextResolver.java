@@ -76,8 +76,12 @@ public class MarkdownContextResolver {
       String fragmentContent = content.substring(contentStart, contentEnd).trim();
       HeaderMetadata meta = parseMetadata(current.title());
 
-      fragments.add(
-          new ContextFragment(meta.name(), fragmentContent, meta.priority(), meta.mandatory()));
+      // Use factory methods - markdown fragments are typically cacheable (stable)
+      ContextFragment fragment =
+          meta.mandatory()
+              ? ContextFragment.mandatory(meta.name(), fragmentContent, meta.priority(), true)
+              : ContextFragment.prunable(meta.name(), fragmentContent, meta.priority(), true);
+      fragments.add(fragment);
     }
 
     return fragments;
