@@ -276,10 +276,21 @@ public class ReActAgentLoop implements AgentLoop {
     SessionState state = sessions.get(sessionId);
     if (state != null && state.signal != null) {
       logger.info("Aborting session via stop request: {}", sessionId);
+      // abort() is thread-safe (AtomicBoolean), can be called from any thread
       state.signal.abort();
-      Map<String, Object> abortData = new HashMap<>();
-      abortData.put("reason", "user_stop");
-      publishObservation(sessionId, ObservationType.SESSION_ABORTED, null, abortData);
+      // Schedule publishObservation to run on Vert.x event loop thread
+      // to ensure thread-safe access to spanStack
+      if (vertx != null) {
+        vertx.runOnContext(
+            v -> {
+              // Re-check state in case session was cleaned up
+              if (sessions.containsKey(sessionId)) {
+                Map<String, Object> abortData = new HashMap<>();
+                abortData.put("reason", "user_stop");
+                publishObservation(sessionId, ObservationType.SESSION_ABORTED, null, abortData);
+              }
+            });
+      }
     }
   }
 

@@ -61,6 +61,7 @@ public class WebUIVerticle extends AbstractVerticle {
   private final Set<String> activeSessions = Collections.newSetFromMap(new ConcurrentHashMap<>());
   private final Map<String, List<JsonObject>> sessionHistories = new ConcurrentHashMap<>();
   private final Map<String, Set<ServerWebSocket>> sessionSockets = new ConcurrentHashMap<>();
+  private final Set<ServerWebSocket> traceClients = ConcurrentHashMap.newKeySet();
 
   private final int mcpServersCount;
 
@@ -312,12 +313,14 @@ public class WebUIVerticle extends AbstractVerticle {
   }
 
   private void handleWebSocketHandshake(io.vertx.core.http.ServerWebSocketHandshake handshake) {
-    if (!"/ws".equals(handshake.path())) {
+    String path = handshake.path();
+    if ("/ws".equals(path)) {
+      handshake.accept().onSuccess(this::setupWebSocket);
+    } else if ("/ws/traces".equals(path)) {
+      handshake.accept().onSuccess(this::setupTraceWebSocket);
+    } else {
       handshake.reject();
-      return;
     }
-
-    handshake.accept().onSuccess(this::setupWebSocket);
   }
 
   private void setupWebSocket(ServerWebSocket ws) {
@@ -361,6 +364,19 @@ public class WebUIVerticle extends AbstractVerticle {
         });
   }
 
+  private void setupTraceWebSocket(ServerWebSocket ws) {
+    logger.info("Trace WebSocket connected");
+    traceClients.add(ws);
+
+    ws.closeHandler(
+        v -> {
+          traceClients.remove(ws);
+          logger.info("Trace WebSocket closed");
+        });
+
+    ws.exceptionHandler(err -> traceClients.remove(ws));
+  }
+
   private void setupEventBusConsumers() {
     // Outbound interceptor for caching history
     vertx
@@ -387,6 +403,21 @@ public class WebUIVerticle extends AbstractVerticle {
         .<JsonObject>consumer(
             "ganglia.ui.ws.tty",
             msg -> forwardToWebSocket(msg.headers().get("sessionId"), "tty_event", msg.body()));
+
+    // Forward observation events to trace WebSocket clients
+    vertx
+        .eventBus()
+        .<JsonObject>consumer(
+            Constants.ADDRESS_OBSERVATIONS_ALL,
+            msg -> {
+              if (traceClients.isEmpty()) return;
+              String payload = msg.body().encode();
+              for (ServerWebSocket client : traceClients) {
+                if (!client.writeQueueFull()) {
+                  client.writeTextMessage(payload);
+                }
+              }
+            });
   }
 
   private void handleRpcRequest(JsonRpcRequest request, ServerWebSocket ws, String sessionId) {
