@@ -11,8 +11,8 @@ name: "CI"
     - "master"
   workflow_dispatch: null
 jobs:
-  backend-it:
-    name: "Backend Integration Tests"
+  backend-ci:
+    name: "Backend CI (Style, Unit Tests, IT)"
     runs-on: "ubuntu-latest"
     steps:
     - name: "Checkout code"
@@ -23,6 +23,10 @@ jobs:
         java-version: "17"
         distribution: "temurin"
         cache: "maven"
+    - name: "Format and Style Check"
+      run: "mvn spotless:check checkstyle:check"
+    - name: "Run All Unit Tests"
+      run: "mvn test"
     - name: "Build and Run Integration Tests"
       run: "mvn verify -pl integration-test,coding-agent/ganglia-terminal -am"
   frontend-test:
