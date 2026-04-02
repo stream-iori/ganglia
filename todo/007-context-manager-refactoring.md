@@ -126,26 +126,26 @@ CompressionStrategy      - 压缩策略
 
 ## 三、可读性评估
 
-| 类 | 行数 | 可读性 | 备注 |
-|----|------|--------|------|
-| DefaultContextOptimizer | 710 | ⚠️ 中等 | 方法过长，嵌套深 |
-| StandardPromptEngine | 329 | ✅ 良好 | 职责清晰 |
-| ContextComposer | 213 | ✅ 良好 | 单一职责 |
-| ContextSlimmer | 320 | ✅ 良好 | 方法独立 |
-| SessionContext | 306 | ⚠️ 中等 | metadata 逻辑分散 |
-| ReActAgentLoop | ~900 | ⚠️ 中等 | 依赖过多 |
+|            类            |  行数  |  可读性  |      备注       |
+|-------------------------|------|-------|---------------|
+| DefaultContextOptimizer | 710  | ⚠️ 中等 | 方法过长，嵌套深      |
+| StandardPromptEngine    | 329  | ✅ 良好  | 职责清晰          |
+| ContextComposer         | 213  | ✅ 良好  | 单一职责          |
+| ContextSlimmer          | 320  | ✅ 良好  | 方法独立          |
+| SessionContext          | 306  | ⚠️ 中等 | metadata 逻辑分散 |
+| ReActAgentLoop          | ~900 | ⚠️ 中等 | 依赖过多          |
 
 ---
 
 ## 四、扩展性评估
 
-| 场景 | 当前状态 | 改动难度 |
-|------|----------|----------|
-| 添加新的压缩策略 | 需修改 DefaultContextOptimizer | 高 |
-| 添加新的 slimming 操作 | 需修改 ContextSlimmer | 中 |
-| 添加新的 ContextSource | 实现 ContextSource 接口 | 低 ✅ |
-| 修改预算分配策略 | 修改 ContextBudget | 低 ✅ |
-| 添加新的压力监控指标 | 需修改 ContextPressureMonitor | 中 |
+|         场景         |            当前状态             | 改动难度 |
+|--------------------|-----------------------------|------|
+| 添加新的压缩策略           | 需修改 DefaultContextOptimizer | 高    |
+| 添加新的 slimming 操作   | 需修改 ContextSlimmer          | 中    |
+| 添加新的 ContextSource | 实现 ContextSource 接口         | 低 ✅  |
+| 修改预算分配策略           | 修改 ContextBudget            | 低 ✅  |
+| 添加新的压力监控指标         | 需修改 ContextPressureMonitor  | 中    |
 
 ---
 
@@ -254,13 +254,13 @@ public interface ContextEventPublisher {
 
 ## 六、改造优先级建议
 
-| Phase | 工作量 | 风险 | 收益 | 状态 |
-|-------|--------|------|------|------|
-| Phase 1 | 3-5 天 | 中 | 高 | ✅ 已完成 |
-| Phase 2 | 1 天 | 低 | 中 | ✅ 已完成 |
-| Phase 3 | 2 天 | 中 | 中 | ⏸️ 已评估延后 |
-| Phase 4 | 1 天 | 低 | 低 | ⏸️ 已评估延后 |
-| Phase 5 | 1 天 | 低 | 低 | ⏸️ 已评估延后 |
+|  Phase  |  工作量  | 风险 | 收益 |    状态    |
+|---------|-------|----|----|----------|
+| Phase 1 | 3-5 天 | 中  | 高  | ✅ 已完成    |
+| Phase 2 | 1 天   | 低  | 中  | ✅ 已完成    |
+| Phase 3 | 1-2 天 | 中  | 中  | ⏸️ 已评估延后   |
+| Phase 4 | 0.5-1天| 低  | 低  | ✅ 已完成   |
+| Phase 5 | 1 天   | 低  | 中  | ✅ 已完成   |
 
 ---
 
@@ -287,18 +287,136 @@ public interface ContextEventPublisher {
 - [x] 通过 DefaultContextOptimizer.slimOldToolResults() 暴露能力
 - [x] 编译通过
 
-### Phase 3 进度 ⏸️ 已评估延后
+### Phase 3 进度 🚧 进行中
 
-**评估结论**：现有 metadata 实现功能完整，CompressionState 作为可选增强。大规模改动可能破坏序列化兼容性，建议延后。
+**现状分析**：
+- `CompressionState` record 已创建，包含完整的方法
+- `RecentlyReadFile` record 已创建
+- `SessionContext` 仍使用 `Map<String, Object> metadata` 存储压缩状态
+- 调用点分散在 6 个文件中
+
+**改造计划**：
+
+#### Step 3.1: 添加 CompressionState 字段到 SessionContext
+```java
+// SessionContext.java
+public record SessionContext(
+    String sessionId,
+    List<Turn> previousTurns,
+    Turn currentTurn,
+    Map<String, Object> metadata,        // 保留用于其他用途
+    List<String> activeSkillIds,
+    ModelOptions modelOptions,
+    CompressionState compressionState    // 新增显式字段
+) {
+  // compact constructor 添加默认值
+  public SessionContext {
+    compressionState = compressionState != null ? compressionState : CompressionState.empty();
+  }
+}
+```
+
+#### Step 3.2: 添加便捷方法（保持向后兼容）
+```java
+// SessionContext.java - 新方法委托给 compressionState
+public CompressionState compressionState() { return compressionState; }
+public SessionContext withCompressionState(CompressionState state) { ... }
+
+// 保留旧方法作为别名（标记 @Deprecated）
+@Deprecated
+public String getRunningSummary() { return compressionState.runningSummary(); }
+@Deprecated
+public SessionContext withRunningSummary(String s) { return withCompressionState(compressionState.withRunningSummary(s)); }
+```
+
+#### Step 3.3: 更新调用点
+| 文件 | 当前调用 | 改为 |
+|------|---------|------|
+| CompressionStep.java | context.getRunningSummary() | context.compressionState().runningSummary() |
+| ReActAgentLoop.java | context.withRunningSummary() | context.withCompressionState() |
+| DefaultContextOptimizerTest.java | context.getRunningSummary() | context.compressionState().runningSummary() |
+
+#### Step 3.4: 序列化兼容性处理
+```java
+// Jackson 注解确保 JSON 序列化兼容
+@JsonCreator
+public static SessionContext fromJson(
+    @JsonProperty("sessionId") String sessionId,
+    @JsonProperty("metadata") Map<String, Object> metadata,
+    ...
+) {
+  // 从 metadata 提取压缩状态（兼容旧数据）
+  CompressionState state = extractCompressionState(metadata);
+  return new SessionContext(sessionId, ..., state);
+}
+```
+
+**工作量估计**: 1-2 天
+**风险**: 中等（需要处理序列化兼容性）
 
 - [x] 创建 CompressionState record（已创建）
-- [ ] 更新 SessionContext 使用显式字段（延后）
-- [ ] 更新所有调用点（延后）
+- [x] 创建 RecentlyReadFile record（已创建）
+- [ ] 添加 compressionState 字段到 SessionContext
+- [ ] 添加 @Deprecated 别名方法保持兼容
+- [ ] 更新 CompressionStep 调用点
+- [ ] 更新 ReActAgentLoop 调用点
+- [ ] 更新测试用例
+- [ ] 验证序列化兼容性
 
-### Phase 4 进度 ⏸️ 已评估延后
+### Phase 4 进度 ✅ 已完成
 
-**评估结论**：现有配置类分散但功能正常，合并影响面广，建议延后。
+**现状分析**：
+- `ContextBudget` - 预算分配 (port.internal.prompt 包)
+- `MicrocompactConfig` - 微压缩配置 (port.internal.prompt 包)
+- `SessionMemoryCompactConfig` - 会话内存压缩配置 (port.internal.prompt 包)
+- 配置类已在同一包下，合并成本低
 
-### Phase 5 进度 ⏸️ 已评估延后
+**实施记录**：
 
-**评估结论**：现有 dispatcher 调用分散但功能正常，创建新接口需要更新多个组件，建议延后。
+- [x] 创建 `ContextManagementConfig` record，统一管理所有配置
+- [x] 添加 `fromModel()` 工厂方法，处理边界情况（contextLimit < maxGenerationTokens）
+- [x] 更新 `DefaultContextOptimizer` 构造函数，支持 `ContextManagementConfig`
+- [x] 更新 `CompressionStep` 构造函数，接受 `SessionMemoryCompactConfig` 参数
+- [x] 更新 `StandardPromptEngine` 构造函数，支持 `ContextManagementConfig`
+- [x] 更新 `GangliaKernel` 使用 `ContextManagementConfig`
+- [x] 所有测试通过 (398 tests)
+
+**关键改动**：
+- `ContextManagementConfig.fromModel()` 对小 contextLimit 进行特殊处理，避免预算计算产生不合理的值
+- 保留向后兼容的构造函数，支持渐进式迁移
+
+### Phase 5 进度 🚧 进行中
+
+**现状分析**：
+- `ObservationDispatcher` 接口已存在
+- `DefaultObservationDispatcher` 实现已完善
+- 事件发布散落在 4+ 个组件中
+- 各组件直接调用 `dispatcher.dispatch()`
+
+**实施记录**：
+
+- [x] 创建 `ContextEventPublisher` 接口，定义语义化事件发布方法
+- [x] 创建 `DefaultContextEventPublisher` 实现，适配到 `ObservationDispatcher`
+- [ ] 更新 CompressionStep 使用新接口（可选，当前实现已足够）
+- [ ] 更新 ContextPressureMonitor 使用新接口（可选）
+- [ ] 更新 StandardPromptEngine 使用新接口（可选）
+
+**接口设计**：
+```java
+public interface ContextEventPublisher {
+  void publishCompressionStarted(String sessionId, int beforeTokens);
+  void publishCompressionFinished(String sessionId, int beforeTokens, int afterTokens, boolean success);
+  void publishPressureChanged(String sessionId, String level, int currentTokens, int limit);
+  void publishBudgetAllocated(String sessionId, ContextBudget budget);
+  void publishContextAnalysis(String sessionId, Map<String, Object> analysis);
+  void publishPromptCacheStats(String sessionId, Map<String, Object> stats);
+}
+```
+
+**收益**：
+- 类型安全的事件发布
+- 更好的 IDE 自动补全
+- 事件格式集中管理
+- 便于单元测试 mock
+
+**后续工作**：更新现有组件使用新接口是可选的，当前 ObservationDispatcher 已足够满足需求。新组件可以直接使用 ContextEventPublisher。

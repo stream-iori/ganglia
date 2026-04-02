@@ -57,6 +57,7 @@ public class CompressionStep implements ContextOptimizationStep {
   private final ObservationDispatcher dispatcher;
   private final ContextBudget budget;
   private final CompressionBudget compressionBudget;
+  private final SessionMemoryCompactConfig sessionMemoryConfig;
   private final FileRestorationService fileRestorationService;
   private final ChunkedCompressor chunkedCompressor;
   private final PTLRetryHandler retryHandler;
@@ -70,6 +71,28 @@ public class CompressionStep implements ContextOptimizationStep {
       ContextBudget budget,
       CompressionBudget compressionBudget,
       FileRestorationService fileRestorationService) {
+    this(
+        modelConfig,
+        agentConfig,
+        compressor,
+        tokenCounter,
+        dispatcher,
+        budget,
+        compressionBudget,
+        SessionMemoryCompactConfig.defaults(),
+        fileRestorationService);
+  }
+
+  public CompressionStep(
+      ModelConfigProvider modelConfig,
+      AgentConfigProvider agentConfig,
+      ContextCompressor compressor,
+      TokenCounter tokenCounter,
+      ObservationDispatcher dispatcher,
+      ContextBudget budget,
+      CompressionBudget compressionBudget,
+      SessionMemoryCompactConfig sessionMemoryConfig,
+      FileRestorationService fileRestorationService) {
     this.modelConfig = modelConfig;
     this.agentConfig = agentConfig;
     this.compressor = compressor;
@@ -77,6 +100,8 @@ public class CompressionStep implements ContextOptimizationStep {
     this.dispatcher = dispatcher;
     this.budget = budget;
     this.compressionBudget = compressionBudget;
+    this.sessionMemoryConfig =
+        sessionMemoryConfig != null ? sessionMemoryConfig : SessionMemoryCompactConfig.defaults();
     this.fileRestorationService = fileRestorationService;
     this.chunkedCompressor = new ChunkedCompressor(compressor, tokenCounter, compressionBudget);
     this.retryHandler = new PTLRetryHandler(compressor, tokenCounter);
@@ -247,7 +272,7 @@ public class CompressionStep implements ContextOptimizationStep {
 
   /** Checks if session memory compact should be used. */
   private boolean shouldUseSessionMemoryCompact(SessionContext context, List<Turn> toCompress) {
-    SessionMemoryCompactConfig config = agentConfig.getSessionMemoryCompactConfig();
+    SessionMemoryCompactConfig config = sessionMemoryConfig;
 
     if (!context.hasValidRunningSummary()) {
       return false;

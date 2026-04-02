@@ -11,6 +11,9 @@ import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.internal.memory.ContextCompressor;
 import work.ganglia.port.internal.prompt.CompressionBudget;
 import work.ganglia.port.internal.prompt.ContextBudget;
+import work.ganglia.port.internal.prompt.ContextManagementConfig;
+import work.ganglia.port.internal.prompt.MicrocompactConfig;
+import work.ganglia.port.internal.prompt.SessionMemoryCompactConfig;
 import work.ganglia.port.internal.state.ContextOptimizer;
 import work.ganglia.port.internal.state.FileRestorationService;
 import work.ganglia.port.internal.state.ObservationDispatcher;
@@ -43,6 +46,7 @@ public class DefaultContextOptimizer implements ContextOptimizer {
   private final AgentConfigProvider agentConfig;
   private final TokenCounter tokenCounter;
   private final ObservationDispatcher dispatcher;
+  private final ContextManagementConfig config;
   private final ContextBudget budget;
   private final CompressionBudget compressionBudget;
 
@@ -112,13 +116,77 @@ public class DefaultContextOptimizer implements ContextOptimizer {
       ContextBudget budget,
       CompressionBudget compressionBudget,
       FileRestorationService fileRestorationService) {
+    this(
+        modelConfig,
+        agentConfig,
+        compressor,
+        tokenCounter,
+        dispatcher,
+        budget != null
+            ? ContextManagementConfig.of(
+                budget,
+                compressionBudget != null ? compressionBudget : CompressionBudget.defaults(),
+                MicrocompactConfig.defaults(),
+                SessionMemoryCompactConfig.defaults())
+            : ContextManagementConfig.fromModel(
+                modelConfig.getContextLimit(), modelConfig.getMaxTokens()),
+        fileRestorationService);
+  }
+
+  /**
+   * Creates a DefaultContextOptimizer with unified configuration.
+   *
+   * <p>This is the preferred constructor for new code.
+   *
+   * @param modelConfig provider for model configuration
+   * @param agentConfig provider for agent configuration
+   * @param compressor the context compressor for LLM-based compression
+   * @param tokenCounter the token counter for token counting
+   * @param dispatcher the observation dispatcher for event publishing
+   * @param config the unified context management configuration
+   */
+  public DefaultContextOptimizer(
+      ModelConfigProvider modelConfig,
+      AgentConfigProvider agentConfig,
+      ContextCompressor compressor,
+      TokenCounter tokenCounter,
+      ObservationDispatcher dispatcher,
+      ContextManagementConfig config) {
+    this(modelConfig, agentConfig, compressor, tokenCounter, dispatcher, config, null);
+  }
+
+  /**
+   * Creates a DefaultContextOptimizer with unified configuration and file restoration.
+   *
+   * @param modelConfig provider for model configuration
+   * @param agentConfig provider for agent configuration
+   * @param compressor the context compressor for LLM-based compression
+   * @param tokenCounter the token counter for token counting
+   * @param dispatcher the observation dispatcher for event publishing
+   * @param config the unified context management configuration
+   * @param fileRestorationService service for restoring recently read files after compression
+   */
+  public DefaultContextOptimizer(
+      ModelConfigProvider modelConfig,
+      AgentConfigProvider agentConfig,
+      ContextCompressor compressor,
+      TokenCounter tokenCounter,
+      ObservationDispatcher dispatcher,
+      ContextManagementConfig config,
+      FileRestorationService fileRestorationService) {
     this.modelConfig = modelConfig;
     this.agentConfig = agentConfig;
     this.tokenCounter = tokenCounter;
     this.dispatcher = dispatcher;
-    this.budget = budget;
-    this.compressionBudget =
-        compressionBudget != null ? compressionBudget : CompressionBudget.defaults();
+
+    // Use provided config or create from model parameters
+    this.config =
+        config != null
+            ? config
+            : ContextManagementConfig.fromModel(
+                modelConfig.getContextLimit(), modelConfig.getMaxTokens());
+    this.budget = this.config.budget();
+    this.compressionBudget = this.config.compression();
 
     // Initialize helpers
     this.slimmer = new ContextSlimmer(tokenCounter);
@@ -127,8 +195,7 @@ public class DefaultContextOptimizer implements ContextOptimizer {
     // Create steps
     this.hardLimitGuardStep = new HardLimitGuardStep(dispatcher);
     this.microcompactStep =
-        new TimeBasedMicrocompactStep(
-            microcompact, agentConfig.getMicrocompactConfig(), tokenCounter);
+        new TimeBasedMicrocompactStep(microcompact, this.config.microcompact(), tokenCounter);
     this.slimmingStep = new SlimmingStep(slimmer, tokenCounter);
     this.compressionStep =
         new CompressionStep(
@@ -139,6 +206,7 @@ public class DefaultContextOptimizer implements ContextOptimizer {
             dispatcher,
             budget,
             this.compressionBudget,
+            this.config.sessionMemory(),
             fileRestorationService);
 
     // Build pipeline

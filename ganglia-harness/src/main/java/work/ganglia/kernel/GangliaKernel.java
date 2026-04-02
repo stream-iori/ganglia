@@ -53,7 +53,7 @@ import work.ganglia.port.external.tool.ToolSet;
 import work.ganglia.port.internal.memory.MemorySystem;
 import work.ganglia.port.internal.memory.MemorySystemConfig;
 import work.ganglia.port.internal.memory.MemorySystemProvider;
-import work.ganglia.port.internal.prompt.ContextBudget;
+import work.ganglia.port.internal.prompt.ContextManagementConfig;
 import work.ganglia.port.internal.skill.SkillLoader;
 import work.ganglia.port.internal.skill.SkillRuntime;
 import work.ganglia.port.internal.skill.SkillService;
@@ -214,15 +214,16 @@ public class GangliaKernel {
       dispatcher.register(observer);
     }
 
-    ContextBudget budget =
-        ContextBudget.from(configManager.getContextLimit(), configManager.getMaxTokens());
+    ContextManagementConfig config =
+        ContextManagementConfig.fromModel(
+            configManager.getContextLimit(), configManager.getMaxTokens());
 
     InterceptorPipeline pipeline = new InterceptorPipeline();
     pipeline.addInterceptor(
         new ObservationCompressionHook(
             memory.observationCompressor(),
             memory.memoryStore(),
-            new TokenAwareTruncator(tokenCounter, budget.observationFallback()),
+            new TokenAwareTruncator(tokenCounter, config.budget().observationFallback()),
             vertx,
             projectRoot));
 
@@ -237,7 +238,8 @@ public class GangliaKernel {
             taskFactoryRef::get,
             tokenCounter,
             options.extraContextSources(),
-            configManager);
+            configManager,
+            config);
     promptEngine.setDispatcher(dispatcher);
     promptEngine.addContextSource(
         new DailyContextSource(vertx, Paths.get(projectRoot, Constants.DIR_MEMORY).toString()));
@@ -281,7 +283,7 @@ public class GangliaKernel {
             memory.contextCompressor(),
             tokenCounter,
             dispatcher,
-            budget);
+            config);
 
     // 1. Build AgentEnv with supplier-based taskFactory (resolved lazily)
     AgentEnv env =

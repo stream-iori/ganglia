@@ -25,6 +25,7 @@ import work.ganglia.port.internal.memory.MemoryService;
 import work.ganglia.port.internal.prompt.ContextAnalysis;
 import work.ganglia.port.internal.prompt.ContextBudget;
 import work.ganglia.port.internal.prompt.ContextFragment;
+import work.ganglia.port.internal.prompt.ContextManagementConfig;
 import work.ganglia.port.internal.prompt.ContextSource;
 import work.ganglia.port.internal.prompt.GuidelineContextSource;
 import work.ganglia.port.internal.prompt.PromptCacheStats;
@@ -47,6 +48,7 @@ public class StandardPromptEngine implements PromptEngine {
   private final MemoryService memoryService;
   private final SkillRuntime skillRuntime;
   private final work.ganglia.config.ModelConfigProvider modelConfigProvider;
+  private final ContextManagementConfig config;
   private final ContextBudget budget;
   private final Supplier<AgentTaskFactory> taskFactoryProvider;
   private ObservationDispatcher dispatcher;
@@ -78,12 +80,47 @@ public class StandardPromptEngine implements PromptEngine {
       TokenCounter tokenCounter,
       List<ContextSource> extraSources,
       work.ganglia.config.ModelConfigProvider modelConfigProvider) {
+    this(
+        vertx,
+        memoryService,
+        skillRuntime,
+        taskFactoryProvider,
+        tokenCounter,
+        extraSources,
+        modelConfigProvider,
+        null);
+  }
+
+  /**
+   * Creates a StandardPromptEngine with unified configuration.
+   *
+   * @param vertx the Vert.x instance
+   * @param memoryService the memory service
+   * @param skillRuntime the skill runtime
+   * @param taskFactoryProvider the task factory provider
+   * @param tokenCounter the token counter
+   * @param extraSources additional context sources
+   * @param modelConfigProvider the model configuration provider
+   * @param config the unified context management configuration (nullable)
+   */
+  public StandardPromptEngine(
+      Vertx vertx,
+      MemoryService memoryService,
+      SkillRuntime skillRuntime,
+      Supplier<AgentTaskFactory> taskFactoryProvider,
+      TokenCounter tokenCounter,
+      List<ContextSource> extraSources,
+      work.ganglia.config.ModelConfigProvider modelConfigProvider,
+      ContextManagementConfig config) {
     this.tokenCounter = tokenCounter;
     this.contextAnalyzer = new ContextAnalyzer(this.tokenCounter);
     this.composer = new ContextComposer(this.tokenCounter);
-    this.budget =
-        ContextBudget.from(
-            modelConfigProvider.getContextLimit(), modelConfigProvider.getMaxTokens());
+    this.config =
+        config != null
+            ? config
+            : ContextManagementConfig.fromModel(
+                modelConfigProvider.getContextLimit(), modelConfigProvider.getMaxTokens());
+    this.budget = this.config.budget();
     this.toolOutputTruncator = new TokenAwareTruncator(tokenCounter, budget.toolOutputPerMessage());
     this.toolResultEnforcer =
         new ToolResultBudgetEnforcer(tokenCounter, budget.toolOutputAggregate());
@@ -145,6 +182,11 @@ public class StandardPromptEngine implements PromptEngine {
 
   public ContextBudget getBudget() {
     return budget;
+  }
+
+  /** Returns the context management configuration. */
+  public ContextManagementConfig getConfig() {
+    return config;
   }
 
   /**
