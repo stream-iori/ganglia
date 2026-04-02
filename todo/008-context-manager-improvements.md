@@ -8,11 +8,11 @@
 
 ## 改进项概览
 
-| # | 改进项 | 工作量 | 风险 | 优先级 | 状态 |
-|---|--------|--------|------|--------|------|
-| 1 | SessionContext Metadata 类型安全 | 1-2 天 | 中 | 高 | ✅ 完成 |
-| 2 | ContextEventPublisher 采用 | 0.5 天 | 低 | 中 | ✅ 完成 |
-| 3 | TimeBasedMicrocompact 与 ContextSlimmer 统一 | 1 天 | 中 | 中 | ✅ 完成 |
+| # |                    改进项                    |  工作量  | 风险 | 优先级 |  状态  |
+|---|-------------------------------------------|-------|----|-----|------|
+| 1 | SessionContext Metadata 类型安全              | 1-2 天 | 中  | 高   | ✅ 完成 |
+| 2 | ContextEventPublisher 采用                  | 0.5 天 | 低  | 中   | ✅ 完成 |
+| 3 | TimeBasedMicrocompact 与 ContextSlimmer 统一 | 1 天   | 中  | 中   | ✅ 完成 |
 
 ---
 
@@ -101,12 +101,12 @@ public boolean hasValidRunningSummary() {
 
 #### Step 1.3: 更新调用点
 
-| 文件 | 当前调用 | 改为 |
-|------|---------|------|
-| `CompressionStep.java` | `context.getRunningSummary()` | `context.compressionState().runningSummary()` |
-| `CompressionStep.java` | `context.withRunningSummary()` | `context.withCompressionState()` |
-| `ReActAgentLoop.java` | `context.getRunningSummary()` | `context.compressionState().runningSummary()` |
-| `DefaultContextOptimizerTest.java` | `context.getRunningSummary()` | `context.compressionState().runningSummary()` |
+|                 文件                 |              当前调用              |                      改为                       |
+|------------------------------------|--------------------------------|-----------------------------------------------|
+| `CompressionStep.java`             | `context.getRunningSummary()`  | `context.compressionState().runningSummary()` |
+| `CompressionStep.java`             | `context.withRunningSummary()` | `context.withCompressionState()`              |
+| `ReActAgentLoop.java`              | `context.getRunningSummary()`  | `context.compressionState().runningSummary()` |
+| `DefaultContextOptimizerTest.java` | `context.getRunningSummary()`  | `context.compressionState().runningSummary()` |
 
 #### Step 1.4: 序列化兼容性处理
 
@@ -166,13 +166,13 @@ private static CompressionState extractCompressionState(Map<String, Object> meta
 
 ### 改动文件清单
 
-| 文件 | 动作 |
-|------|------|
-| `SessionContext.java` | 添加 compressionState 字段、便捷方法、序列化兼容 |
-| `CompressionStep.java` | 更新调用点 |
-| `ReActAgentLoop.java` | 更新调用点 |
-| `DefaultContextOptimizerTest.java` | 更新测试 |
-| `SessionContextTest.java` | 新增测试 |
+|                 文件                 |                动作                 |
+|------------------------------------|-----------------------------------|
+| `SessionContext.java`              | 添加 compressionState 字段、便捷方法、序列化兼容 |
+| `CompressionStep.java`             | 更新调用点                             |
+| `ReActAgentLoop.java`              | 更新调用点                             |
+| `DefaultContextOptimizerTest.java` | 更新测试                              |
+| `SessionContextTest.java`          | 新增测试                              |
 
 ---
 
@@ -187,12 +187,12 @@ private static CompressionState extractCompressionState(Map<String, Object> meta
 **问题**：
 以下组件仍直接调用 `dispatcher.dispatch()`：
 
-| 组件 | 事件类型 |
-|------|---------|
-| `CompressionStep` | CONTEXT_COMPRESSED, SYSTEM_EVENT |
-| `ContextPressureMonitor` | CONTEXT_PRESSURE_CHANGED |
-| `StandardPromptEngine` | PROMPT_CACHE_STATS, CONTEXT_BUDGET_ALLOCATED, CONTEXT_ANALYSIS |
-| `HardLimitGuardStep` | ERROR |
+|            组件            |                              事件类型                              |
+|--------------------------|----------------------------------------------------------------|
+| `CompressionStep`        | CONTEXT_COMPRESSED, SYSTEM_EVENT                               |
+| `ContextPressureMonitor` | CONTEXT_PRESSURE_CHANGED                                       |
+| `StandardPromptEngine`   | PROMPT_CACHE_STATS, CONTEXT_BUDGET_ALLOCATED, CONTEXT_ANALYSIS |
+| `HardLimitGuardStep`     | ERROR                                                          |
 
 ### 实施步骤
 
@@ -296,15 +296,15 @@ public DefaultContextOptimizer(...) {
 
 ### 改动文件清单
 
-| 文件 | 动作 |
-|------|------|
-| `CompressionStep.java` | 注入 ContextEventPublisher，替换 dispatch 调用 |
-| `ContextPressureMonitor.java` | 注入 ContextEventPublisher，替换 dispatch 调用 |
-| `StandardPromptEngine.java` | 注入 ContextEventPublisher，替换 dispatch 调用 |
-| `HardLimitGuardStep.java` | 注入 ContextEventPublisher（可选，ERROR 事件不匹配当前接口） |
-| `DefaultContextOptimizer.java` | 创建并注入 ContextEventPublisher |
-| `GangliaKernel.java` | 更新组装逻辑 |
-| `CompressionStepTest.java` | 新增测试 |
+|               文件               |                      动作                      |
+|--------------------------------|----------------------------------------------|
+| `CompressionStep.java`         | 注入 ContextEventPublisher，替换 dispatch 调用      |
+| `ContextPressureMonitor.java`  | 注入 ContextEventPublisher，替换 dispatch 调用      |
+| `StandardPromptEngine.java`    | 注入 ContextEventPublisher，替换 dispatch 调用      |
+| `HardLimitGuardStep.java`      | 注入 ContextEventPublisher（可选，ERROR 事件不匹配当前接口） |
+| `DefaultContextOptimizer.java` | 创建并注入 ContextEventPublisher                  |
+| `GangliaKernel.java`           | 更新组装逻辑                                       |
+| `CompressionStepTest.java`     | 新增测试                                         |
 
 ---
 
@@ -500,15 +500,15 @@ contextForOptimization = defaultOptimizer.compactExpiredToolResults(currentConte
 
 ### 改动文件清单
 
-| 文件 | 动作 |
-|------|------|
-| `ToolResultCompactor.java` | 新建，统一实现 |
-| `TimeBasedMicrocompactStep.java` | 使用 ToolResultCompactor |
-| `DefaultContextOptimizer.java` | 添加 compactExpiredToolResults，废弃 slimOldToolResults |
-| `ReActAgentLoop.java` | 更新调用 |
-| `ContextSlimmer.java` | 删除 slimOldToolResults 方法 |
-| `TimeBasedMicrocompact.java` | 删除（逻辑已迁移） |
-| `ToolResultCompactorTest.java` | 新增测试 |
+|                文件                |                         动作                         |
+|----------------------------------|----------------------------------------------------|
+| `ToolResultCompactor.java`       | 新建，统一实现                                            |
+| `TimeBasedMicrocompactStep.java` | 使用 ToolResultCompactor                             |
+| `DefaultContextOptimizer.java`   | 添加 compactExpiredToolResults，废弃 slimOldToolResults |
+| `ReActAgentLoop.java`            | 更新调用                                               |
+| `ContextSlimmer.java`            | 删除 slimOldToolResults 方法                           |
+| `TimeBasedMicrocompact.java`     | 删除（逻辑已迁移）                                          |
+| `ToolResultCompactorTest.java`   | 新增测试                                               |
 
 ---
 
@@ -540,30 +540,34 @@ contextForOptimization = defaultOptimizer.compactExpiredToolResults(currentConte
 
 ## 风险与缓解
 
-| 风险 | 缓解措施 |
-|------|---------|
-| 序列化兼容性破坏 | 使用 Jackson @JsonCreator 处理旧格式，添加兼容性测试 |
-| 废弃方法调用点遗漏 | 使用 @Deprecated(forRemoval=true) + 编译警告检查 |
-| 职责统一引入回归 | 保留原有测试用例，确保行为一致后再删除旧代码 |
-| 工具过滤策略变化 | 保持 DEFAULT_COMPACTABLE_TOOLS 与原有 TimeBasedMicrocompact 一致 |
+|    风险     |                           缓解措施                            |
+|-----------|-----------------------------------------------------------|
+| 序列化兼容性破坏  | 使用 Jackson @JsonCreator 处理旧格式，添加兼容性测试                     |
+| 废弃方法调用点遗漏 | 使用 @Deprecated(forRemoval=true) + 编译警告检查                  |
+| 职责统一引入回归  | 保留原有测试用例，确保行为一致后再删除旧代码                                    |
+| 工具过滤策略变化  | 保持 DEFAULT_COMPACTABLE_TOOLS 与原有 TimeBasedMicrocompact 一致 |
 
 ---
 
 ## 验收标准
 
 ### 改进项 1
+
 - [ ] SessionContext 包含 compressionState 字段
 - [ ] 所有调用点使用新 API
 - [ ] 旧 JSON 格式能正确反序列化
 - [ ] 所有测试通过
 
 ### 改进项 2
+
 - [ ] CompressionStep、ContextPressureMonitor、StandardPromptEngine 使用 ContextEventPublisher
 - [ ] 无直接 dispatcher.dispatch() 调用（context 事件相关）
 - [ ] 所有测试通过
 
 ### 改进项 3
+
 - [ ] ToolResultCompactor 统一实现两种策略
 - [ ] TimeBasedMicrocompact.java 已删除
 - [ ] ContextSlimmer.slimOldToolResults 已删除
 - [ ] 所有测试通过
+

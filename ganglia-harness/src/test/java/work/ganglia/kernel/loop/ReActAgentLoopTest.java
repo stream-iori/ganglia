@@ -27,16 +27,12 @@ public class ReActAgentLoopTest extends BaseKernelTest {
 
     SessionContext context = createSessionContext();
 
-    loop.run("What is the capital of France?", context, new AgentSignal())
-        .onComplete(
-            testContext.succeeding(
-                result -> {
-                  testContext.verify(
-                      () -> {
-                        assertTrue(result.contains("Paris"));
-                        testContext.completeNow();
-                      });
-                }));
+    assertFutureSuccess(
+        loop.run("What is the capital of France?", context, new AgentSignal()),
+        testContext,
+        result -> {
+          assertTrue(result.contains("Paris"));
+        });
   }
 
   @Test
@@ -50,16 +46,12 @@ public class ReActAgentLoopTest extends BaseKernelTest {
 
     SessionContext context = createSessionContext();
 
-    loop.run("Use the tool.", context, new AgentSignal())
-        .onComplete(
-            testContext.succeeding(
-                result -> {
-                  testContext.verify(
-                      () -> {
-                        assertTrue(result.contains("said OK"));
-                        testContext.completeNow();
-                      });
-                }));
+    assertFutureSuccess(
+        loop.run("Use the tool.", context, new AgentSignal()),
+        testContext,
+        result -> {
+          assertTrue(result.contains("said OK"));
+        });
   }
 
   @Test
@@ -79,32 +71,25 @@ public class ReActAgentLoopTest extends BaseKernelTest {
 
     SessionContext context = createSessionContext();
 
-    loop.run("Do task", context, new AgentSignal())
-        .onComplete(
-            testContext.succeeding(
-                result1 -> {
-                  testContext.verify(() -> assertTrue(result1.contains("Pause for input")));
+    assertFutureSuccess(
+        loop.run("Do task", context, new AgentSignal()),
+        testContext,
+        result1 -> {
+          assertTrue(result1.contains("Pause for input"));
 
-                  // Fetch the updated context from memory to simulate a fresh resume request
-                  sessionManager
-                      .getSession(context.sessionId())
-                      .onComplete(
-                          testContext.succeeding(
-                              updatedContext -> {
-                                loop.resume(
-                                        null, "Yes, I approve", updatedContext, new AgentSignal())
-                                    .onComplete(
-                                        testContext.succeeding(
-                                            result2 -> {
-                                              testContext.verify(
-                                                  () -> {
-                                                    assertTrue(
-                                                        result2.contains("Approved. Proceeding."));
-                                                    testContext.completeNow();
-                                                  });
-                                            }));
-                              }));
-                }));
+          // Fetch the updated context from memory to simulate a fresh resume request
+          assertFutureSuccess(
+              sessionManager.getSession(context.sessionId()),
+              testContext,
+              updatedContext -> {
+                assertFutureSuccess(
+                    loop.resume(null, "Yes, I approve", updatedContext, new AgentSignal()),
+                    testContext,
+                    result2 -> {
+                      assertTrue(result2.contains("Approved. Proceeding."));
+                    });
+              });
+        });
   }
 
   @Test
@@ -124,16 +109,12 @@ public class ReActAgentLoopTest extends BaseKernelTest {
 
     SessionContext context = createSessionContext();
 
-    loop.run("Do something", context, new AgentSignal())
-        .onComplete(
-            testContext.failing(
-                err -> {
-                  testContext.verify(
-                      () -> {
-                        assertTrue(err.getMessage().contains("repetitive task failures"));
-                        testContext.completeNow();
-                      });
-                }));
+    assertFutureFailure(
+        loop.run("Do something", context, new AgentSignal()),
+        testContext,
+        err -> {
+          assertTrue(err.getMessage().contains("repetitive task failures"));
+        });
   }
 
   @Test
@@ -158,16 +139,12 @@ public class ReActAgentLoopTest extends BaseKernelTest {
 
     SessionContext context = createSessionContext();
 
-    loop.run("Do something", context, new AgentSignal())
-        .onComplete(
-            testContext.succeeding(
-                result -> {
-                  testContext.verify(
-                      () -> {
-                        assertTrue(result.contains("All done"));
-                        testContext.completeNow();
-                      });
-                }));
+    assertFutureSuccess(
+        loop.run("Do something", context, new AgentSignal()),
+        testContext,
+        result -> {
+          assertTrue(result.contains("All done"));
+        });
   }
 
   @Test
@@ -182,16 +159,12 @@ public class ReActAgentLoopTest extends BaseKernelTest {
 
     SessionContext context = createSessionContext();
 
-    loop.run("Do something", context, new AgentSignal())
-        .onComplete(
-            testContext.succeeding(
-                result -> {
-                  testContext.verify(
-                      () -> {
-                        assertTrue(result.contains("Recovered gracefully"));
-                        testContext.completeNow();
-                      });
-                }));
+    assertFutureSuccess(
+        loop.run("Do something", context, new AgentSignal()),
+        testContext,
+        result -> {
+          assertTrue(result.contains("Recovered gracefully"));
+        });
   }
 
   @Test
@@ -202,16 +175,12 @@ public class ReActAgentLoopTest extends BaseKernelTest {
     // Abort the signal before running
     signal.abort();
 
-    loop.run("Do task", context, signal)
-        .onComplete(
-            testContext.failing(
-                err -> {
-                  testContext.verify(
-                      () -> {
-                        assertTrue(err instanceof AgentAbortedException);
-                        testContext.completeNow();
-                      });
-                }));
+    assertFutureFailure(
+        loop.run("Do task", context, signal),
+        testContext,
+        err -> {
+          assertTrue(err instanceof AgentAbortedException);
+        });
   }
 
   @Test
@@ -221,18 +190,15 @@ public class ReActAgentLoopTest extends BaseKernelTest {
 
     SessionContext context = createSessionContext();
 
-    loop.run("Hello", context, new AgentSignal())
-        .onComplete(
-            testContext.succeeding(
-                result ->
-                    testContext.verify(
-                        () -> {
-                          assertEquals(
-                              0,
-                              loop.getActiveSessionCount(),
-                              "Session maps should be empty after normal completion");
-                          testContext.completeNow();
-                        })));
+    assertFutureSuccess(
+        loop.run("Hello", context, new AgentSignal()),
+        testContext,
+        result -> {
+          assertEquals(
+              0,
+              loop.getActiveSessionCount(),
+              "Session maps should be empty after normal completion");
+        });
   }
 
   @Test
@@ -241,17 +207,11 @@ public class ReActAgentLoopTest extends BaseKernelTest {
     AgentSignal signal = new AgentSignal();
     signal.abort();
 
-    loop.run("Hello", context, signal)
-        .onComplete(
-            testContext.failing(
-                err ->
-                    testContext.verify(
-                        () -> {
-                          assertEquals(
-                              0,
-                              loop.getActiveSessionCount(),
-                              "Session maps should be empty after abort");
-                          testContext.completeNow();
-                        })));
+    assertFutureFailure(
+        loop.run("Hello", context, signal),
+        testContext,
+        err -> {
+          assertEquals(0, loop.getActiveSessionCount(), "Session maps should be empty after abort");
+        });
   }
 }

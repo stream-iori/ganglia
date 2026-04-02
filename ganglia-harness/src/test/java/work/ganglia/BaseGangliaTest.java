@@ -1,12 +1,15 @@
 package work.ganglia;
 
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+import io.vertx.core.Future;
 import io.vertx.core.Vertx;
 import io.vertx.junit5.VertxExtension;
+import io.vertx.junit5.VertxTestContext;
 
 import work.ganglia.infrastructure.internal.state.DefaultSessionManager;
 import work.ganglia.port.chat.SessionContext;
@@ -39,5 +42,39 @@ public abstract class BaseGangliaTest {
 
   protected SessionContext createSessionContext(String sessionId) {
     return sessionManager.createSession(sessionId);
+  }
+
+  /**
+   * Helper to assert a successful Vert.x Future, verify the result, and complete the test context.
+   */
+  protected <T> void assertFutureSuccess(
+      Future<T> future, VertxTestContext testContext, Consumer<T> assertions) {
+    future.onComplete(
+        testContext.succeeding(
+            result ->
+                testContext.verify(
+                    () -> {
+                      if (assertions != null) {
+                        assertions.accept(result);
+                      }
+                      testContext.completeNow();
+                    })));
+  }
+
+  /**
+   * Helper to assert a failed Vert.x Future, verify the exception, and complete the test context.
+   */
+  protected <T> void assertFutureFailure(
+      Future<T> future, VertxTestContext testContext, Consumer<Throwable> assertions) {
+    future.onComplete(
+        testContext.failing(
+            error ->
+                testContext.verify(
+                    () -> {
+                      if (assertions != null) {
+                        assertions.accept(error);
+                      }
+                      testContext.completeNow();
+                    })));
   }
 }

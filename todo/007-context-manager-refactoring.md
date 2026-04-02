@@ -254,13 +254,13 @@ public interface ContextEventPublisher {
 
 ## 六、改造优先级建议
 
-|  Phase  |  工作量  | 风险 | 收益 |    状态    |
-|---------|-------|----|----|----------|
-| Phase 1 | 3-5 天 | 中  | 高  | ✅ 已完成    |
-| Phase 2 | 1 天   | 低  | 中  | ✅ 已完成    |
-| Phase 3 | 1-2 天 | 中  | 中  | ⏸️ 已评估延后   |
-| Phase 4 | 0.5-1天| 低  | 低  | ✅ 已完成   |
-| Phase 5 | 1 天   | 低  | 中  | ✅ 已完成   |
+|  Phase  |  工作量   | 风险 | 收益 |    状态    |
+|---------|--------|----|----|----------|
+| Phase 1 | 3-5 天  | 中  | 高  | ✅ 已完成    |
+| Phase 2 | 1 天    | 低  | 中  | ✅ 已完成    |
+| Phase 3 | 1-2 天  | 中  | 中  | ⏸️ 已评估延后 |
+| Phase 4 | 0.5-1天 | 低  | 低  | ✅ 已完成    |
+| Phase 5 | 1 天    | 低  | 中  | ✅ 已完成    |
 
 ---
 
@@ -341,6 +341,7 @@ public interface ContextEventPublisher {
 - [ ] 更新 StandardPromptEngine 使用新接口（可选）
 
 **接口设计**：
+
 ```java
 public interface ContextEventPublisher {
   void publishCompressionStarted(String sessionId, int beforeTokens);
