@@ -218,19 +218,6 @@
                 <expandEmptyElements>false</expandEmptyElements>
               </sortPom>
             </pom>
-            <markdown>
-              <includes>
-                <include>**/*.md</include>
-              </includes>
-              <excludes>
-                <exclude>**/node_modules/**</exclude>
-                <exclude>**/target/**</exclude>
-                <exclude>**/venv/**</exclude>
-                <exclude>**/.ganglia/**</exclude>
-                <exclude>**/SKILL.md</exclude>
-              </excludes>
-              <flexmark/>
-            </markdown>
             <json>
               <includes>
                 <include>**/*.json</include>
