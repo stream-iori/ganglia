@@ -180,7 +180,8 @@ public class DefaultContextCompressor
     return model.chat(request).map(ModelResponse::content);
   }
 
-  private Future<String> compressText(String text) {
+  @Override
+  public Future<String> compressText(String text) {
     String prompt = buildStructuredCompressPrompt() + text;
     var userMsg = Message.user(prompt);
     ModelOptions summaryOptions =

@@ -16,4 +16,12 @@ public interface ContextCompressor {
 
   /** Extracts structured key facts from a completed turn, appending to the running summary. */
   Future<String> extractKeyFacts(Turn completedTurn, String existingRunningSummary);
+
+  /**
+   * Compresses already-summarized text when merged chunk results are too large. Default
+   * implementation returns the text unchanged (no-op).
+   */
+  default Future<String> compressText(String text) {
+    return Future.succeededFuture(text);
+  }
 }

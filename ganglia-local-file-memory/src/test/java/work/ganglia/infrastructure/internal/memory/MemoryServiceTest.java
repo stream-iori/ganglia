@@ -65,7 +65,7 @@ class MemoryServiceTest {
   void testHandleReflectEvent(Vertx vertx, VertxTestContext testContext) {
     // Setup Turn data
     Message userMsg = Message.user("Write a file");
-    Turn turn = new Turn("turn-1", userMsg, new ArrayList<>(), null);
+    Turn turn = new Turn("turn-1", userMsg, new ArrayList<>(), null, System.currentTimeMillis());
 
     String sessionId = "session-123";
     String goal = "Write a file";

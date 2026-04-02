@@ -116,7 +116,8 @@ public class DefaultSessionManager implements SessionManager {
         List<Message> newSteps = new ArrayList<>(steps);
         newSteps.remove(newSteps.size() - 1);
 
-        Turn cleanedTurn = new Turn(current.id(), current.userMessage(), newSteps, null);
+        Turn cleanedTurn =
+            new Turn(current.id(), current.userMessage(), newSteps, null, current.timestamp());
         return new SessionContext(
             context.sessionId(),
             context.previousTurns(),

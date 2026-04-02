@@ -38,12 +38,11 @@ public class MemoryContextSource implements ContextSource {
                       .collect(Collectors.joining("\n"));
 
               ContextFragment fragment =
-                  new ContextFragment(
+                  ContextFragment.prunable(
                       "Memory Index (Progressive Disclosure)",
                       "The following are titles of recent compressed observations and memories. Use `recall_memory` tool with the ID to view the full details if they seem relevant.\n"
                           + content,
-                      40, // Priority
-                      false // Not mandatory
+                      40 // Priority
                       );
 
               return List.of(fragment);

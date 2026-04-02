@@ -34,7 +34,7 @@ public class SubAgentContextSource implements ContextSource {
 
     List<ContextFragment> fragments = new ArrayList<>();
     fragments.add(
-        new ContextFragment("SubAgentMode", sb.toString(), 1, true)); // Priority 1: Mandatory
+        ContextFragment.mandatory("SubAgentMode", sb.toString(), 1)); // Priority 1: Mandatory
 
     return Future.succeededFuture(fragments);
   }
