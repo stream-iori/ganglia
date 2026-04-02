@@ -19,6 +19,9 @@ import io.vertx.core.json.JsonObject;
 import work.ganglia.config.AgentConfigProvider;
 import work.ganglia.infrastructure.external.llm.LLMException;
 import work.ganglia.infrastructure.external.tool.model.ToolInvokeResult;
+import work.ganglia.infrastructure.internal.state.ContextPressure;
+import work.ganglia.infrastructure.internal.state.ContextPressureMonitor;
+import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import work.ganglia.kernel.hook.InterceptorPipeline;
 import work.ganglia.kernel.task.AgentTask;
 import work.ganglia.kernel.task.AgentTaskFactory;
@@ -56,6 +59,7 @@ public class ReActAgentLoop implements AgentLoop {
   private final FaultTolerancePolicy faultTolerancePolicy;
   private final InterceptorPipeline pipeline;
   private final ContextCompressor contextCompressor;
+  private final ContextPressureMonitor pressureMonitor;
 
   private final ConcurrentHashMap<String, SessionState> sessions = new ConcurrentHashMap<>();
   private final ConcurrentHashMap<String, PendingAsk> pendingAsks = new ConcurrentHashMap<>();
@@ -86,6 +90,7 @@ public class ReActAgentLoop implements AgentLoop {
     this.taskFactory = builder.taskFactory;
     this.faultTolerancePolicy = builder.faultTolerancePolicy;
     this.contextCompressor = builder.contextCompressor;
+    this.pressureMonitor = builder.pressureMonitor;
     this.pipeline = builder.pipeline != null ? builder.pipeline : new InterceptorPipeline();
   }
 
@@ -382,6 +387,25 @@ public class ReActAgentLoop implements AgentLoop {
       return Future.failedFuture(new AgentAbortedException());
     }
 
+    // Check context pressure and notify if level changed
+    if (pressureMonitor != null) {
+      ContextPressure pressure =
+          pressureMonitor.evaluateAndNotify(currentContext, dispatcher, currentContext.sessionId());
+      if (pressure.isBlocking()) {
+        logger.warn(
+            "Context at BLOCKING level ({}%), compression will be forced",
+            (int) (pressure.percentUsed() * 100));
+      }
+    }
+
+    // Time-based trigger: clear old tool results if cache likely expired
+    SessionContext contextForOptimization = currentContext;
+    if (contextOptimizer instanceof DefaultContextOptimizer defaultOptimizer
+        && !currentContext.previousTurns().isEmpty()) {
+      long cacheExpiryMs = configProvider.getCacheExpiryMs();
+      contextForOptimization = defaultOptimizer.slimOldToolResults(currentContext, cacheExpiryMs);
+    }
+
     int iteration = currentContext.getIterationCount();
     int maxIterations = configProvider.getMaxIterations();
     if (iteration >= maxIterations) {
@@ -393,7 +417,7 @@ public class ReActAgentLoop implements AgentLoop {
     }
 
     return contextOptimizer
-        .optimizeIfNeeded(currentContext, getCurrentSpanId(currentContext.sessionId()))
+        .optimizeIfNeeded(contextForOptimization, getCurrentSpanId(currentContext.sessionId()))
         .compose(
             optimizedContext -> {
               final SessionContext contextForReasoning = optimizedContext;
@@ -818,6 +842,7 @@ public class ReActAgentLoop implements AgentLoop {
     private AgentTaskFactory taskFactory;
     private FaultTolerancePolicy faultTolerancePolicy;
     private ContextCompressor contextCompressor;
+    private ContextPressureMonitor pressureMonitor;
     private InterceptorPipeline pipeline;
 
     private Builder() {}
@@ -869,6 +894,11 @@ public class ReActAgentLoop implements AgentLoop {
 
     public Builder contextCompressor(ContextCompressor contextCompressor) {
       this.contextCompressor = contextCompressor;
+      return this;
+    }
+
+    public Builder pressureMonitor(ContextPressureMonitor pressureMonitor) {
+      this.pressureMonitor = pressureMonitor;
       return this;
     }
 
