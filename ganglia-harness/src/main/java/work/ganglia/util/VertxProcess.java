@@ -333,7 +333,9 @@ public class VertxProcess {
       readThread.start();
     }
 
-    /** Runs a task on the Vert.x context, ignoring RejectedExecutionException if context is closed. */
+    /**
+     * Runs a task on the Vert.x context, ignoring RejectedExecutionException if context is closed.
+     */
     private void runOnContextSafely(Handler<Void> task) {
       try {
         context.runOnContext(task);

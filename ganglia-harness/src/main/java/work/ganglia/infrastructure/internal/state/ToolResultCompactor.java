@@ -21,7 +21,8 @@ import work.ganglia.port.chat.Turn;
  * <p>This class consolidates the previously separate implementations:
  *
  * <ul>
- *   <li>Time-based microcompact - clears tool results when gap since last assistant exceeds threshold
+ *   <li>Time-based microcompact - clears tool results when gap since last assistant exceeds
+ *       threshold
  *   <li>Cache TTL-based compact - clears tool results older than cache TTL
  * </ul>
  *
@@ -51,8 +52,8 @@ public class ToolResultCompactor {
    * Compacts tool results based on time gap since last assistant message.
    *
    * <p>This strategy is based on the observation that LLM providers have a prompt cache TTL
-   * (typically ~60 minutes). After this gap, the cache is cold anyway, so clearing old tool
-   * results doesn't lose any caching benefit but saves tokens.
+   * (typically ~60 minutes). After this gap, the cache is cold anyway, so clearing old tool results
+   * doesn't lose any caching benefit but saves tokens.
    *
    * @param context the session context
    * @param gapThresholdMinutes minimum minutes since last assistant message to trigger compact
@@ -61,10 +62,7 @@ public class ToolResultCompactor {
    * @return the context with old tool results cleared, or the original context if not triggered
    */
   public SessionContext compactByTimeGap(
-      SessionContext context,
-      long gapThresholdMinutes,
-      int keepRecent,
-      Set<String> toolFilter) {
+      SessionContext context, long gapThresholdMinutes, int keepRecent, Set<String> toolFilter) {
 
     // Find the last assistant message timestamp
     Instant lastAssistant = findLastAssistantTimestamp(context);
@@ -99,10 +97,7 @@ public class ToolResultCompactor {
    * @return the context with old tool results cleared, or the original context if not triggered
    */
   public SessionContext compactByCacheTtl(
-      SessionContext context,
-      long cacheTtlMs,
-      int keepRecent,
-      Set<String> toolFilter) {
+      SessionContext context, long cacheTtlMs, int keepRecent, Set<String> toolFilter) {
 
     long now = System.currentTimeMillis();
     long cutoffTime = now - cacheTtlMs;
@@ -147,7 +142,8 @@ public class ToolResultCompactor {
    * @param toolFilter set of tool names to compact (null = all compactable tools)
    * @return the context with old tool results cleared
    */
-  private SessionContext compactByAge(SessionContext context, int keepRecent, Set<String> toolFilter) {
+  private SessionContext compactByAge(
+      SessionContext context, int keepRecent, Set<String> toolFilter) {
     List<ToolResultLocation> allResults = collectToolResults(context, toolFilter);
 
     if (allResults.size() <= keepRecent) {
@@ -218,7 +214,8 @@ public class ToolResultCompactor {
   }
 
   /** Collects all tool results from the context, optionally filtered by tool name. */
-  private List<ToolResultLocation> collectToolResults(SessionContext context, Set<String> toolFilter) {
+  private List<ToolResultLocation> collectToolResults(
+      SessionContext context, Set<String> toolFilter) {
     List<ToolResultLocation> results = new ArrayList<>();
     Set<String> effectiveFilter = toolFilter != null ? toolFilter : DEFAULT_COMPACTABLE_TOOLS;
 
@@ -236,11 +233,13 @@ public class ToolResultCompactor {
   }
 
   /** Collects tool results from a single turn. */
-  private void collectFromTurn(Turn turn, List<ToolResultLocation> results, Set<String> toolFilter) {
+  private void collectFromTurn(
+      Turn turn, List<ToolResultLocation> results, Set<String> toolFilter) {
     for (Message msg : turn.intermediateSteps()) {
       if (msg.role() == Role.TOOL
           && msg.toolObservation() != null
-          && (toolFilter == null || toolFilter.contains(msg.toolObservation().toolName().toLowerCase()))) {
+          && (toolFilter == null
+              || toolFilter.contains(msg.toolObservation().toolName().toLowerCase()))) {
         results.add(
             new ToolResultLocation(
                 msg.toolObservation().toolCallId(),

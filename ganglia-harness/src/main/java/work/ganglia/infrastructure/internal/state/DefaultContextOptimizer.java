@@ -196,7 +196,8 @@ public class DefaultContextOptimizer implements ContextOptimizer {
     // Create steps
     this.hardLimitGuardStep = new HardLimitGuardStep(dispatcher);
     this.microcompactStep =
-        new TimeBasedMicrocompactStep(toolResultCompactor, this.config.microcompact(), tokenCounter);
+        new TimeBasedMicrocompactStep(
+            toolResultCompactor, this.config.microcompact(), tokenCounter);
     this.slimmingStep = new SlimmingStep(slimmer, tokenCounter);
     this.compressionStep =
         new CompressionStep(

@@ -64,7 +64,7 @@ public class FileStateEngine implements StateEngine {
         Collections.emptyMap(),
         Collections.emptyList(),
         null, // ModelOptions (will be set by Loop or default)
-        null  // CompressionState (defaults to empty)
+        null // CompressionState (defaults to empty)
         );
   }
 

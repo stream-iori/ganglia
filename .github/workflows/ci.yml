@@ -28,7 +28,7 @@ jobs:
     - name: "Run All Unit Tests"
       run: "mvn test"
     - name: "Build and Run Integration Tests"
-      run: "mvn verify -pl integration-test,coding-agent/ganglia-terminal -am"
+      run: "mvn verify -pl integration-test -am"
   frontend-test:
     name: "Frontend Tests"
     runs-on: "ubuntu-latest"

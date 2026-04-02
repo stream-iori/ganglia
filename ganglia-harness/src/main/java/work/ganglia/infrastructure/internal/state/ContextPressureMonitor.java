@@ -39,7 +39,8 @@ public class ContextPressureMonitor {
     this(budget, tokenCounter, null);
   }
 
-  public ContextPressureMonitor(ContextBudget budget, TokenCounter tokenCounter, ContextEventPublisher eventPublisher) {
+  public ContextPressureMonitor(
+      ContextBudget budget, TokenCounter tokenCounter, ContextEventPublisher eventPublisher) {
     this.budget = budget;
     this.tokenCounter = tokenCounter;
     this.eventPublisher = eventPublisher;

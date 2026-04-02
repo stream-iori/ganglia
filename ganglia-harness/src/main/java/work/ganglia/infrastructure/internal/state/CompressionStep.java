@@ -1,9 +1,7 @@
 package work.ganglia.infrastructure.internal.state;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,13 +16,12 @@ import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.chat.Turn;
 import work.ganglia.port.internal.memory.ContextCompressor;
-import work.ganglia.port.internal.state.ContextEventPublisher;
 import work.ganglia.port.internal.prompt.CompressionBudget;
 import work.ganglia.port.internal.prompt.ContextBudget;
 import work.ganglia.port.internal.prompt.SessionMemoryCompactConfig;
+import work.ganglia.port.internal.state.ContextEventPublisher;
 import work.ganglia.port.internal.state.ContextOptimizationStep;
 import work.ganglia.port.internal.state.FileRestorationService;
-import work.ganglia.port.internal.state.ObservationDispatcher;
 import work.ganglia.port.internal.state.OptimizationContext;
 import work.ganglia.port.internal.state.OptimizationResult;
 import work.ganglia.util.TokenCounter;

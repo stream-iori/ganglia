@@ -54,11 +54,12 @@ public class TimeBasedMicrocompactStep implements ContextOptimizationStep {
 
   @Override
   public Future<OptimizationResult> apply(SessionContext context, OptimizationContext optContext) {
-    SessionContext result = compactor.compactByTimeGap(
-        context,
-        config.gapThresholdMinutes(),
-        config.keepRecent(),
-        ToolResultCompactor.DEFAULT_COMPACTABLE_TOOLS);
+    SessionContext result =
+        compactor.compactByTimeGap(
+            context,
+            config.gapThresholdMinutes(),
+            config.keepRecent(),
+            ToolResultCompactor.DEFAULT_COMPACTABLE_TOOLS);
 
     if (result == context) {
       return Future.succeededFuture(OptimizationResult.unchanged(context));

@@ -413,7 +413,8 @@ public class ReActAgentLoop implements AgentLoop {
     if (contextOptimizer instanceof DefaultContextOptimizer defaultOptimizer
         && !currentContext.previousTurns().isEmpty()) {
       long cacheExpiryMs = configProvider.getCacheExpiryMs();
-      contextForOptimization = defaultOptimizer.compactExpiredToolResults(currentContext, cacheExpiryMs);
+      contextForOptimization =
+          defaultOptimizer.compactExpiredToolResults(currentContext, cacheExpiryMs);
     }
 
     int iteration = currentContext.getIterationCount();

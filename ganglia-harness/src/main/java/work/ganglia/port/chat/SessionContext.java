@@ -52,7 +52,13 @@ public record SessionContext(
 
     Turn newCurrentTurn = Turn.newTurn(UUID.randomUUID().toString(), userMessage);
     return new SessionContext(
-        sessionId, newPreviousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions, compressionState);
+        sessionId,
+        newPreviousTurns,
+        newCurrentTurn,
+        metadata,
+        activeSkillIds,
+        modelOptions,
+        compressionState);
   }
 
   public SessionContext addStep(Message step) {
@@ -62,7 +68,13 @@ public record SessionContext(
     }
     newCurrentTurn = newCurrentTurn.withStep(step);
     return new SessionContext(
-        sessionId, previousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions, compressionState);
+        sessionId,
+        previousTurns,
+        newCurrentTurn,
+        metadata,
+        activeSkillIds,
+        modelOptions,
+        compressionState);
   }
 
   public SessionContext completeTurn(Message response) {
@@ -72,7 +84,13 @@ public record SessionContext(
     }
     newCurrentTurn = newCurrentTurn.withResponse(response);
     return new SessionContext(
-        sessionId, previousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions, compressionState);
+        sessionId,
+        previousTurns,
+        newCurrentTurn,
+        metadata,
+        activeSkillIds,
+        modelOptions,
+        compressionState);
   }
 
   public List<Message> history() {
@@ -167,12 +185,24 @@ public record SessionContext(
 
   public SessionContext withModelOptions(ModelOptions newOptions) {
     return new SessionContext(
-        sessionId, previousTurns, currentTurn, metadata, activeSkillIds, newOptions, compressionState);
+        sessionId,
+        previousTurns,
+        currentTurn,
+        metadata,
+        activeSkillIds,
+        newOptions,
+        compressionState);
   }
 
   public SessionContext withMetadata(Map<String, Object> newMetadata) {
     return new SessionContext(
-        sessionId, previousTurns, currentTurn, newMetadata, activeSkillIds, modelOptions, compressionState);
+        sessionId,
+        previousTurns,
+        currentTurn,
+        newMetadata,
+        activeSkillIds,
+        modelOptions,
+        compressionState);
   }
 
   public SessionContext withNewMetadata(String key, Object value) {
@@ -286,7 +316,13 @@ public record SessionContext(
 
   public SessionContext withPreviousTurns(List<Turn> newPreviousTurns) {
     return new SessionContext(
-        sessionId, newPreviousTurns, currentTurn, metadata, activeSkillIds, modelOptions, compressionState);
+        sessionId,
+        newPreviousTurns,
+        currentTurn,
+        metadata,
+        activeSkillIds,
+        modelOptions,
+        compressionState);
   }
 
   /** Returns the iteration count for the current turn. */
