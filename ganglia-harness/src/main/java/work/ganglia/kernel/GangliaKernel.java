@@ -28,12 +28,15 @@ import work.ganglia.infrastructure.internal.skill.DefaultSkillRuntime;
 import work.ganglia.infrastructure.internal.skill.DefaultSkillService;
 import work.ganglia.infrastructure.internal.skill.FileSystemSkillLoader;
 import work.ganglia.infrastructure.internal.skill.JarSkillLoader;
+import work.ganglia.infrastructure.internal.state.DefaultContextEventPublisher;
 import work.ganglia.infrastructure.internal.state.DefaultContextOptimizer;
 import work.ganglia.infrastructure.internal.state.DefaultSessionManager;
 import work.ganglia.infrastructure.internal.state.FileLogManager;
 import work.ganglia.infrastructure.internal.state.FileStateEngine;
+import work.ganglia.infrastructure.internal.state.ContextPressureMonitor;
 import work.ganglia.infrastructure.internal.state.TokenUsageManager;
 import work.ganglia.infrastructure.internal.state.TraceManager;
+import work.ganglia.port.internal.state.ContextEventPublisher;
 import work.ganglia.infrastructure.mcp.McpToolSet;
 import work.ganglia.kernel.doctor.DefaultDoctorService;
 import work.ganglia.kernel.hook.InterceptorPipeline;
@@ -285,6 +288,11 @@ public class GangliaKernel {
             dispatcher,
             config);
 
+    // Create ContextEventPublisher and ContextPressureMonitor
+    ContextEventPublisher eventPublisher = new DefaultContextEventPublisher(dispatcher);
+    ContextPressureMonitor pressureMonitor =
+        new ContextPressureMonitor(config.budget(), tokenCounter, eventPublisher);
+
     // 1. Build AgentEnv with supplier-based taskFactory (resolved lazily)
     AgentEnv env =
         AgentEnv.builder()
@@ -316,6 +324,7 @@ public class GangliaKernel {
                 .taskFactory(taskFactoryRef.get())
                 .faultTolerancePolicy(failurePolicy)
                 .contextCompressor(memory.contextCompressor())
+                .pressureMonitor(pressureMonitor)
                 .pipeline(pipeline)
                 .build();
 

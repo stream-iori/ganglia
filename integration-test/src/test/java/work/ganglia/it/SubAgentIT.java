@@ -62,6 +62,7 @@ public class SubAgentIT extends MockModelIT {
             null,
             Map.of("sub_agent_level", 3),
             null,
+            null,
             null);
 
     ToolCall callSub = new ToolCall("c1", "call_sub_agent", Map.of("task", "SubTask"));

@@ -17,8 +17,8 @@ import work.ganglia.port.chat.CompactBoundaryTurn;
 import work.ganglia.port.chat.Message;
 import work.ganglia.port.chat.SessionContext;
 import work.ganglia.port.chat.Turn;
-import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.internal.memory.ContextCompressor;
+import work.ganglia.port.internal.state.ContextEventPublisher;
 import work.ganglia.port.internal.prompt.CompressionBudget;
 import work.ganglia.port.internal.prompt.ContextBudget;
 import work.ganglia.port.internal.prompt.SessionMemoryCompactConfig;
@@ -54,7 +54,7 @@ public class CompressionStep implements ContextOptimizationStep {
   private final AgentConfigProvider agentConfig;
   private final ContextCompressor compressor;
   private final TokenCounter tokenCounter;
-  private final ObservationDispatcher dispatcher;
+  private final ContextEventPublisher eventPublisher;
   private final ContextBudget budget;
   private final CompressionBudget compressionBudget;
   private final SessionMemoryCompactConfig sessionMemoryConfig;
@@ -67,7 +67,7 @@ public class CompressionStep implements ContextOptimizationStep {
       AgentConfigProvider agentConfig,
       ContextCompressor compressor,
       TokenCounter tokenCounter,
-      ObservationDispatcher dispatcher,
+      ContextEventPublisher eventPublisher,
       ContextBudget budget,
       CompressionBudget compressionBudget,
       FileRestorationService fileRestorationService) {
@@ -76,7 +76,7 @@ public class CompressionStep implements ContextOptimizationStep {
         agentConfig,
         compressor,
         tokenCounter,
-        dispatcher,
+        eventPublisher,
         budget,
         compressionBudget,
         SessionMemoryCompactConfig.defaults(),
@@ -88,7 +88,7 @@ public class CompressionStep implements ContextOptimizationStep {
       AgentConfigProvider agentConfig,
       ContextCompressor compressor,
       TokenCounter tokenCounter,
-      ObservationDispatcher dispatcher,
+      ContextEventPublisher eventPublisher,
       ContextBudget budget,
       CompressionBudget compressionBudget,
       SessionMemoryCompactConfig sessionMemoryConfig,
@@ -97,7 +97,7 @@ public class CompressionStep implements ContextOptimizationStep {
     this.agentConfig = agentConfig;
     this.compressor = compressor;
     this.tokenCounter = tokenCounter;
-    this.dispatcher = dispatcher;
+    this.eventPublisher = eventPublisher;
     this.budget = budget;
     this.compressionBudget = compressionBudget;
     this.sessionMemoryConfig =
@@ -153,18 +153,8 @@ public class CompressionStep implements ContextOptimizationStep {
     String spanId = "compress-" + java.util.UUID.randomUUID().toString().substring(0, 8);
 
     // Emit compression started event
-    if (dispatcher != null) {
-      Map<String, Object> startData = new HashMap<>();
-      startData.put("beforeTokens", optContext.currentTokens());
-      startData.put("contextLimit", optContext.contextLimit());
-      startData.put("compressionTarget", budget != null ? budget.compressionTarget() : -1);
-      dispatcher.dispatch(
-          context.sessionId(),
-          ObservationType.CONTEXT_COMPRESSED,
-          "compression_started",
-          startData,
-          spanId,
-          null);
+    if (eventPublisher != null) {
+      eventPublisher.publishCompressionStarted(context.sessionId(), optContext.currentTokens());
     }
 
     return compressSession(context, turnsToKeep, forced)
@@ -177,17 +167,9 @@ public class CompressionStep implements ContextOptimizationStep {
                   "Compression complete: {} -> {} tokens", optContext.currentTokens(), afterTokens);
 
               // Emit completion event
-              if (dispatcher != null) {
-                Map<String, Object> finishData = new HashMap<>();
-                finishData.put("beforeTokens", optContext.currentTokens());
-                finishData.put("afterTokens", afterTokens);
-                dispatcher.dispatch(
-                    context.sessionId(),
-                    ObservationType.SYSTEM_EVENT,
-                    "compression_finished",
-                    finishData,
-                    spanId,
-                    null);
+              if (eventPublisher != null) {
+                eventPublisher.publishCompressionFinished(
+                    context.sessionId(), optContext.currentTokens(), afterTokens, true);
               }
 
               int tokensSaved =

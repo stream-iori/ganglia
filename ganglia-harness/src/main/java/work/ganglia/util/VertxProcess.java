@@ -299,7 +299,7 @@ public class VertxProcess {
                     Buffer b = Buffer.buffer(n);
                     b.appendBytes(buffer, 0, n);
 
-                    context.runOnContext(
+                    runOnContextSafely(
                         v -> {
                           if (dataHandler != null) {
                             dataHandler.handle(b);
@@ -311,14 +311,14 @@ public class VertxProcess {
                 } catch (InterruptedException e) {
                   Thread.currentThread().interrupt();
                 } catch (Exception e) {
-                  context.runOnContext(
+                  runOnContextSafely(
                       v -> {
                         if (exceptionHandler != null) {
                           exceptionHandler.handle(e);
                         }
                       });
                 } finally {
-                  context.runOnContext(
+                  runOnContextSafely(
                       v -> {
                         ended = true;
                         if (endHandler != null) {
@@ -331,6 +331,15 @@ public class VertxProcess {
               name);
       readThread.setDaemon(true);
       readThread.start();
+    }
+
+    /** Runs a task on the Vert.x context, ignoring RejectedExecutionException if context is closed. */
+    private void runOnContextSafely(Handler<Void> task) {
+      try {
+        context.runOnContext(task);
+      } catch (java.util.concurrent.RejectedExecutionException e) {
+        // Context has been closed (e.g., Vert.x shutting down), ignore
+      }
     }
 
     @Override

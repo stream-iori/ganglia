@@ -52,6 +52,7 @@ class KnowledgeBaseToolsTest {
             null,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
 
     tools

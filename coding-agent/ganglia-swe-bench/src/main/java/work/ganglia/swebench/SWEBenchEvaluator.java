@@ -197,7 +197,8 @@ public class SWEBenchEvaluator {
               null,
               Collections.emptyMap(),
               Collections.emptyList(),
-              modelOptions);
+              modelOptions,
+              null);
 
       String result =
           ganglia

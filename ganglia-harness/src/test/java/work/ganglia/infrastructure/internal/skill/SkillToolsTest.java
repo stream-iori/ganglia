@@ -226,7 +226,8 @@ class SkillToolsTest extends BaseGangliaTest {
             base.currentTurn(),
             base.metadata(),
             List.of("coding"),
-            base.modelOptions());
+            base.modelOptions(),
+            base.compressionState());
 
     tools
         .execute("activate_skill", Map.of("skillId", "coding"), ctx, new StubExecutionContext())

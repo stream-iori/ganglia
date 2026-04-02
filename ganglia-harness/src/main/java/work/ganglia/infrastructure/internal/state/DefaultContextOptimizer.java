@@ -14,6 +14,7 @@ import work.ganglia.port.internal.prompt.ContextBudget;
 import work.ganglia.port.internal.prompt.ContextManagementConfig;
 import work.ganglia.port.internal.prompt.MicrocompactConfig;
 import work.ganglia.port.internal.prompt.SessionMemoryCompactConfig;
+import work.ganglia.port.internal.state.ContextEventPublisher;
 import work.ganglia.port.internal.state.ContextOptimizer;
 import work.ganglia.port.internal.state.FileRestorationService;
 import work.ganglia.port.internal.state.ObservationDispatcher;
@@ -45,7 +46,7 @@ public class DefaultContextOptimizer implements ContextOptimizer {
   private final ModelConfigProvider modelConfig;
   private final AgentConfigProvider agentConfig;
   private final TokenCounter tokenCounter;
-  private final ObservationDispatcher dispatcher;
+  private final ContextEventPublisher eventPublisher;
   private final ContextManagementConfig config;
   private final ContextBudget budget;
   private final CompressionBudget compressionBudget;
@@ -53,7 +54,7 @@ public class DefaultContextOptimizer implements ContextOptimizer {
   // Pipeline and steps
   private final ContextOptimizationPipeline pipeline;
   private final ContextSlimmer slimmer;
-  private final TimeBasedMicrocompact microcompact;
+  private final ToolResultCompactor toolResultCompactor;
 
   // Steps (kept for direct access if needed)
   private final HardLimitGuardStep hardLimitGuardStep;
@@ -177,7 +178,7 @@ public class DefaultContextOptimizer implements ContextOptimizer {
     this.modelConfig = modelConfig;
     this.agentConfig = agentConfig;
     this.tokenCounter = tokenCounter;
-    this.dispatcher = dispatcher;
+    this.eventPublisher = dispatcher != null ? new DefaultContextEventPublisher(dispatcher) : null;
 
     // Use provided config or create from model parameters
     this.config =
@@ -190,12 +191,12 @@ public class DefaultContextOptimizer implements ContextOptimizer {
 
     // Initialize helpers
     this.slimmer = new ContextSlimmer(tokenCounter);
-    this.microcompact = new TimeBasedMicrocompact();
+    this.toolResultCompactor = new ToolResultCompactor();
 
     // Create steps
     this.hardLimitGuardStep = new HardLimitGuardStep(dispatcher);
     this.microcompactStep =
-        new TimeBasedMicrocompactStep(microcompact, this.config.microcompact(), tokenCounter);
+        new TimeBasedMicrocompactStep(toolResultCompactor, this.config.microcompact(), tokenCounter);
     this.slimmingStep = new SlimmingStep(slimmer, tokenCounter);
     this.compressionStep =
         new CompressionStep(
@@ -203,7 +204,7 @@ public class DefaultContextOptimizer implements ContextOptimizer {
             agentConfig,
             compressor,
             tokenCounter,
-            dispatcher,
+            eventPublisher,
             budget,
             this.compressionBudget,
             this.config.sessionMemory(),
@@ -238,17 +239,17 @@ public class DefaultContextOptimizer implements ContextOptimizer {
   }
 
   /**
-   * Performs time-based slimming of old tool results.
+   * Compacts expired tool results based on cache TTL.
    *
    * <p>This method is exposed for use by ReActAgentLoop to clear old tool results when the prompt
    * cache has likely expired.
    *
    * @param context the session context
-   * @param maxAgeMs maximum age in milliseconds before clearing tool results
+   * @param cacheTtlMs maximum age in milliseconds before clearing tool results
    * @return context with old tool results replaced by placeholders
    */
-  public SessionContext slimOldToolResults(SessionContext context, long maxAgeMs) {
-    return slimmer.slimOldToolResults(context, maxAgeMs);
+  public SessionContext compactExpiredToolResults(SessionContext context, long cacheTtlMs) {
+    return toolResultCompactor.compactByCacheTtl(context, cacheTtlMs, 0, null);
   }
 
   /**
@@ -258,14 +259,5 @@ public class DefaultContextOptimizer implements ContextOptimizer {
    */
   public ContextSlimmer getSlimmer() {
     return slimmer;
-  }
-
-  /**
-   * Returns the underlying TimeBasedMicrocompact for direct access if needed.
-   *
-   * @return the time-based microcompact
-   */
-  public TimeBasedMicrocompact getMicrocompact() {
-    return microcompact;
   }
 }

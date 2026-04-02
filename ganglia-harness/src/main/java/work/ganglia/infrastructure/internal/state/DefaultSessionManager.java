@@ -91,7 +91,8 @@ public class DefaultSessionManager implements SessionManager {
         null,
         Collections.emptyMap(),
         Collections.emptyList(),
-        options);
+        options,
+        null);
   }
 
   @Override
@@ -124,7 +125,8 @@ public class DefaultSessionManager implements SessionManager {
             cleanedTurn,
             context.metadata(),
             context.activeSkillIds(),
-            context.modelOptions());
+            context.modelOptions(),
+            context.compressionState());
       }
     }
     return context;

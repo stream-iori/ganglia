@@ -400,8 +400,7 @@ public class ReActAgentLoop implements AgentLoop {
 
     // Check context pressure and notify if level changed
     if (pressureMonitor != null) {
-      ContextPressure pressure =
-          pressureMonitor.evaluateAndNotify(currentContext, dispatcher, currentContext.sessionId());
+      ContextPressure pressure = pressureMonitor.evaluateAndNotify(currentContext);
       if (pressure.isBlocking()) {
         logger.warn(
             "Context at BLOCKING level ({}%), compression will be forced",
@@ -414,7 +413,7 @@ public class ReActAgentLoop implements AgentLoop {
     if (contextOptimizer instanceof DefaultContextOptimizer defaultOptimizer
         && !currentContext.previousTurns().isEmpty()) {
       long cacheExpiryMs = configProvider.getCacheExpiryMs();
-      contextForOptimization = defaultOptimizer.slimOldToolResults(currentContext, cacheExpiryMs);
+      contextForOptimization = defaultOptimizer.compactExpiredToolResults(currentContext, cacheExpiryMs);
     }
 
     int iteration = currentContext.getIterationCount();

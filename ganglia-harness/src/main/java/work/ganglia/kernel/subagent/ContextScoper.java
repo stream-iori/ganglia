@@ -29,6 +29,7 @@ public class ContextScoper {
         null,
         childMetadata,
         parentContext.activeSkillIds(),
-        parentContext.modelOptions());
+        parentContext.modelOptions(),
+        parentContext.compressionState());
   }
 }

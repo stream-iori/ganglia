@@ -4,9 +4,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import work.ganglia.port.chat.SessionContext;
-import work.ganglia.port.external.tool.ObservationType;
 import work.ganglia.port.internal.prompt.ContextBudget;
-import work.ganglia.port.internal.state.ObservationDispatcher;
+import work.ganglia.port.internal.state.ContextEventPublisher;
 import work.ganglia.util.TokenCounter;
 
 /**
@@ -31,13 +30,19 @@ public class ContextPressureMonitor {
 
   private final ContextBudget budget;
   private final TokenCounter tokenCounter;
+  private final ContextEventPublisher eventPublisher;
 
   // Track last emitted level to avoid duplicate events
   private ContextPressure.Level lastEmittedLevel = null;
 
   public ContextPressureMonitor(ContextBudget budget, TokenCounter tokenCounter) {
+    this(budget, tokenCounter, null);
+  }
+
+  public ContextPressureMonitor(ContextBudget budget, TokenCounter tokenCounter, ContextEventPublisher eventPublisher) {
     this.budget = budget;
     this.tokenCounter = tokenCounter;
+    this.eventPublisher = eventPublisher;
   }
 
   /**
@@ -70,33 +75,20 @@ public class ContextPressureMonitor {
    * Evaluates and emits observation if level changed. Returns the pressure for caller to act upon.
    *
    * @param context the session context to evaluate
-   * @param dispatcher the observation dispatcher (may be null)
-   * @param sessionId the session ID for the observation
    * @return the current pressure level with details
    */
-  public ContextPressure evaluateAndNotify(
-      SessionContext context, ObservationDispatcher dispatcher, String sessionId) {
-
+  public ContextPressure evaluateAndNotify(SessionContext context) {
     ContextPressure pressure = evaluate(context);
 
     if (pressure.level() != lastEmittedLevel) {
       lastEmittedLevel = pressure.level();
 
-      if (dispatcher != null && pressure.level() != ContextPressure.Level.NORMAL) {
-        dispatcher.dispatch(
-            sessionId,
-            ObservationType.CONTEXT_PRESSURE_CHANGED,
-            "context_pressure_" + pressure.level().name().toLowerCase(),
-            new java.util.HashMap<>() {
-              {
-                put("level", pressure.level().name());
-                put("usedTokens", pressure.usedTokens());
-                put("budgetTokens", pressure.budgetTokens());
-                put("percentUsed", String.format("%.2f", pressure.percentUsed() * 100));
-              }
-            },
-            null,
-            null);
+      if (eventPublisher != null && pressure.level() != ContextPressure.Level.NORMAL) {
+        eventPublisher.publishPressureChanged(
+            context.sessionId(),
+            pressure.level().name(),
+            pressure.usedTokens(),
+            pressure.budgetTokens());
 
         logger.info(
             "Context pressure changed to {}: {} / {} tokens ({}%)",

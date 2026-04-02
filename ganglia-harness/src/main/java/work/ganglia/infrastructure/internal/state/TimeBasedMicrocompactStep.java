@@ -25,13 +25,13 @@ import work.ganglia.util.TokenCounter;
 public class TimeBasedMicrocompactStep implements ContextOptimizationStep {
   private static final Logger logger = LoggerFactory.getLogger(TimeBasedMicrocompactStep.class);
 
-  private final TimeBasedMicrocompact microcompact;
+  private final ToolResultCompactor compactor;
   private final MicrocompactConfig config;
   private final TokenCounter tokenCounter;
 
   public TimeBasedMicrocompactStep(
-      TimeBasedMicrocompact microcompact, MicrocompactConfig config, TokenCounter tokenCounter) {
-    this.microcompact = microcompact;
+      ToolResultCompactor compactor, MicrocompactConfig config, TokenCounter tokenCounter) {
+    this.compactor = compactor;
     this.config = config;
     this.tokenCounter = tokenCounter;
   }
@@ -54,7 +54,11 @@ public class TimeBasedMicrocompactStep implements ContextOptimizationStep {
 
   @Override
   public Future<OptimizationResult> apply(SessionContext context, OptimizationContext optContext) {
-    SessionContext result = microcompact.compactIfNeeded(context, config);
+    SessionContext result = compactor.compactByTimeGap(
+        context,
+        config.gapThresholdMinutes(),
+        config.keepRecent(),
+        ToolResultCompactor.DEFAULT_COMPACTABLE_TOOLS);
 
     if (result == context) {
       return Future.succeededFuture(OptimizationResult.unchanged(context));

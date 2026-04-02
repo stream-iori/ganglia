@@ -36,6 +36,7 @@ class BashToolsTest {
             null,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
   }
 

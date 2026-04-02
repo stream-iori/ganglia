@@ -23,7 +23,8 @@ public record SessionContext(
     Turn currentTurn,
     Map<String, Object> metadata,
     List<String> activeSkillIds,
-    ModelOptions modelOptions) {
+    ModelOptions modelOptions,
+    CompressionState compressionState) {
   /** Compact constructor to ensure data integrity and null safety. */
   public SessionContext {
     if (sessionId == null) {
@@ -32,6 +33,7 @@ public record SessionContext(
     previousTurns = previousTurns == null ? Collections.emptyList() : List.copyOf(previousTurns);
     metadata = metadata == null ? Collections.emptyMap() : Map.copyOf(metadata);
     activeSkillIds = activeSkillIds == null ? Collections.emptyList() : List.copyOf(activeSkillIds);
+    compressionState = compressionState == null ? CompressionState.empty() : compressionState;
   }
 
   public SessionContext withNewMessage(Message msg) {
@@ -50,7 +52,7 @@ public record SessionContext(
 
     Turn newCurrentTurn = Turn.newTurn(UUID.randomUUID().toString(), userMessage);
     return new SessionContext(
-        sessionId, newPreviousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions);
+        sessionId, newPreviousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions, compressionState);
   }
 
   public SessionContext addStep(Message step) {
@@ -60,7 +62,7 @@ public record SessionContext(
     }
     newCurrentTurn = newCurrentTurn.withStep(step);
     return new SessionContext(
-        sessionId, previousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions);
+        sessionId, previousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions, compressionState);
   }
 
   public SessionContext completeTurn(Message response) {
@@ -70,7 +72,7 @@ public record SessionContext(
     }
     newCurrentTurn = newCurrentTurn.withResponse(response);
     return new SessionContext(
-        sessionId, previousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions);
+        sessionId, previousTurns, newCurrentTurn, metadata, activeSkillIds, modelOptions, compressionState);
   }
 
   public List<Message> history() {
@@ -165,12 +167,12 @@ public record SessionContext(
 
   public SessionContext withModelOptions(ModelOptions newOptions) {
     return new SessionContext(
-        sessionId, previousTurns, currentTurn, metadata, activeSkillIds, newOptions);
+        sessionId, previousTurns, currentTurn, metadata, activeSkillIds, newOptions, compressionState);
   }
 
   public SessionContext withMetadata(Map<String, Object> newMetadata) {
     return new SessionContext(
-        sessionId, previousTurns, currentTurn, newMetadata, activeSkillIds, modelOptions);
+        sessionId, previousTurns, currentTurn, newMetadata, activeSkillIds, modelOptions, compressionState);
   }
 
   public SessionContext withNewMetadata(String key, Object value) {
@@ -179,39 +181,39 @@ public record SessionContext(
     return withMetadata(Collections.unmodifiableMap(newMetadata));
   }
 
-  private static final String KEY_RUNNING_SUMMARY = "runningSummary";
-  private static final String KEY_COMPRESSION_FAILURES = "compressionFailures";
-  private static final String KEY_LAST_ASSISTANT_TIMESTAMP = "lastAssistantTimestamp";
-  private static final String KEY_RECENTLY_READ_FILES = "recentlyReadFiles";
-
-  /** Returns the running summary from metadata, or null if not set. */
-  @JsonIgnore
-  public String getRunningSummary() {
-    Object value = metadata.get(KEY_RUNNING_SUMMARY);
-    return value instanceof String s ? s : null;
+  /** Returns a new context with updated compression state. */
+  public SessionContext withCompressionState(CompressionState newState) {
+    return new SessionContext(
+        sessionId, previousTurns, currentTurn, metadata, activeSkillIds, modelOptions, newState);
   }
 
-  /** Returns a new context with the running summary updated in metadata. */
+  // ── Compression State Convenience Methods ───────────────────────────────
+
+  /** Returns the running summary from compression state. */
+  @JsonIgnore
+  public String getRunningSummary() {
+    return compressionState.runningSummary();
+  }
+
+  /** Returns a new context with the running summary updated. */
   public SessionContext withRunningSummary(String summary) {
-    return withNewMetadata(KEY_RUNNING_SUMMARY, summary);
+    return withCompressionState(compressionState.withRunningSummary(summary));
   }
 
   /** Returns the number of consecutive compression failures. */
   @JsonIgnore
   public int getConsecutiveCompressionFailures() {
-    Object value = metadata.get(KEY_COMPRESSION_FAILURES);
-    return value instanceof Integer i ? i : 0;
+    return compressionState.consecutiveFailures();
   }
 
   /** Returns a new context with the compression failure counter incremented. */
   public SessionContext withCompressionFailure() {
-    int current = getConsecutiveCompressionFailures();
-    return withNewMetadata(KEY_COMPRESSION_FAILURES, current + 1);
+    return withCompressionState(compressionState.withFailure());
   }
 
   /** Returns a new context with the compression failure counter reset to 0. */
   public SessionContext resetCompressionFailures() {
-    return withNewMetadata(KEY_COMPRESSION_FAILURES, 0);
+    return withCompressionState(compressionState.resetFailures());
   }
 
   // ── Last Assistant Timestamp (for time-based microcompact) ─────────────
@@ -219,14 +221,12 @@ public record SessionContext(
   /** Returns the timestamp of the last assistant message, for time-based microcompact. */
   @JsonIgnore
   public Instant getLastAssistantTimestamp() {
-    // First check metadata (explicitly set)
-    Object value = metadata.get(KEY_LAST_ASSISTANT_TIMESTAMP);
-    if (value instanceof Long l) {
-      return Instant.ofEpochMilli(l);
+    // First check compression state
+    if (compressionState.lastAssistantTimestamp() != null) {
+      return compressionState.lastAssistantTimestamp();
     }
 
     // Fall back to scanning turns
-    // Check current turn first
     if (currentTurn != null) {
       Instant ts = currentTurn.getLastAssistantTimestamp();
       if (ts != null) {
@@ -234,7 +234,6 @@ public record SessionContext(
       }
     }
 
-    // Check previous turns in reverse
     for (int i = previousTurns.size() - 1; i >= 0; i--) {
       Instant ts = previousTurns.get(i).getLastAssistantTimestamp();
       if (ts != null) {
@@ -247,7 +246,7 @@ public record SessionContext(
 
   /** Returns a new context with the last assistant timestamp updated. */
   public SessionContext withLastAssistantTimestamp(Instant timestamp) {
-    return withNewMetadata(KEY_LAST_ASSISTANT_TIMESTAMP, timestamp.toEpochMilli());
+    return withCompressionState(compressionState.withLastAssistantTimestamp(timestamp));
   }
 
   // ── Compact Boundary Navigation ─────────────────────────────────────────
@@ -282,13 +281,12 @@ public record SessionContext(
   /** Checks if the running summary is valid and non-trivial. */
   @JsonIgnore
   public boolean hasValidRunningSummary() {
-    String summary = getRunningSummary();
-    return summary != null && !summary.isBlank() && summary.length() > 50;
+    return compressionState.hasValidRunningSummary();
   }
 
   public SessionContext withPreviousTurns(List<Turn> newPreviousTurns) {
     return new SessionContext(
-        sessionId, newPreviousTurns, currentTurn, metadata, activeSkillIds, modelOptions);
+        sessionId, newPreviousTurns, currentTurn, metadata, activeSkillIds, modelOptions, compressionState);
   }
 
   /** Returns the iteration count for the current turn. */

@@ -28,6 +28,7 @@ class DefaultAgentTaskFactoryTest {
         null,
         Collections.emptyMap(),
         Collections.emptyList(),
+        null,
         null);
   }
 

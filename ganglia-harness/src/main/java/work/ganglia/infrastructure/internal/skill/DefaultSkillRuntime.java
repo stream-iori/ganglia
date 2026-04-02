@@ -56,7 +56,8 @@ public class DefaultSkillRuntime implements SkillRuntime {
             context.currentTurn(),
             context.metadata(),
             activeSkills,
-            context.modelOptions()));
+            context.modelOptions(),
+            context.compressionState()));
   }
 
   @Override
@@ -74,7 +75,8 @@ public class DefaultSkillRuntime implements SkillRuntime {
             context.currentTurn(),
             context.metadata(),
             activeSkills,
-            context.modelOptions()));
+            context.modelOptions(),
+            context.compressionState()));
   }
 
   @Override

@@ -45,6 +45,7 @@ class SessionContextTest {
             turn3,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
 
     List<Message> pruned = ctx.getPrunedHistory(200, COUNTER);
@@ -79,6 +80,7 @@ class SessionContextTest {
             current,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
 
     List<Message> pruned = ctx.getPrunedHistory(200, COUNTER);
@@ -108,6 +110,7 @@ class SessionContextTest {
             current,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
 
     List<Message> pruned = ctx.getPrunedHistory(500, COUNTER);
@@ -131,6 +134,7 @@ class SessionContextTest {
             oversizedCurrent,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
 
     List<Message> pruned = ctx.getPrunedHistory(10, COUNTER); // tiny budget
@@ -171,6 +175,7 @@ class SessionContextTest {
             current,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
 
     List<Message> pruned = ctx.getPrunedHistory(5000, 200, COUNTER);
@@ -200,6 +205,7 @@ class SessionContextTest {
             current,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
 
     List<Message> pruned = ctx.getPrunedHistory(5000, 5000, COUNTER);
@@ -221,6 +227,7 @@ class SessionContextTest {
             oversizedCurrent,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
 
     List<Message> pruned = ctx.getPrunedHistory(10, COUNTER);
@@ -242,6 +249,7 @@ class SessionContextTest {
             null,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
 
     SessionContext next = ctx.withNewMessage(Message.user("hello"));
@@ -259,6 +267,7 @@ class SessionContextTest {
             null,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
 
     SessionContext next = ctx.withNewMessage(Message.assistant("thinking..."));
@@ -280,6 +289,7 @@ class SessionContextTest {
             null,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
 
     ModelOptions opts = new ModelOptions(0.5, 1024, "gpt-4", true);
@@ -302,6 +312,7 @@ class SessionContextTest {
             null,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
 
     SessionContext next = ctx.completeTurn(Message.assistant("final answer"));

@@ -260,7 +260,8 @@ class SkillTaskTest extends BaseGangliaTest {
             base.currentTurn(),
             base.metadata(),
             List.of("coding"),
-            base.modelOptions());
+            base.modelOptions(),
+            base.compressionState());
 
     SkillTask task = new SkillTask(call, skillService(List.of(skill)), skillRuntime());
 

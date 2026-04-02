@@ -287,81 +287,20 @@ public interface ContextEventPublisher {
 - [x] 通过 DefaultContextOptimizer.slimOldToolResults() 暴露能力
 - [x] 编译通过
 
-### Phase 3 进度 🚧 进行中
+### Phase 3 进度 ✅ 已完成
 
-**现状分析**：
-- `CompressionState` record 已创建，包含完整的方法
-- `RecentlyReadFile` record 已创建
-- `SessionContext` 仍使用 `Map<String, Object> metadata` 存储压缩状态
-- 调用点分散在 6 个文件中
+**详细计划**: [008-context-manager-improvements.md](008-context-manager-improvements.md)
 
-**改造计划**：
-
-#### Step 3.1: 添加 CompressionState 字段到 SessionContext
-```java
-// SessionContext.java
-public record SessionContext(
-    String sessionId,
-    List<Turn> previousTurns,
-    Turn currentTurn,
-    Map<String, Object> metadata,        // 保留用于其他用途
-    List<String> activeSkillIds,
-    ModelOptions modelOptions,
-    CompressionState compressionState    // 新增显式字段
-) {
-  // compact constructor 添加默认值
-  public SessionContext {
-    compressionState = compressionState != null ? compressionState : CompressionState.empty();
-  }
-}
-```
-
-#### Step 3.2: 添加便捷方法（保持向后兼容）
-```java
-// SessionContext.java - 新方法委托给 compressionState
-public CompressionState compressionState() { return compressionState; }
-public SessionContext withCompressionState(CompressionState state) { ... }
-
-// 保留旧方法作为别名（标记 @Deprecated）
-@Deprecated
-public String getRunningSummary() { return compressionState.runningSummary(); }
-@Deprecated
-public SessionContext withRunningSummary(String s) { return withCompressionState(compressionState.withRunningSummary(s)); }
-```
-
-#### Step 3.3: 更新调用点
-| 文件 | 当前调用 | 改为 |
-|------|---------|------|
-| CompressionStep.java | context.getRunningSummary() | context.compressionState().runningSummary() |
-| ReActAgentLoop.java | context.withRunningSummary() | context.withCompressionState() |
-| DefaultContextOptimizerTest.java | context.getRunningSummary() | context.compressionState().runningSummary() |
-
-#### Step 3.4: 序列化兼容性处理
-```java
-// Jackson 注解确保 JSON 序列化兼容
-@JsonCreator
-public static SessionContext fromJson(
-    @JsonProperty("sessionId") String sessionId,
-    @JsonProperty("metadata") Map<String, Object> metadata,
-    ...
-) {
-  // 从 metadata 提取压缩状态（兼容旧数据）
-  CompressionState state = extractCompressionState(metadata);
-  return new SessionContext(sessionId, ..., state);
-}
-```
-
-**工作量估计**: 1-2 天
-**风险**: 中等（需要处理序列化兼容性）
-
-- [x] 创建 CompressionState record（已创建）
-- [x] 创建 RecentlyReadFile record（已创建）
-- [ ] 添加 compressionState 字段到 SessionContext
-- [ ] 添加 @Deprecated 别名方法保持兼容
-- [ ] 更新 CompressionStep 调用点
-- [ ] 更新 ReActAgentLoop 调用点
-- [ ] 更新测试用例
-- [ ] 验证序列化兼容性
+**实施记录 (2026-04-02)**：
+- [x] 添加 compressionState 字段到 SessionContext
+- [x] 删除 metadata 中的压缩相关 key 常量
+- [x] 更新所有 SessionContext 创建点（15+ 文件）
+- [x] 更新 CompressionStep 使用 ContextEventPublisher
+- [x] 更新 ContextPressureMonitor 使用 ContextEventPublisher
+- [x] 创建 ToolResultCompactor 统一两种策略
+- [x] 删除 TimeBasedMicrocompact.java
+- [x] 删除 ContextSlimmer.slimOldToolResults() 方法
+- [x] 所有测试通过
 
 ### Phase 4 进度 ✅ 已完成
 

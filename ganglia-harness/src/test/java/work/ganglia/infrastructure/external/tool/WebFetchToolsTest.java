@@ -35,6 +35,7 @@ class WebFetchToolsTest {
             null,
             Collections.emptyMap(),
             Collections.emptyList(),
+            null,
             null);
   }
 
