@@ -192,12 +192,14 @@ public class DetailViewTest {
 
     assertDoesNotThrow(() -> dv.show("Response", "line1\nline2\nline3"));
 
+    // Close the terminal first to ensure all internal buffers are fully flushed
+    // to the underlying ByteArrayOutputStream before inspecting the output.
+    nonDumbTerminal.close();
+
     String written = nonDumbOutput.toString(StandardCharsets.UTF_8);
     // Alternate screen enter/exit sequences must be present
     assertTrue(written.contains("\033[?1049h"), "Should emit enter-alt-screen sequence");
     assertTrue(written.contains("\033[?1049l"), "Should emit exit-alt-screen sequence");
-
-    nonDumbTerminal.close();
   }
 
   @Test
@@ -220,10 +222,10 @@ public class DetailViewTest {
             "read_file", "path=pom.xml", List.of("<project>", "</project>"), "ok", false, 50);
     assertDoesNotThrow(() -> dv.show(card));
 
+    nonDumbTerminal.close();
+
     String written = nonDumbOutput.toString(StandardCharsets.UTF_8);
     assertTrue(written.contains("\033[?1049h"), "Should emit enter-alt-screen sequence");
     assertTrue(written.contains("\033[?1049l"), "Should emit exit-alt-screen sequence");
-
-    nonDumbTerminal.close();
   }
 }
