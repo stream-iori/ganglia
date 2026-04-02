@@ -42,7 +42,7 @@ class TurnTest {
 
   @Test
   void getLatestMessage_emptySteps_returnsUserMessage() {
-    Turn turn = new Turn("t1", Message.user("x"), List.of(), null);
+    Turn turn = new Turn("t1", Message.user("x"), List.of(), null, System.currentTimeMillis());
     assertEquals("x", turn.getLatestMessage().content());
   }
 
@@ -116,7 +116,7 @@ class TurnTest {
 
   @Test
   void constructor_nullIntermediateSteps_defaultsToEmpty() {
-    Turn turn = new Turn("t1", Message.user("x"), null, null);
+    Turn turn = new Turn("t1", Message.user("x"), null, null, System.currentTimeMillis());
     assertNotNull(turn.intermediateSteps());
     assertTrue(turn.intermediateSteps().isEmpty());
   }

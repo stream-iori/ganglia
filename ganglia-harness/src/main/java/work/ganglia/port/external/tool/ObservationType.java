@@ -78,5 +78,14 @@ public enum ObservationType {
   MEMORY_UPDATED,
 
   /** ContextBudget has been computed and allocated for a session. */
-  CONTEXT_BUDGET_ALLOCATED
+  CONTEXT_BUDGET_ALLOCATED,
+
+  /** Context pressure level changed (NORMAL -> WARNING -> CRITICAL -> BLOCKING). */
+  CONTEXT_PRESSURE_CHANGED,
+
+  /** Prompt cache statistics (hit/miss, token counts). */
+  PROMPT_CACHE_STATS,
+
+  /** Context analysis with token distribution breakdown. */
+  CONTEXT_ANALYSIS
 }

@@ -1,5 +1,8 @@
 package work.ganglia.config;
 
+import work.ganglia.port.internal.prompt.MicrocompactConfig;
+import work.ganglia.port.internal.prompt.SessionMemoryCompactConfig;
+
 /** Interface Segregation: Provides Agent execution and project configuration. */
 public interface AgentConfigProvider {
 
@@ -10,6 +13,12 @@ public interface AgentConfigProvider {
   int DEFAULT_SYSTEM_OVERHEAD_TOKENS = 6000;
   double DEFAULT_FORCE_COMPRESSION_MULTIPLIER = 3.0;
   double DEFAULT_HARD_LIMIT_MULTIPLIER = 4.0;
+  long DEFAULT_CACHE_EXPIRY_MS = 5 * 60 * 1000L; // 5 minutes
+
+  // ── Post-compact restoration defaults ───────────────────────────────────
+  int DEFAULT_POST_COMPACT_MAX_FILES = 5;
+  int DEFAULT_POST_COMPACT_TOKEN_BUDGET = 50_000;
+  int DEFAULT_POST_COMPACT_MAX_TOKENS_PER_FILE = 5_000;
 
   int getMaxIterations();
 
@@ -40,5 +49,44 @@ public interface AgentConfigProvider {
   /** Multiplier of contextLimit at which the session is aborted (default 4.0×). */
   default double getHardLimitMultiplier() {
     return DEFAULT_HARD_LIMIT_MULTIPLIER;
+  }
+
+  /**
+   * Time in milliseconds after which the LLM provider's prompt cache is assumed to have expired.
+   * Old tool results older than this may be proactively cleared to save tokens.
+   */
+  default long getCacheExpiryMs() {
+    return DEFAULT_CACHE_EXPIRY_MS;
+  }
+
+  // ── Time-based Microcompact Configuration ───────────────────────────────
+
+  /** Returns the configuration for time-based microcompact. */
+  default MicrocompactConfig getMicrocompactConfig() {
+    return MicrocompactConfig.defaults();
+  }
+
+  // ── Session Memory Compact Configuration ────────────────────────────────
+
+  /** Returns the configuration for session memory based compression. */
+  default SessionMemoryCompactConfig getSessionMemoryCompactConfig() {
+    return SessionMemoryCompactConfig.defaults();
+  }
+
+  // ── Post-compact Restoration Configuration ──────────────────────────────
+
+  /** Maximum number of files to restore after compression. */
+  default int getPostCompactMaxFiles() {
+    return DEFAULT_POST_COMPACT_MAX_FILES;
+  }
+
+  /** Total token budget for file restoration after compression. */
+  default int getPostCompactTokenBudget() {
+    return DEFAULT_POST_COMPACT_TOKEN_BUDGET;
+  }
+
+  /** Maximum tokens per file for restoration after compression. */
+  default int getPostCompactMaxTokensPerFile() {
+    return DEFAULT_POST_COMPACT_MAX_TOKENS_PER_FILE;
   }
 }

@@ -1,10 +1,12 @@
 package work.ganglia.port.chat;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -54,7 +56,7 @@ public record SessionContext(
   public SessionContext addStep(Message step) {
     Turn newCurrentTurn = currentTurn;
     if (newCurrentTurn == null) {
-      newCurrentTurn = new Turn(UUID.randomUUID().toString(), null, new ArrayList<>(), null);
+      newCurrentTurn = Turn.newTurn(UUID.randomUUID().toString(), null);
     }
     newCurrentTurn = newCurrentTurn.withStep(step);
     return new SessionContext(
@@ -64,7 +66,7 @@ public record SessionContext(
   public SessionContext completeTurn(Message response) {
     Turn newCurrentTurn = currentTurn;
     if (newCurrentTurn == null) {
-      newCurrentTurn = new Turn(UUID.randomUUID().toString(), null, new ArrayList<>(), null);
+      newCurrentTurn = Turn.newTurn(UUID.randomUUID().toString(), null);
     }
     newCurrentTurn = newCurrentTurn.withResponse(response);
     return new SessionContext(
@@ -178,6 +180,9 @@ public record SessionContext(
   }
 
   private static final String KEY_RUNNING_SUMMARY = "runningSummary";
+  private static final String KEY_COMPRESSION_FAILURES = "compressionFailures";
+  private static final String KEY_LAST_ASSISTANT_TIMESTAMP = "lastAssistantTimestamp";
+  private static final String KEY_RECENTLY_READ_FILES = "recentlyReadFiles";
 
   /** Returns the running summary from metadata, or null if not set. */
   @JsonIgnore
@@ -189,6 +194,96 @@ public record SessionContext(
   /** Returns a new context with the running summary updated in metadata. */
   public SessionContext withRunningSummary(String summary) {
     return withNewMetadata(KEY_RUNNING_SUMMARY, summary);
+  }
+
+  /** Returns the number of consecutive compression failures. */
+  @JsonIgnore
+  public int getConsecutiveCompressionFailures() {
+    Object value = metadata.get(KEY_COMPRESSION_FAILURES);
+    return value instanceof Integer i ? i : 0;
+  }
+
+  /** Returns a new context with the compression failure counter incremented. */
+  public SessionContext withCompressionFailure() {
+    int current = getConsecutiveCompressionFailures();
+    return withNewMetadata(KEY_COMPRESSION_FAILURES, current + 1);
+  }
+
+  /** Returns a new context with the compression failure counter reset to 0. */
+  public SessionContext resetCompressionFailures() {
+    return withNewMetadata(KEY_COMPRESSION_FAILURES, 0);
+  }
+
+  // ── Last Assistant Timestamp (for time-based microcompact) ─────────────
+
+  /** Returns the timestamp of the last assistant message, for time-based microcompact. */
+  @JsonIgnore
+  public Instant getLastAssistantTimestamp() {
+    // First check metadata (explicitly set)
+    Object value = metadata.get(KEY_LAST_ASSISTANT_TIMESTAMP);
+    if (value instanceof Long l) {
+      return Instant.ofEpochMilli(l);
+    }
+
+    // Fall back to scanning turns
+    // Check current turn first
+    if (currentTurn != null) {
+      Instant ts = currentTurn.getLastAssistantTimestamp();
+      if (ts != null) {
+        return ts;
+      }
+    }
+
+    // Check previous turns in reverse
+    for (int i = previousTurns.size() - 1; i >= 0; i--) {
+      Instant ts = previousTurns.get(i).getLastAssistantTimestamp();
+      if (ts != null) {
+        return ts;
+      }
+    }
+
+    return null;
+  }
+
+  /** Returns a new context with the last assistant timestamp updated. */
+  public SessionContext withLastAssistantTimestamp(Instant timestamp) {
+    return withNewMetadata(KEY_LAST_ASSISTANT_TIMESTAMP, timestamp.toEpochMilli());
+  }
+
+  // ── Compact Boundary Navigation ─────────────────────────────────────────
+
+  /** Finds the most recent compact boundary turn. */
+  @JsonIgnore
+  public Optional<Turn> findLastCompactBoundary() {
+    for (int i = previousTurns.size() - 1; i >= 0; i--) {
+      Turn turn = previousTurns.get(i);
+      if (turn.isCompactBoundary()) {
+        return Optional.of(turn);
+      }
+    }
+    return Optional.empty();
+  }
+
+  /** Returns all turns after the last compact boundary. */
+  @JsonIgnore
+  public List<Turn> getTurnsAfterLastBoundary() {
+    int boundaryIndex = -1;
+    for (int i = previousTurns.size() - 1; i >= 0; i--) {
+      if (previousTurns.get(i).isCompactBoundary()) {
+        boundaryIndex = i;
+        break;
+      }
+    }
+    return new ArrayList<>(previousTurns.subList(boundaryIndex + 1, previousTurns.size()));
+  }
+
+  // ── Running Summary Validation (for session memory compact) ─────────────
+
+  /** Checks if the running summary is valid and non-trivial. */
+  @JsonIgnore
+  public boolean hasValidRunningSummary() {
+    String summary = getRunningSummary();
+    return summary != null && !summary.isBlank() && summary.length() > 50;
   }
 
   public SessionContext withPreviousTurns(List<Turn> newPreviousTurns) {

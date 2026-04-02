@@ -1,5 +1,6 @@
 package work.ganglia.port.chat;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -19,24 +20,29 @@ public record Turn(
     String id,
     Message userMessage,
     List<Message> intermediateSteps, // Thoughts, ToolCalls, ToolResults
-    Message finalResponse) {
+    Message finalResponse,
+    long timestamp) { // Epoch millis when turn was created
   public Turn {
     intermediateSteps =
         intermediateSteps == null ? Collections.emptyList() : List.copyOf(intermediateSteps);
   }
 
   public static Turn newTurn(String id, Message msg) {
-    return new Turn(id, msg, new ArrayList<>(), null);
+    return new Turn(id, msg, new ArrayList<>(), null, System.currentTimeMillis());
   }
 
   public Turn withStep(Message step) {
     ArrayList<Message> newSteps = new ArrayList<>(intermediateSteps);
     newSteps.add(step);
-    return new Turn(id, userMessage, newSteps, finalResponse);
+    return new Turn(id, userMessage, newSteps, finalResponse, timestamp);
   }
 
   public Turn withResponse(Message response) {
-    return new Turn(id, userMessage, intermediateSteps, response);
+    return new Turn(id, userMessage, intermediateSteps, response, timestamp);
+  }
+
+  public Turn withIntermediateSteps(List<Message> steps) {
+    return new Turn(id, userMessage, steps, finalResponse, timestamp);
   }
 
   public List<Message> flatten() {
@@ -108,5 +114,68 @@ public record Turn(
       return 0;
     }
     return (int) intermediateSteps.stream().filter(m -> m.role() == Role.ASSISTANT).count();
+  }
+
+  /**
+   * Checks if this turn is a compact boundary marker.
+   *
+   * @return true if this turn marks a compression boundary
+   */
+  @JsonIgnore
+  public boolean isCompactBoundary() {
+    return CompactBoundaryTurn.isCompactBoundaryId(id);
+  }
+
+  /**
+   * Checks if this turn has meaningful text content (for session memory compact eligibility).
+   *
+   * @return true if this turn contains text content
+   */
+  @JsonIgnore
+  public boolean hasTextContent() {
+    if (userMessage != null && userMessage.content() != null && !userMessage.content().isBlank()) {
+      return true;
+    }
+    if (finalResponse != null
+        && finalResponse.content() != null
+        && !finalResponse.content().isBlank()) {
+      return true;
+    }
+    return intermediateSteps.stream().anyMatch(m -> m.content() != null && !m.content().isBlank());
+  }
+
+  /**
+   * Gets the timestamp of the most recent assistant message in this turn.
+   *
+   * @return the timestamp of the last assistant message, or null if none
+   */
+  @JsonIgnore
+  public Instant getLastAssistantTimestamp() {
+    // Check final response first
+    if (finalResponse != null
+        && finalResponse.role() == Role.ASSISTANT
+        && finalResponse.timestamp() != null) {
+      return finalResponse.timestamp();
+    }
+
+    // Check intermediate steps in reverse
+    for (int i = intermediateSteps.size() - 1; i >= 0; i--) {
+      Message msg = intermediateSteps.get(i);
+      if (msg.role() == Role.ASSISTANT && msg.timestamp() != null) {
+        return msg.timestamp();
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Estimates the total token count for this turn.
+   *
+   * @param counter the token counter to use
+   * @return estimated token count
+   */
+  public int estimateTokens(work.ganglia.util.TokenCounter counter) {
+    return flatten().stream().mapToInt(m -> m.countTokens(counter)).sum();
   }
 }
