@@ -1,104 +1,101 @@
-# Design & Plan: Sub-agent & Graph Capability Enhancement (ganglia-harness)
+# Design & Plan: Team-based Manager Orchestration (ganglia-harness)
 
-## 1. Vision: From Task-Completion to Engineering-Autonomy
+## 1. Vision: The "Team of Managers" Architecture
 
-The goal of this enhancement is to evolve `ganglia-harness` from a container that executes a single ReAct loop into a **Supervised Multi-Agent Orchestrator**.
-
-In complex software engineering tasks (like SWE-bench), a single agent often gets lost in long-context or fails due to lack of specialized roles. By introducing a structured, parallel, and supervised Task Graph, we enable specialized personas (Researcher, Engineer, Verifier) to collaborate effectively.
+The goal of this enhancement is to evolve `ganglia-harness` into a robust multi-agent coordination system. We prioritize **System Simplicity** and **Traceability** over complex runtime interruption. The system mimics a real-world engineering team where Managers collaborate in iterative loops, while their internal workflows remain predictable and linear.
 
 ---
 
-## 2. Architectural Design & Rationale
+## 2. Core Operational Laws
 
-### A. The "Simple DAG" Philosophy
+To ensure stability in long-running, complex tasks, all Managers and the Global Engine must adhere to these three laws:
 
-**Decision:** Keep the Graph structure as a Directed Acyclic Graph (DAG) but make the **Supervisor** smart.
-- **Rationale:** Complex branching and looping within the graph itself lead to "spaghetti graphs" that are hard to debug and persist. Instead, logic like "if failed, try again" or "if rejected, go back to implement" is handled by the `GraphSupervisor` controlling node states, rather than complex internal graph edges.
+### I. The Low-Entropy Law (History Management)
+- **Automatic Compaction:** The Global Engine monitors Blackboard depth. When the loop count or the number of superseded facts exceeds a threshold (e.g., 10), the engine automatically inserts a **Summarizer** task.
+- **Lessons Learned:** This task distills the history of failures into a single `Lessons Learned` entry and archives old facts. This keeps the Context Window focused and prevents "History Debt" from diluting the model's attention.
 
-### B. Specialized Personas (Roles)
+### II. The Isolation Law (Parallel Safety)
+- **Git Worktree Isolation:** Every Manager running in parallel MUST operate in an isolated **Git Worktree**. This prevents physical file collisions and shared-state corruption.
+- **The Merge Gate:** Upon completion, the Global Engine attempts to merge worktree changes. 
+- **Conflict Redo:** If a physical merge conflict or a logical failure (verified by **RealityAnchor**) occurs, changes are rejected, and a new cycle is triggered to resolve the discrepancy.
 
-Standardizing roles allows for optimized prompts and tool-sets:
-- **Architect:** Planning and graph decomposition.
-- **Researcher:** Deep exploration, root cause analysis (RCA), and fact-finding.
-- **Engineer:** Implementation, patch generation, and refactoring.
-- **Verifier:** Test writing and validation.
-- **Reviewer:** Code audit and quality gates.
-
-### C. Shared Blackboard (Structured Memory)
-
-**Decision:** Introduce a `Blackboard` (Map<String, Object>) within the `TaskGraph`.
-- **Rationale:** Passing raw strings between nodes is inefficient and causes token bloat. The Blackboard stores **structured facts** (e.g., `fixed_file_paths: [...]`, `test_error_type: "NPE"`).
-- **Injection:** A node only receives data from its **direct dependencies**, ensuring a clean and focused context.
-
-### D. Persistence & State Recovery
-
-**Decision:** JSON-based persistence in `.ganglia/sessions/{sessionId}/graph.json`.
-- **Rationale:** Long-running tasks (hours of evaluation) must survive JVM crashes or API rate limits. The Supervisor can "re-hydrate" the graph state and resume exactly from the last `PENDING` node.
-
-### E. Failure Policies (Orchestration Control)
-
-**Decision:** Implement two distinct strategies for handling node failures:
-1. **HALT_ON_ERROR (Safety First):** Stops all new node dispatches if any node fails. Best for risky or sequential operations.
-2. **CONTINUE_ON_ERROR (Efficiency First - Default):** Continues executing independent parallel branches that do not depend on the failed node.
-
-### F. Human-in-the-loop (HITL)
-
-**Decision:** Explicit `HUMAN` nodes and implicit failure hooks.
-- **Rationale:** For critical steps (e.g., merging code or running destructive tests), we need a way to pause and wait for user approval.
+### III. The Self-Healing Law (Environment Robustness)
+- **Audit-First Principle:** Managers and Sub-agents do not assume a "pristine" environment. 
+- **Pre-flight Cleanup:** The first step of any Manager's execution is an **Environment Audit** (e.g., `git status`, `ps aux`). If artifacts from previous failed attempts are detected, the Manager must clean them up before proceeding. This ensures eventual consistency in the physical workspace.
 
 ---
 
-## 3. Detailed Data Models
+## 3. Architectural Components
 
-### TaskNode
+### A. Global Layer: Cyclic Manager Graph
+- **Orchestration:** A **Cyclic Directed Graph** where each node is a **Manager**.
+- **High Observability:** Every iteration is an explicit transition. If a strategy fails, the system triggers a new cycle, ensuring a clean audit trail.
+- **RealityAnchor (The Grounding Engine):** A specialized, non-LLM node acting as the final arbiter. It "measures" reality via tools/scripts (Tests, Lints, Audits). 
+    - **Immutable Law:** Validation scripts are read-only to Agents. No Agent can modify the "Law" to pass a test.
+    - **Raw Grounding:** Failed validations bypass the Summarizer; raw logs are injected into the next cycle's context to prevent interpretation bias.
 
-- `id`: Unique identifier.
-- `type`: `AGENT` (ReAct), `HUMAN` (Wait for input), `SUMMARY` (Final report).
-- `persona`: Role-specific System Prompt.
-- `instruction`: Task description.
-- `dependencies`: List of parent Node IDs.
-- `status`: `PENDING`, `RUNNING`, `COMPLETED`, `FAILED`, `WAITING_FOR_HUMAN`, `ABORTED`.
-- `result`: Raw output text.
-- `outputData`: Extracted structured facts (synced to Blackboard).
+### B. Local Layer: Linear Manager Workflow
+- **Mission-Driven Execution:** Every Sub-agent receives a **Mission Context**—a high-level goal statement to ensure local actions align with global intent.
+- **Incremental Redo & Task Fingerprinting:** 
+    - Each `ToDoItem` generates an `execution_hash = hash(missionContext + input_files_checksum + previous_task_ids)`.
+    - The `Task Cycle Interceptor` uses this hash to skip tasks whose inputs and context remain unchanged, even if the parent Manager was restarted.
 
-### TaskGraph
+### C. State Consistency & Checkpoints
+- **No Interruption:** Tasks always run to completion. Failure or Invalidation is treated as a valid completion state.
+- **Heartbeat Protocol:** Long-running tasks periodically call `check_mission_validity()`.
+- **Graceful Exit:** If a referenced fact is marked `is_superseded`, the task performs a **Graceful Exit**, saving intermediate results but marking the status as `INVALIDATED`.
+- **Source of Truth:** The **Blackboard** is the source for strategic decisions; the **ToDoList** is the tactical record of execution.
 
-- `sessionId`: Associated session.
-- `failurePolicy`: `HALT_ON_ERROR` or `CONTINUE_ON_ERROR`.
-- `nodes`: List of `TaskNode`.
-- `blackboard`: Global shared state for structured data.
+### D. Progressive Fact Management
+- **Tiered Fact Storage:**
+    - **Active Context (L1):** High-level summaries for the LLM context window.
+    - **Cold Storage (L2):** Detailed raw logs and diffs stored on disk, linked via `FactID`.
+- **Detail Fetching:** Managers use `fetch_fact_details(fact_id)` to selectively retrieve L2 data only when tactical deep-dives are required.
 
 ---
 
-## 4. Implementation Roadmap (Task List)
+## 4. Data Models
 
-### Phase 1: Core Models & Persistence
+### Manager
+- `id`, `missionContext`, `mode` (SELF|DELEGATE).
+- `worktreePath`: Path for isolated execution.
+- `internalDag`: Supports **PARALLEL** execution nodes.
 
-- [ ] Define `NodeType`, `NodeStatus`, and `FailurePolicy` enums.
-- [ ] Implement `TaskNode` and `TaskGraph` POJOs.
-- [ ] Implement `JacksonGraphStore` for state persistence to `graph.json`.
-- [ ] Implement graph validation (cycle detection, dependency checking).
+### RealityAnchor
+- `validationSuites`: Automated checks (Tests, Lints, Audits).
+- `groundingStrategy`: Logic for merging or rejecting changes based on validation.
 
-### Phase 2: Parallel Orchestration (GraphSupervisor)
+### Blackboard Fact
+```json
+{ 
+  "id": "fact_001",
+  "summary": "...", 
+  "detail_ref": "path/to/cold_storage.json", 
+  "source_manager": "...", 
+  "is_superseded": boolean, 
+  "is_archive_summary": boolean 
+}
+```
 
-- [ ] Refactor `DefaultGraphExecutor` into a stateful `GraphSupervisor`.
-- [ ] Implement the `drive()` loop using Vert.x `Future` for parallel node dispatch.
-- [ ] Implement `getReadyNodes()` logic with dependency resolution.
-- [ ] Implement `FailurePolicy` enforcement.
+---
 
-### Phase 3: Context & Data Flow
+## 5. Implementation Roadmap
 
-- [ ] Implement `DependencyContextResolver` to filter and inject Blackboard data into prompts based on node dependencies.
-- [ ] Add "Fact Extraction" step after `AGENT` nodes to populate `outputData`.
+### Phase 1: Manager & Isolation
+- [ ] Implement `Manager` and `SubAgent` models with `missionContext`.
+- [ ] Implement **Git Worktree** lifecycle management.
+- [ ] Create `LinearDagRunner` with `PARALLEL` support.
 
-### Phase 4: Human-in-the-loop & Tooling
+### Phase 2: Global Engine & Interceptor
+- [ ] Implement `ManagerGraphEngine` (Cyclic transitions).
+- [ ] Implement `Task Cycle Interceptor` for Incremental Redo (Fingerprinting).
+- [ ] Implement the **Entropy Monitor** for automatic `Summarizer` injection.
 
-- [ ] Add `ask_selection` tool integration for pre-run policy confirmation.
-- [ ] Implement `resumeNode` API for `HUMAN` nodes.
+### Phase 3: Blackboard & RealityAnchor
+- [ ] Implement `Blackboard` with `is_superseded` versioning and L1/L2 storage.
+- [ ] Implement `RealityAnchor` (Grounding & Merge Gate).
+- [ ] Add `check_mission_validity()` and `fetch_fact_details()` tools.
 
-### Phase 5: Verification
-
-- [ ] Create a "TDD Collaboration" test case.
-- [ ] Verify parallel execution performance.
-- [ ] Verify state recovery after simulated crash.
-
+### Phase 4: Observability
+- [ ] Update `trace.html` to visualize cycles, superseded facts, and Worktree merges.
+- [ ] Verify incremental redo after system restarts.
