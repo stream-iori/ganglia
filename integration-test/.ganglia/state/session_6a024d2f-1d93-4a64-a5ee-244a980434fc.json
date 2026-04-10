@@ -1,0 +1,111 @@
+{
+  "sessionId" : "6a024d2f-1d93-4a64-a5ee-244a980434fc",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "06658d9f-7888-4bc6-87a1-624e37593a70",
+    "userMessage" : {
+      "id" : "78f3d673-d3c3-420a-b1c0-d1f08f33c105",
+      "role" : "USER",
+      "content" : "Concatenate file1.txt and file2.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-09T08:38:27.878912Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "d7b0bf8a-2bca-4020-90c8-841fd71d993a",
+      "role" : "ASSISTANT",
+      "content" : "Listing files.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-09T08:38:27.882139Z"
+    }, {
+      "id" : "107ee3be-c98c-4e7c-97e5-bcb7aa4c3066",
+      "role" : "TOOL",
+      "content" : "[Output from 'list_directory' was large (3 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8419320145310230675/.ganglia/tmp/6a024d2f-1d93-4a64-a5ee-244a980434fc/c1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8419320145310230675/.ganglia/tmp/6a024d2f-1d93-4a64-a5ee-244a980434fc/c1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "list_directory",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-04-09T08:38:27.884466Z"
+    }, {
+      "id" : "4f17e4d6-5a8a-419d-a6c0-2396306ad7d3",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 1.",
+      "toolCalls" : [ {
+        "id" : "c2",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "file1.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-09T08:38:27.888120Z"
+    }, {
+      "id" : "4371f7cc-02dc-4a8b-ac09-481553529cd8",
+      "role" : "TOOL",
+      "content" : "[Output from 'read_file' was large (4 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8419320145310230675/.ganglia/tmp/6a024d2f-1d93-4a64-a5ee-244a980434fc/c2.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8419320145310230675/.ganglia/tmp/6a024d2f-1d93-4a64-a5ee-244a980434fc/c2.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "read_file",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-04-09T08:38:27.890512Z"
+    }, {
+      "id" : "9b597d82-fe7c-4512-b6b8-81f05a1e571f",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 2.",
+      "toolCalls" : [ {
+        "id" : "c3",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "file2.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-09T08:38:27.893899Z"
+    }, {
+      "id" : "8a84a1fa-a485-45fc-a166-283adb1dfa0a",
+      "role" : "TOOL",
+      "content" : "[Output from 'read_file' was large (4 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8419320145310230675/.ganglia/tmp/6a024d2f-1d93-4a64-a5ee-244a980434fc/c3.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8419320145310230675/.ganglia/tmp/6a024d2f-1d93-4a64-a5ee-244a980434fc/c3.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c3",
+        "toolName" : "read_file",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-04-09T08:38:27.896912Z"
+    } ],
+    "finalResponse" : {
+      "id" : "d203d616-7a11-43d0-815f-5bc620a23107",
+      "role" : "ASSISTANT",
+      "content" : "The content is: Part 1 Part 2",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-09T08:38:27.900663Z"
+    },
+    "timestamp" : 1775723907878
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "sessionId" : "cc3357e5-6158-4d83-b2c8-3eaa9eb204b6",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "160fca5c-7fa1-4aa0-a151-400f971963db",
+    "userMessage" : {
+      "id" : "04742015-6d93-4cca-b085-7f0bb4c35d06",
+      "role" : "USER",
+      "content" : "Read the first 5 lines of large_file.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:01:01.910315Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "c11ad00d-08ca-46df-ba11-e38d9465c72a",
+      "role" : "ASSISTANT",
+      "content" : "Reading first part of the file.",
+      "toolCalls" : [ {
+        "id" : "call_1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "end_line" : 5,
+          "start_line" : 1,
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8401080355880761157/large_file.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:01:01.913895Z"
+    }, {
+      "id" : "6a44d70e-e92a-4c4c-97b5-3db3b35249eb",
+      "role" : "TOOL",
+      "content" : "[Output from 'read_file' was large (9 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8401080355880761157/.ganglia/tmp/cc3357e5-6158-4d83-b2c8-3eaa9eb204b6/call_1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8401080355880761157/.ganglia/tmp/cc3357e5-6158-4d83-b2c8-3eaa9eb204b6/call_1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "call_1",
+        "toolName" : "read_file",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-04-05T11:01:01.916700Z"
+    } ],
+    "finalResponse" : {
+      "id" : "2f3c89f9-e763-4a9d-a0bc-26b78fc59cc5",
+      "role" : "ASSISTANT",
+      "content" : "I have read the first 5 lines.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:01:01.919870Z"
+    },
+    "timestamp" : 1775386861910
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

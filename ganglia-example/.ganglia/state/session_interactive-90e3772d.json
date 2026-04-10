@@ -1,0 +1,91 @@
+{
+  "sessionId" : "interactive-90e3772d",
+  "previousTurns" : [ {
+    "id" : "8225018f-b1f5-49f7-9955-61a7eedf8d6a",
+    "userMessage" : {
+      "id" : "13454fa5-992d-45c3-959e-8eb4ff47dc4c",
+      "role" : "USER",
+      "content" : "who are you",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T11:53:23.947179Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "c00d7d6b-aa66-4aae-8a2f-06bdfb15a09e",
+      "role" : "ASSISTANT",
+      "content" : "I am a helpful AI assistant designed to assist with software development tasks. I have access to various tools that allow me to:\n\n- Read, write, and modify files\n- Execute shell commands\n- Search through codebases\n- Manage tasks and plans\n- Remember important information about projects\n- Delegate sub-tasks to specialized agents\n\nI'm currently working in the directory `/Users/stream/codes/opensource/ganglia/ganglia-example` and can help you with various development tasks like code analysis, refactoring, debugging, and more.\n\nHow can I assist you today?",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T11:53:30.822091Z"
+    }
+  }, {
+    "id" : "86660438-5429-4bef-ae48-f92320df63cd",
+    "userMessage" : {
+      "id" : "56b5ce97-bd3b-4bad-8089-51cdddd60d30",
+      "role" : "USER",
+      "content" : "who are you",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T11:53:36.972723Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "37a8d705-eb35-4588-aca6-22ecc9779058",
+      "role" : "ASSISTANT",
+      "content" : "I am a helpful AI assistant designed to assist with software development tasks. I have access to various tools that allow me to:\n\n- Read, write, and modify files\n- Execute shell commands\n- Search through codebases\n- Manage tasks and plans\n- Remember important information about projects\n- Delegate sub-tasks to specialized agents\n\nI'm currently working in the directory `/Users/stream/codes/opensource/ganglia/ganglia-example` and can help you with various development tasks like code analysis, refactoring, debugging, and more.\n\nHow can I assist you today?",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T11:53:42.484895Z"
+    }
+  } ],
+  "currentTurn" : {
+    "id" : "cd3de48f-5eff-48e6-b0e2-dafbd0e151f8",
+    "userMessage" : {
+      "id" : "e911b595-aa1e-4146-832f-6d486994ac75",
+      "role" : "USER",
+      "content" : "你有哪些技能",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T11:53:54.883292Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "51abfb85-25e9-4c27-b574-0e0c0f9aa974",
+      "role" : "ASSISTANT",
+      "content" : "I can help you with a wide range of software development tasks. Let me show you what skills are available:",
+      "toolCalls" : [ {
+        "id" : "fc-267564ab-0ece-459d-9086-d381f8f5a31e",
+        "toolName" : "list_available_skills",
+        "arguments" : { }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T11:54:02.199108Z"
+    }, {
+      "id" : "b7da8c61-c354-4bbf-a3a4-a5d9caad31e1",
+      "role" : "TOOL",
+      "content" : "Available skills:\\n- writing-skills: writing-skills - Use when creating new skills, editing existing skills, or verifying skills work before deployment\\n- dispatching-parallel-agents: dispatching-parallel-agents - Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies\\n- using-git-worktrees: using-git-worktrees - Use when starting feature work that needs isolation from current workspace or before executing implementation plans - creates isolated git worktrees with smart directory selection and safety verification\\n- writing-plans: writing-plans - Use when you have a spec or requirements for a multi-step task, before touching code\\n- systematic-debugging: systematic-debugging - Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes\\n- using-superpowers: using-superpowers - Use when starting any conversation - establishes how to find and use skills, requiring Skill tool invocation before ANY response including clarifying questions\\n- requesting-code-review: requesting-code-review - Use when completing tasks, implementing major features, or before merging to verify work meets requirements\\n- finishing-a-development-branch: finishing-a-development-branch - Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup\\n- executing-plans: executing-plans - Use when you have a written implementation plan to execute in a separate session with review checkpoints\\n- receiving-code-review: receiving-code-review - Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation\\n- verification-before-completion: verification-before-completion - Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always\\n- test-driven-development: test-driven-development - Use when implementing any feature or bugfix, before writing implementation code\\n- subagent-driven-development: subagent-driven-development - Use when executing implementation plans with independent tasks in the current session\\n- brainstorming: brainstorming - You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "fc-267564ab-0ece-459d-9086-d381f8f5a31e",
+        "toolName" : "list_available_skills"
+      },
+      "timestamp" : "2026-03-23T11:54:02.272187Z"
+    } ],
+    "finalResponse" : {
+      "id" : "c6a19f50-2147-437e-979a-3f33bfa8445a",
+      "role" : "ASSISTANT",
+      "content" : "Here are the skills I have available:\n\n**Core Development Skills:**\n- **writing-skills** - Creating and editing skills\n- **writing-plans** - Multi-step task planning\n- **executing-plans** - Implementing planned work\n- **test-driven-development** - TDD approach for features/bugfixes\n\n**Collaboration & Quality:**\n- **requesting-code-review** - Getting code reviews\n- **receiving-code-review** - Handling review feedback\n- **verification-before-completion** - Final verification before completion\n\n**Advanced Workflows:**\n- **dispatching-parallel-agents** - Parallel task execution\n- **subagent-driven-development** - Multi-agent implementation\n- **using-git-worktrees** - Isolated feature development\n- **systematic-debugging** - Structured bug fixing\n- **brainstorming** - Creative exploration before implementation\n\n**Project Management:**\n- **finishing-a-development-branch** - Clean branch completion\n\n**Meta Skills:**\n- **using-superpowers** - Finding and using other skills\n\nWould you like me to activate any specific skill to help with your current task? Each skill provides specialized capabilities and workflows tailored to different development scenarios.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T11:54:15.258816Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "Kimi-K2-Instruct-0905",
+    "stream" : true
+  }
+}

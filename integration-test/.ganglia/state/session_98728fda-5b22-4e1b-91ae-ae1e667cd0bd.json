@@ -1,0 +1,56 @@
+{
+  "sessionId" : "98728fda-5b22-4e1b-91ae-ae1e667cd0bd",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "8eeb5452-b628-45c0-a273-1b42bed30fb2",
+    "userMessage" : {
+      "id" : "dc85f70a-ccd7-49ab-bbdd-56022050bf78",
+      "role" : "USER",
+      "content" : "Read long.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-30T08:27:32.612868Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "ac887e33-d48e-4a50-b9f9-73ff84d4345d",
+      "role" : "ASSISTANT",
+      "content" : "",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-13349193440893245165/long.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-30T08:27:32.640237Z"
+    }, {
+      "id" : "4658f8a9-f961-493a-bcfb-09031af3182f",
+      "role" : "TOOL",
+      "content" : "[Output from 'read_file' was large (503 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-13349193440893245165/.ganglia/tmp/98728fda-5b22-4e1b-91ae-ae1e667cd0bd/c1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-13349193440893245165/.ganglia/tmp/98728fda-5b22-4e1b-91ae-ae1e667cd0bd/c1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "read_file",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-03-30T08:27:32.675606Z"
+    } ],
+    "finalResponse" : {
+      "id" : "d332a292-6575-4539-b89a-19ac07f0138a",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-30T08:27:32.686040Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

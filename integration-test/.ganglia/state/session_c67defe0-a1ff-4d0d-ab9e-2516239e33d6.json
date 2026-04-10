@@ -1,0 +1,88 @@
+{
+  "sessionId" : "c67defe0-a1ff-4d0d-ab9e-2516239e33d6",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "5ce7ae19-7b35-4db8-9de7-70c3e430385b",
+    "userMessage" : {
+      "id" : "755a3984-5207-438e-b180-83c5f771b7ce",
+      "role" : "USER",
+      "content" : "Read three missing files",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T05:44:23.027039Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "50669f11-fb7d-437f-8b41-39b09f637f75",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 1.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "no_such_file_1.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T05:44:23.032241Z"
+    }, {
+      "id" : "c91f179a-0029-4e23-bfcf-eab1302d436e",
+      "role" : "TOOL",
+      "content" : "[Output from 'read_file' was large (1 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-6096362042613535462/.ganglia/tmp/c67defe0-a1ff-4d0d-ab9e-2516239e33d6/c1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-6096362042613535462/.ganglia/tmp/c67defe0-a1ff-4d0d-ab9e-2516239e33d6/c1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "read_file",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-03-28T05:44:23.036589Z"
+    }, {
+      "id" : "3e31ef27-8c8d-4ae7-b51d-0d831651f3c0",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 2.",
+      "toolCalls" : [ {
+        "id" : "c2",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "no_such_file_2.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T05:44:23.040068Z"
+    }, {
+      "id" : "36325b57-ffe4-4e53-9adf-8493bbd72369",
+      "role" : "TOOL",
+      "content" : "[Output from 'read_file' was large (1 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-6096362042613535462/.ganglia/tmp/c67defe0-a1ff-4d0d-ab9e-2516239e33d6/c2.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-6096362042613535462/.ganglia/tmp/c67defe0-a1ff-4d0d-ab9e-2516239e33d6/c2.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "read_file",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-03-28T05:44:23.042299Z"
+    }, {
+      "id" : "6ee88b60-d310-484f-9cdf-62c566646710",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 3.",
+      "toolCalls" : [ {
+        "id" : "c3",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "no_such_file_3.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T05:44:23.045374Z"
+    } ],
+    "finalResponse" : null
+  },
+  "metadata" : {
+    "consecutive_tool_failures" : 2
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

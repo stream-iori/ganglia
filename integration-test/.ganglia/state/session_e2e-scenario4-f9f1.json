@@ -1,0 +1,80 @@
+{
+  "sessionId" : "e2e-scenario4-f9f1",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "01b8f2c2-b299-4059-8a95-cc1ce727d4d0",
+    "userMessage" : {
+      "id" : "a40f64e7-7f09-4f3d-ac01-72421e7bb526",
+      "role" : "USER",
+      "content" : "Delete the largest log file.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T09:42:51.128355Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "3854a291-92db-4774-a9c2-1f39cbea33a3",
+      "role" : "ASSISTANT",
+      "content" : "I found two files. Please choose one.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "ask_selection",
+        "arguments" : {
+          "questions" : [ {
+            "header" : "Choice",
+            "question" : "Which file to delete?",
+            "options" : [ {
+              "description" : "10KB",
+              "value" : "file1.txt",
+              "label" : "file1.txt"
+            }, {
+              "description" : "20KB",
+              "value" : "file2.txt",
+              "label" : "file2.txt"
+            } ],
+            "type" : "choice"
+          } ]
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T09:42:51.133494Z"
+    }, {
+      "id" : "49a67f1d-c19b-449b-8a17-aadae2df2d24",
+      "role" : "TOOL",
+      "content" : "INTERRUPTED: - Which file to delete? (choice)\n  1. file1.txt - 10KB\n  2. file2.txt - 20KB\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "ask_selection",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-03-28T09:42:51.141961Z"
+    }, {
+      "id" : "f982e191-3667-4383-b36e-2580d718b9a5",
+      "role" : "TOOL",
+      "content" : "file2.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "ask_selection",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-03-28T09:42:51.147437Z"
+    } ],
+    "finalResponse" : {
+      "id" : "281cc058-b3f4-4329-82c7-e6ad33fc098b",
+      "role" : "ASSISTANT",
+      "content" : "Deleting file2.txt...",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T09:42:51.152710Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

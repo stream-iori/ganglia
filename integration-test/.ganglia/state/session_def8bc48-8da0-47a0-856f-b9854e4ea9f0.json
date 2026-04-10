@@ -1,0 +1,63 @@
+{
+  "sessionId" : "def8bc48-8da0-47a0-856f-b9854e4ea9f0",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "ff741d57-5009-4732-890c-2cf231841eab",
+    "userMessage" : {
+      "id" : "ca49e09c-612e-4290-b4d7-aa79d003c1bc",
+      "role" : "USER",
+      "content" : "Run complete workflow",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-02T10:44:48.017054Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "f92982c1-c36f-4f06-87f5-f21b45775aa9",
+      "role" : "ASSISTANT",
+      "content" : "I will list files.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-02T10:44:48.022759Z"
+    }, {
+      "id" : "1f7a5eb3-bf1e-4aed-a427-c432e9c8566a",
+      "role" : "TOOL",
+      "content" : "[Output from 'list_directory' was large (1 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-590087533198300371/.ganglia/tmp/def8bc48-8da0-47a0-856f-b9854e4ea9f0/c1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-590087533198300371/.ganglia/tmp/def8bc48-8da0-47a0-856f-b9854e4ea9f0/c1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "list_directory",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-04-02T10:44:48.026186Z"
+    } ],
+    "finalResponse" : {
+      "id" : "6dfc253a-6558-4bf1-8119-f14b3a017136",
+      "role" : "ASSISTANT",
+      "content" : "Workflow complete.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-02T10:44:48.030610Z"
+    },
+    "timestamp" : 1775126688017
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

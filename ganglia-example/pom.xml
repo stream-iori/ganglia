@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>work.ganglia</groupId>
+    <artifactId>ganglia-parent</artifactId>
+    <version>0.1.7-SNAPSHOT</version>
+  </parent>
+
+  <artifactId>ganglia-example</artifactId>
+
+  <dependencies>
+    <dependency>
+      <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-harness</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-local-file-memory</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-coding</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-coding-web</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-observability</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-trajectory</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>work.ganglia</groupId>
+      <artifactId>ganglia-terminal</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.vertx</groupId>
+      <artifactId>vertx-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j2-impl</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>com.diffplug.spotless</groupId>
+        <artifactId>spotless-maven-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

@@ -1,0 +1,86 @@
+{
+  "sessionId" : "67ef4c39-6df4-4b71-9428-076c42f7048e",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "d9861fbf-6a00-426e-8778-2b4b978e7752",
+    "userMessage" : {
+      "id" : "54f519aa-3b67-43f4-a657-c28fd3853ae0",
+      "role" : "USER",
+      "content" : "Read three missing files",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:09.396249Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "5c8a9c82-2e9a-473c-8a24-05bf2175d443",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 1.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "no_such_file_1.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:09.399735Z"
+    }, {
+      "id" : "41403dfd-d0f4-48da-bc48-939002639325",
+      "role" : "TOOL",
+      "content" : "Command failed with exit code 1: File not found: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-16028873372391934675/no_such_file_1.txt\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-24T07:57:09.420755Z"
+    }, {
+      "id" : "37fde883-2e1c-4080-8fc4-323c2f31acfb",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 2.",
+      "toolCalls" : [ {
+        "id" : "c2",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "no_such_file_2.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:09.426652Z"
+    }, {
+      "id" : "c2c34502-7381-4bd2-ad74-02324d4a3261",
+      "role" : "TOOL",
+      "content" : "Command failed with exit code 1: File not found: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-16028873372391934675/no_such_file_2.txt\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-24T07:57:09.445088Z"
+    }, {
+      "id" : "2f047330-d90b-406a-91c7-56212945f248",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 3.",
+      "toolCalls" : [ {
+        "id" : "c3",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "no_such_file_3.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:09.449203Z"
+    } ],
+    "finalResponse" : null
+  },
+  "metadata" : {
+    "consecutive_tool_failures" : 2
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

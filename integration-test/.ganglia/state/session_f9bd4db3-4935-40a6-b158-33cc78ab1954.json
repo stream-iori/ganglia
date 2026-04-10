@@ -1,0 +1,73 @@
+{
+  "sessionId" : "f9bd4db3-4935-40a6-b158-33cc78ab1954",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "de433bb1-6e82-47bf-809c-244dc30610d8",
+    "userMessage" : {
+      "id" : "bce64d06-fc7e-4672-9c9a-db4f25acb853",
+      "role" : "USER",
+      "content" : "Create two files",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T06:00:25.199119Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "370ae26c-d208-41a3-bd75-193920db5614",
+      "role" : "ASSISTANT",
+      "content" : "Creating files.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "write_file",
+        "arguments" : {
+          "content" : "content1",
+          "file_path" : "file1.txt"
+        }
+      }, {
+        "id" : "c2",
+        "toolName" : "write_file",
+        "arguments" : {
+          "content" : "content2",
+          "file_path" : "file2.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T06:00:25.202619Z"
+    }, {
+      "id" : "07d9f291-d7b9-4bc4-8aea-c3dc73600356",
+      "role" : "TOOL",
+      "content" : "SUCCESS: Wrote file file1.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "write_file"
+      },
+      "timestamp" : "2026-03-27T06:00:25.228104Z"
+    }, {
+      "id" : "0cec4522-e772-4678-8099-7f77cab53038",
+      "role" : "TOOL",
+      "content" : "SUCCESS: Wrote file file2.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "write_file"
+      },
+      "timestamp" : "2026-03-27T06:00:25.246685Z"
+    } ],
+    "finalResponse" : {
+      "id" : "73888141-a97b-47b3-bf28-2e67a9212a9e",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T06:00:25.250955Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

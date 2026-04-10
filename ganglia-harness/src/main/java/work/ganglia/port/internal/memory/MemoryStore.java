@@ -1,0 +1,20 @@
+package work.ganglia.port.internal.memory;
+
+import java.util.List;
+
+import io.vertx.core.Future;
+
+import work.ganglia.port.internal.memory.model.MemoryEntry;
+import work.ganglia.port.internal.memory.model.MemoryIndexItem;
+import work.ganglia.port.internal.memory.model.MemoryQuery;
+
+/** Port for Long-term Memory Storage and Retrieval (Hybrid Search & Progressive Disclosure). */
+public interface MemoryStore {
+  Future<Void> store(MemoryEntry entry);
+
+  Future<List<MemoryEntry>> search(MemoryQuery query);
+
+  Future<List<MemoryIndexItem>> getRecentIndex(int limit);
+
+  Future<MemoryEntry> recall(String id);
+}

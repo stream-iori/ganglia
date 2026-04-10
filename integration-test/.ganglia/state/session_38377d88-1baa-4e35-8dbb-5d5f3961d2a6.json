@@ -1,0 +1,48 @@
+{
+  "sessionId" : "38377d88-1baa-4e35-8dbb-5d5f3961d2a6",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "a0a405cb-7077-42d3-90d4-4f0130ac18be",
+    "userMessage" : {
+      "id" : "0cf7f99c-ce6f-418f-84f7-6daa5dbe173e",
+      "role" : "USER",
+      "content" : "Read long.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T02:59:04.152891Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "3a937cc1-c47a-46ad-949b-c91aa521cdb1",
+      "role" : "ASSISTANT",
+      "content" : "",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-18129201098129090679/long.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T02:59:04.181990Z"
+    }, {
+      "id" : "dd922934-3c12-41d7-95e5-c97ae69bea4b",
+      "role" : "TOOL",
+      "content" : "This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. Th [...Line truncated...]\n\n--- [Lines 1 to 1 shown] ---\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-25T02:59:04.217753Z"
+    } ],
+    "finalResponse" : null
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

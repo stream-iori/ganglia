@@ -1,0 +1,25 @@
+{
+  "sessionId" : "23134f89-3a36-428a-b173-ea3eaa35f30a",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "e57487a9-65e0-41eb-b713-9b62016aa373",
+    "userMessage" : {
+      "id" : "24a3ac4c-e338-463c-a1b2-9bd4ea38b50d",
+      "role" : "USER",
+      "content" : "Abort me",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T05:42:44.231070Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : null
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

@@ -1,0 +1,56 @@
+{
+  "sessionId" : "91e5f43d-46ef-4b71-8535-f043fe1dbf92",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "ada4a299-436a-43a7-8b89-4ed1426781d4",
+    "userMessage" : {
+      "id" : "4319b93d-edef-45c5-b942-0b6f4bb20419",
+      "role" : "USER",
+      "content" : "Find three numbers and sum them up",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T06:53:08.020261Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "2acc9d04-cba1-4dfa-b26c-9d39d57a13b2",
+      "role" : "ASSISTANT",
+      "content" : "Delegating...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "call_sub_agent",
+        "arguments" : {
+          "task" : "Find three numbers in the project files.",
+          "persona" : "INVESTIGATOR"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T06:53:08.023948Z"
+    }, {
+      "id" : "46cdc946-aa76-4d5b-83c7-b1f865f4dfdd",
+      "role" : "TOOL",
+      "content" : "--- SUB-AGENT REPORT ---\nI found three numbers: 10, 20, and 30.\n--- END REPORT ---",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "call_sub_agent"
+      },
+      "timestamp" : "2026-03-27T06:53:08.030200Z"
+    } ],
+    "finalResponse" : {
+      "id" : "a8a3dfa8-1360-43f5-9836-225a25d062f0",
+      "role" : "ASSISTANT",
+      "content" : "The sum of 10, 20, and 30 is 60.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T06:53:08.035168Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "sessionId" : "e2e-scenario1-0a4a",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "2e619018-3c92-41c3-b9c4-4e00b1095699",
+    "userMessage" : {
+      "id" : "fca570c3-71fc-4991-96a1-10208628f1a7",
+      "role" : "USER",
+      "content" : "Fetch the content from http://localhost:8085/readme.md and remember the project conventions.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T05:17:37.044338Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "81b392f9-5eb1-4f24-ba51-cd9cf79a1e50",
+      "role" : "ASSISTANT",
+      "content" : "Fetching conventions...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "web_fetch",
+        "arguments" : {
+          "url" : "http://localhost:8085/readme.md"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T05:17:37.051208Z"
+    }, {
+      "id" : "2be4cb3e-247e-46bc-8936-ea17d851b830",
+      "role" : "TOOL",
+      "content" : "# Project Conventions\n- Use Java 17 records.",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "web_fetch"
+      },
+      "timestamp" : "2026-03-25T05:17:37.198168Z"
+    }, {
+      "id" : "4af4330b-9b3e-4eb5-84cf-efbded153c79",
+      "role" : "ASSISTANT",
+      "content" : "Remembering fact...",
+      "toolCalls" : [ {
+        "id" : "c2",
+        "toolName" : "remember",
+        "arguments" : {
+          "fact" : "Convention: Use Java 17 records."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T05:17:37.207052Z"
+    }, {
+      "id" : "3805b652-2fd1-4d27-8bf8-c2450e5b97bd",
+      "role" : "TOOL",
+      "content" : "Remembered: Convention: Use Java 17 records.",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "remember"
+      },
+      "timestamp" : "2026-03-25T05:17:37.210999Z"
+    } ],
+    "finalResponse" : {
+      "id" : "810f2e81-4f03-41e9-9bf6-702c8bb36f75",
+      "role" : "ASSISTANT",
+      "content" : "Task complete.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T05:17:37.219751Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

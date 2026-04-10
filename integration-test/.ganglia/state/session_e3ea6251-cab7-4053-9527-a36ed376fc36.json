@@ -1,0 +1,58 @@
+{
+  "sessionId" : "e3ea6251-cab7-4053-9527-a36ed376fc36",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "e71ab86a-4d97-451d-b8ef-cd284b7423d2",
+    "userMessage" : {
+      "id" : "4fcb348f-fea8-4dba-a284-eb338f334db3",
+      "role" : "USER",
+      "content" : "Fetch data from FTP",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T09:42:54.322040Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "aa7bdb28-1921-42ba-bd1c-c2e3c61f40e5",
+      "role" : "ASSISTANT",
+      "content" : "Fetching data.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "web_fetch",
+        "arguments" : {
+          "url" : "ftp://evil.example.com/data"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T09:42:54.325415Z"
+    }, {
+      "id" : "cfea447f-a777-4154-ba91-4b1d30e37d89",
+      "role" : "TOOL",
+      "content" : "URL validation failed: Blocked scheme: only http and https are allowed",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "web_fetch",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-03-28T09:42:54.327326Z"
+    } ],
+    "finalResponse" : {
+      "id" : "809de09c-6199-44a5-b24c-eabafc3859c7",
+      "role" : "ASSISTANT",
+      "content" : "Scheme not allowed. Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T09:42:54.376769Z"
+    }
+  },
+  "metadata" : {
+    "consecutive_tool_failures" : 1
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

@@ -1,0 +1,92 @@
+package work.ganglia;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import io.vertx.core.Future;
+import io.vertx.core.Vertx;
+
+import work.ganglia.config.ConfigManager;
+import work.ganglia.infrastructure.internal.state.TokenUsageManager;
+import work.ganglia.kernel.AgentEnv;
+import work.ganglia.kernel.GangliaKernel;
+import work.ganglia.kernel.loop.AgentLoop;
+import work.ganglia.kernel.todo.ToDoContextSource;
+import work.ganglia.port.external.llm.ModelGateway;
+import work.ganglia.port.external.tool.ToolExecutor;
+import work.ganglia.port.internal.prompt.ContextSource;
+import work.ganglia.port.internal.state.SessionManager;
+import work.ganglia.port.internal.state.TraceWriter;
+
+/** A container for the bootstrapped Ganglia core components. */
+public record Ganglia(
+    Vertx vertx,
+    ModelGateway modelGateway,
+    ToolExecutor toolExecutor,
+    SessionManager sessionManager,
+    AgentLoop agentLoop,
+    ConfigManager configManager,
+    AgentEnv env,
+    int mcpServersCount,
+    work.ganglia.infrastructure.mcp.McpRegistry mcpRegistry,
+    TraceWriter traceWriter,
+    TokenUsageManager tokenUsageManager) {
+  /** Shuts down the Ganglia instance and all its components, including MCP servers. */
+  public void shutdown() {
+    if (traceWriter != null) {
+      traceWriter.close();
+    }
+    if (tokenUsageManager != null) {
+      tokenUsageManager.close();
+    }
+    if (mcpRegistry != null) {
+      mcpRegistry.close();
+    }
+    vertx.close();
+  }
+
+  /**
+   * Initializes the Ganglia framework with default configuration and a new Vertx instance.
+   *
+   * @return A future that completes with the initialized Ganglia instance.
+   */
+  public static Future<Ganglia> bootstrap() {
+    return bootstrap(Vertx.vertx());
+  }
+
+  /**
+   * Initializes the Ganglia framework with default configuration.
+   *
+   * @param vertx The Vertx instance to use.
+   * @return A future that completes with the initialized Ganglia instance.
+   */
+  public static Future<Ganglia> bootstrap(Vertx vertx) {
+    return bootstrap(vertx, BootstrapOptions.defaultOptions());
+  }
+
+  /**
+   * Initializes the Ganglia framework with specific options and a new Vertx instance.
+   *
+   * @param options Initialization options.
+   * @return A future that completes with the initialized Ganglia instance.
+   */
+  public static Future<Ganglia> bootstrap(BootstrapOptions options) {
+    return bootstrap(Vertx.vertx(), options);
+  }
+
+  /**
+   * Initializes the Ganglia framework with specific options.
+   *
+   * @param vertx The Vertx instance to use.
+   * @param options Initialization options.
+   * @return A future that completes with the initialized Ganglia instance.
+   */
+  public static Future<Ganglia> bootstrap(Vertx vertx, BootstrapOptions options) {
+    List<ContextSource> contexts = new ArrayList<>(options.extraContextSources());
+    contexts.add(new ToDoContextSource());
+
+    BootstrapOptions finalOptions = options.toBuilder().extraContextSources(contexts).build();
+
+    return new GangliaKernel(vertx, finalOptions).init();
+  }
+}

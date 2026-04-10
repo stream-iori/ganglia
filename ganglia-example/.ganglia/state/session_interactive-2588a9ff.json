@@ -1,0 +1,32 @@
+{
+  "sessionId" : "interactive-2588a9ff",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "02bbdd14-b40f-437c-af32-68ec0cd94c41",
+    "userMessage" : {
+      "id" : "0124f297-8226-4cd4-ab86-e4bb90a5a4e2",
+      "role" : "USER",
+      "content" : "who are you",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T05:18:08.297788Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "b47e3326-41b3-474b-b761-b90d36da0285",
+      "role" : "ASSISTANT",
+      "content" : "I'm a helpful AI assistant designed to assist you with software development tasks. I have access to various tools that allow me to:\n\n- Read, write, and modify files\n- Execute shell commands\n- Search through codebases\n- Manage tasks and plans\n- Remember important information about projects\n- Delegate sub-tasks to specialized agents\n- Interact with web resources\n\nI'm currently working in the directory `/Users/stream/codes/opensource/ganglia/ganglia-example` and can help you with your development needs. How can I assist you today?",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T05:18:13.346279Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "Kimi-K2-Instruct-0905",
+    "stream" : true
+  }
+}

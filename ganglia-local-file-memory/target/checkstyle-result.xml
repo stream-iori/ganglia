@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="9.3">
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-local-file-memory/src/main/java/work/ganglia/infrastructure/internal/memory/FileSystemLongTermMemory.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-local-file-memory/src/main/java/work/ganglia/infrastructure/internal/memory/FileSystemMemoryStore.java">
+<error line="51" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="122" column="13" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-local-file-memory/src/main/java/work/ganglia/infrastructure/internal/memory/MarkdownTimelineLedger.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-local-file-memory/src/main/java/work/ganglia/infrastructure/internal/memory/FileSystemDailyRecordManager.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-local-file-memory/src/main/java/work/ganglia/infrastructure/internal/memory/FileSystemSessionStore.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-local-file-memory/src/main/java/work/ganglia/infrastructure/internal/memory/FileSystemMemoryProvider.java">
+</file>
+</checkstyle>

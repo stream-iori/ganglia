@@ -1,0 +1,66 @@
+{
+  "sessionId" : "aced30a9-aef6-45f1-abb1-ed9fcc8c3d8b",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "69b7e353-cda8-4ffd-ac51-8f3a9b4e69c0",
+    "userMessage" : {
+      "id" : "c6d49912-b326-4faf-a4b9-1224ef045c4f",
+      "role" : "USER",
+      "content" : "Run a sequence of tasks",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T16:45:27.546625Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "67c99da7-1ccb-4f13-9148-adbd2a4bd742",
+      "role" : "ASSISTANT",
+      "content" : "Executing graph...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "propose_task_graph",
+        "arguments" : {
+          "approved" : true,
+          "nodes" : [ {
+            "persona" : "GENERAL",
+            "id" : "n1",
+            "task" : "Task 1"
+          }, {
+            "task" : "Task 2",
+            "dependencies" : [ "n1" ],
+            "id" : "n2",
+            "persona" : "GENERAL"
+          } ]
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T16:45:27.549969Z"
+    }, {
+      "id" : "921c84e7-51d2-4e7d-b6e2-eff531299ebc",
+      "role" : "TOOL",
+      "content" : "# Task Graph Execution Report\n\n## NODE ID: n1\n### TASK: Task 1\n### RESULT:\nTask 1 Done\n\n## NODE ID: n2\n### TASK: Task 2\n### RESULT:\nTask 2 Done\n\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "propose_task_graph",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-03-29T16:45:27.563778Z"
+    } ],
+    "finalResponse" : {
+      "id" : "fd3c38ed-5d37-41a2-93ac-3798504834bc",
+      "role" : "ASSISTANT",
+      "content" : "Graph completed successfully.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T16:45:27.567970Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

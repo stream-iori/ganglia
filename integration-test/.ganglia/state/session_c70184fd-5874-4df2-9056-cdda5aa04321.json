@@ -1,0 +1,63 @@
+{
+  "sessionId" : "c70184fd-5874-4df2-9056-cdda5aa04321",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "0e2c20ab-f4e3-487d-ad42-04ded2439e4a",
+    "userMessage" : {
+      "id" : "0aff9cc7-642a-4701-bf14-ce077da7401f",
+      "role" : "USER",
+      "content" : "List directory",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T08:45:13.093996Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "6335f7f9-7780-447f-a453-4bb228fbcdab",
+      "role" : "ASSISTANT",
+      "content" : "Listing.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T08:45:13.096879Z"
+    }, {
+      "id" : "4c3e7157-1545-430b-9ad0-f5a2df862499",
+      "role" : "TOOL",
+      "content" : "[Output from 'list_directory' was large (1 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-15985600591517191149/.ganglia/tmp/c70184fd-5874-4df2-9056-cdda5aa04321/c1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-15985600591517191149/.ganglia/tmp/c70184fd-5874-4df2-9056-cdda5aa04321/c1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "list_directory",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-04-10T08:45:13.099658Z"
+    } ],
+    "finalResponse" : {
+      "id" : "e0645553-3fbf-4564-9773-af854536f09c",
+      "role" : "ASSISTANT",
+      "content" : "Done listing.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T08:45:13.102930Z"
+    },
+    "timestamp" : 1775810713093
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

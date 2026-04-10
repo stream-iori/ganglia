@@ -1,0 +1,35 @@
+{
+  "agent": {
+    "maxIterations": 50,
+    "compressionThreshold": 0.7
+  },
+  "models": {
+    "utility": {
+      "name": "Kimi-K2-Instruct-0905",
+      "temperature": 0.0,
+      "maxTokens": 65535,
+      "contextLimit": 128000,
+      "type": "anthropic",
+      "apiKey": "e8rkmxIsZmUaHtTJzT0siXUMhLZi1yQG",
+      "baseUrl": "https://antchat.alipay.com/api/anthropic"
+    },
+    "primary": {
+      "name": "Kimi-K2-Instruct-0905",
+      "temperature": 0.0,
+      "maxTokens": 65535,
+      "contextLimit": 128000,
+      "type": "anthropic",
+      "apiKey": "e8rkmxIsZmUaHtTJzT0siXUMhLZi1yQG",
+      "baseUrl": "https://antchat.alipay.com/api/anthropic"
+    }
+  },
+  "observability": {
+    "enabled": false,
+    "tracePath": ".ganglia/trace"
+  },
+  "webui": {
+    "enabled": true,
+    "port": 8080,
+    "webroot": "webroot"
+  }
+}

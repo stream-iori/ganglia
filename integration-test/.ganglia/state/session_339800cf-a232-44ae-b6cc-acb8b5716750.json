@@ -1,0 +1,86 @@
+{
+  "sessionId" : "339800cf-a232-44ae-b6cc-acb8b5716750",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "17f58049-167e-47a2-9d04-89055a94ff34",
+    "userMessage" : {
+      "id" : "be6348ff-87fb-47e7-8035-c0aa4fae1816",
+      "role" : "USER",
+      "content" : "Read three missing files",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T10:25:08.646353Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "a6848c7f-a244-4d34-982c-a20998bb7e60",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 1.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "no_such_file_1.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T10:25:08.648981Z"
+    }, {
+      "id" : "12ccbcea-509a-408b-a6e2-52449b78979b",
+      "role" : "TOOL",
+      "content" : "Error reading file: File not found: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-14113014568416357830/no_such_file_1.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-26T10:25:08.651835Z"
+    }, {
+      "id" : "9993dd35-4d93-458d-a67d-1cdd7d6db712",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 2.",
+      "toolCalls" : [ {
+        "id" : "c2",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "no_such_file_2.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T10:25:08.656040Z"
+    }, {
+      "id" : "09f1d682-4c03-4612-bf09-5a86d5a2eb4b",
+      "role" : "TOOL",
+      "content" : "Error reading file: File not found: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-14113014568416357830/no_such_file_2.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-26T10:25:08.657824Z"
+    }, {
+      "id" : "0ed22677-02e8-4b61-9a5b-d85b47e2dfe5",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 3.",
+      "toolCalls" : [ {
+        "id" : "c3",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "no_such_file_3.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T10:25:08.664975Z"
+    } ],
+    "finalResponse" : null
+  },
+  "metadata" : {
+    "consecutive_tool_failures" : 2
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

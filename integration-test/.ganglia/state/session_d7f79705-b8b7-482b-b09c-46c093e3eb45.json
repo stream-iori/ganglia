@@ -1,0 +1,88 @@
+{
+  "sessionId" : "d7f79705-b8b7-482b-b09c-46c093e3eb45",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "2234c631-38c7-4ce9-a8f5-054ea97aa4ae",
+    "userMessage" : {
+      "id" : "6b45f9e4-5407-4c21-9936-34c9ef0136c4",
+      "role" : "USER",
+      "content" : "Write hello.txt and read it back.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T08:45:51.927321Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "1f16df83-b0d6-45a9-9565-4bf3eea63722",
+      "role" : "ASSISTANT",
+      "content" : "Writing file.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "write_file",
+        "arguments" : {
+          "file_path" : "hello.txt",
+          "content" : "Hello from SQLite-backed agent!"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T08:45:51.932987Z"
+    }, {
+      "id" : "6764b6f4-cd12-4511-8923-45c68b0d481c",
+      "role" : "TOOL",
+      "content" : "SUCCESS: Wrote file hello.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "write_file",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-04-10T08:45:51.966732Z"
+    }, {
+      "id" : "5119f2ce-ce20-4112-820a-d55cbdaafe4c",
+      "role" : "ASSISTANT",
+      "content" : "Reading back.",
+      "toolCalls" : [ {
+        "id" : "c2",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-1606696860807795480/hello.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T08:45:51.972141Z"
+    }, {
+      "id" : "2961d88d-75a2-4301-bebf-084a56682fe9",
+      "role" : "TOOL",
+      "content" : "[Output from 'read_file' was large (4 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-1606696860807795480/.ganglia/tmp/d7f79705-b8b7-482b-b09c-46c093e3eb45/c2.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-1606696860807795480/.ganglia/tmp/d7f79705-b8b7-482b-b09c-46c093e3eb45/c2.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "read_file",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-04-10T08:45:51.976139Z"
+    } ],
+    "finalResponse" : {
+      "id" : "1f09dc3e-5d1d-432a-89ee-e3159e966c77",
+      "role" : "ASSISTANT",
+      "content" : "File verified.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T08:45:51.981030Z"
+    },
+    "timestamp" : 1775810751927
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

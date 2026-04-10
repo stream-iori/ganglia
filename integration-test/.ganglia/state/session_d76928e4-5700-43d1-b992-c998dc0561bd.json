@@ -1,0 +1,79 @@
+{
+  "sessionId" : "d76928e4-5700-43d1-b992-c998dc0561bd",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "e09e69f0-333d-4be6-bb55-8f45a85ed7f8",
+    "userMessage" : {
+      "id" : "1fd05ad6-7950-4ad6-a145-f35075c15ba7",
+      "role" : "USER",
+      "content" : "Find the secret code 'SECRET_CODE_123' in /var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8428752263064147076",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T08:51:54.654116Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "9c30d53b-6846-44a0-8801-54e8d643dceb",
+      "role" : "ASSISTANT",
+      "content" : "Listing files...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8428752263064147076"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T08:51:54.658333Z"
+    }, {
+      "id" : "1408115f-9d09-4b7c-8367-c44a1efed11b",
+      "role" : "TOOL",
+      "content" : "discovery_test.java\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "list_directory"
+      },
+      "timestamp" : "2026-03-24T08:51:54.691192Z"
+    }, {
+      "id" : "df12afd3-dd84-43ee-be84-11aa94635852",
+      "role" : "ASSISTANT",
+      "content" : "Searching code...",
+      "toolCalls" : [ {
+        "id" : "c2",
+        "toolName" : "grep_search",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8428752263064147076",
+          "pattern" : "SECRET_CODE_123"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T08:51:54.696334Z"
+    }, {
+      "id" : "99366c11-845f-460e-b7d6-5d7f73208f24",
+      "role" : "TOOL",
+      "content" : "/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8428752263064147076/discovery_test.java:1:public class DiscoveryTest { public void hello() { System.out.println(\"SECRET_CODE_123\"); } }\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "grep_search"
+      },
+      "timestamp" : "2026-03-24T08:51:54.723598Z"
+    } ],
+    "finalResponse" : {
+      "id" : "eeafbadb-ea99-4467-84f8-099f2fa4ea1f",
+      "role" : "ASSISTANT",
+      "content" : "Found the secret code in discovery_test.java",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T08:51:54.729431Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

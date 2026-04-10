@@ -1,0 +1,36 @@
+{
+  "sessionId" : "1fcb72f9-07bf-4e59-aea8-fce4418dad20-sub-5cd6",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "01965cae-7250-4746-b516-71ac66e8253b",
+    "userMessage" : {
+      "id" : "1a020bbf-d2b2-44a2-b94f-e33595593dbc",
+      "role" : "USER",
+      "content" : "TASK: Find three numbers in the project files.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T05:43:28.139807Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "016ead0a-b063-4af4-9d2d-14d3b8960e36",
+      "role" : "ASSISTANT",
+      "content" : "I found three numbers: 10, 20, and 30.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T05:43:28.141948Z"
+    }
+  },
+  "metadata" : {
+    "sub_agent_level" : 1,
+    "sub_agent_persona" : "INVESTIGATOR",
+    "is_sub_agent" : true
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

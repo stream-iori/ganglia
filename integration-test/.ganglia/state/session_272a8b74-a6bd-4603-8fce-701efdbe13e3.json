@@ -1,0 +1,56 @@
+{
+  "sessionId" : "272a8b74-a6bd-4603-8fce-701efdbe13e3",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "38e6735d-b12e-4638-abfc-8f7c7f052e0c",
+    "userMessage" : {
+      "id" : "715d7bfc-c744-41c0-84ba-24843d998892",
+      "role" : "USER",
+      "content" : "Run complete workflow",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T06:35:53.476951Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "98af1089-2ffc-4d8a-97d8-4881c3c7d204",
+      "role" : "ASSISTANT",
+      "content" : "I will list files.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T06:35:53.480105Z"
+    }, {
+      "id" : "24718948-a1fa-4f16-a4e8-43aa91c1ef63",
+      "role" : "TOOL",
+      "content" : "[Output from 'list_directory' was large (1 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-7758474753847968857/.ganglia/tmp/272a8b74-a6bd-4603-8fce-701efdbe13e3/c1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-7758474753847968857/.ganglia/tmp/272a8b74-a6bd-4603-8fce-701efdbe13e3/c1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "list_directory",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-03-28T06:35:53.482654Z"
+    } ],
+    "finalResponse" : {
+      "id" : "7cd38704-476c-4637-b975-80d36f6641f7",
+      "role" : "ASSISTANT",
+      "content" : "Workflow complete.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T06:35:53.485454Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

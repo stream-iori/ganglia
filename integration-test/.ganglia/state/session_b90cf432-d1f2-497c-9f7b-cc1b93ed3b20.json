@@ -1,0 +1,57 @@
+{
+  "sessionId" : "b90cf432-d1f2-497c-9f7b-cc1b93ed3b20",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "1e38cc8d-a8a9-4fd2-9bb3-bda08408cd0a",
+    "userMessage" : {
+      "id" : "7172e5ee-e71a-4d5a-9804-2584e9e666a4",
+      "role" : "USER",
+      "content" : "Read the first 5 lines of large_file.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T07:23:44.428851Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "ebb87f7f-81ff-47b8-b42c-6a524d75c2cc",
+      "role" : "ASSISTANT",
+      "content" : "Reading first part of the file.",
+      "toolCalls" : [ {
+        "id" : "call_1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "limit" : 5,
+          "offset" : 0,
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-11814746363087360761/large_file.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T07:23:44.432261Z"
+    }, {
+      "id" : "3c5a3749-b89a-457b-846a-848fadce5d7e",
+      "role" : "TOOL",
+      "content" : "Line 0\nLine 1\nLine 2\nLine 3\nLine 4\n\n--- [Lines 0 to 5 of 20] ---\nHint: More lines available. Use 'read_file' with 'offset: 5' to read more.\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "call_1",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-23T07:23:44.457424Z"
+    } ],
+    "finalResponse" : {
+      "id" : "697ebe75-511a-4e54-86ed-e2f16760f79e",
+      "role" : "ASSISTANT",
+      "content" : "I have read the first 5 lines.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T07:23:44.460904Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

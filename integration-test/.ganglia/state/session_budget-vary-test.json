@@ -1,0 +1,56 @@
+{
+  "sessionId" : "budget-vary-test",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "8a69300e-0155-4d88-b4eb-f89a8c6bf121",
+    "userMessage" : {
+      "id" : "ea5f0417-c8c6-402e-a6c8-ff43113128d6",
+      "role" : "USER",
+      "content" : "Test budget",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T16:47:33.525082Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "e22a5e79-e37b-46e8-a5e5-da5a3e9edf22",
+      "role" : "ASSISTANT",
+      "content" : "Running.",
+      "toolCalls" : [ {
+        "id" : "c-budget",
+        "toolName" : "run_shell_command",
+        "arguments" : {
+          "command" : "echo hi"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T16:47:33.528293Z"
+    }, {
+      "id" : "2d726965-abf1-4eb2-bd94-e3a064ea7ad6",
+      "role" : "TOOL",
+      "content" : "[Output from 'run_shell_command' was large (1 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-15071620165176109631/.ganglia/tmp/budget-vary-test/c-budget.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-15071620165176109631/.ganglia/tmp/budget-vary-test/c-budget.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c-budget",
+        "toolName" : "run_shell_command",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-03-29T16:47:33.530832Z"
+    } ],
+    "finalResponse" : {
+      "id" : "e020d07f-3374-4b46-9b40-b6afea6ca0a4",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T16:47:33.535201Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

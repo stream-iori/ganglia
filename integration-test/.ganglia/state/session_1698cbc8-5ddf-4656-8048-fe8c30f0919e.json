@@ -1,0 +1,57 @@
+{
+  "sessionId" : "1698cbc8-5ddf-4656-8048-fe8c30f0919e",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "4b1e8a72-1ecd-48cd-b7e8-84f13408ff58",
+    "userMessage" : {
+      "id" : "dab562ee-36b1-482e-a6ff-5f247e0efa2a",
+      "role" : "USER",
+      "content" : "Read the first 5 lines of large_file.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T08:01:47.505236Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "cf5625ea-ec6a-43d3-96a0-86e86f38a408",
+      "role" : "ASSISTANT",
+      "content" : "Reading first part of the file.",
+      "toolCalls" : [ {
+        "id" : "call_1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "start_line" : 1,
+          "end_line" : 5,
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-2341984971274726291/large_file.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T08:01:47.508253Z"
+    }, {
+      "id" : "c3d71c03-d8a6-456d-8b77-fe1b9a01e247",
+      "role" : "TOOL",
+      "content" : "Line 0\nLine 1\nLine 2\nLine 3\nLine 4\n\n--- [Lines 1 to 5 shown] ---\nHint: More lines available. Use 'read_file' with 'start_line: 6' to read more.\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "call_1",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-26T08:01:47.511266Z"
+    } ],
+    "finalResponse" : {
+      "id" : "3acfe4d3-35d3-448e-8116-5f0221111dfc",
+      "role" : "ASSISTANT",
+      "content" : "I have read the first 5 lines.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T08:01:47.516162Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

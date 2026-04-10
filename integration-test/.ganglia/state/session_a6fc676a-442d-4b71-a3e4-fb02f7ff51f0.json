@@ -1,0 +1,65 @@
+{
+  "sessionId" : "a6fc676a-442d-4b71-a3e4-fb02f7ff51f0",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "d5e260e0-67e4-4d71-92c6-542998455d16",
+    "userMessage" : {
+      "id" : "c11f115d-1712-4a48-9a49-428edaec3e18",
+      "role" : "USER",
+      "content" : "Run a sequence of tasks",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T08:19:56.375688Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "3c3272db-40d9-4ccb-bb79-fac108416255",
+      "role" : "ASSISTANT",
+      "content" : "Executing graph...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "propose_task_graph",
+        "arguments" : {
+          "nodes" : [ {
+            "persona" : "GENERAL",
+            "task" : "Task 1",
+            "id" : "n1"
+          }, {
+            "task" : "Task 2",
+            "persona" : "GENERAL",
+            "id" : "n2",
+            "dependencies" : [ "n1" ]
+          } ],
+          "approved" : true
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T08:19:56.378960Z"
+    }, {
+      "id" : "64b6c6d1-233d-440d-968b-92db574bb15b",
+      "role" : "TOOL",
+      "content" : "# Task Graph Execution Report\n\n## NODE ID: n1\n### TASK: Task 1\n### RESULT:\nTask 1 Done\n\n## NODE ID: n2\n### TASK: Task 2\n### RESULT:\nTask 2 Done\n\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "propose_task_graph"
+      },
+      "timestamp" : "2026-03-27T08:19:56.393221Z"
+    } ],
+    "finalResponse" : {
+      "id" : "ea814836-1b40-460c-920d-215041735a8d",
+      "role" : "ASSISTANT",
+      "content" : "Graph completed successfully.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T08:19:56.426841Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

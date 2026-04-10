@@ -1,0 +1,55 @@
+{
+  "sessionId" : "30df995e-bda1-470f-822f-06f3fb8134ef",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "126b85af-27da-42f3-8b9c-ba28032315e5",
+    "userMessage" : {
+      "id" : "8ab52870-e28c-41fa-8f6a-a1a1bc08769f",
+      "role" : "USER",
+      "content" : "Run subtask",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T05:18:07.102495Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "5e7918fb-e2c4-4ffd-bef4-6109a3ad7928",
+      "role" : "ASSISTANT",
+      "content" : "Delegating...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "call_sub_agent",
+        "arguments" : {
+          "task" : "SubTask"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T05:18:07.106066Z"
+    }, {
+      "id" : "8c7199a9-80df-4cf4-a721-73c71705ec08",
+      "role" : "TOOL",
+      "content" : "--- SUB-AGENT REPORT ---\nSubAgent Result\n--- END REPORT ---",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "call_sub_agent"
+      },
+      "timestamp" : "2026-03-25T05:18:07.113425Z"
+    } ],
+    "finalResponse" : {
+      "id" : "1635dfde-ccb4-43ce-ba06-c7de86000f56",
+      "role" : "ASSISTANT",
+      "content" : "Final Answer",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T05:18:07.117367Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

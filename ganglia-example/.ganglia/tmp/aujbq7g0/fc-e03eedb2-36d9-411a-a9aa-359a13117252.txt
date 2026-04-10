@@ -1,0 +1,3 @@
+./target/classes/log4j2.xml
+./pom.xml
+./src/main/resources/log4j2.xml

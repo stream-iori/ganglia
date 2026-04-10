@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="9.3">
+<file name="/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/WebUIVerticle.java">
+<error line="414" column="15" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/WebUIEventPublisher.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/model/CodingEventType.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/model/JsonRpcResponse.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/model/ServerEvent.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/model/JsonRpcRequest.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/model/JsonRpcNotification.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/model/TtyEvent.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/GangliaWebMain.java">
+</file>
+</checkstyle>

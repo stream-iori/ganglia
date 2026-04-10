@@ -1,0 +1,88 @@
+{
+  "sessionId" : "81010c7d-974d-4ec2-8a7b-a22401ba79d7",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "619cbfc6-34d9-4fb9-ad89-19b35edc7ee0",
+    "userMessage" : {
+      "id" : "7253ebda-4ec4-44c0-908b-43303f324246",
+      "role" : "USER",
+      "content" : "Find the secret code 'SECRET_CODE_123' in /var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-14756651942154898039",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:01:02.501943Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "15700e02-2898-41d8-9bea-b4f430157364",
+      "role" : "ASSISTANT",
+      "content" : "Listing files...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-14756651942154898039"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:01:02.504831Z"
+    }, {
+      "id" : "e1904552-e7ae-408b-a52b-1a5391b82a23",
+      "role" : "TOOL",
+      "content" : "[Output from 'list_directory' was large (2 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-14756651942154898039/.ganglia/tmp/81010c7d-974d-4ec2-8a7b-a22401ba79d7/c1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-14756651942154898039/.ganglia/tmp/81010c7d-974d-4ec2-8a7b-a22401ba79d7/c1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "list_directory",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-04-05T11:01:02.507132Z"
+    }, {
+      "id" : "0e4efefb-d0d7-4ca6-a73c-ab589a51dafb",
+      "role" : "ASSISTANT",
+      "content" : "Searching code...",
+      "toolCalls" : [ {
+        "id" : "c2",
+        "toolName" : "grep_search",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-14756651942154898039",
+          "pattern" : "SECRET_CODE_123"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:01:02.510269Z"
+    }, {
+      "id" : "a1b1e841-1400-4bc4-8a6a-77bf8d13202e",
+      "role" : "TOOL",
+      "content" : "/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-14756651942154898039/discovery_test.java:1:public class DiscoveryTest { public void hello() { System.out.println(\"SECRET_CODE_123\"); } }\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "grep_search",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-04-05T11:01:02.530573Z"
+    } ],
+    "finalResponse" : {
+      "id" : "9d9ba66e-b61b-4901-a26e-35275cd41fbf",
+      "role" : "ASSISTANT",
+      "content" : "Found the secret code in discovery_test.java",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:01:02.534366Z"
+    },
+    "timestamp" : 1775386862501
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

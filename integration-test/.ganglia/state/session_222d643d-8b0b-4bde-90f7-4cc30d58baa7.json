@@ -1,0 +1,64 @@
+{
+  "sessionId" : "222d643d-8b0b-4bde-90f7-4cc30d58baa7",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "a1df89b4-1afb-4e2b-9ee5-921a1b5461be",
+    "userMessage" : {
+      "id" : "a11db343-b949-4ac0-9e4c-aab804883c8b",
+      "role" : "USER",
+      "content" : "Find the secret code in /var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-3515587628480138918",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T10:59:05.435489Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "28fba91b-6db4-4c95-9982-2b684dee5318",
+      "role" : "ASSISTANT",
+      "content" : "Searching memory...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "grep_search",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-3515587628480138918",
+          "pattern" : "secret code"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T10:59:05.440934Z"
+    }, {
+      "id" : "2c29e434-fb7c-41eb-8fd3-eddf0d47dc6a",
+      "role" : "TOOL",
+      "content" : "/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-3515587628480138918/.ganglia/memory/MEMORY.md:1:The secret code is 998877\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "grep_search",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-04-05T10:59:05.463698Z"
+    } ],
+    "finalResponse" : {
+      "id" : "42e322a3-699a-4a83-9e0e-69ada99915c6",
+      "role" : "ASSISTANT",
+      "content" : "The code is 998877.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T10:59:05.469912Z"
+    },
+    "timestamp" : 1775386745435
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

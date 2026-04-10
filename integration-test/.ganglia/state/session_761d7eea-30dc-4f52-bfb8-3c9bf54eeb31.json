@@ -1,0 +1,56 @@
+{
+  "sessionId" : "761d7eea-30dc-4f52-bfb8-3c9bf54eeb31",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "5490e939-45e3-4e61-a8b1-8ba43c954995",
+    "userMessage" : {
+      "id" : "b5a8322e-38fb-413b-817d-00d49f4e31b3",
+      "role" : "USER",
+      "content" : "Apply patch to app.java",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:04.131526Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "07b359c3-f484-4e82-86c3-d1bc3fd5e51f",
+      "role" : "ASSISTANT",
+      "content" : "Applying patch.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "apply_patch",
+        "arguments" : {
+          "patch" : "--- app.java\n+++ app.java\n@@ -1,1 +1,1 @@\n-public class App {}\n+public class App { public static void main(String[] args) {} }\n",
+          "file_path" : "app.java"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:04.135556Z"
+    }, {
+      "id" : "2f9efe70-ea54-45fb-976f-92fe60860a07",
+      "role" : "TOOL",
+      "content" : "SUCCESS: Applied patch to app.java\npatching file '/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-18276697049036389504/app.java'\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "apply_patch"
+      },
+      "timestamp" : "2026-03-24T07:57:04.159175Z"
+    } ],
+    "finalResponse" : {
+      "id" : "ff559c23-2002-4baf-83ee-3edf58de4ca2",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:04.163969Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

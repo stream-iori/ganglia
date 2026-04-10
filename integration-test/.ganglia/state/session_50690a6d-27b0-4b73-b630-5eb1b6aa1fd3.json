@@ -1,0 +1,55 @@
+{
+  "sessionId" : "50690a6d-27b0-4b73-b630-5eb1b6aa1fd3",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "2193ba5d-be6f-4f2f-84f3-74339b1f135f",
+    "userMessage" : {
+      "id" : "18d166f3-8c7c-41f3-94b3-f6ec29bb1434",
+      "role" : "USER",
+      "content" : "Run complete workflow",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T09:58:40.784867Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "665ffe43-a836-4c26-b101-4b76e76ba8a5",
+      "role" : "ASSISTANT",
+      "content" : "I will list files.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T09:58:40.788646Z"
+    }, {
+      "id" : "cb164ca8-7eac-4d25-ab01-5f185bd93d8e",
+      "role" : "TOOL",
+      "content" : ".ganglia/",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "list_directory"
+      },
+      "timestamp" : "2026-03-26T09:58:40.791562Z"
+    } ],
+    "finalResponse" : {
+      "id" : "de3d016c-0ae2-4d63-b516-9f00baddfe14",
+      "role" : "ASSISTANT",
+      "content" : "Workflow complete.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T09:58:40.795599Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

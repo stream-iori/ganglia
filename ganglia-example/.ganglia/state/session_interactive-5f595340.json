@@ -1,0 +1,135 @@
+{
+  "sessionId" : "interactive-5f595340",
+  "previousTurns" : [ {
+    "id" : "fc081b32-c8cc-44ee-a429-6353c5735eab",
+    "userMessage" : {
+      "id" : "1e9fbda9-e957-45ec-a800-5f44197b43a1",
+      "role" : "USER",
+      "content" : "who are you",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T10:01:06.461032Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "4960b75d-7868-417d-83f2-168b46be660f",
+      "role" : "ASSISTANT",
+      "content" : "I am an AI assistant designed to help you with software development tasks. I can help you explore codebases, analyze files, run commands, make modifications, and manage development workflows. I have access to various tools for file operations, shell commands, and can even delegate tasks to specialized sub-agents.\n\nI'm currently working in the directory `/Users/stream/codes/opensource/ganglia/ganglia-example` and can help you with any development tasks you need in this project or elsewhere.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T10:01:11.539220Z"
+    }
+  }, {
+    "id" : "2d12bbfa-184e-4c7c-b814-8dc74faa8d35",
+    "userMessage" : {
+      "id" : "11ec0611-abf8-4215-bc66-7945ce4e2003",
+      "role" : "USER",
+      "content" : "who are you",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T10:01:20.117423Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "8820466e-352a-4120-a352-75bbfeab8c88",
+      "role" : "ASSISTANT",
+      "content" : "I am an AI assistant designed to help you with software development tasks. I can help you explore codebases, analyze files, run commands, make modifications, and manage development workflows. I have access to various tools for file operations, shell commands, and can even delegate tasks to specialized sub-agents.\n\nI'm currently working in the directory `/Users/stream/codes/opensource/ganglia/ganglia-example` and can help you with any development tasks you need in this project or elsewhere.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T10:01:25.114114Z"
+    }
+  }, {
+    "id" : "6349d09c-a364-4a0b-ab5d-1a1bfcccfae3",
+    "userMessage" : {
+      "id" : "29348580-edb1-48e1-bcd9-0decdac3b42e",
+      "role" : "USER",
+      "content" : "当前目录有多少markdown文件",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T10:01:41.022802Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "09a50cd7-0f45-4ab6-b0eb-8c0f340021d2",
+      "role" : "ASSISTANT",
+      "content" : "我来帮您查看当前目录下有多少markdown文件。",
+      "toolCalls" : [ {
+        "id" : "fc-f93e6d49-09f3-4b3e-921f-813d57a9d623",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "/Users/stream/codes/opensource/ganglia/ganglia-example"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T10:01:43.591933Z"
+    }, {
+      "id" : "ba4763ce-ef3e-439c-a80f-2b14811c4d84",
+      "role" : "TOOL",
+      "content" : ".ganglia/\npom.xml\nsrc/\ntarget/",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "fc-f93e6d49-09f3-4b3e-921f-813d57a9d623",
+        "toolName" : "list_directory"
+      },
+      "timestamp" : "2026-03-27T10:01:43.682557Z"
+    }, {
+      "id" : "a055e57d-dc29-4b8c-acb2-8c1843ef47a2",
+      "role" : "ASSISTANT",
+      "content" : "",
+      "toolCalls" : [ {
+        "id" : "fc-479cf0d4-c45e-449d-8324-5b21f6739426",
+        "toolName" : "run_shell_command",
+        "arguments" : {
+          "command" : "find /Users/stream/codes/opensource/ganglia/ganglia-example -name \"*.md\" -type f"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T10:01:46.497110Z"
+    }, {
+      "id" : "73bc4250-3cb8-4d80-a017-69dfba541779",
+      "role" : "TOOL",
+      "content" : "Output was very long and has been compressed. ID: 0b65de1f.\nSummary: Count: 42 markdown files  \nLocation: `/Users/stream/codes/opensource/ganglia/ganglia-example/.ganglia/`\nUse recall_memory tool to view full content.",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "fc-479cf0d4-c45e-449d-8324-5b21f6739426",
+        "toolName" : "run_shell_command"
+      },
+      "timestamp" : "2026-03-27T10:01:49.813031Z"
+    } ],
+    "finalResponse" : {
+      "id" : "c54cc601-dd39-4f50-aa6a-d8428a01d47f",
+      "role" : "ASSISTANT",
+      "content" : "当前目录及其子目录中共有 **42个markdown文件**。这些文件主要位于 `.ganglia/` 目录下。",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T10:01:52.231972Z"
+    }
+  } ],
+  "currentTurn" : {
+    "id" : "f1d4bb3c-4517-421d-a408-bd0a14854a96",
+    "userMessage" : {
+      "id" : "3c6ff5d0-65b3-4602-8c17-15b26f7d6036",
+      "role" : "USER",
+      "content" : "当前目录有多少markdown文件",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T10:02:17.691888Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "1be1f46f-63b8-4b8f-afa5-d7f59fc00894",
+      "role" : "ASSISTANT",
+      "content" : "当前目录及其子目录中共有 **42个markdown文件**。这些文件主要位于 `.ganglia/` 目录下。",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T10:02:19.815049Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 65535,
+    "modelName" : "Kimi-K2-Instruct-0905",
+    "stream" : true
+  }
+}

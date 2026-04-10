@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Exclude Vertx instance exposure. It's standard in Vert.x apps to pass Vertx around. -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="~.*"/>
+        <Field type="io.vertx.core.Vertx"/>
+    </Match>
+
+    <!-- Exclude internal representation exposure for trusted infrastructure components -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.kernel.GangliaKernel"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.kernel.AgentEnv"/>
+    </Match>
+
+    <!-- Exclude generated code or standard patterns that Spotbugs flags but are acceptable here -->
+    <Match>
+        <Bug pattern="MS_EXPOSE_REP"/>
+        <Class name="work.ganglia.util.Constants"/>
+    </Match>
+
+    <!-- Exclude internal representation exposure for data-transfer objects and ports -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Package name="~work\.ganglia\.port\..*"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.port.external.tool.model.ToolInvokeResult"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Package name="~work\.ganglia\.config\.model\..*"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.infrastructure.mcp.McpRegistry"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.infrastructure.mcp.McpToolSet"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.kernel.subagent.TaskGraph"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.kernel.subagent.TaskNode"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.kernel.task.AgentTaskResult"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.kernel.todo.ToDoList"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.kernel.todo.ToDoTools"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="~.*\.Builder"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="~.*Gateway"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="~.*Loader"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="~.*ToolSet"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="~.*Manager"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="~.*Service"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="~.*Transport"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.BootstrapOptions"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.BootstrapOptions$Builder"/>
+    </Match>
+
+    <!-- Exclude internal representation exposure for internal core classes -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.Ganglia"/>
+    </Match>
+
+    <!-- Ignore stale thread writes in VertxProcess as it follows Vert.x concurrency model -->
+    <Match>
+        <Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE"/>
+        <Class name="work.ganglia.util.VertxProcess"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE"/>
+        <Class name="~work\.ganglia\.util\.VertxProcess\$.*"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.util.VertxProcess"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="SF_SWITCH_NO_DEFAULT"/>
+        <Class name="work.ganglia.infrastructure.external.llm.AnthropicModelGateway"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="SF_SWITCH_NO_DEFAULT"/>
+        <Class name="work.ganglia.trajectory.trace.TraceManager"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="VA_FORMAT_STRING_USES_NEWLINE"/>
+        <Class name="~.*"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="ES_COMPARING_STRINGS_WITH_EQ"/>
+        <Class name="work.ganglia.infrastructure.internal.prompt.DefaultPromptEngine"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="ES_COMPARING_PARAMETER_STRING_WITH_EQ"/>
+        <Class name="work.ganglia.kernel.hook.builtin.ObservationCompressionHook"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="DM_DEFAULT_ENCODING"/>
+        <Class name="~.*"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="REC_CATCH_EXCEPTION"/>
+        <Class name="work.ganglia.infrastructure.mcp.VertxMcpServer"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="DLS_DEAD_LOCAL_STORE"/>
+        <Class name="work.ganglia.infrastructure.mcp.VertxMcpServer"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="RV_RETURN_VALUE_IGNORED_BAD_PRACTICE"/>
+        <Class name="work.ganglia.trajectory.trace.TraceManager"/>
+        <Method name="ensureDirExists"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.infrastructure.external.tool.KnowledgeBaseTools"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.infrastructure.internal.prompt.context.FileContextSource"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.kernel.AgentEnv$Builder"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.kernel.loop.ReActAgentLoop$Builder"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="~.*Module"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Class name="work.ganglia.config.model.GangliaConfig"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Package name="~work\.ganglia\.web.*"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="SF_SWITCH_NO_DEFAULT"/>
+        <Class name="work.ganglia.web.WebUIEventPublisher"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE"/>
+        <Class name="work.ganglia.web.WebUIVerticle"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE"/>
+        <Class name="work.ganglia.web.WebUIVerticle"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="DLS_DEAD_LOCAL_STORE"/>
+        <Class name="work.ganglia.web.GangliaWebMain"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Package name="~work\.ganglia\.ui.*"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="AT_STALE_THREAD_WRITE_OF_PRIMITIVE"/>
+        <Package name="~work\.ganglia\.ui.*"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="AT_NONATOMIC_64BIT_PRIMITIVE"/>
+        <Package name="~work\.ganglia\.ui.*"/>
+    </Match>
+
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+        <Package name="~work\.ganglia\.swebench.*"/>
+    </Match>
+
+    <!-- Ignore specific false positives or Low priority noise -->
+    <Match>
+        <Priority value="3"/>
+    </Match>
+</FindBugsFilter>

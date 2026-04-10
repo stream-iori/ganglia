@@ -1,0 +1,49 @@
+{
+  "sessionId" : "7e9e914b-f028-451f-a798-aba348f46078",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "2a850c25-a493-4c9d-89a6-be30f09e80af",
+    "userMessage" : {
+      "id" : "47499d8a-ca92-4a69-b233-415d5d806e7e",
+      "role" : "USER",
+      "content" : "Read long.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T05:41:34.001648Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "c27e0e91-f0d9-42c1-956f-7aca018c0333",
+      "role" : "ASSISTANT",
+      "content" : "",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-11265405579462504908/long.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T05:41:34.036745Z"
+    }, {
+      "id" : "37ac5b3b-9221-4540-99a9-c93196b4067a",
+      "role" : "TOOL",
+      "content" : "[Output from 'read_file' was large (503 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-11265405579462504908/.ganglia/tmp/7e9e914b-f028-451f-a798-aba348f46078/c1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-11265405579462504908/.ganglia/tmp/7e9e914b-f028-451f-a798-aba348f46078/c1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "read_file",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-03-28T05:41:34.078382Z"
+    } ],
+    "finalResponse" : null
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

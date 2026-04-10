@@ -1,0 +1,56 @@
+{
+  "sessionId" : "7a73f900-5124-40e9-8466-3563cbe2611c",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "b6fe4ed4-7c5c-4e9b-bb3e-45c4b943c327",
+    "userMessage" : {
+      "id" : "b7d5a3ea-513f-4281-bc18-bbe8e4c9e300",
+      "role" : "USER",
+      "content" : "Run complete workflow",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T05:42:43.985086Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "4c018b3c-965e-4392-8705-a1e4a1d701d8",
+      "role" : "ASSISTANT",
+      "content" : "I will list files.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T05:42:43.988086Z"
+    }, {
+      "id" : "9fec3161-b5f7-4c8b-b1f8-e8d627e35c17",
+      "role" : "TOOL",
+      "content" : "[Output from 'list_directory' was large (1 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-13191730079351671644/.ganglia/tmp/7a73f900-5124-40e9-8466-3563cbe2611c/c1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-13191730079351671644/.ganglia/tmp/7a73f900-5124-40e9-8466-3563cbe2611c/c1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "list_directory",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-03-28T05:42:43.990861Z"
+    } ],
+    "finalResponse" : {
+      "id" : "e4ac3a67-89d1-44bd-9734-e4d1f526be70",
+      "role" : "ASSISTANT",
+      "content" : "Workflow complete.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T05:42:43.994119Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

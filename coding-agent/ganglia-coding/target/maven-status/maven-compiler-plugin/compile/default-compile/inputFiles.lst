@@ -1,0 +1,11 @@
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/CodingAgentBuilder.java
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/doctor/RipgrepCheck.java
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/prompt/CodingGuidelineSource.java
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/prompt/CodingMandatesContextSource.java
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/prompt/CodingPersonaContextSource.java
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/prompt/CodingWorkflowSource.java
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/tool/ApplyPatchTool.java
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/tool/FileEditTools.java
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/tool/ReplaceInFileTool.java
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/tool/WriteFileTool.java
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/tool/util/DiffGenerator.java

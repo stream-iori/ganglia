@@ -1,0 +1,56 @@
+{
+  "sessionId" : "e9137c79-d8c3-45f3-b9e8-0157bf12e32e",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "ae5eb239-d971-4fb9-8c3c-632c8c14b60a",
+    "userMessage" : {
+      "id" : "8bf1f616-e962-4f7e-ab3f-e89614ffacff",
+      "role" : "USER",
+      "content" : "Find the secret code in /var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-13822322317863234195",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T10:24:59.468584Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "e4910c5a-a2b5-4352-8e62-222b20653e09",
+      "role" : "ASSISTANT",
+      "content" : "Searching memory...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "grep_search",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-13822322317863234195",
+          "pattern" : "secret code"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T10:24:59.472663Z"
+    }, {
+      "id" : "2320ebde-f94d-4a55-a91b-12dd616e5080",
+      "role" : "TOOL",
+      "content" : "/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-13822322317863234195/.ganglia/memory/MEMORY.md:1:The secret code is 998877\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "grep_search"
+      },
+      "timestamp" : "2026-03-26T10:24:59.497248Z"
+    } ],
+    "finalResponse" : {
+      "id" : "5df6586f-b070-4845-8a25-e387e4a78497",
+      "role" : "ASSISTANT",
+      "content" : "The code is 998877.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T10:24:59.502276Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

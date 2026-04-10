@@ -1,0 +1,78 @@
+{
+  "sessionId" : "38e1795a-b163-49bc-8f52-448b238e01b8",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "480e7120-d9cf-4f0e-aead-797bc94a8407",
+    "userMessage" : {
+      "id" : "94ab9573-8ba2-4935-b25e-69b51afad318",
+      "role" : "USER",
+      "content" : "Read long.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T09:12:08.335146Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "d4a24714-e771-41df-9a78-5abe93fcbcc4",
+      "role" : "ASSISTANT",
+      "content" : "",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-8418067537240279066/long.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T09:12:08.338424Z"
+    }, {
+      "id" : "c060be38-2997-4857-84d8-d6429497d9eb",
+      "role" : "TOOL",
+      "content" : "Output was very long and has been compressed. ID: b9899eea.\nSummary: Summary: Found long text.\nUse recall_memory tool to view full content.",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-23T09:12:08.397072Z"
+    }, {
+      "id" : "4587718c-ddd9-4f8e-b608-9acc964b83ea",
+      "role" : "ASSISTANT",
+      "content" : "",
+      "toolCalls" : [ {
+        "id" : "c2",
+        "toolName" : "recall_memory",
+        "arguments" : {
+          "id" : "b9899eea"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T09:12:08.402238Z"
+    }, {
+      "id" : "63f8be76-00d6-462c-8d80-b866023a5b56",
+      "role" : "TOOL",
+      "content" : "Memory Details:\nTitle: Compressed Output: read_file\nCategory: OBSERVATION\nTimestamp: 2026-03-23T09:12:08.391919Z\n\nContent:\nThis is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. This is a very long output that should be compressed. \n--- [Lines 0 to 0 of 0] ---\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "recall_memory"
+      },
+      "timestamp" : "2026-03-23T09:12:08.407909Z"
+    } ],
+    "finalResponse" : {
+      "id" : "e9e1039f-a189-495b-9ce7-e6016d1ca14f",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T09:12:08.413173Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "sessionId" : "e2e-scenario2-301c",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "4587bd1e-1b22-4a58-a037-8988f48c61e8",
+    "userMessage" : {
+      "id" : "3a6f7351-9933-4d40-9c04-5f290831227e",
+      "role" : "USER",
+      "content" : "Find all TODOs in /var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-12780434617692841917",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T09:42:52.915963Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "e2761f69-3920-48c7-96c2-4fc018fd0501",
+      "role" : "ASSISTANT",
+      "content" : "Searching for TODOs...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "grep_search",
+        "arguments" : {
+          "pattern" : "TODO",
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-12780434617692841917"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T09:42:52.920778Z"
+    }, {
+      "id" : "18dcf0a0-4bb1-49d2-b6cc-696dc9f081b1",
+      "role" : "TOOL",
+      "content" : "Security/Validation Error: Access denied: Path escapes project root (/Users/stream/codes/opensource/ganglia/integration-test): /var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-12780434617692841917",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "grep_search",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-03-28T09:42:52.923052Z"
+    } ],
+    "finalResponse" : {
+      "id" : "9eee857a-4f24-4d1f-a099-0a9241c3e173",
+      "role" : "ASSISTANT",
+      "content" : "I found TODOs in task1.java and task2.java.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-28T09:42:52.928143Z"
+    }
+  },
+  "metadata" : {
+    "consecutive_tool_failures" : 1
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

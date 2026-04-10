@@ -1,0 +1,64 @@
+{
+  "sessionId" : "2509f707-41b7-4f8f-ba49-a0772fb078b7",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "6f81351f-76b5-4cdf-a0fe-9d126551d6c0",
+    "userMessage" : {
+      "id" : "ade4921e-1d53-4f00-93ed-ac3896a6f34a",
+      "role" : "USER",
+      "content" : "Write a python hello world function to test.py",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T15:51:21.102026Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "22bfbdb4-4357-466e-a348-c69a50366ae0",
+      "role" : "ASSISTANT",
+      "content" : "Writing file.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "write_file",
+        "arguments" : {
+          "content" : "def hello():\n    print(\"Hello World\")\n",
+          "file_path" : "test.py"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T15:51:21.104904Z"
+    }, {
+      "id" : "3a03623f-7187-4610-8ad7-8c0ceb2cc977",
+      "role" : "TOOL",
+      "content" : "SUCCESS: Wrote file test.py",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "write_file",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-04-05T15:51:21.125398Z"
+    } ],
+    "finalResponse" : {
+      "id" : "49c8bdd5-08d8-41ab-a2a2-d4c1d2b9dbf7",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T15:51:21.129647Z"
+    },
+    "timestamp" : 1775404281102
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

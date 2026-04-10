@@ -1,0 +1,57 @@
+{
+  "sessionId" : "19f6dde3-4df0-4bc9-8b0b-21523011e983",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "677eabaa-61b4-483c-a3c3-bdabcba82540",
+    "userMessage" : {
+      "id" : "b734f873-458a-4dbe-83a9-98e2d1aa8a13",
+      "role" : "USER",
+      "content" : "Fetch data from FTP",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T07:36:59.085603Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "681aab4e-d960-4995-8f05-2d67aa4d9aa2",
+      "role" : "ASSISTANT",
+      "content" : "Fetching data.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "web_fetch",
+        "arguments" : {
+          "url" : "ftp://evil.example.com/data"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T07:36:59.089657Z"
+    }, {
+      "id" : "ba140fa3-296b-4ef2-8d7c-8fd36775c501",
+      "role" : "TOOL",
+      "content" : "Error fetching URL: Failed to resolve 'evil.example.com' [A(1), AAAA(28)] and search domain query for configured domains failed as well: [antgroup-inc.local]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "web_fetch"
+      },
+      "timestamp" : "2026-03-25T07:36:59.235688Z"
+    } ],
+    "finalResponse" : {
+      "id" : "a97c73fe-4272-49fe-9cd2-525c8446f0e2",
+      "role" : "ASSISTANT",
+      "content" : "Scheme not allowed. Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T07:36:59.242492Z"
+    }
+  },
+  "metadata" : {
+    "consecutive_tool_failures" : 1
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

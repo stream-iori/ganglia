@@ -1,0 +1,65 @@
+{
+  "sessionId" : "layer1-test",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "c0761382-c7bc-4e5d-be8d-303fb728aebb",
+    "userMessage" : {
+      "id" : "2da6280e-1111-4cc5-84a4-89892512e49c",
+      "role" : "USER",
+      "content" : "Generate big output",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:02:00.354036Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "e7b9d259-bb50-4bb0-97ec-fc0708b9cd21",
+      "role" : "ASSISTANT",
+      "content" : "Running.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "run_shell_command",
+        "arguments" : {
+          "command" : "bigcmd"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:02:00.362080Z"
+    }, {
+      "id" : "f03286f6-93e0-4142-afe4-cda7108b229b",
+      "role" : "TOOL",
+      "content" : "[Output from 'run_shell_command' was large (28 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-17920658509057970803/.ganglia/tmp/layer1-test/c1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-17920658509057970803/.ganglia/tmp/layer1-test/c1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "run_shell_command",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-04-10T09:02:00.367150Z"
+    } ],
+    "finalResponse" : {
+      "id" : "cec278fd-e5d9-44a3-83dd-dab945d1d6ae",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:02:00.376261Z"
+    },
+    "timestamp" : 1775811720354
+  },
+  "metadata" : {
+    "consecutive_tool_failures" : 1
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

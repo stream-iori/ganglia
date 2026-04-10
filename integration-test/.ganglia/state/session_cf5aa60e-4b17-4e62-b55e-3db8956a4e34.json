@@ -1,0 +1,39 @@
+{
+  "sessionId" : "cf5aa60e-4b17-4e62-b55e-3db8956a4e34",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "10588102-9384-4731-8000-11a7f6fa2e53",
+    "userMessage" : {
+      "id" : "a78aa458-0e6f-4caa-9e81-18ec8e5ad81a",
+      "role" : "USER",
+      "content" : "Test model call observations",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-09T08:38:37.800444Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "d43c5086-e88a-40bc-b7b2-5626c0bae845",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-09T08:38:37.804164Z"
+    },
+    "timestamp" : 1775723917800
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

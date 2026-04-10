@@ -1,0 +1,97 @@
+[ {
+  "sessionId" : "e2e-scenario4-732c",
+  "goal" : "(no goal recorded)",
+  "summary" : "",
+  "turnCount" : 0,
+  "toolCallCount" : 1,
+  "startTime" : "2026-04-10T08:45:31.024605Z",
+  "endTime" : "2026-04-10T08:45:31.024605Z"
+}, {
+  "sessionId" : "e2e-scenario2-ad6d",
+  "goal" : "(no goal recorded)",
+  "summary" : "",
+  "turnCount" : 1,
+  "toolCallCount" : 1,
+  "startTime" : "2026-04-10T08:45:31.488517Z",
+  "endTime" : "2026-04-10T08:45:31.488576Z"
+}, {
+  "sessionId" : "e2e-scenario1-8641",
+  "goal" : "(no goal recorded)",
+  "summary" : "",
+  "turnCount" : 1,
+  "toolCallCount" : 2,
+  "startTime" : "2026-04-10T08:45:32.363710Z",
+  "endTime" : "2026-04-10T08:45:32.363767Z"
+}, {
+  "sessionId" : "e2e-hello-93b1",
+  "goal" : "(no goal recorded)",
+  "summary" : "",
+  "turnCount" : 1,
+  "toolCallCount" : 0,
+  "startTime" : "2026-04-10T08:45:42.939676Z",
+  "endTime" : "2026-04-10T08:45:42.940152Z"
+}, {
+  "sessionId" : "e2e-scenario4-af19",
+  "goal" : "(no goal recorded)",
+  "summary" : "",
+  "turnCount" : 0,
+  "toolCallCount" : 1,
+  "startTime" : "2026-04-10T08:46:15.280029Z",
+  "endTime" : "2026-04-10T08:46:15.280029Z"
+}, {
+  "sessionId" : "e2e-scenario2-0615",
+  "goal" : "(no goal recorded)",
+  "summary" : "",
+  "turnCount" : 1,
+  "toolCallCount" : 1,
+  "startTime" : "2026-04-10T08:46:15.800793Z",
+  "endTime" : "2026-04-10T08:46:15.800862Z"
+}, {
+  "sessionId" : "e2e-scenario1-b89f",
+  "goal" : "(no goal recorded)",
+  "summary" : "",
+  "turnCount" : 1,
+  "toolCallCount" : 2,
+  "startTime" : "2026-04-10T08:46:16.773026Z",
+  "endTime" : "2026-04-10T08:46:16.773096Z"
+}, {
+  "sessionId" : "e2e-hello-50b9",
+  "goal" : "(no goal recorded)",
+  "summary" : "",
+  "turnCount" : 1,
+  "toolCallCount" : 0,
+  "startTime" : "2026-04-10T09:01:52.984262Z",
+  "endTime" : "2026-04-10T09:01:52.984779Z"
+}, {
+  "sessionId" : "e2e-scenario4-cfac",
+  "goal" : "(no goal recorded)",
+  "summary" : "",
+  "turnCount" : 1,
+  "toolCallCount" : 0,
+  "startTime" : "2026-04-10T09:02:27.504627Z",
+  "endTime" : "2026-04-10T09:02:27.504760Z"
+}, {
+  "sessionId" : "e2e-scenario2-004d",
+  "goal" : "(no goal recorded)",
+  "summary" : "",
+  "turnCount" : 1,
+  "toolCallCount" : 1,
+  "startTime" : "2026-04-10T09:02:28.871973Z",
+  "endTime" : "2026-04-10T09:02:28.872062Z"
+}, {
+  "sessionId" : "e2e-scenario3-9233",
+  "goal" : "(no goal recorded)",
+  "summary" : "",
+  "turnCount" : 1,
+  "toolCallCount" : 2,
+  "startTime" : "2026-04-10T09:02:29.712292Z",
+  "endTime" : "2026-04-10T09:02:29.712375Z"
+}, {
+  "sessionId" : "e2e-scenario1-769c",
+  "goal" : "(no goal recorded)",
+  "summary" : "",
+  "turnCount" : 1,
+  "toolCallCount" : 2,
+  "startTime" : "2026-04-10T09:02:31.065725Z",
+  "endTime" : "2026-04-10T09:02:31.065918Z"
+} ]

@@ -1,0 +1,41 @@
+package work.ganglia.kernel.subagent;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import io.vertx.core.Future;
+
+import work.ganglia.port.chat.SessionContext;
+import work.ganglia.port.internal.prompt.ContextFragment;
+import work.ganglia.port.internal.prompt.ContextSource;
+import work.ganglia.util.MetadataAccessor;
+
+/** Injects specific instructions if the agent is running as a Sub-Agent. */
+public class SubAgentContextSource implements ContextSource {
+
+  @Override
+  public Future<List<ContextFragment>> getFragments(SessionContext context) {
+    boolean isSub = MetadataAccessor.getBoolean(context.metadata(), "is_sub_agent", false);
+
+    if (!isSub) {
+      return Future.succeededFuture(Collections.emptyList());
+    }
+
+    String persona = MetadataAccessor.getString(context.metadata(), "sub_agent_persona", "GENERAL");
+
+    StringBuilder sb = new StringBuilder("## [SUB-AGENT MODE]\n");
+    sb.append(
+        "You are currently acting as a specialized SUB-AGENT delegated by a Parent Orchestrator.\n");
+    sb.append("Your scope is restricted to the specific task provided.\n");
+    sb.append("- ROLE: ").append(persona).append("\n");
+    sb.append(
+        "- CONSTRAINT: When finished, provide your final answer as a structured summary report for the Parent Agent.\n");
+
+    List<ContextFragment> fragments = new ArrayList<>();
+    fragments.add(
+        ContextFragment.mandatory("SubAgentMode", sb.toString(), 1)); // Priority 1: Mandatory
+
+    return Future.succeededFuture(fragments);
+  }
+}

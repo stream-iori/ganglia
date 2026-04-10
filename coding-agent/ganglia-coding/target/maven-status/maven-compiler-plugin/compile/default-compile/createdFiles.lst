@@ -1,0 +1,12 @@
+work/ganglia/coding/tool/WriteFileTool.class
+work/ganglia/coding/tool/ReplaceInFileTool.class
+work/ganglia/coding/doctor/RipgrepCheck.class
+work/ganglia/coding/prompt/CodingGuidelineSource.class
+work/ganglia/coding/prompt/CodingPersonaContextSource.class
+work/ganglia/coding/tool/FileEditTools.class
+work/ganglia/coding/tool/ApplyPatchTool.class
+work/ganglia/coding/tool/ReplaceInFileTool$ReplacementResult.class
+work/ganglia/coding/prompt/CodingMandatesContextSource.class
+work/ganglia/coding/prompt/CodingWorkflowSource.class
+work/ganglia/coding/CodingAgentBuilder.class
+work/ganglia/coding/tool/util/DiffGenerator.class

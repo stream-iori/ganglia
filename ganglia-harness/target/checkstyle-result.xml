@@ -1,0 +1,586 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="9.3">
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/util/MappingPathSanitizer.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/util/PathMapper.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/util/FileSystemUtil.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/util/PathSanitizer.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/util/AsyncConcurrencyLimiter.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/util/ProcessOptions.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/util/ProcessTracker.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/util/ReadOnlyPathMapper.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/util/TokenCounter.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/util/MetadataAccessor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/util/VertxProcess.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/util/Constants.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/config/AgentConfigProvider.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/config/ConfigManager.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/config/ConfigKeys.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/config/ConfigLoader.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/config/ModelConfigProvider.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/config/WebUIConfigProvider.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/config/DefaultConfigFactory.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/config/ObservabilityConfigProvider.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/config/model/ModelConfig.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/config/model/ObservabilityConfig.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/config/model/GangliaConfig.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/config/model/AgentConfig.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/Ganglia.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/BootstrapOptions.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/chat/Message.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/chat/CompressionState.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/chat/CompactBoundaryMetadata.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/chat/Turn.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/chat/CompactBoundaryTurn.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/chat/Role.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/chat/SessionContext.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/chat/RecentlyReadFile.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/MemoryStore.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/TimelineLedger.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/MemorySecurityScanner.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/SessionStore.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/ReflectEvent.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/DailyRecordManager.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/MemorySystemProvider.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/MemoryEvent.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/MemoryService.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/ContextCompressor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/MemoryModule.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/model/TimelineEvent.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/model/MemoryTag.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/model/MemoryEntry.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/model/SessionRecord.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/model/MemoryQuery.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/model/SessionSummary.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/model/MemoryCategory.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/model/MemoryIndexItem.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/model/NudgeConfig.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/model/CompressionContext.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/MemorySystemConfig.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/MemorySystem.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/LongTermMemory.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/memory/ObservationCompressor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/skill/SkillService.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/skill/SkillLoader.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/skill/SkillToolDefinition.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/skill/SkillRuntime.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/skill/SkillManifest.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/doctor/DoctorCheck.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/doctor/DoctorService.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/doctor/CheckResult.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/worktree/WorktreeHandle.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/worktree/WorktreeManager.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/worktree/MergeResult.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/ObservationDispatcher.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/PressureEvaluator.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/ContextEventPublisher.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/ContextOptimizer.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/CompressionStrategy.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/LogManager.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/CompressionRequest.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/OptimizationResult.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/TokenUsage.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/ExecutionContext.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/StateEngine.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/Blackboard.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/AgentAbortedException.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/FactStatus.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/FileRestorationService.java">
+<error line="71" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/AgentSignal.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/SessionManager.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/OptimizationContext.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/ContextOptimizationStep.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/TraceWriter.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/ContextPressure.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/CompressionResult.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/Fact.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/state/ColdStorage.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/MicrocompactConfig.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/GuidelineContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/ContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/SessionMemoryCompactConfig.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/ContextManagementConfig.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/ContextAnalysis.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/PromptEngine.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/PromptCacheStats.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/CompressionBudget.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/WorkflowContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/ContextFragment.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/ContextBudget.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/prompt/DefaultContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/internal/hook/AgentInterceptor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/McpClient.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/McpTool.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/McpInitializeResult.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/protocol/JsonRpcResponse.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/protocol/JsonRpcMessage.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/protocol/JsonRpcError.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/protocol/JsonRpcRequest.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/protocol/JsonRpcNotification.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/McpListToolsResult.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/McpInitializeRequest.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/McpCallToolRequest.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/McpCallToolResult.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/mcp/McpServer.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/llm/ChatRequest.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/llm/LLMException.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/llm/LLMRequest.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/llm/ModelOptions.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/llm/ModelGateway.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/llm/ModelResponse.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/tool/ToolExecutor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/tool/ToolSet.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/tool/CommandExecutor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/tool/model/ToolInvokeResult.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/tool/model/ToolErrorResult.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/tool/ObservationEvent.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/tool/ObservationType.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/tool/ToolDefinition.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/port/external/tool/ToolCall.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/memory/LongTermKnowledgeModule.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/memory/MemoryNudgeModule.java">
+<error line="114" column="18" severity="warning" message="WhitespaceAround: &apos;{&apos; is not followed by whitespace. Empty blocks may only be represented as {} when not part of a multi-block statement (4.1.3)" source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+<error line="114" column="19" severity="warning" message="WhitespaceAround: &apos;}&apos; is not preceded with whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/memory/AbstractMemorySystemProvider.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/memory/MemoryIndexContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/memory/MemoryConsolidationModule.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/memory/SessionPersistenceModule.java">
+<error line="84" column="18" severity="warning" message="WhitespaceAround: &apos;{&apos; is not followed by whitespace. Empty blocks may only be represented as {} when not part of a multi-block statement (4.1.3)" source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+<error line="84" column="19" severity="warning" message="WhitespaceAround: &apos;}&apos; is not preceded with whitespace." source="com.puppycrawl.tools.checkstyle.checks.whitespace.WhitespaceAroundCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/memory/EventBusMemoryService.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/memory/DailyJournalModule.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/memory/UserProfileModule.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/memory/DefaultContextCompressor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/memory/LLMObservationCompressor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/skill/SkillTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/skill/ScriptSkillToolSet.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/skill/FileSystemSkillLoader.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/skill/DefaultSkillRuntime.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/skill/JarSkillLoader.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/skill/DefaultSkillService.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/skill/JavaSkillToolSet.java">
+<error line="84" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/worktree/GitWorktreeManager.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/DefaultSessionManager.java">
+<error line="107" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/SlimmingStep.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/FileStateEngine.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/DefaultFileRestorationService.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/HardLimitGuardStep.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/DefaultContextEventPublisher.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/ChunkedCompressor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/FileLogManager.java">
+<error line="41" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="44" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/InMemoryBlackboard.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/TimeBasedMicrocompactStep.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/PTLRetryHandler.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/CompressionStep.java">
+<error line="244" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/DefaultContextOptimizer.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/ContextPressureMonitor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/FileColdStorage.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/ContextSlimmer.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/ContextOptimizationPipeline.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/TokenUsageManager.java">
+<error line="74" column="19" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/state/ToolResultCompactor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/ContextAnalyzer.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/context/ContextComposer.java">
+<error line="159" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="160" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="162" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/context/MemoryContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/context/MarkdownContextResolver.java">
+<error line="106" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="107" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/context/PersonaContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/context/EnvironmentSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/context/MandatesContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/context/DailyContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/context/FileContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/context/SkillContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/context/ToolContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/DefaultPromptEngine.java">
+<error line="318" column="19" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="319" column="19" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="321" column="19" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="338" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/internal/prompt/ToolResultBudgetEnforcer.java">
+<error line="88" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="89" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="121" column="5" severity="warning" message="Each variable declaration must be in its own statement." source="com.puppycrawl.tools.checkstyle.checks.coding.MultipleVariableDeclarationsCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/mcp/transport/StreamMcpTransport.java">
+<error line="58" column="21" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="63" column="21" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="105" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="111" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="117" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/mcp/transport/StdioMcpTransport.java">
+<error line="61" column="21" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="78" column="21" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="83" column="21" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="125" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="131" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="137" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/mcp/transport/McpTransport.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/mcp/McpRegistry.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/mcp/McpToolSet.java">
+<error line="134" column="17" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/mcp/McpConfigManager.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/mcp/VertxMcpServer.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/mcp/VertxMcpClient.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/util/SseParser.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/util/ToolCallValidator.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/util/SseWriteStream.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/util/JsonSanitizer.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/FallbackModelGateway.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/AnthropicModelGateway.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/RetryingModelGateway.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/AbstractModelGateway.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/OpenAIModelGateway.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/ModelGatewayFactory.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/llm/GatewayConfig.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/NativeFileSystemTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/WebFetchTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/util/LocalCommandExecutor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/util/UrlValidator.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/BashTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/ToolsFactory.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/InteractionTools.java">
+<error line="129" column="50" severity="warning" message="Parameter name &apos;qMap&apos; must match pattern &apos;^[a-z]([a-z0-9][a-zA-Z0-9]*)?$&apos;." source="com.puppycrawl.tools.checkstyle.checks.naming.ParameterNameCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/RecallMemoryTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/SessionSearchTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/SkillManageTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/DefaultToolExecutor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/BashFileSystemTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/KnowledgeBaseTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/CommandResultHandler.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/infrastructure/external/tool/ToolExecutionException.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/doctor/DefaultDoctorService.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/GangliaKernel.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/todo/ToDoItem.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/todo/TaskStatus.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/todo/ToDoContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/todo/ToDoList.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/todo/ToDoTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/AgentEnv.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/task/DefaultAgentTaskFactory.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/task/DefaultToolTask.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/task/TaskGraphTask.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/task/SkillTask.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/task/AgentTaskResult.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/task/AgentTask.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/task/SubAgentTask.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/task/AgentTaskFactory.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/hook/InterceptorPipeline.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/hook/builtin/TokenAwareTruncator.java">
+<error line="37" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="39" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="76" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="79" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/hook/builtin/PreflightInterceptor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/hook/builtin/ObservationCompressionHook.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/hook/builtin/SessionTmpStore.java">
+<error line="89" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="92" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/hook/builtin/ToolOutputPolicy.java">
+<error line="63" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="64" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/DefaultGraphExecutor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/ContextScoper.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/MergeGate.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/TaskFingerprint.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/IsolationLevel.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/ExecutionMode.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/TaskNode.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/CycleAwareTrigger.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/SubAgentContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/TerminationController.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/CyclicManagerEngine.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/GraphExecutor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/TaskGraph.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/DefaultTerminationController.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/blackboard/BlackboardSummarizer.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/validation/RealityAnchorTask.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/subagent/validation/ValidationSuite.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/loop/ConsecutiveFailurePolicy.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/loop/AgentLoopFactory.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/loop/AgentLoop.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/loop/DefaultObservationDispatcher.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/loop/AgentLoopObserver.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/loop/AgentAbortedException.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/loop/ReActAgentLoop.java">
+<error line="710" column="13" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/loop/AgentInterruptException.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-harness/src/main/java/work/ganglia/kernel/loop/FaultTolerancePolicy.java">
+</file>
+</checkstyle>

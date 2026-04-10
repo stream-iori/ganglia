@@ -1,0 +1,63 @@
+{
+  "sessionId" : "024cc50c-ebae-4d22-8020-29dee7b7c743",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "77e3d0a5-e7e4-4920-a012-7b57105f4df6",
+    "userMessage" : {
+      "id" : "9160a0d7-42ab-44bc-98fa-60ee0bd80243",
+      "role" : "USER",
+      "content" : "Remember that the project uses Java 17 records.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:02:01.021778Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "293bf64a-bb26-4ed3-98ac-7cfbd085fb9b",
+      "role" : "ASSISTANT",
+      "content" : "Remembering fact...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "remember",
+        "arguments" : {
+          "fact" : "Project uses Java 17 records."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:02:01.026734Z"
+    }, {
+      "id" : "31a1b004-ce74-4d87-98f3-87359beb58a7",
+      "role" : "TOOL",
+      "content" : "Remembered in project memory: Project uses Java 17 records.",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "remember",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-04-10T09:02:01.034709Z"
+    } ],
+    "finalResponse" : {
+      "id" : "4f88403e-902d-44b1-bbb8-aeb87bd80205",
+      "role" : "ASSISTANT",
+      "content" : "Remembered.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:02:01.040424Z"
+    },
+    "timestamp" : 1775811721021
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

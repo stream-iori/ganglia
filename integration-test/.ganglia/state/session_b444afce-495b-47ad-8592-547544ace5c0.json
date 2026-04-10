@@ -1,0 +1,58 @@
+{
+  "sessionId" : "b444afce-495b-47ad-8592-547544ace5c0",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "17e580d1-1084-4725-bc8a-210a0e2bf895",
+    "userMessage" : {
+      "id" : "10e58bf6-b4cc-494e-8296-5ad3e9a1558f",
+      "role" : "USER",
+      "content" : "Read the first 5 lines of large_file.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T16:47:25.545584Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "6df9d47a-1873-4d1a-b60c-4b476123ced4",
+      "role" : "ASSISTANT",
+      "content" : "Reading first part of the file.",
+      "toolCalls" : [ {
+        "id" : "call_1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-17163379305392572753/large_file.txt",
+          "start_line" : 1,
+          "end_line" : 5
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T16:47:25.549040Z"
+    }, {
+      "id" : "81364bf8-15c4-4af4-9171-63760042f61e",
+      "role" : "TOOL",
+      "content" : "[Output from 'read_file' was large (9 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-17163379305392572753/.ganglia/tmp/b444afce-495b-47ad-8592-547544ace5c0/call_1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-17163379305392572753/.ganglia/tmp/b444afce-495b-47ad-8592-547544ace5c0/call_1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "call_1",
+        "toolName" : "read_file",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-03-29T16:47:25.552723Z"
+    } ],
+    "finalResponse" : {
+      "id" : "b88eda86-ead4-4460-bb56-f6e8192d1fff",
+      "role" : "ASSISTANT",
+      "content" : "I have read the first 5 lines.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T16:47:25.556617Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "sessionId" : "394591a8-1e2f-444c-9fda-18a6fc49a67c",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "e96d4baf-fcc6-4293-a44b-671c318e2398",
+    "userMessage" : {
+      "id" : "e0e7ae14-eaa9-4bb9-b873-0285b2e2a7a1",
+      "role" : "USER",
+      "content" : "Run a sequence of tasks",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:00:42.622363Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "8fe22ddb-c244-4949-bb7d-12ab5af4c98a",
+      "role" : "ASSISTANT",
+      "content" : "Executing graph...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "propose_task_graph",
+        "arguments" : {
+          "approved" : true,
+          "nodes" : [ {
+            "persona" : "GENERAL",
+            "task" : "Task 1",
+            "id" : "n1"
+          }, {
+            "task" : "Task 2",
+            "persona" : "GENERAL",
+            "id" : "n2",
+            "dependencies" : [ "n1" ]
+          } ]
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:00:42.626081Z"
+    }, {
+      "id" : "5ace3334-1e86-408f-97c5-d1d0f33b7638",
+      "role" : "TOOL",
+      "content" : "# Task Graph Execution Report\n\n## NODE ID: n1\n### TASK: Task 1\n### RESULT:\nTask 1 Done\n\n## NODE ID: n2\n### TASK: Task 2\n### RESULT:\nTask 2 Done\n\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "propose_task_graph",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-04-05T11:00:42.641222Z"
+    } ],
+    "finalResponse" : {
+      "id" : "9947769f-9487-4a30-adb2-8286145442c6",
+      "role" : "ASSISTANT",
+      "content" : "Graph completed successfully.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:00:42.646367Z"
+    },
+    "timestamp" : 1775386842622
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "sessionId" : "interactive-4546791a",
+  "previousTurns" : [ {
+    "id" : "6e5a2e90-17fd-4108-b0f3-840a08c2387d",
+    "userMessage" : {
+      "id" : "14761895-2d8d-45c8-97ea-f1554d393714",
+      "role" : "USER",
+      "content" : "打开当前pom.xml文件，并将内容输出到当前终端里",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T09:49:10.071949Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "abe068c9-e275-4f2c-a1a2-c6e9dff16cd0",
+      "role" : "ASSISTANT",
+      "content" : "",
+      "toolCalls" : [ {
+        "id" : "fc-efa047c5-5bde-4401-a2f7-6e2ef5ecabcb",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "/Users/stream/codes/llm/ganglia/ganglia-example/pom.xml"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T09:49:16.580976Z"
+    }, {
+      "id" : "3bb91c03-f15e-4943-8efe-c3e3c3db6b2b",
+      "role" : "TOOL",
+      "content" : "<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n    <modelVersion>4.0.0</modelVersion>\n\n    <parent>\n        <groupId>work.ganglia</groupId>\n        <artifactId>ganglia-parent</artifactId>\n        <version>0.1.5</version>\n    </parent>\n\n    <artifactId>ganglia-example</artifactId>\n\n    <dependencies>\n        <dependency>\n            <groupId>work.ganglia</groupId>\n            <artifactId>ganglia-core</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>work.ganglia</groupId>\n            <artifactId>ganglia-coding</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>work.ganglia</groupId>\n            <artifactId>ganglia-web</artifactId>\n            <version>${project.version}</version>\n        </dependency>\n        <dependency>\n            <groupId>work.ganglia</groupId>\n            <artifactId>ganglia-terminal</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>io.vertx</groupId>\n            <artifactId>vertx-core</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>org.slf4j</groupId>\n            <artifactId>slf4j-api</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>org.apache.logging.log4j</groupId>\n            <artifactId>log4j-slf4j2-impl</artifactId>\n        </dependency>\n    </dependencies>\n</project>\n\n--- [Lines 0 to 44 of 44] ---\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "fc-efa047c5-5bde-4401-a2f7-6e2ef5ecabcb",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-19T09:49:16.648112Z"
+    } ],
+    "finalResponse" : {
+      "id" : "118cff41-4c53-42b0-83c4-33840074b700",
+      "role" : "ASSISTANT",
+      "content" : "```xml\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n    <modelVersion>4.0.0</modelVersion>\n\n    <parent>\n        <groupId>work.ganglia</groupId>\n        <artifactId>ganglia-parent</artifactId>\n        <version>0.1.5</version>\n    </parent>\n\n    <artifactId>ganglia-example</artifactId>\n\n    <dependencies>\n        <dependency>\n            <groupId>work.ganglia</groupId>\n            <artifactId>ganglia-core</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>work.ganglia</groupId>\n            <artifactId>ganglia-coding</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>work.ganglia</groupId>\n            <artifactId>ganglia-web</artifactId>\n            <version>${project.version}</version>\n        </dependency>\n        <dependency>\n            <groupId>work.ganglia</groupId>\n            <artifactId>ganglia-terminal</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>io.vertx</groupId>\n            <artifactId>vertx-core</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>org.slf4j</groupId>\n            <artifactId>slf4j-api</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>org.apache.logging.log4j</groupId>\n            <artifactId>log4j-slf4j2-impl</artifactId>\n        </dependency>\n    </dependencies>\n</project>\n```",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T09:49:36.702181Z"
+    }
+  }, {
+    "id" : "d60e7b48-ece3-454d-8a95-32c6daa09703",
+    "userMessage" : {
+      "id" : "de61a163-37ea-4691-a8bf-272f69a0857d",
+      "role" : "USER",
+      "content" : "who are you",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T09:49:57.210172Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "7b0c456b-8f1a-4c05-a159-2927a12c1c33",
+      "role" : "ASSISTANT",
+      "content" : "I'm Ganlia, a senior software engineer and collaborative peer programmer.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T09:50:09.354315Z"
+    }
+  } ],
+  "currentTurn" : {
+    "id" : "4c77f42f-e046-42ca-97da-192643d5fdd9",
+    "userMessage" : {
+      "id" : "19fa0a19-8e66-459f-80f6-32bc3758c99b",
+      "role" : "USER",
+      "content" : "打开当前pom.xml文件，并将内容输出到当前终端里",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T09:50:23.098099Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "dd8f5d68-5f83-4d28-a043-9c296884972a",
+      "role" : "ASSISTANT",
+      "content" : "```xml\n<project xmlns=\"http://maven.apache.org/POM/4.0.0\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\"\n         xsi:schemaLocation=\"http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd\">\n    <modelVersion>4.0.0</modelVersion>\n\n    <parent>\n        <groupId>work.ganglia</groupId>\n        <artifactId>ganglia-parent</artifactId>\n        <version>0.1.5</version>\n    </parent>\n\n    <artifactId>ganglia-example</artifactId>\n\n    <dependencies>\n        <dependency>\n            <groupId>work.ganglia</groupId>\n            <artifactId>ganglia-core</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>work.ganglia</groupId>\n            <artifactId>ganglia-coding</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>work.ganglia</groupId>\n            <artifactId>ganglia-web</artifactId>\n            <version>${project.version}</version>\n        </dependency>\n        <dependency>\n            <groupId>work.ganglia</groupId>\n            <artifactId>ganglia-terminal</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>io.vertx</groupId>\n            <artifactId>vertx-core</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>org.slf4j</groupId>\n            <artifactId>slf4j-api</artifactId>\n        </dependency>\n        <dependency>\n            <groupId>org.apache.logging.log4j</groupId>\n            <artifactId>log4j-slf4j2-impl</artifactId>\n        </dependency>\n    </dependencies>\n</project>\n```",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T09:50:42.097920Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "Kimi-K2-Instruct-0905",
+    "stream" : true
+  }
+}

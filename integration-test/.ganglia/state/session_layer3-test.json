@@ -1,0 +1,63 @@
+{
+  "sessionId" : "layer3-test",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "66f5d3a0-acaa-4e94-97f6-11d3360cfc7a",
+    "userMessage" : {
+      "id" : "232107c7-f101-4c61-acc3-a1f61e996414",
+      "role" : "USER",
+      "content" : "Run a big successful command",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:01:58.883366Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "a5d10f1f-f751-41a9-a624-009885909e4f",
+      "role" : "ASSISTANT",
+      "content" : "Running.",
+      "toolCalls" : [ {
+        "id" : "c3",
+        "toolName" : "run_shell_command",
+        "arguments" : {
+          "command" : "big_success_cmd"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:01:58.889958Z"
+    }, {
+      "id" : "dd3cdc65-5978-4095-a8ea-46432610b0f7",
+      "role" : "TOOL",
+      "content" : "[Output from 'run_shell_command' was large (1 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-4522738177384449001/.ganglia/tmp/layer3-test/c3.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-4522738177384449001/.ganglia/tmp/layer3-test/c3.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c3",
+        "toolName" : "run_shell_command",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-04-10T09:01:58.896110Z"
+    } ],
+    "finalResponse" : {
+      "id" : "13a66845-27e1-414a-859f-079ef00b3712",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:01:58.903777Z"
+    },
+    "timestamp" : 1775811718883
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

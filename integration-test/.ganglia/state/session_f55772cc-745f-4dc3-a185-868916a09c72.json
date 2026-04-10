@@ -1,0 +1,57 @@
+{
+  "sessionId" : "f55772cc-745f-4dc3-a185-868916a09c72",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "c8f127af-8f93-4528-bd38-82370086f7f4",
+    "userMessage" : {
+      "id" : "02d26de7-7949-429e-b8f0-81a8885bf348",
+      "role" : "USER",
+      "content" : "Read the first 5 lines of large_file.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T07:36:56.320249Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "ece850be-a912-41e6-8698-1fba56eb4bf6",
+      "role" : "ASSISTANT",
+      "content" : "Reading first part of the file.",
+      "toolCalls" : [ {
+        "id" : "call_1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "offset" : 0,
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-16219346529450038555/large_file.txt",
+          "limit" : 5
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T07:36:56.323905Z"
+    }, {
+      "id" : "f43c4e4e-d310-446c-81f3-e3202cf9b300",
+      "role" : "TOOL",
+      "content" : "Line 0\nLine 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\n\n--- [Lines 1 to 20 shown] ---\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "call_1",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-25T07:36:56.327057Z"
+    } ],
+    "finalResponse" : {
+      "id" : "f0d1ff47-9abe-4511-a9c0-b13deef6ec8d",
+      "role" : "ASSISTANT",
+      "content" : "I have read the first 5 lines.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T07:36:56.331535Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

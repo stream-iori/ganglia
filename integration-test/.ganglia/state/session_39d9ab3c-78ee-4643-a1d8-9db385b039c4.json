@@ -1,0 +1,178 @@
+{
+  "sessionId" : "39d9ab3c-78ee-4643-a1d8-9db385b039c4",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "065a2be6-42d6-4408-b126-5ee43a21cc20",
+    "userMessage" : {
+      "id" : "aaa38393-43d5-4f24-b0fc-1a60ff13a111",
+      "role" : "USER",
+      "content" : "Write a greeting file and then read it back to verify the content.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T07:05:29.275547Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "2f215ae5-56f6-4a85-a943-b170ee0eb942",
+      "role" : "ASSISTANT",
+      "content" : "I'll decompose this into tasks.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "todo_add",
+        "arguments" : {
+          "description" : "Write greeting file"
+        }
+      }, {
+        "id" : "c2",
+        "toolName" : "todo_add",
+        "arguments" : {
+          "description" : "Read greeting file"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T07:05:29.279554Z"
+    }, {
+      "id" : "90a32b5f-9bf3-4824-a150-c684977729df",
+      "role" : "TOOL",
+      "content" : "Task added.",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "todo_add"
+      },
+      "timestamp" : "2026-03-26T07:05:29.282205Z"
+    }, {
+      "id" : "c941d9c9-200d-40e9-a48b-a885a845ce9e",
+      "role" : "TOOL",
+      "content" : "Task added.",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "todo_add"
+      },
+      "timestamp" : "2026-03-26T07:05:29.285579Z"
+    }, {
+      "id" : "057ef33b-7ac3-49e5-b2cb-a1f77e22c7f1",
+      "role" : "ASSISTANT",
+      "content" : "Writing the greeting file.",
+      "toolCalls" : [ {
+        "id" : "c3",
+        "toolName" : "write_file",
+        "arguments" : {
+          "file_path" : "greeting.txt",
+          "content" : "Hello World"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T07:05:29.290377Z"
+    }, {
+      "id" : "253b0225-800d-40e1-84da-f11204a6634d",
+      "role" : "TOOL",
+      "content" : "SUCCESS: Wrote file greeting.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c3",
+        "toolName" : "write_file"
+      },
+      "timestamp" : "2026-03-26T07:05:29.316456Z"
+    }, {
+      "id" : "fbf65d7a-23d8-4cec-b020-0129b60b2adb",
+      "role" : "ASSISTANT",
+      "content" : "First task done.",
+      "toolCalls" : [ {
+        "id" : "c4",
+        "toolName" : "todo_complete",
+        "arguments" : {
+          "id" : "1"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T07:05:29.321117Z"
+    }, {
+      "id" : "56ee342e-0913-42e9-af74-c20fbca6cdb4",
+      "role" : "TOOL",
+      "content" : "Task 1 completed. Context compressed: No actions performed.",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c4",
+        "toolName" : "todo_complete"
+      },
+      "timestamp" : "2026-03-26T07:05:29.323279Z"
+    }, {
+      "id" : "26e2c5f5-6fe8-4402-83fe-829be5f1995b",
+      "role" : "ASSISTANT",
+      "content" : "Reading the greeting file.",
+      "toolCalls" : [ {
+        "id" : "c5",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-5792056124969277860/greeting.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T07:05:29.327738Z"
+    }, {
+      "id" : "90f02987-bf4d-4ffa-ab8f-b89e20091d1f",
+      "role" : "TOOL",
+      "content" : "Hello World\n\n--- [Lines 1 to 1 shown] ---\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c5",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-26T07:05:29.330101Z"
+    }, {
+      "id" : "c62f531f-a77a-4eb8-b1e8-34e277c292f4",
+      "role" : "ASSISTANT",
+      "content" : "Second task done.",
+      "toolCalls" : [ {
+        "id" : "c6",
+        "toolName" : "todo_complete",
+        "arguments" : {
+          "id" : "2"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T07:05:29.334190Z"
+    }, {
+      "id" : "c509edb9-9edb-4bfd-b8d4-1dfa036ff6e4",
+      "role" : "TOOL",
+      "content" : "Task 2 completed. Context compressed: No actions performed.",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c6",
+        "toolName" : "todo_complete"
+      },
+      "timestamp" : "2026-03-26T07:05:29.335933Z"
+    } ],
+    "finalResponse" : {
+      "id" : "aea86183-db3e-42ff-b13b-c9d26c00bb8a",
+      "role" : "ASSISTANT",
+      "content" : "All tasks completed successfully. The greeting file has been written and verified.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T07:05:29.340044Z"
+    }
+  },
+  "metadata" : {
+    "todo_list" : {
+      "items" : [ {
+        "id" : "1",
+        "description" : "Write greeting file",
+        "status" : "DONE",
+        "result" : "No actions performed."
+      }, {
+        "id" : "2",
+        "description" : "Read greeting file",
+        "status" : "DONE",
+        "result" : "No actions performed."
+      } ]
+    }
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

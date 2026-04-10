@@ -1,0 +1,63 @@
+{
+  "sessionId" : "budget-truncation-test",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "8c904947-eddf-4116-ae78-28b4eaa2f41b",
+    "userMessage" : {
+      "id" : "1bce1f9d-6dd4-4cca-a218-1c6af636b3e1",
+      "role" : "USER",
+      "content" : "Test budget",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:01:59.380426Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "6fbbb411-bc55-4a9d-9e3d-d46964c122a5",
+      "role" : "ASSISTANT",
+      "content" : "Running.",
+      "toolCalls" : [ {
+        "id" : "c-budget",
+        "toolName" : "run_shell_command",
+        "arguments" : {
+          "command" : "echo hi"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:01:59.386609Z"
+    }, {
+      "id" : "58c7f073-0ea2-4b37-9b35-385fedf3d977",
+      "role" : "TOOL",
+      "content" : "[Output from 'run_shell_command' was large (1 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-1944143857681405820/.ganglia/tmp/budget-truncation-test/c-budget.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-1944143857681405820/.ganglia/tmp/budget-truncation-test/c-budget.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c-budget",
+        "toolName" : "run_shell_command",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-04-10T09:01:59.392091Z"
+    } ],
+    "finalResponse" : {
+      "id" : "f7c656fc-64fb-45bc-8344-4c3ffdce9202",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:01:59.398137Z"
+    },
+    "timestamp" : 1775811719380
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

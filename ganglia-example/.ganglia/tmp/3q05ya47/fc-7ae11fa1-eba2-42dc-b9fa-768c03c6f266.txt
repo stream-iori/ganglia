@@ -1,0 +1,5 @@
+./target/classes/log4j2.xml
+./pom.xml
+./src/main/resources/log4j2.xml
+
+--- [Lines 1 to 3 shown] ---

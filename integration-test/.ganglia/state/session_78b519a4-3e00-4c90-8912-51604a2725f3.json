@@ -1,0 +1,55 @@
+{
+  "sessionId" : "78b519a4-3e00-4c90-8912-51604a2725f3",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "fb91e5d2-5e15-4401-85c5-21305b732cc4",
+    "userMessage" : {
+      "id" : "ee1a698b-3a15-494d-8f4a-b3d1951e8bec",
+      "role" : "USER",
+      "content" : "Run complete workflow",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:08.783872Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "0983021e-697b-4883-8cfe-92d717f5e1dd",
+      "role" : "ASSISTANT",
+      "content" : "I will list files.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:08.791327Z"
+    }, {
+      "id" : "e38897bc-1270-47bd-aa8b-bcee8e53c1f4",
+      "role" : "TOOL",
+      "content" : "",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "list_directory"
+      },
+      "timestamp" : "2026-03-24T07:57:08.816910Z"
+    } ],
+    "finalResponse" : {
+      "id" : "b94a0acb-057b-4b1c-ac8e-d5dad0df7b8c",
+      "role" : "ASSISTANT",
+      "content" : "Workflow complete.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:08.820989Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

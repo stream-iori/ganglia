@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="9.3">
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-sqlite-memory/src/main/java/work/ganglia/infrastructure/internal/memory/SqliteConnectionManager.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-sqlite-memory/src/main/java/work/ganglia/infrastructure/internal/memory/SqliteLongTermMemory.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-sqlite-memory/src/main/java/work/ganglia/infrastructure/internal/memory/SqliteMemoryStore.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-sqlite-memory/src/main/java/work/ganglia/infrastructure/internal/memory/SqliteSessionStore.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-sqlite-memory/src/main/java/work/ganglia/infrastructure/internal/memory/SqliteDailyRecordManager.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-sqlite-memory/src/main/java/work/ganglia/infrastructure/internal/memory/SqliteMemoryProvider.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/ganglia-sqlite-memory/src/main/java/work/ganglia/infrastructure/internal/memory/SqliteTimelineLedger.java">
+</file>
+</checkstyle>

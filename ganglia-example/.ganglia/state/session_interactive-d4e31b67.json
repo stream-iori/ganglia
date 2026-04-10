@@ -1,0 +1,74 @@
+{
+  "sessionId" : "interactive-d4e31b67",
+  "previousTurns" : [ {
+    "id" : "eb58e212-7442-4b03-9be6-1d135c6a7dff",
+    "userMessage" : {
+      "id" : "1275b3d0-c3ea-4005-8fc9-0c993625d849",
+      "role" : "USER",
+      "content" : "who are you",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T10:30:04.088089Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "a62f99b9-c8b4-451f-85d7-89a7f588c8cb",
+      "role" : "ASSISTANT",
+      "content" : "I'm Ganlia, a senior software engineer and collaborative peer programmer.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T10:30:06.438015Z"
+    }
+  } ],
+  "currentTurn" : {
+    "id" : "5ff382f2-f56a-4fb4-b31d-a40a8d148c5d",
+    "userMessage" : {
+      "id" : "b63a8c0a-d745-4ff1-ba84-2d8d161a359b",
+      "role" : "USER",
+      "content" : "当前目录有多少个markdown,使用find，不要使用glob",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T10:30:19.585122Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "0601b517-3c02-4a55-96e3-5a0942123d70",
+      "role" : "ASSISTANT",
+      "content" : "",
+      "toolCalls" : [ {
+        "id" : "fc-97d720df-4d40-4e94-ab23-f5fd81c7a4f8",
+        "toolName" : "run_shell_command",
+        "arguments" : {
+          "command" : "find . -name \"*.md\" -type f | wc -l"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T10:30:22.625340Z"
+    }, {
+      "id" : "1c541bac-211a-4951-b176-01bc15b3f428",
+      "role" : "TOOL",
+      "content" : "      48\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "fc-97d720df-4d40-4e94-ab23-f5fd81c7a4f8",
+        "toolName" : "run_shell_command"
+      },
+      "timestamp" : "2026-03-20T10:30:22.744620Z"
+    } ],
+    "finalResponse" : {
+      "id" : "c8854e00-209e-452b-b6ed-fd3fe283dc15",
+      "role" : "ASSISTANT",
+      "content" : "48个markdown文件",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T10:30:23.645211Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "Kimi-K2-Instruct-0905",
+    "stream" : true
+  }
+}

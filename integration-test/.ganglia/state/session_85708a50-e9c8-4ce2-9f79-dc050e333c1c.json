@@ -1,0 +1,63 @@
+{
+  "sessionId" : "85708a50-e9c8-4ce2-9f79-dc050e333c1c",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "e1a6175b-a0b4-4f94-b98c-c277163b0dea",
+    "userMessage" : {
+      "id" : "1ce349b4-9db8-4c7e-b4f5-dfc03db013e3",
+      "role" : "USER",
+      "content" : "Read long.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T08:45:46.425089Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "7455d6e4-6fe0-4b9d-b895-2c968d8e442b",
+      "role" : "ASSISTANT",
+      "content" : "",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-1589024168324587202/long.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T08:45:46.474214Z"
+    }, {
+      "id" : "34c9c826-dcf8-48d0-97b3-05ee9f0ca850",
+      "role" : "TOOL",
+      "content" : "[Output from 'read_file' was large (503 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-1589024168324587202/.ganglia/tmp/85708a50-e9c8-4ce2-9f79-dc050e333c1c/c1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-1589024168324587202/.ganglia/tmp/85708a50-e9c8-4ce2-9f79-dc050e333c1c/c1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "read_file",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-04-10T08:45:46.520347Z"
+    } ],
+    "finalResponse" : {
+      "id" : "9e4a7875-38a7-448d-82a4-be6de3b377a1",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T08:45:46.534264Z"
+    },
+    "timestamp" : 1775810746425
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

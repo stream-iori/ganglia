@@ -1,0 +1,66 @@
+{
+  "sessionId" : "e2e-scenario2-1c2d",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "878da79e-cb99-4b47-bf4d-e0f645f6af02",
+    "userMessage" : {
+      "id" : "f850a3bc-aa7c-4ea1-9179-e0cedaf6faa7",
+      "role" : "USER",
+      "content" : "Find all TODOs in /var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-10218529924227192924",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:01:03.482931Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "5b83a972-ecd9-4994-b5e7-02ef8d6ba149",
+      "role" : "ASSISTANT",
+      "content" : "Searching for TODOs...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "grep_search",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-10218529924227192924",
+          "pattern" : "TODO"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:01:03.489311Z"
+    }, {
+      "id" : "ea8dbc4a-028b-41c2-9a08-44fdbdcd5a61",
+      "role" : "TOOL",
+      "content" : "Security/Validation Error: Access denied: Path escapes project root (/Users/stream/codes/opensource/ganglia/integration-test): /var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-10218529924227192924",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "grep_search",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-04-05T11:01:03.491189Z"
+    } ],
+    "finalResponse" : {
+      "id" : "11095819-73cc-4365-a5e3-277bd66969cb",
+      "role" : "ASSISTANT",
+      "content" : "I found TODOs in task1.java and task2.java.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T11:01:03.496991Z"
+    },
+    "timestamp" : 1775386863482
+  },
+  "metadata" : {
+    "consecutive_tool_failures" : 1
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

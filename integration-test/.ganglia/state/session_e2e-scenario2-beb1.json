@@ -1,0 +1,58 @@
+{
+  "sessionId" : "e2e-scenario2-beb1",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "e71c48a2-5012-453a-a985-e1db6217e7ac",
+    "userMessage" : {
+      "id" : "6f39ddff-170e-4ff4-8eef-800a34d98a0d",
+      "role" : "USER",
+      "content" : "Find all TODOs in /var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-12789462930102227354",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:05.026366Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "f8bbcb6e-30ba-4067-9217-88be58d497e8",
+      "role" : "ASSISTANT",
+      "content" : "Searching for TODOs...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "grep_search",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-12789462930102227354",
+          "pattern" : "TODO"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:05.031443Z"
+    }, {
+      "id" : "8b7b6a2d-e7f1-43c5-a72c-27417883478e",
+      "role" : "TOOL",
+      "content" : "Security/Validation Error: Access denied: Path escapes project root (/Users/stream/codes/opensource/ganglia/integration-test): /var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-12789462930102227354",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "grep_search"
+      },
+      "timestamp" : "2026-03-24T07:57:05.034317Z"
+    } ],
+    "finalResponse" : {
+      "id" : "4fe1824a-a08d-485b-841f-ba1c80dbd42c",
+      "role" : "ASSISTANT",
+      "content" : "I found TODOs in task1.java and task2.java.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-24T07:57:05.041440Z"
+    }
+  },
+  "metadata" : {
+    "consecutive_tool_failures" : 1
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

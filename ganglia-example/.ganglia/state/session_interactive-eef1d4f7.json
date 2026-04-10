@@ -1,0 +1,32 @@
+{
+  "sessionId" : "interactive-eef1d4f7",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "5af9002e-f5cc-4ef3-93cd-ec4731609d79",
+    "userMessage" : {
+      "id" : "a8391433-2738-4da8-9918-8290382feae4",
+      "role" : "USER",
+      "content" : "who are you",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-18T11:16:42.376191Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "43859e11-261c-4949-8088-a759d573a52c",
+      "role" : "ASSISTANT",
+      "content" : "Ganlia, senior software engineer.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-18T11:16:43.726871Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "Kimi-K2-Instruct-0905",
+    "stream" : true
+  }
+}

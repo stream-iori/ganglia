@@ -1,0 +1,80 @@
+{
+  "sessionId" : "e2e-scenario1-8c59",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "5ed2a13a-05b0-4663-aa0f-4d6aff66636c",
+    "userMessage" : {
+      "id" : "380a3940-82dc-49e4-bd7a-680963695a21",
+      "role" : "USER",
+      "content" : "Fetch the content from http://localhost:8085/readme.md and remember the project conventions.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T14:39:56.456972Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "d9673985-0c88-4d87-8e74-78db98bea8a3",
+      "role" : "ASSISTANT",
+      "content" : "Fetching conventions...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "web_fetch",
+        "arguments" : {
+          "url" : "http://localhost:8085/readme.md"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T14:39:56.463293Z"
+    }, {
+      "id" : "7ebee58f-5604-420d-9951-c8c6bd7b13e5",
+      "role" : "TOOL",
+      "content" : "URL validation failed: Blocked address: loopback addresses are not allowed",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "web_fetch",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-03-29T14:39:56.466701Z"
+    }, {
+      "id" : "87b9d5c6-d822-4d32-9932-e50e2d26a493",
+      "role" : "ASSISTANT",
+      "content" : "Remembering fact...",
+      "toolCalls" : [ {
+        "id" : "c2",
+        "toolName" : "remember",
+        "arguments" : {
+          "fact" : "Convention: Use Java 17 records."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T14:39:56.475459Z"
+    }, {
+      "id" : "b34618c8-eb26-4190-a488-1aef9f8b887b",
+      "role" : "TOOL",
+      "content" : "Remembered: Convention: Use Java 17 records.",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "remember",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-03-29T14:39:56.479379Z"
+    } ],
+    "finalResponse" : {
+      "id" : "2f95827e-95ae-4dac-8360-27df0021abad",
+      "role" : "ASSISTANT",
+      "content" : "Task complete.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T14:39:56.487190Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

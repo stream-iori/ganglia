@@ -1,0 +1,94 @@
+{
+  "sessionId" : "interactive-3e58c21a",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "8065db4b-0df1-4927-90ac-3c81462eb580",
+    "userMessage" : {
+      "id" : "49db638b-708f-4478-8e68-aed10e7a4d88",
+      "role" : "USER",
+      "content" : "请给出几个编程语言让我选择.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T10:30:04.611226Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "57c83205-1310-4af0-9c59-2889f9eed286",
+      "role" : "ASSISTANT",
+      "content" : "我来为您列出一些主流的编程语言供您选择：",
+      "toolCalls" : [ {
+        "id" : "fc-687f3613-d4f5-4645-a812-29322b164e2e",
+        "toolName" : "ask_selection",
+        "arguments" : {
+          "questions" : [ {
+            "header" : "编程语言",
+            "question" : "请选择您想要使用或了解的编程语言（可以多选）",
+            "type" : "choice",
+            "multiSelect" : true,
+            "options" : [ {
+              "label" : "Java",
+              "value" : "java",
+              "description" : "企业级应用开发，跨平台，强类型语言"
+            }, {
+              "label" : "Python",
+              "value" : "python",
+              "description" : "数据科学、AI/ML、Web开发，语法简洁"
+            }, {
+              "label" : "JavaScript",
+              "value" : "javascript",
+              "description" : "Web前端开发，Node.js后端，全栈开发"
+            }, {
+              "label" : "TypeScript",
+              "value" : "typescript",
+              "description" : "JavaScript的超集，提供静态类型检查"
+            }, {
+              "label" : "Go",
+              "value" : "go",
+              "description" : "云原生、微服务、高并发，编译型语言"
+            }, {
+              "label" : "Rust",
+              "value" : "rust",
+              "description" : "系统编程、内存安全、高性能"
+            }, {
+              "label" : "C++",
+              "value" : "cpp",
+              "description" : "系统编程、游戏开发、高性能计算"
+            }, {
+              "label" : "C#",
+              "value" : "csharp",
+              "description" : ".NET平台、企业应用、桌面开发"
+            }, {
+              "label" : "Kotlin",
+              "value" : "kotlin",
+              "description" : "Android开发、JVM平台，现代化语法"
+            }, {
+              "label" : "Swift",
+              "value" : "swift",
+              "description" : "iOS/macOS开发，苹果生态系统"
+            } ]
+          } ]
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-27T10:30:19.464386Z"
+    }, {
+      "id" : "df92830c-92f7-4e0f-9fce-789970035b5d",
+      "role" : "TOOL",
+      "content" : "INTERRUPTED: - 请选择您想要使用或了解的编程语言（可以多选） (choice)\n  1. Java - 企业级应用开发，跨平台，强类型语言\n  2. Python - 数据科学、AI/ML、Web开发，语法简洁\n  3. JavaScript - Web前端开发，Node.js后端，全栈开发\n  4. TypeScript - JavaScript的超集，提供静态类型检查\n  5. Go - 云原生、微服务、高并发，编译型语言\n  6. Rust - 系统编程、内存安全、高性能\n  7. C++ - 系统编程、游戏开发、高性能计算\n  8. C# - .NET平台、企业应用、桌面开发\n  9. Kotlin - Android开发、JVM平台，现代化语法\n  10. Swift - iOS/macOS开发，苹果生态系统\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "fc-687f3613-d4f5-4645-a812-29322b164e2e",
+        "toolName" : "ask_selection"
+      },
+      "timestamp" : "2026-03-27T10:30:19.529229Z"
+    } ],
+    "finalResponse" : null
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 65535,
+    "modelName" : "Kimi-K2-Instruct-0905",
+    "stream" : true
+  }
+}

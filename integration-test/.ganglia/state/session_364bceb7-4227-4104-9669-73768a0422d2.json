@@ -1,0 +1,75 @@
+{
+  "sessionId" : "364bceb7-4227-4104-9669-73768a0422d2",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "968e174b-597b-4abe-9e3c-2f11b93b59c5",
+    "userMessage" : {
+      "id" : "ddfc4add-2215-4afa-94c0-4c1a617f2398",
+      "role" : "USER",
+      "content" : "Create two files",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T14:39:57.737120Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "048d8fa1-be26-445a-a4b7-2ccb1b312f87",
+      "role" : "ASSISTANT",
+      "content" : "Creating files.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "write_file",
+        "arguments" : {
+          "file_path" : "file1.txt",
+          "content" : "content1"
+        }
+      }, {
+        "id" : "c2",
+        "toolName" : "write_file",
+        "arguments" : {
+          "file_path" : "file2.txt",
+          "content" : "content2"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T14:39:57.740873Z"
+    }, {
+      "id" : "0b122441-9be7-4bec-b600-204929d83bce",
+      "role" : "TOOL",
+      "content" : "SUCCESS: Wrote file file1.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "write_file",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-03-29T14:39:57.768853Z"
+    }, {
+      "id" : "3d6ff005-b484-4987-97b0-97e9c7ab8997",
+      "role" : "TOOL",
+      "content" : "SUCCESS: Wrote file file2.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "write_file",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-03-29T14:39:57.795752Z"
+    } ],
+    "finalResponse" : {
+      "id" : "e0b59d1d-d47e-4273-91df-d86b2a667e79",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-29T14:39:57.800659Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

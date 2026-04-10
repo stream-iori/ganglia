@@ -1,0 +1,56 @@
+{
+  "sessionId" : "86148f04-6a2a-44e5-9164-af0123e2413d",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "b53f7e5b-f10e-48ee-b1b5-221e4bbb4357",
+    "userMessage" : {
+      "id" : "e7107cfe-c439-4ebc-ab01-1326c219a716",
+      "role" : "USER",
+      "content" : "List directory",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-30T03:04:17.131384Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "214649fa-bcff-462f-90bc-49b836589e0a",
+      "role" : "ASSISTANT",
+      "content" : "Listing.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-30T03:04:17.134690Z"
+    }, {
+      "id" : "3b6cfd54-d365-4453-bb77-2e82a73185e9",
+      "role" : "TOOL",
+      "content" : "[Output from 'list_directory' was large (1 lines) and has been saved to: /private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-15895790823917949395/.ganglia/tmp/86148f04-6a2a-44e5-9164-af0123e2413d/c1.txt]\n[Use read_file(\"/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-15895790823917949395/.ganglia/tmp/86148f04-6a2a-44e5-9164-af0123e2413d/c1.txt\", offset=0, limit=200) to read sections of this file.]",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "list_directory",
+        "outputCapped" : true
+      },
+      "timestamp" : "2026-03-30T03:04:17.137935Z"
+    } ],
+    "finalResponse" : {
+      "id" : "56f307f0-896c-4249-821d-025c297d3e8e",
+      "role" : "ASSISTANT",
+      "content" : "Done listing.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-30T03:04:17.140978Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

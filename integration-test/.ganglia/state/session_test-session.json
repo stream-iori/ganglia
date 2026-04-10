@@ -1,0 +1,61 @@
+{
+  "sessionId" : "test-session",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "89f8ff08-9775-4b3e-b2b2-863775bef74c",
+    "userMessage" : {
+      "id" : "272e31ae-636d-4f2a-819b-3d8cda5937ec",
+      "role" : "USER",
+      "content" : "Trigger recursion",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:02:04.184298Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "4d26ad88-0264-4624-94d0-033220e2d11c",
+      "role" : "ASSISTANT",
+      "content" : "I will call subagent.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "call_sub_agent",
+        "arguments" : {
+          "task" : "SubTask"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:02:04.188481Z"
+    }, {
+      "id" : "abed11e8-b337-41c2-80f3-e5f3887dae29",
+      "role" : "TOOL",
+      "content" : "RECURSION_LIMIT: Sub-agent depth limit reached.",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "call_sub_agent",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-04-10T09:02:04.190936Z"
+    } ],
+    "finalResponse" : {
+      "id" : "83cd237d-d80d-413d-a984-766c21f6b220",
+      "role" : "ASSISTANT",
+      "content" : "Oops, recursion limit hit.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T09:02:04.195060Z"
+    },
+    "timestamp" : 1775811724184
+  },
+  "metadata" : {
+    "consecutive_tool_failures" : 1,
+    "sub_agent_level" : 3
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : null,
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

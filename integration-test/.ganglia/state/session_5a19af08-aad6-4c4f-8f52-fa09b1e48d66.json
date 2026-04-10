@@ -1,0 +1,64 @@
+{
+  "sessionId" : "5a19af08-aad6-4c4f-8f52-fa09b1e48d66",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "b56fe170-feb7-4e7d-bdf7-341da07a11cd",
+    "userMessage" : {
+      "id" : "70002a0c-abca-4308-b3bf-a63623b9b6e2",
+      "role" : "USER",
+      "content" : "Apply patch to app.java",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T12:27:51.251371Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "ab3c518a-5bfb-43a6-85ec-819782bff7d5",
+      "role" : "ASSISTANT",
+      "content" : "Applying patch.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "apply_patch",
+        "arguments" : {
+          "patch" : "--- app.java\n+++ app.java\n@@ -1,1 +1,1 @@\n-public class App {}\n+public class App { public static void main(String[] args) {} }\n",
+          "file_path" : "app.java"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T12:27:51.254252Z"
+    }, {
+      "id" : "87bd10bf-e2af-4005-a0b7-486e8484d1eb",
+      "role" : "TOOL",
+      "content" : "SUCCESS: Applied patch to app.java\npatching file '/private/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-15999033661837842041/app.java'\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "apply_patch",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-04-05T12:27:51.268098Z"
+    } ],
+    "finalResponse" : {
+      "id" : "d9d1be1d-47be-4037-bc32-7850a0cb3494",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-05T12:27:51.271570Z"
+    },
+    "timestamp" : 1775392071251
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "sessionId" : "7252e975-ae63-4e7e-b779-6b86c98d9f9e",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "06c7d59b-e30f-4536-bee0-93387cc8e3db",
+    "userMessage" : {
+      "id" : "8ad18108-5bec-4b1e-a1a7-43a409147458",
+      "role" : "USER",
+      "content" : "Concatenate file1.txt and file2.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T10:25:08.261242Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "f1ca1e4b-6ec9-443f-bfd0-3e8308c7dd19",
+      "role" : "ASSISTANT",
+      "content" : "Listing files.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T10:25:08.267282Z"
+    }, {
+      "id" : "7b29c7d8-8e5e-4d72-a23f-7bd39d516b2f",
+      "role" : "TOOL",
+      "content" : ".ganglia/\nfile1.txt\nfile2.txt",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "list_directory"
+      },
+      "timestamp" : "2026-03-26T10:25:08.272769Z"
+    }, {
+      "id" : "be38964e-98d3-4bd4-a8c2-97714f23d021",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 1.",
+      "toolCalls" : [ {
+        "id" : "c2",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "file1.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T10:25:08.292516Z"
+    }, {
+      "id" : "62529690-5ab9-45a3-8707-7024bee5c3bc",
+      "role" : "TOOL",
+      "content" : "Part 1\n\n--- [Lines 1 to 1 shown] ---\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-26T10:25:08.320446Z"
+    }, {
+      "id" : "e47a4dec-f867-4810-849c-eb36cc8affff",
+      "role" : "ASSISTANT",
+      "content" : "Reading file 2.",
+      "toolCalls" : [ {
+        "id" : "c3",
+        "toolName" : "read_file",
+        "arguments" : {
+          "path" : "file2.txt"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T10:25:08.331388Z"
+    }, {
+      "id" : "91e73b84-6664-4505-98eb-2d6faa3858e5",
+      "role" : "TOOL",
+      "content" : "Part 2\n\n--- [Lines 1 to 1 shown] ---\n",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c3",
+        "toolName" : "read_file"
+      },
+      "timestamp" : "2026-03-26T10:25:08.337669Z"
+    } ],
+    "finalResponse" : {
+      "id" : "780b5098-d6bf-4884-ab06-66b75597d652",
+      "role" : "ASSISTANT",
+      "content" : "The content is: Part 1 Part 2",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-26T10:25:08.346862Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

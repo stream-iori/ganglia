@@ -1,0 +1,39 @@
+FROM python:3.9-slim
+
+# Set noninteractive installation
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Update apt and install essential tools
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    git \
+    patch \
+    wget \
+    curl \
+    build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install uv for faster dependency management
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uv/bin/uv
+ENV PATH="/uv/bin:${PATH}"
+
+# Pre-install common SWE-bench dependencies to save time
+# We use --system to install into the global python environment
+RUN uv pip install --system --no-cache \
+    pytest \
+    numpy \
+    scipy \
+    pytest-cov \
+    tox \
+    pyerfa \
+    hypothesis \
+    cython \
+    "setuptools<60" \
+    wheel \
+    extension-helpers \
+    jinja2 \
+    pypsrp \
+    packaging
+
+# Verify installations
+RUN git --version && pytest --version && uv --version

@@ -1,0 +1,57 @@
+{
+  "sessionId" : "d145545c-64ec-4acf-ad46-e95834003f21",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "d3c66856-e154-4737-8242-c7dd7ec8ea57",
+    "userMessage" : {
+      "id" : "8aae8170-d253-4299-83e5-4570eb0e4c57",
+      "role" : "USER",
+      "content" : "Update line2 in main.py",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T09:23:28.773459Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "0ad3d2e7-0cd6-4bde-8657-5f9b4c68d9d4",
+      "role" : "ASSISTANT",
+      "content" : "Editing file.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "replace_in_file",
+        "arguments" : {
+          "file_path" : "main.py",
+          "old_string" : "line2\n",
+          "new_string" : "line2_updated\n"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T09:23:28.777896Z"
+    }, {
+      "id" : "ec5abc39-01f5-496f-a8e3-e59cb0481e0c",
+      "role" : "TOOL",
+      "content" : "SUCCESS: Replaced 1 occurrence(s) in main.py",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "replace_in_file"
+      },
+      "timestamp" : "2026-03-23T09:23:28.812891Z"
+    } ],
+    "finalResponse" : {
+      "id" : "985b5161-3572-46f3-b866-d00e106c3356",
+      "role" : "ASSISTANT",
+      "content" : "Done.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-23T09:23:28.819315Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

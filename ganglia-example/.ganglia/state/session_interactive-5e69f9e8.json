@@ -1,0 +1,82 @@
+{
+  "sessionId" : "interactive-5e69f9e8",
+  "previousTurns" : [ {
+    "id" : "8e3d968c-c4bc-4c1f-9eaa-44ec7645429e",
+    "userMessage" : {
+      "id" : "ce830755-23c5-47ff-b7b0-031f78c43205",
+      "role" : "USER",
+      "content" : "今天星期几",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T02:09:27.382815Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "52ef23fc-fb7f-40ec-9f05-439d8bb191c6",
+      "role" : "ASSISTANT",
+      "content" : "I cannot determine the current day of the week as I don't have access to system time/date information. You would need to check your device's calendar or use a date command in your terminal.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T02:09:31.184823Z"
+    }
+  }, {
+    "id" : "4add39dc-f630-48dd-9938-ef95fe3937fe",
+    "userMessage" : {
+      "id" : "bf45c3e3-d7ab-4489-acb4-5a0c875d8d82",
+      "role" : "USER",
+      "content" : "你是谁",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T02:09:42.573107Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "9431a71c-ef8e-47e2-9628-76a9bddcd9a0",
+      "role" : "ASSISTANT",
+      "content" : "我是Ganlia，一名高级软件工程师和协作编程伙伴。",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T02:09:44.155521Z"
+    }
+  }, {
+    "id" : "04582f8a-5b0a-4020-94e2-b053d02dca3b",
+    "userMessage" : {
+      "id" : "99265f4c-da97-4d64-9d91-7e733b0616dc",
+      "role" : "USER",
+      "content" : "今天星期几",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T02:09:49.803991Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "e4509379-c75d-4872-8f08-8e8792fc8aca",
+      "role" : "ASSISTANT",
+      "content" : "I cannot determine the current day of the week as I don't have access to system time/date information. You would need to check your device's calendar or use a date command in your terminal.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T02:09:52.984185Z"
+    }
+  } ],
+  "currentTurn" : {
+    "id" : "fcbdc0ab-9397-4088-b4b0-803b7e7f1730",
+    "userMessage" : {
+      "id" : "557fdeb0-5250-4c4f-94cf-b6d4d4fc1e4b",
+      "role" : "USER",
+      "content" : "今天星期几",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-19T02:09:54.816700Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : null
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "Kimi-K2-Instruct-0905",
+    "stream" : true
+  }
+}

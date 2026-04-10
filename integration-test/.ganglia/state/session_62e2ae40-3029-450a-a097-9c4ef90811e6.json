@@ -1,0 +1,55 @@
+{
+  "sessionId" : "62e2ae40-3029-450a-a097-9c4ef90811e6",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "6b9e7f1a-3320-4022-8291-529e24a5d16f",
+    "userMessage" : {
+      "id" : "9ad9bdd0-f283-4e18-a0b8-67d2e9403d79",
+      "role" : "USER",
+      "content" : "List directory",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T06:34:13.610952Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "919405f7-67c6-4bf9-86f3-ef289c85241e",
+      "role" : "ASSISTANT",
+      "content" : "Listing.",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "list_directory",
+        "arguments" : {
+          "path" : "."
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T06:34:13.643265Z"
+    }, {
+      "id" : "6dddb997-d1ce-4e58-be16-17d47a0d398a",
+      "role" : "TOOL",
+      "content" : ".ganglia/",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "list_directory"
+      },
+      "timestamp" : "2026-03-25T06:34:13.666723Z"
+    } ],
+    "finalResponse" : {
+      "id" : "a43f9a0f-7212-4204-9b9b-676921c16c40",
+      "role" : "ASSISTANT",
+      "content" : "Done listing.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-25T06:34:13.678331Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

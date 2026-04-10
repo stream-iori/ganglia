@@ -1,0 +1,59 @@
+{
+  "sessionId" : "e2e-scenario2-fa4c",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "b0d16269-05f3-4db3-8e60-785c1ad03018",
+    "userMessage" : {
+      "id" : "aee52376-eef7-4ff9-be40-105e0c3a22cc",
+      "role" : "USER",
+      "content" : "Find all TODOs in /var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-7168564147821736519",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-30T03:04:14.448265Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "e19fd04d-dc68-426d-90fa-79ac84cfba75",
+      "role" : "ASSISTANT",
+      "content" : "Searching for TODOs...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "grep_search",
+        "arguments" : {
+          "path" : "/var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-7168564147821736519",
+          "pattern" : "TODO"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-30T03:04:14.454091Z"
+    }, {
+      "id" : "e91b1c7b-7d87-4318-9712-acc89abf9f60",
+      "role" : "TOOL",
+      "content" : "Security/Validation Error: Access denied: Path escapes project root (/Users/stream/codes/opensource/ganglia/integration-test): /var/folders/hq/68xf8zr13_18y558cmx_r5480000gp/T/junit-7168564147821736519",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "grep_search",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-03-30T03:04:14.456735Z"
+    } ],
+    "finalResponse" : {
+      "id" : "32127681-6659-4642-b8a1-93e1f486f242",
+      "role" : "ASSISTANT",
+      "content" : "I found TODOs in task1.java and task2.java.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-30T03:04:14.463472Z"
+    }
+  },
+  "metadata" : {
+    "consecutive_tool_failures" : 1
+  },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  }
+}

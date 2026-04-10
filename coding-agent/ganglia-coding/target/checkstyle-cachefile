@@ -1,0 +1,15 @@
+#Fri Apr 10 17:15:32 CST 2026
+configuration*?=A1ACC59ADF05A93FD21E68EA91F0FBA5B73B0A2B
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/prompt/CodingWorkflowSource.java=1775635604864
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/tool/ReplaceInFileTool.java=1775812532375
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/doctor/RipgrepCheck.java=1775635604863
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/prompt/CodingPersonaContextSource.java=1775635604864
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/tool/WriteFileTool.java=1775812532381
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/prompt/CodingGuidelineSource.java=1775635604865
+module-resource*?\:checkstyle-xpath-suppressions.xml=72B111976BACC34601997246404EE54028010B58
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/CodingAgentBuilder.java=1775635604863
+module-resource*?\:checkstyle-suppressions.xml=4D8DDA4A1ADEE190F27D37F55FE33DBEF8E00085
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/tool/FileEditTools.java=1775812532369
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/tool/ApplyPatchTool.java=1775812532384
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/prompt/CodingMandatesContextSource.java=1775635604864
+/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding/src/main/java/work/ganglia/coding/tool/util/DiffGenerator.java=1775635604865

@@ -1,0 +1,89 @@
+{
+  "sessionId" : "interactive-f0c1c370",
+  "previousTurns" : [ {
+    "id" : "b66a4585-508c-459b-bd41-f149d56ce6ef",
+    "userMessage" : {
+      "id" : "6dfe193c-c792-4d01-8a45-4ffa9fc36dae",
+      "role" : "USER",
+      "content" : "who are you",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T05:05:30.333098Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "76126ae1-09b7-416c-9e6b-d2563d7f5195",
+      "role" : "ASSISTANT",
+      "content" : "I'm Ganlia, a senior software engineer and collaborative peer programmer.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T05:05:32.169056Z"
+    }
+  }, {
+    "id" : "7442cb84-93d9-47ad-a9f0-b26df4ac772f",
+    "userMessage" : {
+      "id" : "e23f209b-1c2d-463f-95c5-4c609e660285",
+      "role" : "USER",
+      "content" : "who are you",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T05:05:39.909374Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "d4f76a24-72ad-4156-b666-f425c97e8c72",
+      "role" : "ASSISTANT",
+      "content" : "I'm Ganlia, a senior software engineer and collaborative peer programmer.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T05:05:41.226502Z"
+    }
+  }, {
+    "id" : "617cdcb1-8c4d-4c55-a3a8-79d6e4c5812f",
+    "userMessage" : {
+      "id" : "4973f3a0-e0cf-49de-aafa-40fd83d338de",
+      "role" : "USER",
+      "content" : "who are you",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T05:05:53.146761Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "b97ab13a-b1ec-4c4b-b132-34506738bee3",
+      "role" : "ASSISTANT",
+      "content" : "I'm Ganlia, a senior software engineer and collaborative peer programmer.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T05:05:54.367330Z"
+    }
+  } ],
+  "currentTurn" : {
+    "id" : "35734e6e-565b-40b9-9342-5cf47f69a320",
+    "userMessage" : {
+      "id" : "0f7aa338-d6b8-465c-bc1b-c87ccc443fc4",
+      "role" : "USER",
+      "content" : "who are you",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T05:06:16.376334Z"
+    },
+    "intermediateSteps" : [ ],
+    "finalResponse" : {
+      "id" : "aae4e332-b5aa-4def-875c-dc027b694cf4",
+      "role" : "ASSISTANT",
+      "content" : "I'm Ganlia, a senior software engineer and collaborative peer programmer.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-03-20T05:06:17.719528Z"
+    }
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "Kimi-K2-Instruct-0905",
+    "stream" : true
+  }
+}

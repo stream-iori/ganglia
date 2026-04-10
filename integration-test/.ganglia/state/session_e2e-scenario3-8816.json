@@ -1,0 +1,88 @@
+{
+  "sessionId" : "e2e-scenario3-8816",
+  "previousTurns" : [ ],
+  "currentTurn" : {
+    "id" : "7cb840e4-a851-4ab7-9077-ac492effe149",
+    "userMessage" : {
+      "id" : "a6b83f4a-d29e-4deb-acb4-dfc8c07a05d3",
+      "role" : "USER",
+      "content" : "Activate it-test-skill and say hello.",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T03:25:26.022436Z"
+    },
+    "intermediateSteps" : [ {
+      "id" : "4f45d549-a528-47b1-bddb-98e0cd36d896",
+      "role" : "ASSISTANT",
+      "content" : "Activating skill...",
+      "toolCalls" : [ {
+        "id" : "c1",
+        "toolName" : "activate_skill",
+        "arguments" : {
+          "skillId" : "it-test-skill",
+          "confirmed" : true
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T03:25:26.029701Z"
+    }, {
+      "id" : "72fee977-84af-4fbd-a93e-0a6d18d34d29",
+      "role" : "TOOL",
+      "content" : "Skill successfully activated: IT Test Skill",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c1",
+        "toolName" : "activate_skill",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-04-10T03:25:26.032313Z"
+    }, {
+      "id" : "d54a1707-2ab2-4911-8580-3d12e5eaff10",
+      "role" : "ASSISTANT",
+      "content" : "Using tool...",
+      "toolCalls" : [ {
+        "id" : "c2",
+        "toolName" : "it_test_tool",
+        "arguments" : {
+          "message" : "Hello from Skill"
+        }
+      } ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T03:25:26.042369Z"
+    }, {
+      "id" : "f254706a-5e3d-4360-b012-b91f9680cce1",
+      "role" : "TOOL",
+      "content" : "IT_TOOL_OUTPUT: {{message}}",
+      "toolCalls" : [ ],
+      "toolObservation" : {
+        "toolCallId" : "c2",
+        "toolName" : "it_test_tool",
+        "outputCapped" : false
+      },
+      "timestamp" : "2026-04-10T03:25:26.058983Z"
+    } ],
+    "finalResponse" : {
+      "id" : "e23f1097-28f6-4837-89d0-74b30822e744",
+      "role" : "ASSISTANT",
+      "content" : "Skill collaboration successful: IT_TOOL_OUTPUT: Hello from Skill",
+      "toolCalls" : [ ],
+      "toolObservation" : null,
+      "timestamp" : "2026-04-10T03:25:26.066176Z"
+    },
+    "timestamp" : 1775791526022
+  },
+  "metadata" : { },
+  "activeSkillIds" : [ "it-test-skill" ],
+  "modelOptions" : {
+    "temperature" : 0.0,
+    "maxTokens" : 4096,
+    "modelName" : "kimi-k2-0905-preview",
+    "stream" : true
+  },
+  "compressionState" : {
+    "runningSummary" : null,
+    "consecutiveFailures" : 0,
+    "lastAssistantTimestamp" : null,
+    "recentlyReadFiles" : [ ]
+  }
+}

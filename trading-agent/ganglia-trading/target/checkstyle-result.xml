@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="9.3">
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/pipeline/TradingPipelineOrchestrator.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/memory/BM25Index.java">
+<error line="39" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="47" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="55" column="9" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="73" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="76" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="78" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/memory/TradingMemoryStore.java">
+<error line="40" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/memory/FinancialSituationMemory.java">
+<error line="40" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="58" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/memory/TradingMemoryInterceptor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/TradingAgentBuilder.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/config/TradingConfig.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/graph/DebateTerminationController.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/graph/DebateGraphBuilder.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/graph/PerceptionGraphBuilder.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/graph/CycleContextUtil.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/graph/TraderGraphBuilder.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/graph/RiskDebateGraphBuilder.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/prompt/TradingPersonaContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/prompt/TradingWorkflowSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/prompt/TradingMandatesContextSource.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/evolution/ReflectorPrompts.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/evolution/ReflectionContext.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/evolution/Reflector.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/filter/RoleAwareToolFilter.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/indicator/TechnicalIndicator.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/indicator/SmaIndicator.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/indicator/IndicatorSupport.java">
+<error line="13" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="37" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/indicator/MfiIndicator.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/indicator/AtrIndicator.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/indicator/RsiIndicator.java">
+<error line="34" column="5" severity="warning" message="Each variable declaration must be in its own statement." source="com.puppycrawl.tools.checkstyle.checks.coding.MultipleVariableDeclarationsCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/indicator/MacdIndicator.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/indicator/EmaIndicator.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/indicator/IndicatorRegistry.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/indicator/VwmaIndicator.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/indicator/BollingerBandsIndicator.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/indicator/IndicatorCalculator.java">
+<error line="26" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="28" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/cache/OhlcvCache.java">
+<error line="40" column="15" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="80" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="83" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="91" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/yfinance/YFinanceStockVendor.java">
+<error line="75" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="78" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="82" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="112" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="131" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="133" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="138" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="140" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/yfinance/YFinanceIndicatorVendor.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/yfinance/YFinanceFundamentalsVendor.java">
+<error line="65" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="68" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="137" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="140" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="144" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="151" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="159" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="163" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="167" column="9" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/yfinance/YFinanceNewsVendor.java">
+<error line="71" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="89" column="9" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="90" column="9" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="95" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="96" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="97" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="101" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/yfinance/YFinanceClient.java">
+<error line="109" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/DataVendorSpi.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/alphavantage/AlphaVantageStockVendor.java">
+<error line="26" column="15" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="48" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/alphavantage/AlphaVantageFundamentalsVendor.java">
+<error line="116" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="120" column="9" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/alphavantage/AlphaVantageNewsVendor.java">
+<error line="44" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="62" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="70" column="7" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="78" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/alphavantage/AlphaVantageIndicatorVendor.java">
+<error line="97" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="100" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="141" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="144" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="195" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="198" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/alphavantage/AlphaVantageClient.java">
+<error line="84" column="15" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+<error line="95" column="5" severity="warning" message="&apos;if&apos; construct must use &apos;{}&apos;s." source="com.puppycrawl.tools.checkstyle.checks.blocks.NeedBracesCheck"/>
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/VendorFactory.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/VendorRateLimitException.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/vendor/VendorRouter.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/tool/MarketDataTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/tool/FundamentalsTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/tool/AbstractVendorToolSet.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/data/tool/NewsTools.java">
+</file>
+<file name="/Users/stream/codes/opensource/ganglia/trading-agent/ganglia-trading/src/main/java/work/ganglia/trading/signal/SignalExtractor.java">
+</file>
+</checkstyle>
