@@ -1,9 +1,0 @@
-/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/GangliaWebMain.java
-/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/WebUIEventPublisher.java
-/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/WebUIVerticle.java
-/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/model/CodingEventType.java
-/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/model/JsonRpcNotification.java
-/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/model/JsonRpcRequest.java
-/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/model/JsonRpcResponse.java
-/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/model/ServerEvent.java
-/Users/stream/codes/opensource/ganglia/coding-agent/ganglia-coding-web/src/main/java/work/ganglia/web/model/TtyEvent.java
