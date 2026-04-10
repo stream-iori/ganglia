@@ -1,4 +1,0 @@
-.ganglia/
-pom.xml
-src/
-target/

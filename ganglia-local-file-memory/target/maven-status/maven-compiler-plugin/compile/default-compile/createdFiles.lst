@@ -1,6 +1,0 @@
-work/ganglia/infrastructure/internal/memory/FileSystemMemoryStore.class
-work/ganglia/infrastructure/internal/memory/MarkdownTimelineLedger.class
-work/ganglia/infrastructure/internal/memory/FileSystemMemoryProvider.class
-work/ganglia/infrastructure/internal/memory/FileSystemLongTermMemory.class
-work/ganglia/infrastructure/internal/memory/FileSystemDailyRecordManager.class
-work/ganglia/infrastructure/internal/memory/FileSystemSessionStore.class

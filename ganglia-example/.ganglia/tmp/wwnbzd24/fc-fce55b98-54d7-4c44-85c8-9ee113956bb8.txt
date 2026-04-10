@@ -1,8 +1,0 @@
-/Users/stream/codes/opensource/ganglia/ganglia-example
-total 8
-drwxr-xr-x@  6 stream  staff   192 Mar 30 19:50 .
-drwxr-xr-x@ 29 stream  staff   928 Mar 30 19:50 ..
-drwxr-xr-x@ 10 stream  staff   320 Mar 31 19:50 .ganglia
--rw-r--r--@  1 stream  staff  2170 Mar 29 15:28 pom.xml
-drwxr-xr-x@  3 stream  staff    96 Feb 24 14:12 src
-drwxr-xr-x@  8 stream  staff   256 Mar 30 19:50 target
